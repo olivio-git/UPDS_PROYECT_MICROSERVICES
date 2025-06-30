@@ -1,0 +1,56 @@
+{
+  "name": "auth-service",
+  "version": "1.0.1",
+  "description": "Auth service",
+  "keywords": [
+    "Auth",
+    "CBA",
+    "Service",
+    "Microservices"
+  ],
+  "homepage": "https://github.com/olivio-git/UPDS_PROYECT_MICROSERVICES#readme",
+  "bugs": {
+    "url": "https://github.com/olivio-git/UPDS_PROYECT_MICROSERVICES/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/olivio-git/UPDS_PROYECT_MICROSERVICES.git"
+  },
+  "license": "MIT",
+  "author": "olivio-git",
+  "type": "commonjs",
+  "main": "index.js",
+  "scripts": {
+    "build": "tsc",
+    "start": "node index.js",
+    "dev": "nodemon --exec ts-node index.ts",
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "watch": "tsc --watch"
+  },
+  "dependencies": {
+    "@dotenvx/dotenvx": "^1.45.1",
+    "@types/mongodb": "^4.0.6",
+    "bcrypt": "^6.0.0",
+    "bcryptjs": "^3.0.2",
+    "cors": "^2.8.5",
+    "dotenv": "^17.0.0",
+    "express": "^5.1.0",
+    "jsonwebtoken": "^9.0.2",
+    "mongodb": "^6.17.0",
+    "reflect-metadata": "^0.2.2",
+    "tsyringe": "^4.10.0"
+  },
+  "devDependencies": {
+    "@types/bcrypt": "^5.0.2",
+    "@types/bcryptjs": "^2.4.6",
+    "@types/cors": "^2.8.19",
+    "@types/express": "^5.0.3",
+    "@types/jsonwebtoken": "^9.0.10",
+    "@types/morgan": "^1.9.10",
+    "@types/node": "^24.0.7",
+    "morgan": "^1.10.0",
+    "nodemon": "^3.1.10",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.8.3"
+  }
+}
