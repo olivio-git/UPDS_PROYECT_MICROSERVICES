@@ -1,0 +1,13 @@
+{
+  "watch": [".", ".env"],
+  "ext": ".ts,.js",
+  "ignore": [
+    "node_modules",
+    "dist",
+    ".git",
+    ".vscode",
+    "package-lock.json",
+    "yarn.lock"
+  ],
+  "exec": "ts-node src/index.ts"
+}
