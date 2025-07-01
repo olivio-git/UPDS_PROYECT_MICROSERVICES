@@ -1,29 +1,24 @@
 import { injectable, inject } from "tsyringe";
 import { JwtService } from "../../infrastructure/services/jwt.service";
 import { CustomError, InvalidCredentialsError } from "../middleware/error.middleware";
-import { LoginRequest, LoginResponse } from "../../domain/ports/Interfaces";
 import { MongoDBAuthRepository } from "../../infrastructure/repositories/mongo.auth.repository";
-import { compare } from "bcryptjs";
+import { RefreshTokenRequest, RefreshTokenResponse } from "../../domain/ports/Interfaces";
 
 @injectable()
-export class LoginService {
+export class RefreshTokenService {
     constructor(
         @inject('MongoAuthRepository') private authRepository: MongoDBAuthRepository,
         @inject('JwtService') private jwtService: JwtService
     ) { }
 
-    async execute(credentials: LoginRequest): Promise<LoginResponse | null> {
-        const user = await this.authRepository.findByEmail(credentials.email || '');
-        if (!user) {
+    async execute(credentials: RefreshTokenRequest): Promise<RefreshTokenResponse | null> {
+        const decode = await this.jwtService.decodeToken(credentials.refresh_token);
+        if (!decode) {
             throw new InvalidCredentialsError();
         }
 
-        if (!user.is_active) {
-            throw new CustomError('User is not active', 403);
-        }
-
-        const isPasswordValid = await compare(credentials.password, user.password_hash);
-        if (!isPasswordValid) {
+        const user = await this.authRepository.findById(decode.userId);
+        if (!user) {
             throw new InvalidCredentialsError();
         }
 
@@ -31,6 +26,13 @@ export class LoginService {
             userId: user._id.toString(),
             role: user.role
         });
+        if (!tokens) {
+            throw new CustomError('Error generating tokens', 500);
+        }
+        const updatedUser = await this.authRepository.refreshToken(user._id.toString(), tokens.refreshToken);
+        if (!updatedUser) {
+            throw new CustomError('Error updating refresh token', 500);
+        };
 
         return {
             accessToken: tokens.accessToken,

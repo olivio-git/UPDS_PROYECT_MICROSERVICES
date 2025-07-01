@@ -10,6 +10,7 @@ export class MongoDBConnection {
         if (!MongoDBConnection.instance) {
             MongoDBConnection.instance = new MongoClient(this.uri);
             await MongoDBConnection.instance.connect();
+            console.log("✅: MongoDB connection established successfully.");
         }
         return MongoDBConnection.instance;
     }
