@@ -32,11 +32,23 @@ export class NotificationController {
           break;
 
         case 'password_reset':
-          result = await this.notificationService.sendPasswordResetEmail(
-            to,
-            data.resetToken || 'test-token-123',
-            data.firstName || 'Usuario'
-          );
+          result = await this.notificationService.sendPasswordResetEmail({
+            email: to,
+            firstName: data.firstName || 'Usuario',
+            lastName: data.lastName || 'Test',
+            temporaryPassword: data.temporaryPassword || 'TempPass123!',
+            isTemporaryPassword: true
+          });
+          break;
+
+        case 'new_user_credentials':
+          result = await this.notificationService.sendNewUserCredentialsEmail({
+            email: to,
+            firstName: data.firstName || 'Usuario',
+            lastName: data.lastName || 'Test',
+            temporaryPassword: data.temporaryPassword || 'TempPass123!',
+            role: data.role || 'student'
+          });
           break;
 
         case 'otp':

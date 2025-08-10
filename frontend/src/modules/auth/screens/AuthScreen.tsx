@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Eye, EyeOff, Mail, Lock, User, AlertCircle } from "lucide-react"
+import { Eye, EyeOff, Mail, Lock, User, AlertCircle, CheckCircle } from "lucide-react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/atoms/card"
 import { Label } from "@/components/atoms/label"
 import { Input } from "@/components/atoms/input"
@@ -43,8 +43,9 @@ const AuthScreen = ({ onOTPRequired }: AuthScreenProps) => {
   const [isLogin, setIsLogin] = useState(true)
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
+  const [registrationSuccess, setRegistrationSuccess] = useState(false)
   
-  const { login, register, isLoading, error, clearError, otp } = useAuthStore()
+  const { login, register, isLoading, error, clearError } = useAuthStore()
   const navigate = useNavigate()
 
   // Formularios separados para login y registro
@@ -70,6 +71,7 @@ const AuthScreen = ({ onOTPRequired }: AuthScreenProps) => {
   // Limpiar errores cuando se cambie de modo
   useEffect(() => {
     clearError()
+    setRegistrationSuccess(false)
     loginForm.clearErrors()
     registerForm.clearErrors()
   }, [isLogin, clearError])
@@ -86,14 +88,23 @@ const AuthScreen = ({ onOTPRequired }: AuthScreenProps) => {
     }
   }
 
-  // Manejar registro
+  // Manejar registro (CORREGIDO: via auth-service con contraseña)
   const handleRegister = async (data: RegisterFormData) => {
     const { confirmPassword, ...registerData } = data
-    const success = await register(registerData)
+    const success = await register(registerData) // Ahora requiere contraseña
     
     if (success) {
-      toast.success("¡Cuenta creada exitosamente! Te hemos enviado un email de bienvenida.")
-      navigate("/dashboard")
+      setRegistrationSuccess(true)
+      toast.success("¡Cuenta creada exitosamente! Ya puedes iniciar sesión.")
+      
+      // Auto-cambiar a login después de 3 segundos
+      setTimeout(() => {
+        setIsLogin(true)
+        setRegistrationSuccess(false)
+        registerForm.reset()
+        // Pre-llenar el email en el formulario de login
+        loginForm.setValue("email", data.email)
+      }, 3000)
     } else {
       toast.error("Error en el registro")
     }
@@ -102,6 +113,7 @@ const AuthScreen = ({ onOTPRequired }: AuthScreenProps) => {
   // Alternar entre login y registro
   const toggleMode = () => {
     setIsLogin(!isLogin)
+    setRegistrationSuccess(false)
     clearError()
     loginForm.reset()
     registerForm.reset()
@@ -115,7 +127,6 @@ const AuthScreen = ({ onOTPRequired }: AuthScreenProps) => {
       return
     }
     
-    // Navegar a verificación OTP para reset de contraseña
     if (onOTPRequired) {
       onOTPRequired()
     }
@@ -149,6 +160,25 @@ const AuthScreen = ({ onOTPRequired }: AuthScreenProps) => {
             <Alert variant="destructive" className="mb-4">
               <AlertCircle className="h-4 w-4" />
               <AlertDescription>{error}</AlertDescription>
+            </Alert>
+          )}
+
+          {registrationSuccess && (
+            <Alert className="mb-4 border-green-200 bg-green-50">
+              <CheckCircle className="h-4 w-4 text-green-600" />
+              <AlertDescription className="text-green-800">
+                ¡Registro exitoso! Ya puedes iniciar sesión con tus credenciales. 
+                Redirigiendo al login...
+              </AlertDescription>
+            </Alert>
+          )}
+
+          {!isLogin && !registrationSuccess && (
+            <Alert className="mb-4 border-blue-200 bg-blue-50">
+              <AlertCircle className="h-4 w-4 text-blue-600" />
+              <AlertDescription className="text-blue-800">
+                <strong>Registro como estudiante:</strong> Tu cuenta será creada con permisos de estudiante por defecto.
+              </AlertDescription>
             </Alert>
           )}
 
@@ -224,6 +254,7 @@ const AuthScreen = ({ onOTPRequired }: AuthScreenProps) => {
                     id="firstName"
                     placeholder="Juan"
                     className="border-gray-300 focus:border-blue-500 focus:ring-blue-500"
+                    disabled={isLoading || registrationSuccess}
                     {...registerForm.register("firstName")}
                   />
                   {registerForm.formState.errors.firstName && (
@@ -238,6 +269,7 @@ const AuthScreen = ({ onOTPRequired }: AuthScreenProps) => {
                     id="lastName"
                     placeholder="Pérez"
                     className="border-gray-300 focus:border-blue-500 focus:ring-blue-500"
+                    disabled={isLoading || registrationSuccess}
                     {...registerForm.register("lastName")}
                   />
                   {registerForm.formState.errors.lastName && (
@@ -257,6 +289,7 @@ const AuthScreen = ({ onOTPRequired }: AuthScreenProps) => {
                     type="email"
                     placeholder="tu@email.com"
                     className="pl-10 border-gray-300 focus:border-blue-500 focus:ring-blue-500"
+                    disabled={isLoading || registrationSuccess}
                     {...registerForm.register("email")}
                   />
                 </div>
@@ -276,6 +309,7 @@ const AuthScreen = ({ onOTPRequired }: AuthScreenProps) => {
                     type={showPassword ? "text" : "password"}
                     placeholder="••••••••"
                     className="pl-10 pr-10 border-gray-300 focus:border-blue-500 focus:ring-blue-500"
+                    disabled={isLoading || registrationSuccess}
                     {...registerForm.register("password")}
                   />
                   <Button
@@ -308,6 +342,7 @@ const AuthScreen = ({ onOTPRequired }: AuthScreenProps) => {
                     type={showConfirmPassword ? "text" : "password"}
                     placeholder="••••••••"
                     className="pl-10 pr-10 border-gray-300 focus:border-blue-500 focus:ring-blue-500"
+                    disabled={isLoading || registrationSuccess}
                     {...registerForm.register("confirmPassword")}
                   />
                   <Button
@@ -329,10 +364,23 @@ const AuthScreen = ({ onOTPRequired }: AuthScreenProps) => {
                 )}
               </div>
 
+              {/* Información sobre el tipo de usuario por defecto */}
+              <div className="bg-gray-50 p-3 rounded-lg border border-gray-200">
+                <div className="flex items-center space-x-2">
+                  <User className="h-4 w-4 text-gray-500" />
+                  <span className="text-sm text-gray-600">
+                    <strong>Tipo de cuenta:</strong> Estudiante (por defecto)
+                  </span>
+                </div>
+                <p className="text-xs text-gray-500 mt-1">
+                  Si necesitas otro tipo de cuenta, contacta al administrador después del registro.
+                </p>
+              </div>
+
               <Button 
                 type="submit" 
                 className="w-full bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white font-medium"
-                disabled={isLoading}
+                disabled={isLoading || registrationSuccess}
               >
                 {isLoading ? "Creando cuenta..." : "Crear Cuenta"}
               </Button>
@@ -383,6 +431,7 @@ const AuthScreen = ({ onOTPRequired }: AuthScreenProps) => {
               variant="link"
               className="text-blue-600 hover:text-blue-800 p-0 h-auto font-medium"
               onClick={toggleMode}
+              disabled={isLoading || registrationSuccess}
             >
               {isLogin ? "¿No tienes cuenta? Regístrate" : "¿Ya tienes cuenta? Inicia sesión"}
             </Button>
@@ -394,6 +443,7 @@ const AuthScreen = ({ onOTPRequired }: AuthScreenProps) => {
                 variant="link" 
                 className="text-gray-500 hover:text-gray-700 p-0 h-auto font-normal text-sm"
                 onClick={handleForgotPassword}
+                disabled={isLoading}
               >
                 ¿Olvidaste tu contraseña?
               </Button>

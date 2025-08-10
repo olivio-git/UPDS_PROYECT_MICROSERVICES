@@ -1,15 +1,5 @@
 import { create } from 'zustand';
-import { authService, type RegisterRequest } from '../services/authService';
-
-// interface AuthUser {
-//   _id: string;
-//   email: string;
-//   firstName: string;
-//   lastName: string;
-//   role: string;
-//   isActive: boolean;
-//   permissions: string[];
-// }
+import { authService } from '../services/authService';
 
 interface OTPState {
   isOTPRequired: boolean;
@@ -17,9 +7,13 @@ interface OTPState {
   otpPurpose: 'login' | 'password_reset' | 'email_verification';
   otpExpiresAt?: Date;
   attemptsRemaining: number;
-  // Nuevos campos para el flujo OTP-first
-  pendingAction: 'login' | 'register' | null;
-  pendingData: any;
+}
+
+export interface PublicRegisterRequest {
+  firstName: string;
+  lastName: string;
+  email: string;
+  password: string;
 }
 
 interface AuthStore {
@@ -28,200 +22,82 @@ interface AuthStore {
   isLoading: boolean;
   isAuthenticated: boolean;
   error: string | null;
+  isInitialized: boolean;
   
   // Estados OTP
   otp: OTPState;
   
-  // Acciones de autenticación (NUEVAS - con OTP primero)
-  initiateLogin: (email: string, password: string) => Promise<boolean>;
-  initiateRegister: (data: any) => Promise<boolean>;
-  completeAfterOTP: () => Promise<boolean>;
+  // Acciones principales
+  login: (email: string, password: string) => Promise<boolean>;
+  register: (data: PublicRegisterRequest) => Promise<boolean>;
   
-  // Acciones OTP
+  // Acciones OTP (para el nuevo flujo)
   generateOTP: (email: string, purpose: OTPState['otpPurpose']) => Promise<boolean>;
   verifyOTP: (code: string) => Promise<boolean>;
   clearOTP: () => void;
-  checkOTPStatus: (email: string, purpose: string) => Promise<void>;
   
-  // Acciones de autenticación directas (para casos especiales)
-  directLogin: (email: string, password: string) => Promise<boolean>;
-  directRegister: (data: any) => Promise<boolean>;
+  // Acciones generales
   logout: () => Promise<void>;
   clearError: () => void;
-  
-  // Inicialización
-  initialize: () => void;
+  initialize: () => Promise<void>;
 }
 
 export const useAuthStore = create<AuthStore>((set, get) => ({
   // Estados iniciales
   user: null,
-  isLoading: false,
+  isLoading: true,
   isAuthenticated: false,
   error: null,
+  isInitialized: false,
   
   otp: {
     isOTPRequired: false,
     otpEmail: '',
-    otpPurpose: 'login',
+    otpPurpose: 'email_verification',
     attemptsRemaining: 3,
-    pendingAction: null,
-    pendingData: null,
   },
 
   // Limpiar errores
   clearError: () => set({ error: null }),
 
-  // NUEVO: Iniciar login (con OTP primero)
-  initiateLogin: async (email: string, password: string) => {
+  // 🔐 LOGIN DIRECTO (DESPUÉS DE VERIFICAR OTP)
+  login: async (email: string, password: string) => {
     set({ isLoading: true, error: null });
     
     try {
-      // Primero generar OTP para login
-      const otpResult = await authService.generateOTP({ email, purpose: 'login' });
+      console.log('🔑 [AuthStore] Login DIRECTO con credenciales verificadas');
       
-      if (otpResult.success) {
-        set({ 
-          isLoading: false,
-          otp: {
-            isOTPRequired: true,
-            otpEmail: email,
-            otpPurpose: 'login',
-            otpExpiresAt: otpResult.data?.expiresIn 
-              ? new Date(Date.now() + otpResult.data.expiresIn * 1000)
-              : undefined,
-            attemptsRemaining: 3,
-            pendingAction: 'login',
-            pendingData: { email, password }
-          }
-        });
-        return true;
-      } else {
-        set({ 
-          error: otpResult.message,
-          isLoading: false 
-        });
-        return false;
-      }
-    } catch (error) {
-      set({ 
-        error: 'Error de conexión',
-        isLoading: false 
-      });
-      return false;
-    }
-  },
-
-  // NUEVO: Iniciar registro (con OTP primero)
-  initiateRegister: async (data: RegisterRequest) => {
-    set({ isLoading: true, error: null });
-    
-    try {
-      // Primero generar OTP para verificación de email
-      const otpResult = await authService.generateOTP({ 
-        email: data.email, 
-        purpose: 'email_verification' 
-      });
-      
-      if (otpResult.success) {
-        set({ 
-          isLoading: false,
-          otp: {
-            isOTPRequired: true,
-            otpEmail: data.email,
-            otpPurpose: 'email_verification',
-            otpExpiresAt: otpResult.data?.expiresIn 
-              ? new Date(Date.now() + otpResult.data.expiresIn * 1000)
-              : undefined,
-            attemptsRemaining: 3,
-            pendingAction: 'register',
-            pendingData: data
-          }
-        });
-        return true;
-      } else {
-        set({ 
-          error: otpResult.message,
-          isLoading: false 
-        });
-        return false;
-      }
-    } catch (error) {
-      set({ 
-        error: 'Error de conexión',
-        isLoading: false 
-      });
-      return false;
-    }
-  },
-
-  // NUEVO: Completar acción después de verificar OTP
-  completeAfterOTP: async () => {
-    const { otp } = get();
-    
-    if (!otp.pendingAction || !otp.pendingData) {
-      set({ error: 'No hay acción pendiente' });
-      return false;
-    }
-
-    set({ isLoading: true });
-
-    try {
-      let result;
-      
-      if (otp.pendingAction === 'login') {
-        result = await authService.login(otp.pendingData);
-      } else if (otp.pendingAction === 'register') {
-        result = await authService.register(otp.pendingData);
-      }
-
-      if (result?.success && result.data) {
-        set({ 
-          user: result.data.user || null,
-          isAuthenticated: true,
-          isLoading: false,
-          otp: {
-            isOTPRequired: false,
-            otpEmail: '',
-            otpPurpose: 'login',
-            attemptsRemaining: 3,
-            pendingAction: null,
-            pendingData: null,
-          }
-        });
-        return true;
-      } else {
-        set({ 
-          error: result?.message || 'Error en la operación',
-          isLoading: false 
-        });
-        return false;
-      }
-    } catch (error) {
-      set({ 
-        error: 'Error de conexión',
-        isLoading: false 
-      });
-      return false;
-    }
-  },
-
-  // Login directo (sin OTP) - para casos especiales
-  directLogin: async (email: string, password: string) => {
-    set({ isLoading: true, error: null });
-    
-    try {
       const result = await authService.login({ email, password });
       
       if (result.success) {
-        set({ 
-          user: result.data?.user || null,
-          isAuthenticated: true,
-          isLoading: false,
-          otp: { ...get().otp, isOTPRequired: false }
-        });
-        return true;
+        console.log('✅ [AuthStore] Login exitoso');
+        
+        // El SDK maneja el estado internamente, solo necesitamos actualizar nuestro estado local
+        const currentUser = authService.getCurrentUser();
+        const isAuth = await authService.isAuthenticated();
+        
+        if (currentUser && isAuth) {
+          console.log('🎉 [AuthStore] Login completado exitosamente');
+          set({ 
+            user: currentUser,
+            isAuthenticated: true,
+            isLoading: false,
+            // Limpiar estado OTP después del login exitoso
+            otp: {
+              isOTPRequired: false,
+              otpEmail: '',
+              otpPurpose: 'email_verification',
+              attemptsRemaining: 3,
+            }
+          });
+          return true;
+        } else {
+          console.log('⚠️ [AuthStore] Login exitoso pero sin datos de usuario');
+          set({ isLoading: false });
+          return true;
+        }
       } else {
+        console.error('❌ [AuthStore] Login falló:', result.message);
         set({ 
           error: result.message,
           isLoading: false 
@@ -229,6 +105,7 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
         return false;
       }
     } catch (error) {
+      console.error('❌ [AuthStore] Error inesperado en login:', error);
       set({ 
         error: 'Error de conexión',
         isLoading: false 
@@ -237,29 +114,68 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
     }
   },
 
-  // Registro directo (sin OTP) - para casos especiales
-  directRegister: async (data: RegisterRequest) => {
+  // 👥 REGISTRO DIRECTO
+  register: async (data: PublicRegisterRequest) => {
     set({ isLoading: true, error: null });
     
     try {
-      const result = await authService.register(data);
+      console.log('🚀 [AuthStore] Registro directo');
+      
+      // Validación previa
+      if (!data.email || !data.firstName || !data.lastName || !data.password) {
+        console.error('❌ [AuthStore] Datos incompletos:', data);
+        set({ 
+          error: 'Todos los campos son obligatorios',
+          isLoading: false 
+        });
+        return false;
+      }
+      
+      const result = await authService.register({
+        ...data,
+        role: 'student',
+      });
+      
+      console.log('📥 [AuthStore] Resultado del registro:', {
+        success: result.success,
+        message: result.message,
+        hasUser: !!result.data?.user,
+        hasToken: !!result.data?.accessToken
+      });
       
       if (result.success) {
-        set({ 
-          user: result.data?.user || null,
-          isAuthenticated: true,
-          isLoading: false,
-          otp: { ...get().otp, isOTPRequired: false }
-        });
-        return true;
+        console.log('✅ [AuthStore] Registro exitoso');
+        
+        // Verificar si el registro incluye login automático
+        const currentUser = authService.getCurrentUser();
+        const isAuth = await authService.isAuthenticated();
+        
+        if (currentUser && isAuth) {
+          console.log('🎉 [AuthStore] Registro completado con login automático');
+          set({ 
+            user: currentUser,
+            isAuthenticated: true,
+            isLoading: false,
+          });
+          return true;
+        } else {
+          console.log('✅ [AuthStore] Registro completado, login manual requerido');
+          set({ 
+            isLoading: false,
+            error: null
+          });
+          return true;
+        }
       } else {
+        console.error('❌ [AuthStore] Registro falló:', result.message);
         set({ 
-          error: result.message,
+          error: result.message || 'Error en el registro',
           isLoading: false 
         });
         return false;
       }
     } catch (error) {
+      console.error('❌ [AuthStore] Error inesperado en registro:', error);
       set({ 
         error: 'Error de conexión',
         isLoading: false 
@@ -268,43 +184,21 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
     }
   },
 
-  // Logout
-  logout: async () => {
-    set({ isLoading: true });
-    
-    try {
-      await authService.logout();
-      set({ 
-        user: null,
-        isAuthenticated: false,
-        isLoading: false,
-        error: null,
-        otp: {
-          isOTPRequired: false,
-          otpEmail: '',
-          otpPurpose: 'login',
-          attemptsRemaining: 3,
-          pendingAction: null,
-          pendingData: null,
-        }
-      });
-    } catch (error) {
-      set({ isLoading: false });
-    }
-  },
-
-  // Generar OTP
+  // 📧 GENERAR OTP (NUEVO FLUJO - PRIMERA ETAPA)
   generateOTP: async (email: string, purpose: OTPState['otpPurpose']) => {
     set({ isLoading: true, error: null });
     
     try {
+      console.log('📧 [AuthStore] Generando OTP inicial para:', email, 'propósito:', purpose);
+      
       const result = await authService.generateOTP({ email, purpose });
       
       if (result.success) {
+        console.log('✅ [AuthStore] OTP generado exitosamente');
+        
         set({ 
           isLoading: false,
           otp: {
-            ...get().otp,
             isOTPRequired: true,
             otpEmail: email,
             otpPurpose: purpose,
@@ -316,6 +210,7 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
         });
         return true;
       } else {
+        console.error('❌ [AuthStore] Error generando OTP:', result.message);
         set({ 
           error: result.message,
           isLoading: false 
@@ -323,6 +218,7 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
         return false;
       }
     } catch (error) {
+      console.error('❌ [AuthStore] Error inesperado generando OTP:', error);
       set({ 
         error: 'Error de conexión',
         isLoading: false 
@@ -331,12 +227,14 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
     }
   },
 
-  // Verificar OTP
+  // ✅ VERIFICAR OTP (NUEVO FLUJO - SEGUNDA ETAPA)
   verifyOTP: async (code: string) => {
     const { otp } = get();
     set({ isLoading: true, error: null });
     
     try {
+      console.log('🔍 [AuthStore] Verificando OTP:', code, 'para propósito:', otp.otpPurpose);
+      
       const result = await authService.verifyOTP({
         email: otp.otpEmail,
         code,
@@ -344,28 +242,46 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
       });
       
       if (result.success) {
-        // Si hay una acción pendiente, ejecutarla
-        if (otp.pendingAction) {
-          set({ isLoading: false });
-          return await get().completeAfterOTP();
-        } else {
-          // Solo marcar OTP como verificado
-          set({ 
-            isLoading: false,
-            otp: { ...otp, isOTPRequired: false }
-          });
-          return true;
-        }
-      } else {
-        const attemptsRemaining = otp.attemptsRemaining - 1;
-        set({ 
-          error: result.message,
+        console.log('✅ [AuthStore] OTP verificado exitosamente');
+        
+        // Para el nuevo flujo, el OTP solo verifica el email
+        // No hacemos login automático aquí
+        set({
           isLoading: false,
-          otp: { ...otp, attemptsRemaining }
+          // No limpiamos completamente el OTP, solo marcamos como verificado
+          otp: {
+            ...otp,
+            isOTPRequired: false, // Ya no se requiere
+            attemptsRemaining: 3 // Resetear intentos
+          }
         });
+        return true;
+      } else {
+        console.error('❌ [AuthStore] OTP inválido:', result.message);
+        const attemptsRemaining = otp.attemptsRemaining - 1;
+        
+        if (attemptsRemaining <= 0) {
+          set({ 
+            error: 'Se agotaron los intentos. Genera un nuevo código.',
+            isLoading: false,
+            otp: {
+              isOTPRequired: false,
+              otpEmail: '',
+              otpPurpose: 'email_verification',
+              attemptsRemaining: 3,
+            }
+          });
+        } else {
+          set({ 
+            error: `${result.message} Intentos restantes: ${attemptsRemaining}`,
+            isLoading: false,
+            otp: { ...otp, attemptsRemaining }
+          });
+        }
         return false;
       }
     } catch (error) {
+      console.error('❌ [AuthStore] Error inesperado verificando OTP:', error);
       set({ 
         error: 'Error de conexión',
         isLoading: false 
@@ -374,59 +290,113 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
     }
   },
 
-  // Limpiar estado OTP
+  // 🗑️ LIMPIAR ESTADO OTP
   clearOTP: () => {
+    console.log('🗑️ [AuthStore] Limpiando estado OTP');
     set({
       otp: {
         isOTPRequired: false,
         otpEmail: '',
-        otpPurpose: 'login',
+        otpPurpose: 'email_verification',
         attemptsRemaining: 3,
-        pendingAction: null,
-        pendingData: null,
       }
     });
   },
 
-  // Verificar estado del OTP
-  checkOTPStatus: async (email: string, purpose: string) => {
+  // 🚪 LOGOUT
+  logout: async () => {
+    set({ isLoading: true });
+    
     try {
-      const result = await authService.getOTPStatus(email, purpose);
+      console.log('🚪 [AuthStore] Cerrando sesión...');
+      await authService.logout();
       
-      if (result.success && result.data?.exists) {
-        set({
-          otp: {
-            ...get().otp,
-            isOTPRequired: true,
-            otpEmail: email,
-            otpPurpose: purpose as OTPState['otpPurpose'],
-            otpExpiresAt: result.data.expiresAt ? new Date(result.data.expiresAt) : undefined,
-            attemptsRemaining: result.data.attemptsRemaining || 3,
-          }
-        });
+      // Limpiar rutas guardadas
+      try {
+        sessionStorage.removeItem('cba_current_route');
+        sessionStorage.removeItem('cba_intended_route');
+      } catch (error) {
+        // Silencioso
       }
+      
+      set({ 
+        user: null,
+        isAuthenticated: false,
+        isLoading: false,
+        error: null,
+        otp: {
+          isOTPRequired: false,
+          otpEmail: '',
+          otpPurpose: 'email_verification',
+          attemptsRemaining: 3,
+        }
+      });
+      
+      console.log('✅ [AuthStore] Logout completado');
     } catch (error) {
-      console.error('Error verificando estado OTP:', error);
+      console.error('❌ [AuthStore] Error en logout:', error);
+      set({ isLoading: false });
     }
   },
 
-  // Inicializar - sincronizar con SDK
-  initialize: async () => {
-    const currentUser = authService.getCurrentUser();
-    const isAuth = await authService.isAuthenticated();
+  // 🔄 INICIALIZAR - ESTE ES EL PUNTO CLAVE PARA LA PERSISTENCIA
+  initialize: async ():Promise<any> => {
+    set({ isLoading: true, isInitialized: false });
     
-    set({
-      user: currentUser,
-      isAuthenticated: isAuth,
-      isLoading: false
-    });
-
-    // Suscribirse a cambios del SDK
-    authService.onAuthStateChanged((state) => {
-      set({
-        user: state.user,
-        isAuthenticated: !!state.user
+    try {
+      console.log('🔄 [AuthStore] Inicializando...');
+      
+      // PASO 1: Verificar inmediatamente si hay una sesión válida
+      const currentUser = authService.getCurrentUser();
+      const isAuth = await authService.isAuthenticated();
+      
+      console.log('🔍 [AuthStore] Estado inicial del SDK:', {
+        hasUser: !!currentUser,
+        isAuthenticated: isAuth,
+        userRole: currentUser?.role,
+        userEmail: currentUser?.email
       });
-    });
+      
+      // PASO 2: Configurar el estado inicial basado en el SDK
+      set({
+        user: currentUser,
+        isAuthenticated: isAuth,
+        isLoading: false,
+        isInitialized: true
+      });
+      
+      // PASO 3: Suscribirse a cambios de estado del SDK
+      const unsubscribe = authService.onAuthStateChanged((state) => {
+        console.log('🔔 [AuthStore] Cambio de estado del SDK:', {
+          hasUser: !!state.user,
+          isAuthenticated: !!state.user,
+          loading: state.loading,
+          error: state.error
+        });
+        
+        // Actualizar el estado del store cuando el SDK cambie
+        set({
+          user: state.user || null,
+          isAuthenticated: !!state.user,
+          isLoading: state.loading || false,
+          error: state.error || null
+        });
+      });
+      
+      console.log('✅ [AuthStore] Inicialización completada');
+      
+      // Retornar función de limpieza (opcional)
+      return unsubscribe;
+      
+    } catch (error) {
+      console.error('❌ [AuthStore] Error durante inicialización:', error);
+      set({
+        user: null,
+        isAuthenticated: false,
+        isLoading: false,
+        isInitialized: true,
+        error: 'Error al inicializar autenticación'
+      });
+    }
   },
 }));

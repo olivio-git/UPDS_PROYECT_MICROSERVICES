@@ -1,50 +1,48 @@
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/atoms/card";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/atoms/button";
 import { useAuthStore } from "@/modules/auth/services/authStore";
-import {
-  LogOut,
-  User,
-  Mail,
-  Shield,
-  TestTube,
-  Settings,
-  BookOpen,
-} from "lucide-react";
-import { toast } from "sonner";
-import { useNavigate } from "react-router-dom";
+import { MainLayout } from "@/components/layout"; 
+import GradientWrapper from "@/components/background/GrandWrapperSection";
+import { useNavigate } from "react-router";
 
 const DashboardScreen = () => {
-  const { user, logout, isLoading } = useAuthStore();
+  const { user, isAuthenticated } = useAuthStore();
   const navigate = useNavigate();
-
-  const handleLogout = async () => {
-    try {
-      await logout();
-      toast.success("Sesión cerrada exitosamente");
-    } catch (error) {
-      console.error("Error logging out:", error);
-      toast.error("Error al cerrar sesión");
-    }
-  };
-
+  const [forceUpdate, setForceUpdate] = useState(0);
+  
+  // Escuchar eventos de cambio de autenticación
+  useEffect(() => {
+    const handleAuthChange = () => {
+      console.log('🔄 [DashboardScreen] Evento auth-state-changed recibido');
+      setForceUpdate(prev => prev + 1);
+    };
+    
+    window.addEventListener('auth-state-changed', handleAuthChange);
+    return () => window.removeEventListener('auth-state-changed', handleAuthChange);
+  }, []);
+  
+  // Debug para ver el estado
+  console.log('🎯 [DashboardScreen] Estado completo:', {
+    hasUser: !!user,
+    isAuthenticated,
+    userRole: user?.role,
+    firstName: user?.firstName,
+    lastName: user?.lastName,
+    email: user?.email,
+    fullUser: user
+  });
   const getRoleBadgeColor = (role: string) => {
     switch (role) {
       case "admin":
-        return "bg-red-100 text-red-800";
+        return "bg-gray-800 text-white shadow-md";
       case "teacher":
-        return "bg-blue-100 text-blue-800";
+        return "bg-gray-800 text-white shadow-md";
       case "proctor":
-        return "bg-green-100 text-green-800";
+        return "bg-green-500/20 text-green-300 border border-green-500/30";
       case "student":
-        return "bg-gray-100 text-gray-800";
+        return "bg-gray-800 text-white shadow-md";
       default:
-        return "bg-gray-100 text-gray-800";
+        return "bg-gray-500/20 text-gray-300 border border-gray-500/30";
     }
   };
 
@@ -62,203 +60,56 @@ const DashboardScreen = () => {
         return role;
     }
   };
-  return (
-    <div className="min-h-screen bg-gray-50 p-6">
-      <div className="max-w-4xl mx-auto">
-        {/* Header */}
-        <div className="flex justify-between items-center mb-8">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900">
-              ¡Bienvenido, {user?.firstName}!
-            </h1>
-            <p className="text-gray-600 mt-1">
-              Panel de Control - CBA Platform
-            </p>
-          </div>
-          <Button
-            onClick={handleLogout}
-            disabled={isLoading}
-            variant="outline"
-            className="flex items-center gap-2"
-          >
-            <LogOut className="h-4 w-4" />
-            Cerrar Sesión
-          </Button>
-        </div>
 
-        {/* User Info Card */}
-        <Card className="mb-8">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <User className="h-5 w-5" />
-              Información de Usuario
-            </CardTitle>
-            <CardDescription>Detalles de tu cuenta y permisos</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+  return (
+    <MainLayout gradientVariant="primary">
+      <div className="max-w-6xl mx-auto">
+        <GradientWrapper
+          variant="cosmic"
+          position="center"
+          className="min-h-[80vh] flex items-center justify-center"
+          size="xl"
+          intensity="high"
+          animate={false}
+        > 
+            <div className="text-center space-y-6">
               <div className="space-y-2">
-                <label className="text-sm font-medium text-gray-700">
-                  Nombre Completo
-                </label>
-                <p className="text-gray-900">
-                  {user?.firstName} {user?.lastName}
-                </p>
-              </div>
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-gray-700">
-                  Email
-                </label>
-                <div className="flex items-center gap-2">
-                  <Mail className="h-4 w-4 text-gray-500" />
-                  <p className="text-gray-900">{user?.email}</p>
-                </div>
-              </div>
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-gray-700">Rol</label>
-                <div className="flex items-center gap-2">
-                  <Shield className="h-4 w-4 text-gray-500" />
-                  <span
-                    className={`px-2 py-1 rounded-full text-xs font-medium ${getRoleBadgeColor(
+                <h1 className="mb-4 text-3xl font-extrabold text-gray-900 dark:text-white md:text-5xl lg:text-6xl">
+                  ¡Bienvenido,{" "}
+                  <span className="text-transparent bg-clip-text bg-gradient-to-r to-emerald-600 from-sky-400">
+                    {user?.firstName}!
+                  </span>
+                </h1>
+                <p className="text-sm text-gray-300 max-w-2xl mx-auto font-portfolio">
+                  Todo lo que necesitas para gestionar tu cuenta y acceder a tus
+                  recursos académicos en un solo lugar.
+                </p> 
+                <Button
+                  onClick={() => {
+                    if (user?.role === "admin") {
+                      navigate("/dashboard");
+                    } else {
+                      navigate(`/${user?.role}/dashboard`);
+                    }
+                  }}
+                  className="mt-2 text-white bg-[#20A6FF] hover:bg-[#1A8CD4] focus:ring-4 focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center inline-flex items-center dark:focus:ring-blue-900"
+                  >
+                  <span className="flex items-center gap-2">
+                    Ir a mi Pannel
+                    <span
+                    className={`px-2 py-1 rounded-md text-xs font-extralight ${getRoleBadgeColor(
                       user?.role || ""
                     )}`}
                   >
                     {getRoleLabel(user?.role || "")}
                   </span>
-                </div>
-              </div>
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-gray-700">
-                  Estado
-                </label>
-                <span
-                  className={`px-2 py-1 rounded-full text-xs font-medium ${
-                    user?.isActive
-                      ? "bg-green-100 text-green-800"
-                      : "bg-red-100 text-red-800"
-                  }`}
-                >
-                  {user?.isActive ? "Activo" : "Inactivo"}
-                </span>
+                  </span>
+                </Button>
               </div>
             </div>
-
-            {user?.permissions && user?.permissions.length > 0 && (
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-gray-700">
-                  Permisos
-                </label>
-                <div className="flex flex-wrap gap-2">
-                  {user?.permissions.map(
-                    (permission: string, index: number) => (
-                      <span
-                        key={index}
-                        className="px-2 py-1 bg-blue-50 text-blue-700 rounded text-xs"
-                      >
-                        {permission}
-                      </span>
-                    )
-                  )}
-                </div>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* Quick Actions */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Acciones Rápidas</CardTitle>
-            <CardDescription>
-              Funciones disponibles según tu rol
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {user?.role === "admin" && (
-                <>
-                  <Button
-                    variant="outline"
-                    className="h-20 flex-col gap-2"
-                    onClick={() => navigate("/testing")}
-                  >
-                    <TestTube className="h-6 w-6" />
-                    <span className="text-sm">Panel de Testing</span>
-                  </Button>
-                  <Button
-                    variant="outline"
-                    className="h-20 flex-col gap-2"
-                    onClick={() => toast.info("Próximamente disponible")}
-                  >
-                    <Shield className="h-6 w-6" />
-                    <span className="text-sm">Gestionar Usuarios</span>
-                  </Button>
-                  <Button
-                    variant="outline"
-                    className="h-20 flex-col gap-2"
-                    onClick={() => toast.info("Próximamente disponible")}
-                  >
-                    <Settings className="h-6 w-6" />
-                    <span className="text-sm">Configuración Sistema</span>
-                  </Button>
-                </>
-              )}
-
-              {(user?.role === "teacher" || user?.role === "admin") && (
-                <>
-                  <Button
-                    variant="outline"
-                    className="h-20 flex-col gap-2"
-                    onClick={() => toast.info("Próximamente disponible")}
-                  >
-                    <BookOpen className="h-6 w-6" />
-                    <span className="text-sm">Crear Examen</span>
-                  </Button>
-                  <Button
-                    variant="outline"
-                    className="h-20 flex-col gap-2"
-                    onClick={() => toast.info("Próximamente disponible")}
-                  >
-                    <Shield className="h-6 w-6" />
-                    <span className="text-sm">Ver Resultados</span>
-                  </Button>
-                </>
-              )}
-
-              {user?.role === "student" && (
-                <>
-                  <Button
-                    variant="outline"
-                    className="h-20 flex-col gap-2"
-                    onClick={() => toast.info("Próximamente disponible")}
-                  >
-                    <BookOpen className="h-6 w-6" />
-                    <span className="text-sm">Mis Exámenes</span>
-                  </Button>
-                  <Button
-                    variant="outline"
-                    className="h-20 flex-col gap-2"
-                    onClick={() => toast.info("Próximamente disponible")}
-                  >
-                    <User className="h-6 w-6" />
-                    <span className="text-sm">Mis Resultados</span>
-                  </Button>
-                </>
-              )}
-
-              <Button
-                variant="outline"
-                className="h-20 flex-col gap-2"
-                onClick={() => toast.info("Próximamente disponible")}
-              >
-                <User className="h-6 w-6" />
-                <span className="text-sm">Mi Perfil</span>
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
+        </GradientWrapper>
       </div>
-    </div>
+    </MainLayout>
   );
 };
 

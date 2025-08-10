@@ -1,4 +1,4 @@
-import { Collection, Db } from 'mongodb';
+import { Collection, Db, ObjectId } from 'mongodb';
 import { User, Session } from '../types';
 import { config } from '../config';
 
@@ -47,8 +47,19 @@ export class UserRepository {
     return await this.usersCollection.findOne({ email });
   }
 
+  async updateUserPassword(userId: string, newPassword: string): Promise<User | null> {
+    const result = await this.usersCollection.findOneAndUpdate(
+      { _id: userId as any },
+      { $set: { password: newPassword, updatedAt: new Date() } },
+      { returnDocument: 'after' }
+    );
+    console.log(result, "User password updated");
+    return result || null;
+  }
+
   async findUserById(userId: string): Promise<User | null> {
-    return await this.usersCollection.findOne({ _id: userId as any });
+    const id = new ObjectId(userId);
+    return await this.usersCollection.findOne({ _id: id } as any);
   }
 
   async updateUser(userId: string, updateData: Partial<User>): Promise<User | null> {

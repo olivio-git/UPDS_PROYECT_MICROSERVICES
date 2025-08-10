@@ -13,7 +13,13 @@ export class AuthController {
 
   register = async (req: Request<{}, ApiResponse, RegisterRequest>, res: Response<ApiResponse>) => {
     try {
-      const result = await this.authService.register(req.body);
+      // Agregar rol por defecto si no se especifica
+      const userData = {
+        ...req.body,
+        role: req.body.role || 'student' // Default a student para registro público
+      };
+      
+      const result = await this.authService.register(userData);
       
       res.status(201).json({
         success: true,
@@ -25,6 +31,31 @@ export class AuthController {
         success: false,
         message: error.message || 'Error en el registro',
         error: 'Registration failed'
+      });
+    }
+  };
+
+  changePassword = async (req: AuthenticatedRequest, res: Response<ApiResponse>) => {
+    try {
+      const { userId, oldPassword, newPassword } = req.body;
+      if (!userId || !oldPassword || !newPassword) {
+        return res.status(400).json({
+          success: false,
+          message: 'ID de usuario, contraseña antigua y nueva son requeridos',
+          error: 'Missing required fields'
+        });
+      }
+      const result = await this.authService.changePassword({userId, oldPassword, newPassword});
+      res.status(200).json({
+        success: true,
+        message: 'Contraseña cambiada exitosamente',
+        data: result
+      });
+    } catch (error: any) {
+      res.status(400).json({
+        success: false,
+        message: error.message || 'Error cambiando la contraseña',
+        error: 'Change password failed'
       });
     }
   };

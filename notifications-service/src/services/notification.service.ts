@@ -106,22 +106,81 @@ export class NotificationService {
     }
   }
 
-  async sendPasswordResetEmail(email: string, resetToken: string, firstName: string): Promise<{ success: boolean; emailId?: string }> {
+  /**
+   * Enviar email con credenciales a nuevos usuarios
+   */
+  async sendNewUserCredentialsEmail(userData: {
+    email: string;
+    firstName: string;
+    lastName: string;
+    temporaryPassword: string;
+    role: string;
+  }): Promise<{ success: boolean; emailId?: string }> {
+    try {
+      console.log(`📝 [NOTIFICATION] Creando email de credenciales para: ${userData.email}`);
+      console.log(`🔐 [NOTIFICATION] Contraseña temporal: ${userData.temporaryPassword}`);
+      console.log(`👥 [NOTIFICATION] Usuario: ${userData.firstName} ${userData.lastName}`);
+      console.log(`🏇 [NOTIFICATION] Rol: ${userData.role}`);
+      
+      const emailNotification = await this.notificationRepository.createEmailNotification({
+        to: userData.email,
+        subject: '🎉 Bienvenido a CBA Platform - Tus credenciales de acceso',
+        template: 'new_user_credentials',
+        templateData: {
+          firstName: userData.firstName,
+          lastName: userData.lastName,
+          email: userData.email,
+          temporaryPassword: userData.temporaryPassword,
+          role: userData.role,
+          loginUrl: 'http://localhost:3000/login' // URL del frontend
+        },
+        status: 'pending',
+        priority: 'high', // Alta prioridad para credenciales
+        retryCount: 0,
+        maxRetries: config.email.retryAttempts
+      });
+
+      console.log(`📧 Creando email de credenciales para: ${userData.email}`);
+      console.log(`🏷️ [NOTIFICATION] Template: new_user_credentials`);
+      console.log(`📧 [NOTIFICATION] Email ID: ${emailNotification._id}`);
+
+      // Enviar inmediatamente (alta prioridad)
+      await this.processEmailNotification(emailNotification);
+
+      return { success: true, emailId: emailNotification._id!.toString() };
+    } catch (error: any) {
+      console.error('❌ Error en sendNewUserCredentialsEmail:', error);
+      return { success: false };
+    }
+  }
+
+  async sendPasswordResetEmail(userData: {
+    email: string;
+    firstName: string;
+    lastName: string;
+    temporaryPassword: string;
+    isTemporaryPassword?: boolean;
+  }): Promise<{ success: boolean; emailId?: string }> {
     try {
       const emailNotification = await this.notificationRepository.createEmailNotification({
-        // from: 'no-reply@oliviodev.com',
-        to: email,
-        subject: 'Restablecimiento de contraseña - CBA Platform',
-        template: 'password_reset',
+        to: userData.email,
+        subject: '🔐 Nueva contraseña temporal - CBA Platform',
+        template: 'password_reset_temporary',
         templateData: {
-          resetToken,
-          firstName
+          firstName: userData.firstName,
+          lastName: userData.lastName,
+          email: userData.email,
+          temporaryPassword: userData.temporaryPassword,
+          isTemporaryPassword: userData.isTemporaryPassword || true,
+          loginUrl: 'http://localhost:3000/login'
         },
         status: 'pending',
         priority: 'high',
         retryCount: 0,
         maxRetries: config.email.retryAttempts
       });
+
+      console.log(`📧 Creando email de contraseña temporal para: ${userData.email}`);
 
       // Enviar inmediatamente (alta prioridad)
       await this.processEmailNotification(emailNotification);
@@ -193,6 +252,25 @@ export class NotificationService {
             email.templateData.otpCode,
             email.templateData.purpose,
             email.templateData.expiryMinutes
+          );
+          break;
+
+        case 'new_user_credentials':
+          result = await this.emailService.sendNewUserCredentialsEmail(
+            email.to,
+            email.templateData.firstName,
+            email.templateData.lastName,
+            email.templateData.temporaryPassword
+          );
+          break;
+
+        case 'password_reset_temporary':
+          // Para passwords temporales usamos el mismo template de credenciales
+          result = await this.emailService.sendNewUserCredentialsEmail(
+            email.to,
+            email.templateData.firstName,
+            email.templateData.lastName || '',
+            email.templateData.temporaryPassword
           );
           break;
 

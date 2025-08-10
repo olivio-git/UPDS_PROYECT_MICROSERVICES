@@ -1,4 +1,6 @@
 import { authSDK } from "@/services/sdk-simple-auth";
+import axios from "axios";
+import { toast } from "sonner";
 
 export interface LoginRequest {
   email: string;
@@ -34,184 +36,189 @@ export interface ApiResponse<T = any> {
 class AuthService {
   private baseUrl = import.meta.env.VITE_AUTH_SERVICE_URL || 'http://localhost:3000';
 
-  // Registro con verificación OTP
+  // 📝 REGISTRO DIRECTO (SIN OTP AUTOMÁTICO)
   async register(data: RegisterRequest): Promise<ApiResponse> {
-    console.log(data)
+    console.log('📝 [AuthService] Registro DIRECTO (sin OTP automático)');
+    console.log('📤 [AuthService] Datos:', {
+      email: data.email,
+      firstName: data.firstName,
+      lastName: data.lastName,
+      role: data.role,
+      hasPassword: !!data.password
+    });
+    
     try {
-      // const response = await fetch(`${this.baseUrl}/auth/register`, {
-      //   method: 'POST',
-      //   headers: {
-      //     'Content-Type': 'application/json',
-      //   },
-      //   body: JSON.stringify({ ...data, role: data.role || 'student' }),
-      // });
-      const result = await authSDK.register({
+      const response = await axios.post(`${this.baseUrl}/auth/register`, {
         email: data.email,
         password: data.password,
         firstName: data.firstName,
         lastName: data.lastName,
         role: data.role || 'student'
       }); 
-      console.log(result) 
-
-      if (result.success && result.data) {
-        // Almacenar tokens automáticamente usando el SDK
-        console.log(result.data)
-        // await authSDK.setUserSession({
-        //   accessToken: result.data.accessToken,
-        //   refreshToken: result.data.refreshToken,
-        //   user: result.data.user,
-        // });
-      }
-
       return {
-        success: result.success,
-        message: result.message || 'Usuario registrado exitosamente',
-        data: result.data
+        success: response.data.success,
+        message: response.data.message || 'Usuario registrado exitosamente',
+        data: response.data.data
       };
-    } catch (error) {
-      console.error('Error en registro:', error);
+    } catch (error: any) {
+      console.error('❌ [AuthService] Error en registro:', error);
+      const errorMessage = error.response?.data?.message || 'Error de conexión';
+      toast.error(errorMessage);
       return {
         success: false,
-        message: 'Error de conexión',
+        message: errorMessage,
         error: 'Network error'
       };
     }
   }
 
-  // Login con SDK
-  async login(data: LoginRequest): Promise<ApiResponse> {
-    console.log(data)
+  // 🔐 LOGIN DIRECTO (SIN OTP AUTOMÁTICO)  
+  async login(data: LoginRequest): Promise<ApiResponse> { 
     try {
-      const result = await authSDK.login({ email: data.email, password: data.password });
-      
-      if (result.success) {
-        return {
-          success: true,
-          message: 'Inicio de sesión exitoso',
-          data: result.data
-        };
-      }
-
+      const response = await authSDK.login({
+        email: data.email,
+        password: data.password
+      });  
       return {
-        success: false,
-        message: result.error || 'Error en el inicio de sesión',
-        error: result.error
+        success: true,
+        message: response.message || 'Inicio de sesión exitoso',
+        data: response
       };
-    } catch (error) {
-      console.error('Error en login:', error);
+    } catch (error: any) {
+      console.error('❌ [AuthService] Error en login:', error);
+      const errorMessage = error.message || 'Error de conexión';
+      toast.error(errorMessage);
       return {
         success: false,
-        message: 'Error de conexión',
+        message: errorMessage,
         error: 'Network error'
       };
     }
   }
 
-  // Logout con SDK
-  async logout(): Promise<void> {
-    try {
-      await authSDK.logout();
-    } catch (error) {
-      console.error('Error en logout:', error);
-    }
-  }
-
-  // Generar OTP
+  // 📧 GENERAR OTP (MANUAL/SEPARADO)
   async generateOTP(data: OTPRequest): Promise<ApiResponse> {
+    console.log('📧 [AuthService] Generando OTP MANUAL para:', data.email, 'propósito:', data.purpose);
+    
     try {
-      const response = await fetch(`${this.baseUrl}/auth/otp/generate`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(data),
+      const response = await axios.post(`${this.baseUrl}/auth/otp/generate`, {
+        email: data.email,
+        purpose: data.purpose
       });
-
-      return await response.json();
-    } catch (error) {
-      console.error('Error generando OTP:', error);
+      return {
+        success: response.data.success,
+        message: response.data.message || 'Código OTP enviado exitosamente',
+        data: response.data.data
+      };
+    } catch (error: any) {
+      console.error('❌ [AuthService] Error generando OTP:', error);
+      const errorMessage = error.response?.data?.message || 'Error generando OTP';
+      toast.error(errorMessage);
       return {
         success: false,
-        message: 'Error de conexión',
+        message: errorMessage,
         error: 'Network error'
       };
     }
   }
 
-  // Verificar OTP
-  async verifyOTP(data: OTPVerifyRequest): Promise<ApiResponse> {
+  // ✅ VERIFICAR OTP (MANUAL/SEPARADO)
+  async verifyOTP(data: OTPVerifyRequest): Promise<ApiResponse> { 
     try {
-      const response = await fetch(`${this.baseUrl}/auth/otp/verify`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(data),
-      });
-
-      return await response.json();
-    } catch (error) {
-      console.error('Error verificando OTP:', error);
+      const response = await axios.post(`${this.baseUrl}/auth/otp/verify`, {
+        email: data.email,
+        code: data.code,
+        purpose: data.purpose
+      }); 
+      return {
+        success: response.data.success,
+        message: response.data.message || 'Código verificado exitosamente',
+        data: response.data.data
+      };
+    } catch (error: any) {
+      console.error('❌ [AuthService] Error verificando OTP:', error);
+      const errorMessage = error.response?.data?.message || 'Error verificando OTP';
+      toast.error(errorMessage);
       return {
         success: false,
-        message: 'Error de conexión',
+        message: errorMessage,
         error: 'Network error'
       };
     }
   }
 
-  // Estado del OTP
+  // 📊 ESTADO DEL OTP
   async getOTPStatus(email: string, purpose: string): Promise<ApiResponse> {
+    console.log('📊 [AuthService] Consultando estado OTP para:', email);
+    
     try {
-      const response = await fetch(
+      const response = await axios.get(
         `${this.baseUrl}/auth/otp/status?email=${encodeURIComponent(email)}&purpose=${purpose}`
       );
-
-      return await response.json();
-    } catch (error) {
-      console.error('Error obteniendo estado OTP:', error);
+      
+      return {
+        success: response.data.success,
+        message: response.data.message,
+        data: response.data.data
+      };
+    } catch (error: any) {
+      console.error('❌ [AuthService] Error consultando estado OTP:', error);
+      const errorMessage = error.response?.data?.message || 'Error consultando estado OTP';
       return {
         success: false,
-        message: 'Error de conexión',
+        message: errorMessage,
         error: 'Network error'
       };
     }
   }
 
-  // Revocar OTP
+  // 🗑️ REVOCAR OTP
   async revokeOTP(email: string, purpose: string): Promise<ApiResponse> {
+    console.log('🗑️ [AuthService] Revocando OTP para:', email);
+    
     try {
-      const response = await fetch(`${this.baseUrl}/auth/otp/revoke`, {
-        method: 'DELETE',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ email, purpose }),
+      const response = await axios.delete(`${this.baseUrl}/auth/otp/revoke`, {
+        data: { email, purpose }
       });
 
-      return await response.json();
-    } catch (error) {
-      console.error('Error revocando OTP:', error);
+      return {
+        success: response.data.success,
+        message: response.data.message,
+        data: response.data.data
+      };
+    } catch (error: any) {
+      console.error('❌ [AuthService] Error revocando OTP:', error);
+      const errorMessage = error.response?.data?.message || 'Error revocando OTP';
       return {
         success: false,
-        message: 'Error de conexión',
+        message: errorMessage,
         error: 'Network error'
       };
     }
   }
+ 
+  async logout(): Promise<void> {
+    console.log('🚪 [AuthService] Cerrando sesión...');
+    
+    try {
+      await authSDK.logout();
+      console.log('✅ [AuthService] Logout completado');
+    } catch (error) {
+      console.error('❌ [AuthService] Error en logout:', error);
+    }
+  }
 
-  // Obtener usuario actual del SDK
+  // 👤 USER INFO (desde SDK)
   getCurrentUser() {
     return authSDK.getCurrentUser();
   }
 
-  // Verificar si está autenticado
+  // 🔐 AUTH STATUS (desde SDK)
   async isAuthenticated(): Promise<boolean> {
     return await authSDK.isAuthenticated();
   }
 
-  // Suscribirse a cambios de autenticación
+  // 🔄 AUTH STATE CHANGES (desde SDK)
   onAuthStateChanged(callback: (state: any) => void) {
     return authSDK.onAuthStateChanged(callback);
   }

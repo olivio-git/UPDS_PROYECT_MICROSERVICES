@@ -25,8 +25,8 @@ const RouteRenderer: React.FC<RouteRendererProps> = ({
   user = null,
   redirectTo = "/" 
 }) => { 
+    
   const Component = route.element;
-  
   if (!Component) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
@@ -38,56 +38,43 @@ const RouteRenderer: React.FC<RouteRendererProps> = ({
     );
   }
   
-  // Si es ruta protegida y no está autenticado, redirigir al login
+  // Si es ruta protegida y no está autenticado, redirigir al login inicial (OTP)
   if (route.type === "protected" && !isAuthenticated) {
-    return <Navigate to={redirectTo} replace />;
+    return <Navigate to="/" replace />;
   }
 
-  // Si es ruta pública y ya está autenticado, redirigir al dashboard
-  if (route.type === "public" && isAuthenticated && route.path === "/") {
-    return <Navigate to="/dashboard" replace />;
+  // Si es ruta pública y ya está autenticado, redirigir según el rol
+  if (route.type === "public" && isAuthenticated && user) {
+    console.log("Usuario autenticado accediendo a ruta pública, redirigiendo según rol");
+    
+    // Redirigir automáticamente según el rol del usuario
+    const getRoleBasedRedirect = (userRole: string) => {
+      switch (userRole) {
+        case "admin":
+          return "/dashboard";
+        case "teacher":
+          return "/teacher/dashboard";
+        case "proctor":
+          return "/proctor/dashboard";
+        case "student":
+          return "/student/dashboard";
+        default:
+          return "/dashboard";
+      }
+    };
+
+    return <Navigate to={getRoleBasedRedirect(user.role)} replace />;
   }
 
-  // Verificar permisos de rol para rutas protegidas
+  // Redirección automática del dashboard general según el rol
+  if (route.path === "/dashboard" && isAuthenticated && user && user.role !== "admin") {
+    console.log("Redirigiendo desde dashboard general al dashboard específico del rol:", user.role);
+    return <Navigate to={`/${user.role}/dashboard`} replace />;
+  }
+
   if (route.type === "protected" && isAuthenticated && user) {
-    // Si la ruta requiere admin y el usuario no es admin
-    if (route.isAdmin && user.role !== "admin") {
-      return (
-        <div className="min-h-screen flex items-center justify-center bg-gray-50">
-          <div className="text-center space-y-4">
-            <h1 className="text-4xl font-bold text-red-600">403</h1>
-            <p className="text-gray-600">No tienes permisos para acceder a esta página</p>
-            <a 
-              href="/dashboard" 
-              className="inline-block px-4 py-2 bg-black text-white rounded hover:bg-gray-800 transition-colors"
-            >
-              Volver al Dashboard
-            </a>
-          </div>
-        </div>
-      );
-    }
-
-    // Si la ruta requiere un rol específico (que no sea "all")
-    if (route.role && route.role !== "all" && user.role !== route.role) {
-      return (
-        <div className="min-h-screen flex items-center justify-center bg-gray-50">
-          <div className="text-center space-y-4">
-            <h1 className="text-4xl font-bold text-red-600">403</h1>
-            <p className="text-gray-600">
-              Esta función requiere permisos de {route.role}
-            </p>
-            <a 
-              href="/dashboard" 
-              className="inline-block px-4 py-2 bg-black text-white rounded hover:bg-gray-800 transition-colors"
-            >
-              Volver al Dashboard
-            </a>
-          </div>
-        </div>
-      );
-    }
-
+    console.log("Es ruta protegida y el usuario está autenticado");
+    
     // Verificar si el usuario está activo
     if (!user.isActive) {
       return (
@@ -97,6 +84,49 @@ const RouteRenderer: React.FC<RouteRendererProps> = ({
             <p className="text-gray-600">
               Tu cuenta está desactivada. Contacta al administrador.
             </p>
+          </div>
+        </div>
+      );
+    }
+
+    // Verificar roles permitidos
+    if (route.role && route.role.length > 0) {
+      console.log("Verificando roles para la ruta:", route.path);
+      // Si la ruta incluye "all", permitir acceso a todos los usuarios autenticados
+      if (!route.role.includes("all") && !route.role.includes(user.role as any)) {
+        return (
+          <div className="min-h-screen flex items-center justify-center bg-gray-50">
+            <div className="text-center space-y-4">
+              <h1 className="text-4xl font-bold text-red-600">403</h1>
+              <p className="text-gray-600">
+                Esta función requiere uno de estos roles: {route.role.join(", ")}
+              </p>
+              <a 
+                href={user.role === "admin" ? "/dashboard" : `/${user.role}/dashboard`}
+                className="inline-block px-4 py-2 bg-black text-white rounded hover:bg-gray-800 transition-colors"
+              >
+                Volver al Dashboard
+              </a>
+            </div>
+          </div>
+        );
+      }
+    }
+
+    // Verificación adicional para isAdmin (opcional, ya que role debería manejarlo)
+    if (route.isAdmin && user.role !== "admin") {
+      console.log("Acceso denegado a ruta de administrador:", route.path);
+      return (
+        <div className="min-h-screen flex items-center justify-center bg-gray-50">
+          <div className="text-center space-y-4">
+            <h1 className="text-4xl font-bold text-red-600">403</h1>
+            <p className="text-gray-600">No tienes permisos de administrador</p>
+            <a 
+              href={`/${user.role}/dashboard`}
+              className="inline-block px-4 py-2 bg-black text-white rounded hover:bg-gray-800 transition-colors"
+            >
+              Volver al Dashboard
+            </a>
           </div>
         </div>
       );

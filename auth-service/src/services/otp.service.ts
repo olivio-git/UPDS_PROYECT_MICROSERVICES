@@ -1,6 +1,7 @@
 import crypto from 'crypto';
 import { CacheRepository } from '../repositories/cache.repository';
 import { EventService } from './event.service';
+import { UserRepository } from '../repositories/user.repository';
 
 export interface OtpData {
   code: string;
@@ -19,11 +20,21 @@ export class OtpService {
 
   constructor(
     private cacheRepository: CacheRepository,
-    private eventService: EventService
+    private eventService: EventService,
+    private userRepository: UserRepository
   ) {}
 
   async generateOtp(email: string, purpose: OtpData['purpose']): Promise<{ success: boolean; message: string; expiresIn?: number }> {
     // Verificar rate limiting
+    const user = await this.userRepository.findUserByEmail(email);
+    if (purpose === 'login' && !user) {
+      return {
+        success: false,
+        message: 'Usuario no encontrado'
+      };
+    };
+
+    // RateLimiting
     const rateLimitKey = `otp_rate_limit:${email}`;
     const rateLimit = await this.cacheRepository.checkRateLimit(rateLimitKey, 3, this.RATE_LIMIT_WINDOW);
     

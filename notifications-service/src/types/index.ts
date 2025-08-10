@@ -71,6 +71,7 @@ export interface KafkaMessage {
   eventType: string;
   service: string;
   data: any;
+  userData?: any;
 }
 
 export interface EmailSendResult {

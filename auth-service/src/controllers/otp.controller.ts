@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import { OtpService, OtpData } from '../services/otp.service';
 import { ApiResponse } from '../types';
+import { AuthService } from '../services/auth.service';
 
 interface OtpGenerateRequest {
   email: string;
@@ -14,7 +15,7 @@ interface OtpVerifyRequest {
 }
 
 export class OtpController {
-  constructor(private otpService: OtpService) {}
+  constructor(private otpService: OtpService, private authService: AuthService) {}
 
   generateOtp = async (req: Request<{}, ApiResponse, OtpGenerateRequest>, res: Response<ApiResponse>) => {
     try {
@@ -27,7 +28,7 @@ export class OtpController {
           error: 'Missing required fields'
         });
       }
-
+      
       const result = await this.otpService.generateOtp(email, purpose);
 
       if (!result.success) {

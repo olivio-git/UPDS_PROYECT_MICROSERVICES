@@ -16,7 +16,7 @@ export class AuthMiddleware {
   authenticate = async (req: AuthenticatedRequest, res: Response<ApiResponse>, next: NextFunction) => {
     try {
       const authHeader = req.headers.authorization;
-      
+      console.log(authHeader,"HEADER IN AUTH MIDDLEWARE");
       if (!authHeader || !authHeader.startsWith('Bearer ')) {
         return res.status(401).json({
           success: false,

@@ -1,17 +1,18 @@
 import LoginScreen from "@/modules/auth/screens/LoginScreen";
+import OtpInitialScreen from "@/modules/auth/screens/OtpInitialScreen";
 import type RouteType from "./RouteType";
-import { LogIn, Mail } from "lucide-react"
+import { LogIn, Mail, Shield } from "lucide-react"
 import OtpVerificator from "@/modules/auth/screens/Otp-Verification";
 
 export const publicRoutes: RouteType[] = [
   {
     path: "/",
-    name: "Login",
+    name: "OTP Verification",
     type: "public",
-    element: LoginScreen,
+    element: OtpInitialScreen,
     isAdmin: false,
-    role: "guest",
-    icon: LogIn
+    role: ["all"],
+    icon: Shield
   },
   {
     path: "/login",
@@ -19,7 +20,7 @@ export const publicRoutes: RouteType[] = [
     type: "public",
     element: LoginScreen,
     isAdmin: false,
-    role: "guest",
+    role: ["all"],
     icon: LogIn
   },
   {
@@ -28,7 +29,7 @@ export const publicRoutes: RouteType[] = [
     type: "public",
     element: OtpVerificator,
     isAdmin: false,
-    role: "guest",
+    role: ["all"],
     icon: Mail
   },
 ];

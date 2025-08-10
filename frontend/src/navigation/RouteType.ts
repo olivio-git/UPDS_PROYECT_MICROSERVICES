@@ -1,4 +1,5 @@
-import type React from "react";
+import type React from "react"; 
+import type { RouteRole } from "./types/RouteTypes";
 
 export default interface RouteType {
     path: string;
@@ -9,5 +10,9 @@ export default interface RouteType {
     exact?: boolean;
     children?: RouteType[]; 
     isAdmin?: boolean;
-    role?: "admin" | "user" | "guest" | "all"; // Define roles if needed
+    role?: RouteRole[]; // Updated to use new types
+    hidden?: boolean; // Para ocultar rutas del menú de navegación
+    priority?: number;
+    description?: string;
+    isDefault?: boolean;
 }

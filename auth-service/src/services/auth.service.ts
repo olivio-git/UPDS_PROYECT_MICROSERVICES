@@ -4,7 +4,7 @@ import { CacheRepository } from '../repositories/cache.repository';
 import { JwtService } from './jwt.service';
 import { EventService } from './event.service';
 import { User, AuthResponse, JWTPayload } from '../types';
-import { LoginRequest, RegisterRequest } from '../schemas/auth.schemas';
+import { ChangePasswordRequest, LoginRequest, RegisterRequest } from '../schemas/auth.schemas';
 
 export class AuthService {
   constructor(
@@ -62,13 +62,38 @@ export class AuthService {
     };
   }
 
+  async changePassword(changePassword:ChangePasswordRequest):Promise<boolean> {
+    const { userId, oldPassword, newPassword } = changePassword;
+    console.log(changePassword," Change password request received");
+    // Buscar usuario
+    const user = await this.userRepository.findUserById(userId);
+    console.log(user," User found for password change");
+    if (!user) {
+      throw new Error('Usuario no encontrado');
+    }
+
+    // Verificar contraseña antigua
+    const isOldPasswordValid = await bcrypt.compare(oldPassword, user.password);
+    if (!isOldPasswordValid) {
+      throw new Error('Contraseña antigua inválida');
+    }
+
+    // Hash de la nueva contraseña
+    const hashedNewPassword = await bcrypt.hash(newPassword, 12);
+
+    // Actualizar contraseña
+    await this.userRepository.updateUserPassword(user._id as string, hashedNewPassword);
+
+    return true;
+  }
+
   async login(loginData: LoginRequest, userAgent?: string, ipAddress?: string): Promise<AuthResponse> {
     const { email, password } = loginData;
 
     // Buscar usuario
     const user = await this.userRepository.findUserByEmail(email);
     if (!user || !user.isActive) {
-      throw new Error('Credenciales inválidas');
+      throw new Error('Usuario no encontrado o inactivo');
     }
 
     // Verificar contraseña

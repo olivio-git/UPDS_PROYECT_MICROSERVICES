@@ -39,6 +39,11 @@ export const config = {
     }
   },
 
+  service: {
+    token: process.env.SERVICE_TOKEN || 'auth-service-token-2024',
+    allowDirectRegistration: process.env.ALLOW_DIRECT_REGISTRATION === 'true'
+  },
+
   logging: {
     level: process.env.LOG_LEVEL || 'info'
   }

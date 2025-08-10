@@ -133,6 +133,20 @@ export class EmailService {
     return await this.sendEmail(to, subject, htmlContent, textContent);
   }
 
+  async sendNewUserCredentialsEmail(
+    to: string,
+    firstName: string,
+    lastName: string,
+    tempPassword: string
+  ): Promise<EmailSendResult> {
+    const subject = `Credenciales de acceso - CBA Platform`;
+    
+    const htmlContent = this.generateNewUserCredentialsEmailHtml(firstName, lastName, to, tempPassword);
+    const textContent = this.generateNewUserCredentialsEmailText(firstName, lastName, to, tempPassword);
+
+    return await this.sendEmail(to, subject, htmlContent, textContent);
+  }
+
   // HTML Email Templates
   private generateOtpEmailHtml(otpCode: string, purpose: string, expiryMinutes: number): string {
     return `
@@ -293,6 +307,89 @@ export class EmailService {
     </html>`;
   }
 
+  private generateNewUserCredentialsEmailHtml(
+    firstName: string, 
+    lastName: string, 
+    email: string, 
+    tempPassword: string
+  ): string {
+    const loginUrl = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/login`;
+    
+    return `
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Credenciales de Acceso - CBA Platform</title>
+        <style>
+            body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; margin: 0; padding: 0; }
+            .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+            .header { background: linear-gradient(135deg, #28a745 0%, #20c997 100%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }
+            .content { background: #f8f9fa; padding: 40px; border-radius: 0 0 10px 10px; }
+            .credentials-box { background: white; padding: 25px; border-radius: 10px; margin: 20px 0; box-shadow: 0 2px 10px rgba(0,0,0,0.1); border-left: 5px solid #28a745; }
+            .credential-item { margin: 15px 0; }
+            .credential-label { font-weight: bold; color: #495057; }
+            .credential-value { background: #e9ecef; padding: 10px; border-radius: 5px; font-family: monospace; font-size: 16px; margin-top: 5px; word-break: break-all; }
+            .button { display: inline-block; background: #007bff; color: white; padding: 15px 30px; text-decoration: none; border-radius: 5px; margin: 20px 0; text-align: center; }
+            .warning { background: #fff3cd; border: 1px solid #ffeaa7; color: #856404; padding: 15px; border-radius: 5px; margin: 20px 0; }
+            .footer { text-align: center; margin-top: 30px; color: #666; font-size: 14px; }
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <div class="header">
+                <h1>🎉 ¡Cuenta Creada!</h1>
+                <p>Centro Boliviano Americano - Tarija</p>
+            </div>
+            <div class="content">
+                <h2>¡Hola ${firstName} ${lastName}!</h2>
+                <p>Te damos la bienvenida a <strong>CBA Platform</strong>. Tu cuenta ha sido creada exitosamente.</p>
+                
+                <div class="credentials-box">
+                    <h3>🔑 Tus credenciales de acceso:</h3>
+                    
+                    <div class="credential-item">
+                        <div class="credential-label">Usuario (Email):</div>
+                        <div class="credential-value">${email}</div>
+                    </div>
+                    
+                    <div class="credential-item">
+                        <div class="credential-label">Contraseña temporal:</div>
+                        <div class="credential-value">${tempPassword}</div>
+                    </div>
+                </div>
+                
+                <p><strong>Primeros pasos:</strong></p>
+                <ol>
+                    <li>Inicia sesión con las credenciales de arriba</li>
+                    <li>Cambia tu contraseña temporal por una personal</li>
+                    <li>Completa tu perfil si es necesario</li>
+                    <li>¡Comienza a usar la plataforma!</li>
+                </ol>
+                
+                <a href="${loginUrl}" class="button">Iniciar Sesión</a>
+                
+                <div class="warning">
+                    <strong>⚠️ Importante:</strong>
+                    <ul>
+                        <li>Cambia tu contraseña temporal en el primer inicio de sesión</li>
+                        <li>No compartas estas credenciales con nadie</li>
+                        <li>Guarda esta información en un lugar seguro</li>
+                    </ul>
+                </div>
+                
+                <p>Estamos emocionados de tenerte en nuestro equipo. ¡Bienvenido a bordo!</p>
+            </div>
+            <div class="footer">
+                <p>© 2025 Centro Boliviano Americano - Tarija<br>
+                Este email fue enviado automáticamente, no respondas a este mensaje.</p>
+            </div>
+        </div>
+    </body>
+    </html>`;
+  }
+
   // Text Email Templates
   private generateOtpEmailText(otpCode: string, purpose: string, expiryMinutes: number): string {
     return `
@@ -355,6 +452,45 @@ ${resetUrl}
 - Este enlace expira en 1 hora
 - Solo puede ser usado una vez
 - Si no solicitaste este cambio, ignora este email
+
+© 2025 Centro Boliviano Americano - Tarija
+Este email fue enviado automáticamente, no respondas a este mensaje.
+    `;
+  }
+
+  private generateNewUserCredentialsEmailText(
+    firstName: string, 
+    lastName: string, 
+    email: string, 
+    tempPassword: string
+  ): string {
+    const loginUrl = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/login`;
+    
+    return `
+CBA Platform - Credenciales de Acceso
+
+¡Hola ${firstName} ${lastName}!
+
+Te damos la bienvenida a CBA Platform. Tu cuenta ha sido creada exitosamente.
+
+Tus credenciales de acceso:
+- Usuario (Email): ${email}
+- Contraseña temporal: ${tempPassword}
+
+Primeros pasos:
+1. Inicia sesión con las credenciales de arriba
+2. Cambia tu contraseña temporal por una personal
+3. Completa tu perfil si es necesario
+4. ¡Comienza a usar la plataforma!
+
+Enlace de acceso: ${loginUrl}
+
+⚠️ IMPORTANTE:
+- Cambia tu contraseña temporal en el primer inicio de sesión
+- No compartas estas credenciales con nadie
+- Guarda esta información en un lugar seguro
+
+Estamos emocionados de tenerte en nuestro equipo. ¡Bienvenido a bordo!
 
 © 2025 Centro Boliviano Americano - Tarija
 Este email fue enviado automáticamente, no respondas a este mensaje.

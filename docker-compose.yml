@@ -145,6 +145,54 @@ services:
       timeout: 5s
       retries: 5
 
+  #USER MANAGEMENT SERVICE
+  user-management-service:
+    build:
+      context: ./user-management-service
+      dockerfile: dockerfile
+    container_name: user-management-service
+    ports:
+      - "${USER_MANAGEMENT_SERVICE_PORT}:3002"
+    environment:
+      - NODE_ENV=${NODE_ENV}
+      - PORT=3002
+      - MONGO_URI=mongodb://${MONGO_ROOT_USERNAME}:${MONGO_ROOT_PASSWORD}@mongo:27017
+      - MONGO_DB_NAME=${MONGO_DB_NAME}
+      - MONGO_COLLECTION_USERS=users
+      - MONGO_COLLECTION_CANDIDATES=candidates
+      - MONGO_COLLECTION_ROLES=roles
+      - REDIS_URI=redis://:${REDIS_PASSWORD}@redis:6379
+      - REDIS_CACHE_PREFIX="usermgmt:cache"
+      - REDIS_SESSION_PREFIX="usermgmt:session"
+      - KAFKA_CLIENT_ID=user-management-service
+      - KAFKA_BROKER=kafka:29092
+      - KAFKA_TOPIC_USER_EVENTS=user-events
+      - KAFKA_TOPIC_CANDIDATE_EVENTS=candidate-events
+      - AUTH_SERVICE_URL=http://auth-service:3000
+      - AUTH_SERVICE_TOKEN=${JWT_SECRET}
+      - JWT_SECRET=${JWT_SECRET}
+      - UPLOAD_MAX_SIZE=10485760
+      - UPLOAD_ALLOWED_TYPES="image/jpeg,image/png,application/pdf,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,text/csv"
+      - CORS_ORIGIN=${CORS_ORIGIN}
+      - LOG_LEVEL=info
+      - MAX_IMPORT_RECORDS=1000
+      - EXCEL_SHEET_NAME=Candidates
+    depends_on:
+      redis:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+      mongo:
+        condition: service_healthy
+      auth-service:
+        condition: service_healthy
+    restart: on-failure
+    healthcheck:
+      test: [ "CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3002/health" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
   #NOTIFICATION SERVICE
   notifications-service:
     build:
@@ -152,10 +200,10 @@ services:
       dockerfile: dockerfile
     container_name: notification-service
     ports:
-      - "${NOTIFICATION_SERVICE_PORT}:3000"
+      - "${NOTIFICATION_SERVICE_PORT}:3001"
     environment:
       - NODE_ENV=${NODE_ENV}
-      - PORT=3000
+      - PORT=3001
       - MONGO_URI=mongodb://${MONGO_ROOT_USERNAME}:${MONGO_ROOT_PASSWORD}@mongo:27017
       - MONGO_DB_NAME=${MONGO_NOTIFICATION_DB_NAME}
       - MONGO_COLLECTION_EMAILS=${MONGO_COLLECTION_EMAILS}
@@ -188,11 +236,32 @@ services:
         condition: service_healthy
     restart: on-failure
     healthcheck:
-      test: [ "CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3000/health" ]
+      test: [ "CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3001/health" ]
       interval: 10s
       timeout: 5s
       retries: 5
-
+  exam-service:
+    build: .
+    container_name: exam-service
+    environment:
+      - NODE_ENV=production
+      - PORT=3003
+      - MONGO_URI=mongodb://admin:password@mongo:27017/cba_platform?authSource=admin
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - KAFKA_BROKER=kafka:29092
+    ports:
+      - "3003:3003"
+    depends_on:
+      - mongo
+      - redis
+      - kafka
+    networks:
+      - cba-network
+    volumes:
+      - ./logs:/app/logs
+      - ./uploads:/app/uploads
+    restart: unless-stopped
   #KAFKA_UI - Solo para debugging
   kafka-ui:
     image: provectuslabs/kafka-ui:latest
@@ -224,3 +293,5 @@ volumes:
 networks:
   default:
     driver: bridge
+  cba-network:
+    external: true

@@ -2,9 +2,10 @@ import { Router } from 'express';
 import { AuthController } from '../controllers/auth.controller';
 import { OtpController } from '../controllers/otp.controller';
 import { AuthMiddleware } from '../middleware/auth.middleware';
+import { ServiceMiddleware } from '../middleware/service.middleware';
 import { validateSchema } from '../middleware/validation.middleware';
 import { asyncHandler } from '../middleware/error.middleware';
-import { LoginSchema, RegisterSchema, RefreshTokenSchema } from '../schemas/auth.schemas';
+import { LoginSchema, RegisterSchema, RefreshTokenSchema, ChangePasswordSchema } from '../schemas/auth.schemas';
 
 export const createAuthRoutes = (
   authController: AuthController,
@@ -12,12 +13,27 @@ export const createAuthRoutes = (
   authMiddleware: AuthMiddleware
 ): Router => {
   const router = Router();
+  const serviceMiddleware = new ServiceMiddleware();
 
-  // Rutas públicas
+  // Registro público (para estudiantes - SIN token de servicio)
   router.post(
     '/register',
     validateSchema(RegisterSchema),
     asyncHandler(authController.register)
+  );
+
+  // Registro interno (para microservicios - CON token de servicio)
+  router.post(
+    '/internal/register',
+    serviceMiddleware.authenticateService, // Solo user-management puede usar este
+    validateSchema(RegisterSchema),
+    asyncHandler(authController.register)
+  );
+
+  router.post('/change-password',
+    authMiddleware.authenticate,
+    validateSchema(ChangePasswordSchema),
+    asyncHandler(authController.changePassword)
   );
 
   router.post(
@@ -61,7 +77,7 @@ export const createAuthRoutes = (
   // Rutas OTP
   router.post(
     '/otp/generate',
-    authMiddleware.rateLimiter(5, 10 * 60 * 1000), // 5 intentos por 10 minutos
+    // authMiddleware.rateLimiter(5, 10 * 60 * 1000), // 5 intentos por 10 minutos
     asyncHandler(otpController.generateOtp)
   );
 

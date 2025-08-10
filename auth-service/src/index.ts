@@ -82,12 +82,12 @@ class AuthServiceApp {
     const jwtService = new JwtService();
     const eventService = new EventService(kafkaProducer);
     const authService = new AuthService(userRepository, cacheRepository, jwtService, eventService);
-    const otpService = new OtpService(cacheRepository, eventService);
+    const otpService = new OtpService(cacheRepository, eventService, userRepository);
 
     console.log('🎮 Inicializando controladores...');
     // Controllers
     const authController = new AuthController(authService, otpService);
-    const otpController = new OtpController(otpService);
+    const otpController = new OtpController(otpService, authService);
 
     console.log('🛡️ Inicializando middleware...');
     // Middleware
