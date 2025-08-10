@@ -1,0 +1,39 @@
+# Dockerfile para Auth Service
+FROM node:18-alpine
+
+# Instalar dependencias del sistema
+RUN apk add --no-cache dumb-init
+
+# Crear directorio de trabajo
+WORKDIR /app
+
+# Copiar archivos de dependencias
+COPY package*.json ./
+
+# Instalar dependencias
+RUN npm ci --only=production && npm cache clean --force
+
+# Crear usuario no-root
+RUN addgroup -g 1001 -S nodejs && \
+    adduser -S nodejs -u 1001
+
+# Copiar código fuente
+COPY . .
+
+# Construir la aplicación
+RUN npm run build
+
+# Cambiar ownership
+RUN chown -R nodejs:nodejs /app
+USER nodejs
+
+# Exponer puerto
+EXPOSE 3000
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
+  CMD node -e "require('http').get('http://localhost:3000/health', (res) => { process.exit(res.statusCode === 200 ? 0 : 1) })"
+
+# Comando de inicio
+ENTRYPOINT ["dumb-init", "--"]
+CMD ["node", "dist/index.js"]

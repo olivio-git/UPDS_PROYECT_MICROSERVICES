@@ -1,199 +1,518 @@
-# 🚀 PLAN DE DESARROLLO - SISTEMA DE EVALUACIÓN MCER
+# 🚀 CBA Platform - Microservices API Documentation
 
-Este documento detalla el plan de desarrollo para el **Sistema de Evaluación MCER**, un proyecto ambicioso que busca transformar la forma en que se evalúan las competencias lingüísticas. El plan se estructura en **16 semanas**, divididas en **4 Sprints de 4 semanas cada uno**, asegurando entregas incrementales de valor con un enfoque inicial en las funcionalidades principales y la posterior adición de características avanzadas.
+## 📋 Servicios Implementados
 
----
-## 🎯 Visión General del Proyecto
-
-El Sistema de Evaluación MCER tiene como objetivo proporcionar una plataforma robusta y eficiente para la evaluación de competencias lingüísticas, siguiendo los parámetros del Marco Común Europeo de Referencia para las Lenguas (MCER). Utilizará tecnologías modernas y un enfoque ágil para garantizar un desarrollo eficiente y una solución de alta calidad.
-
----
-## 🗓️ Planificación de Sprints
-
-Cada sprint tiene un objetivo claro y entregables específicos, lo que permite un seguimiento detallado del progreso y una adaptación continua.
-
-### 📋 SPRINT 1: FUNDACIÓN DEL SISTEMA (Semanas 1-4)
-
-**Objetivo:** Establecer la base técnica y funcionalidades core de autenticación.
-
-Este sprint se centra en la configuración de la infraestructura y el desarrollo de los módulos esenciales para la gestión de usuarios y la autenticación del sistema.
-
-#### Semana 1: Setup de Infraestructura
-* Configuración de **MongoDB**, **Redis** y **MinIO** para almacenamiento de datos y objetos.
-* Implementación de **API Gateway (Nginx)** para la gestión de solicitudes.
-* Configuración de proyectos **auth-service** y **exam-service** con FastAPI.
-* Configuración de **Docker containers** para la orquestación de servicios.
-* Implementación de **CI/CD básico** para la automatización de despliegues.
-
-#### Semana 2: Auth Service
-* **REQ #1:** CRUD de usuarios del sistema (Prioridad 5 - Dificultad 2).
-* **REQ #2:** Gestión de roles (Admin, Docente, Proctor) (P5-D3).
-* **REQ #3:** Autenticación con JWT (P5-D2).
-* **REQ #36:** Validación de permisos por endpoint (P5-D3).
-* Desarrollo de tests unitarios básicos.
-
-#### Semana 3: User Management
-* **REQ #4:** Gestión de perfil de usuario (P4-D2).
-* **REQ #5:** Registro de candidatos (P5-D2).
-* **REQ #37:** Logs de auditoría (P4-D2).
-* **REQ #38:** Recuperación de contraseña (P3-D2).
-
-#### Semana 4: Candidatos + Import
-* **REQ #6:** Importación masiva desde Excel/CSV (P3-D3).
-* **REQ #7:** Búsqueda y filtrado de candidatos (P3-D2).
-* **REQ #39:** Configuración del sistema (P4-D2).
-* Desarrollo de un frontend básico de login y dashboard.
-
-**🎯 ENTREGABLE SPRINT 1:** Sistema de autenticación completo + gestión básica de usuarios.
+| Servicio | Puerto | Base URL | Estado |
+|----------|--------|----------|--------|
+| **auth-service** | 3000 | `/auth` | ✅ Activo |
+| **notifications-service** | 3001 | `/notifications` | ✅ Activo |
+| **user-management-service** | 3002 | `/api/v1` | ✅ Activo |
 
 ---
 
-### 📋 SPRINT 2: MOTOR DE EXÁMENES (Semanas 5-8)
+## 🔐 AUTH-SERVICE (Puerto 3000)
 
-**Objetivo:** Crear el core del sistema de exámenes y preguntas.
+### **Base URL:** `http://localhost:3000/auth`
 
-Este sprint se enfoca en el desarrollo del motor principal de exámenes, la gestión de preguntas y la configuración de las sesiones.
+### **Endpoints Públicos**
 
-#### Semana 5: Question Bank
-* **REQ #8:** CRUD de niveles de benchmark (A1-C2) (P5-D2).
-* **REQ #9:** CRUD de preguntas por nivel y competencia (P5-D3).
-* **REQ #10:** Definición de rúbricas MCER (P5-D4).
-* Setup básico de la capa de Inteligencia Artificial (Hugging Face).
+#### Registro de Usuario
+```http
+POST /auth/register
+Content-Type: application/json
 
-#### Semana 6: Exam Configuration
-* **REQ #11:** Configuración de parámetros del examen (P4-D2).
-* **REQ #12:** Programación de sesiones de examen (P5-D3).
-* **REQ #13:** Asignación de candidatos y proctors (P4-D3).
-* Desarrollo del frontend para la configuración de exámenes.
+{
+  "email": "usuario@ejemplo.com",
+  "password": "password123",
+  "firstName": "Juan",
+  "lastName": "Pérez",
+  "role": "student" // admin, teacher, proctor, student
+}
+```
 
-#### Semana 7: Session Management
-* **REQ #14:** Verificación de identidad del candidato (P4-D3).
-* **REQ #15:** Prueba de audio (micrófono y auriculares) (P4-D3).
-* **REQ #16:** Inicio y control de sesión de examen (P5-D4).
-* Setup de **WebSocket básico** para comunicación en tiempo real.
+#### Login
+```http
+POST /auth/login
+Content-Type: application/json
 
-#### Semana 8: Test Engine Core
-* **REQ #17:** Monitoreo de progreso en tiempo real (P3-D4).
-* **REQ #18:** Asignación aleatoria de preguntas (P4-D3).
-* **REQ #19:** Interfaz de examen responsiva (P5-D3).
-* Desarrollo del frontend para la interfaz de examen.
+{
+  "email": "usuario@ejemplo.com",
+  "password": "password123"
+}
+```
 
-**🎯 ENTREGABLE SPRINT 2:** Motor de exámenes funcional + gestión de sesiones.
+#### Refresh Token
+```http
+POST /auth/refresh
+Content-Type: application/json
 
----
+{
+  "refreshToken": "eyJhbGciOiJIUzI1NiIs..."
+}
+```
 
-### 📋 SPRINT 3: EVALUACIÓN Y RESULTADOS (Semanas 9-12)
+### **Endpoints Protegidos**
+*Requieren: `Authorization: Bearer {token}`*
 
-**Objetivo:** Implementar el sistema de evaluación y generación de resultados.
+#### Obtener Perfil
+```http
+GET /auth/profile
+```
 
-En este sprint se desarrollarán las funcionalidades relacionadas con la captura de respuestas, la corrección de exámenes y la generación de informes detallados.
+#### Validar Token
+```http
+GET /auth/validate
+```
 
-#### Semana 9: Capture & Storage
-* **REQ #20:** Grabación de respuestas de audio (Speaking) (P5-D4).
-* **REQ #21:** Guardado automático de respuestas (P5-D3).
-* **REQ #22:** Finalización automática por tiempo (P4-D2).
-* Setup completo de **MinIO/GridFS** para almacenamiento de archivos grandes.
+#### Cambiar Contraseña
+```http
+POST /auth/change-password
+Content-Type: application/json
 
-#### Semana 10: Grading Service
-* **REQ #23:** Corrección automática de preguntas objetivas (P5-D2).
-* **REQ #24:** Evaluación de respuestas abiertas con IA (P4-D5).
-* **REQ #25:** Cálculo de puntajes por competencia (P5-D4).
-* Integración con modelos de IA locales.
+{
+  "userId": "user_id",
+  "oldPassword": "password_anterior",
+  "newPassword": "password_nuevo"
+}
+```
 
-#### Semana 11: MCER Scoring
-* **REQ #26:** Determinación de nivel MCER (P5-D4).
-* **REQ #27:** Generación de feedback personalizado (P3-D4).
-* **REQ #28:** Envío automático de resultados (P4-D2).
-* Setup completo del servicio de notificaciones.
+#### Logout
+```http
+POST /auth/logout
+Content-Type: application/json
 
-#### Semana 12: Reports & Analytics
-* **REQ #29:** Recomendaciones de nivel de curso (P3-D3).
-* **REQ #30:** Estadísticas de candidatos (P4-D3).
-* **REQ #33:** Exportación de reportes (PDF, CSV) (P4-D3).
-* Desarrollo del dashboard de resultados.
+{
+  "refreshToken": "eyJhbGciOiJIUzI1NiIs..."
+}
+```
 
-**🎯 ENTREGABLE SPRINT 3:** Sistema completo de evaluación + reportes básicos.
+#### Logout All Sessions
+```http
+POST /auth/logout-all
+```
 
----
+### **OTP Endpoints**
 
-### 📋 SPRINT 4: OPTIMIZACIÓN Y FEATURES AVANZADAS (Semanas 13-16)
+#### Generar OTP
+```http
+POST /auth/otp/generate
+Content-Type: application/json
 
-**Objetivo:** Pulir la aplicación y agregar funcionalidades avanzadas.
+{
+  "email": "usuario@ejemplo.com",
+  "purpose": "login" // login, password_reset, email_verification
+}
+```
 
-El último sprint se dedicará a mejoras de rendimiento, seguridad, análisis avanzados y la preparación final para el despliegue en producción.
+#### Verificar OTP
+```http
+POST /auth/otp/verify
+Content-Type: application/json
 
-#### Semana 13: Advanced Analytics
-* **REQ #31:** Análisis de rendimiento por competencia (P4-D3).
-* **REQ #32:** Próximas programaciones (P3-D2).
-* **REQ #34:** Historial de exámenes por candidato (P4-D2).
-* Desarrollo de un dashboard avanzado de analytics.
+{
+  "email": "usuario@ejemplo.com",
+  "code": "123456",
+  "purpose": "login"
+}
+```
 
-#### Semana 14: UI/UX Enhancement
-* Mejoras generales de la interfaz de usuario.
-* Optimización de performance.
-* Testing de usabilidad.
-* Implementación completa de **Responsive Design**.
-* Asegurar la accesibilidad del sistema.
+#### Estado OTP
+```http
+GET /auth/otp/status?email=usuario@ejemplo.com&purpose=login
+```
 
-#### Semana 15: Testing & Security
-* Desarrollo de tests de integración completos.
-* Realización de un **Security Audit**.
-* Pruebas de rendimiento (**Performance Testing**).
-* Pruebas de carga (**Load Testing**).
-* Generación de documentación de API.
+#### Revocar OTP
+```http
+DELETE /auth/otp/revoke
+Content-Type: application/json
 
-#### Semana 16: Deploy & Launch
-* **Deploy en producción**.
-* Configuración de monitoreo con **Prometheus/Grafana**.
-* Implementación de backups automatizados.
-* Capacitación del equipo.
-* **Go-live** del sistema.
-
-**🎯 ENTREGABLE SPRINT 4:** Sistema completo en producción.
-
----
-
-## 📊 Distribución de Esfuerzo por Sprint
-
-| Sprint          | Foco Principal      | Reqs Completados | Complejidad |
-| :-------------- | :------------------ | :--------------- | :---------- |
-| Sprint 1        | Auth + Users        | 8 requerimientos | Media       |
-| Sprint 2        | Exam Engine         | 8 requerimientos | Alta        |
-| Sprint 3        | Grading + Reports   | 10 requerimientos | Muy Alta    |
-| Sprint 4        | Polish + Deploy     | 6 requerimientos | Media       |
-
----
-
-## 🛠️ Stack Tecnológico por Sprint
-
-La elección de tecnologías se alinea con los objetivos de cada fase del desarrollo, garantizando escalabilidad y eficiencia.
-
-* **Sprint 1:** **FastAPI**, **MongoDB**, **JWT**, **React**.
-* **Sprint 2:** **FastAPI**, **WebSocket**, **Redis**, **React**.
-* **Sprint 3:** **Python IA**, **MinIO**, **PDF Generation**.
-* **Sprint 4:** **Monitoring (Prometheus/Grafana)**, **Docker**, **CI/CD**.
+{
+  "email": "usuario@ejemplo.com",
+  "purpose": "login"
+}
+```
 
 ---
 
-## 👥 Equipo Recomendado
+## 📧 NOTIFICATIONS-SERVICE (Puerto 3001)
 
-Para la correcta ejecución de este plan, se recomienda el siguiente equipo:
+### **Base URL:** `http://localhost:3001/notifications`
 
-* 1 **Tech Lead/Architect**
-* 2 **Backend Developers** (Python/FastAPI)
-* 1 **Frontend Developer** (React)
-* 1 **DevOps Engineer**
-* 1 **AI/ML Engineer** (incorporándose desde el Sprint 2)
+### **Endpoints Principales**
+
+#### Enviar Email de Prueba
+```http
+POST /notifications/send-test
+Content-Type: application/json
+
+{
+  "to": "destinatario@ejemplo.com",
+  "type": "welcome", // welcome, otp, password_reset
+  "data": {
+    "firstName": "Juan",
+    "lastName": "Pérez",
+    "code": "123456" // para OTP
+  }
+}
+```
+
+#### Estadísticas de Emails
+```http
+GET /notifications/stats
+```
+
+#### Historial de Emails
+```http
+GET /notifications/history?email=usuario@ejemplo.com&limit=10
+```
+
+#### Procesar Cola de Emails
+```http
+POST /notifications/process-queue
+```
+
+#### Reintentar Emails Fallidos
+```http
+POST /notifications/retry-failed
+```
+
+#### Health Check
+```http
+GET /notifications/health
+```
 
 ---
 
-## 🎯 Criterios de Éxito por Sprint
+## 👥 USER-MANAGEMENT-SERVICE (Puerto 3002)
 
-Cada sprint tiene criterios de éxito definidos para asegurar que los objetivos se cumplan antes de avanzar.
+### **Base URL:** `http://localhost:3002/api/v1`
 
-* **Sprint 1:** ✅ Login funcional + CRUD de usuarios.
-* **Sprint 2:** ✅ Creación y ejecución de un examen básico.
-* **Sprint 3:** ✅ Evaluación automática + generación de resultados.
-* **Sprint 4:** ✅ Sistema completo en producción.
+### **Rutas de Usuarios** `/users`
 
-Este plan de desarrollo está diseñado para asegurar entregas incrementales de valor, construyendo el sistema de evaluación MCER de manera sólida y eficiente.
+#### Listar Usuarios
+```http
+GET /api/v1/users?page=1&limit=10&role=student&status=active
+Authorization: Bearer {token}
+```
+
+#### Obtener Usuario por ID
+```http
+GET /api/v1/users/{id}
+Authorization: Bearer {token}
+```
+
+#### Crear Usuario
+```http
+POST /api/v1/users
+Authorization: Bearer {token}
+Content-Type: application/json
+
+{
+  "email": "nuevo@ejemplo.com",
+  "firstName": "Nombre",
+  "lastName": "Apellido",
+  "role": "student",
+  "permissions": ["exam.take", "result.view"]
+}
+```
+
+#### Actualizar Usuario
+```http
+PUT /api/v1/users/{id}
+Authorization: Bearer {token}
+Content-Type: application/json
+
+{
+  "firstName": "Nuevo Nombre",
+  "lastName": "Nuevo Apellido",
+  "isActive": true
+}
+```
+
+#### Cambiar Contraseña de Usuario
+```http
+PUT /api/v1/users/{id}/change-password
+Authorization: Bearer {token}
+Content-Type: application/json
+
+{
+  "newPassword": "nueva_password123"
+}
+```
+
+#### Eliminar Usuario
+```http
+DELETE /api/v1/users/{id}
+Authorization: Bearer {token}
+```
+
+#### Generar Contraseña Temporal
+```http
+POST /api/v1/users/{id}/generate-password
+Authorization: Bearer {token}
+```
+
+#### Obtener Permisos de Usuario
+```http
+GET /api/v1/users/{id}/permissions
+Authorization: Bearer {token}
+```
+
+### **Rutas de Candidatos** `/candidates`
+
+#### Listar Candidatos
+```http
+GET /api/v1/candidates?page=1&limit=10&level=B1&status=verified
+Authorization: Bearer {token}
+```
+
+#### Crear Candidato
+```http
+POST /api/v1/candidates
+Authorization: Bearer {token}
+Content-Type: application/json
+
+{
+  "personalInfo": {
+    "firstName": "Juan",
+    "lastName": "Pérez",
+    "email": "candidato@ejemplo.com",
+    "phone": "+591 12345678",
+    "dateOfBirth": "1990-01-01",
+    "nationality": "Boliviana"
+  },
+  "academicInfo": {
+    "currentLevel": "intermediate",
+    "targetLevel": "B2",
+    "previousExperience": "6 months"
+  },
+  "technicalSetup": {
+    "hasHeadphones": true,
+    "hasMicrophone": true,
+    "hasWebcam": false
+  }
+}
+```
+
+#### Verificar Candidato
+```http
+PUT /api/v1/candidates/{id}/verify
+Authorization: Bearer {token}
+```
+
+#### Historial de Exámenes
+```http
+GET /api/v1/candidates/{id}/exam-history
+Authorization: Bearer {token}
+```
+
+#### Importar Candidatos (Excel/CSV)
+```http
+POST /api/v1/candidates/import
+Authorization: Bearer {token}
+Content-Type: multipart/form-data
+
+file: [archivo.xlsx]
+```
+
+#### Exportar Candidatos
+```http
+GET /api/v1/candidates/export?format=excel
+Authorization: Bearer {token}
+```
+
+### **Rutas de Roles** `/roles`
+
+#### Listar Roles
+```http
+GET /api/v1/roles
+Authorization: Bearer {token}
+```
+
+#### Crear Rol
+```http
+POST /api/v1/roles
+Authorization: Bearer {token}
+Content-Type: application/json
+
+{
+  "name": "examiner",
+  "description": "Evaluador de exámenes",
+  "permissions": ["exam.evaluate", "result.create"],
+  "isActive": true
+}
+```
+
+#### Actualizar Permisos de Rol
+```http
+PUT /api/v1/roles/{id}/permissions
+Authorization: Bearer {token}
+Content-Type: application/json
+
+{
+  "permissions": ["exam.create", "exam.manage", "student.view"]
+}
+```
+
+### **Endpoints del Sistema**
+
+#### Health Check
+```http
+GET /health
+```
+
+#### Información del Sistema
+```http
+GET /api/v1/system/info
+Authorization: Bearer {token}
+```
+
+#### Métricas del Sistema
+```http
+GET /api/v1/system/metrics
+Authorization: Bearer {token}
+```
+
+---
+
+## 🔗 Integración Entre Servicios
+
+### **1. Flujo de Registro Completo**
+```mermaid
+sequenceDiagram
+    Client->>Auth Service: POST /auth/register
+    Auth Service->>MongoDB: Crear usuario
+    Auth Service->>Kafka: Publicar user.registered
+    Kafka->>Notifications: Consumir evento
+    Notifications->>Resend API: Enviar email bienvenida
+    Auth Service->>Client: Respuesta con tokens
+```
+
+### **2. Comunicación via Kafka**
+
+**Eventos Publicados:**
+- `user.registered` - Nuevo usuario registrado
+- `user.logged_in` - Usuario inició sesión
+- `user.logged_out` - Usuario cerró sesión
+- `otp.generated` - OTP generado
+- `email.sent` - Email enviado
+
+### **3. Autenticación Inter-Servicios**
+
+User Management Service valida tokens JWT contra Auth Service:
+```javascript
+// Middleware de autenticación
+Authorization: Bearer {jwt_token}
+
+// Validación en user-management-service
+const isValid = await authService.validateToken(token);
+```
+
+---
+
+## 📊 Códigos de Respuesta
+
+| Código | Significado | Uso |
+|--------|-------------|-----|
+| 200 | OK | Operación exitosa |
+| 201 | Created | Recurso creado |
+| 400 | Bad Request | Error en datos enviados |
+| 401 | Unauthorized | Token inválido/expirado |
+| 403 | Forbidden | Sin permisos |
+| 404 | Not Found | Recurso no encontrado |
+| 429 | Too Many Requests | Rate limit excedido |
+| 500 | Internal Server Error | Error del servidor |
+
+---
+
+## 🔧 Configuración
+
+### **Variables de Entorno Críticas**
+```env
+# Puertos
+AUTH_SERVICE_PORT=3000
+NOTIFICATION_SERVICE_PORT=3001
+USER_MANAGEMENT_SERVICE_PORT=3002
+
+# Base de Datos
+MONGO_URI=mongodb://user:pass@mongo:27017
+MONGO_DB_NAME=cba_platform
+
+# Redis
+REDIS_URI=redis://:password@redis:6379
+
+# JWT
+JWT_SECRET=tu_secreto_jwt
+JWT_EXPIRATION=1h
+
+# Email
+RESEND_API_KEY=tu_api_key_resend
+
+# Kafka
+KAFKA_BROKER=kafka:29092
+```
+
+### **Comandos Docker**
+```bash
+# Iniciar todos los servicios
+docker-compose up -d
+
+# Ver logs
+docker-compose logs -f auth-service
+docker-compose logs -f notifications-service
+docker-compose logs -f user-management-service
+
+# Reiniciar servicio específico
+docker-compose restart auth-service
+```
+
+---
+
+## 🧪 Testing Rápido
+
+### **Flujo Básico de Prueba**
+```bash
+# 1. Registrar usuario
+curl -X POST http://localhost:3000/auth/register \
+  -H "Content-Type: application/json" \
+  -d '{"email":"test@test.com","password":"test123","firstName":"Test","lastName":"User","role":"student"}'
+
+# 2. Login
+curl -X POST http://localhost:3000/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"email":"test@test.com","password":"test123"}'
+
+# 3. Usar token para acceder a user-management
+TOKEN="tu_token_aqui"
+curl -X GET http://localhost:3002/api/v1/users \
+  -H "Authorization: Bearer $TOKEN"
+```
+
+---
+
+## ⚠️ Limitaciones y Rate Limits
+
+| Endpoint | Límite | Ventana |
+|----------|--------|---------|
+| `/auth/login` | 10 intentos | 15 minutos |
+| `/auth/otp/generate` | 5 intentos | 10 minutos |
+| `/auth/otp/verify` | 10 intentos | 5 minutos |
+| General API | 1000 requests | 15 minutos |
+
+---
+
+## 🔍 Logs y Debugging
+
+### **Kafka UI** (Modo Debug)
+```bash
+# Activar Kafka UI
+docker-compose --profile debug up
+
+# Acceder a: http://localhost:8080
+# Ver topics: user-events, otp-events, email-events
+```
+
+### **Health Checks**
+- Auth Service: `http://localhost:3000/health`
+- Notifications: `http://localhost:3001/health`
+- User Management: `http://localhost:3002/health`
