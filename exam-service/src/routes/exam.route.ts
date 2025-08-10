@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { ExamController } from '../controllers/exam.controller';
 import { authMiddleware } from '../middleware/auth.middleware';
-import { zodValidateRequest } from '../middleware/zod-validation.middleware';
+import { validateRequest } from '../middleware/validation.middleware';
 import { examSchema } from '../schemas/exam.schema';
 
 const router = Router();
@@ -13,7 +13,7 @@ router.use(authMiddleware);
 // CRUD routes
 router.post(
   '/',
-  zodValidateRequest(examSchema.create),
+  validateRequest(examSchema.create),
   examController.create
 );
 
@@ -24,34 +24,34 @@ router.get(
 
 router.get(
   '/:id',
-  zodValidateRequest(examSchema.params),
+  validateRequest(examSchema.params),
   examController.findById
 );
 
 router.put(
   '/:id',
-  zodValidateRequest(examSchema.params),
-  zodValidateRequest(examSchema.update),
+  validateRequest(examSchema.params),
+  validateRequest(examSchema.update),
   examController.update
 );
 
 router.delete(
   '/:id',
-  zodValidateRequest(examSchema.params),
+  validateRequest(examSchema.params),
   examController.delete
 );
 
 // Special routes
 router.post(
   '/:id/clone',
-  zodValidateRequest(examSchema.params),
+  validateRequest(examSchema.params),
   examController.clone
 );
 
 router.post(
   '/:id/generate-questions',
-  zodValidateRequest(examSchema.params),
-  zodValidateRequest(examSchema.generateQuestions),
+  validateRequest(examSchema.params),
+  validateRequest(examSchema.generateQuestions),
   examController.generateQuestions
 );
 
