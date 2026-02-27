@@ -42,6 +42,19 @@ export async function gradeExam(attemptId: string, options: { force?: boolean } 
   // 2. Check if already graded (skip if force=true to allow recalculation)
   const existingResult = await getExamResults().findOne({ attemptId: new ObjectId(attemptId) });
   if (!options.force && existingResult && existingResult.status === 'completed') {
+    // Re-send notification for already-graded exams (at-least-once delivery via Kafka)
+    sendGradingNotification({
+      candidateEmail,
+      candidateFirstName,
+      candidateLastName,
+      candidateId: attempt.candidateId.toString(),
+      examName: existingResult.examName,
+      examResultId: existingResult._id!.toString(),
+      score: existingResult.totalScore,
+      maxScore: existingResult.maxScore,
+      percentage: existingResult.percentage,
+      status: existingResult.status,
+    }).catch(() => {});
     return {
       examResultId: existingResult._id!.toString(),
       examName: existingResult.examName,

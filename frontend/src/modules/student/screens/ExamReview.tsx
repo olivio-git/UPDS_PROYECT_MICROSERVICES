@@ -20,12 +20,14 @@ import {
   ArrowLeft,
   CheckCircle,
   Clock,
+  Download,
   FileText,
   Loader2,
   XCircle,
 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
+import { toast } from 'sonner';
 
 interface QuestionResult {
   questionId: string;
@@ -86,6 +88,19 @@ const ExamReview = () => {
       loadExamDetails();
     }
   }, [resultId]);
+
+  const handleDownloadPDF = async () => {
+    if (!examResult || !resultId) return;
+    try {
+      toast.loading('Generando PDF...', { id: 'pdf-exam-review' });
+      await examResultService.downloadResultPDF(resultId, {
+        includeQuestions: true, includeAI: true, language: 'spanish', examName: examResult.examName,
+      });
+      toast.success('PDF descargado exitosamente', { id: 'pdf-exam-review' });
+    } catch {
+      toast.error('Error al generar el PDF', { id: 'pdf-exam-review' });
+    }
+  };
 
   const loadExamDetails = async () => {
     try {
@@ -326,14 +341,17 @@ const ExamReview = () => {
                 {examResult.examName} - {formatDate(examResult.evaluatedAt)}
               </p>
             </div>
-            <Button
-              variant="outline"
-              onClick={() => navigate(`/student/results/${resultId}`)}
-              className="text-gray-300 hover:bg-gray-800 bg-box border-line"
-            >
-              <ArrowLeft className="h-4 w-4 mr-2" />
-              Volver a Resultado
-            </Button>
+            <div className="flex gap-2">
+              <Button onClick={handleDownloadPDF} className="bg-blue-700 hover:bg-blue-600 text-white border-line">
+                <Download className="h-4 w-4 mr-2" />
+                Descargar PDF
+              </Button>
+              <Button variant="outline" onClick={() => navigate(`/student/results/${resultId}`)}
+                className="text-gray-300 hover:bg-gray-800 bg-box border-line">
+                <ArrowLeft className="h-4 w-4 mr-2" />
+                Volver a Resultado
+              </Button>
+            </div>
           </div>
         </ContentGradientSection>
 

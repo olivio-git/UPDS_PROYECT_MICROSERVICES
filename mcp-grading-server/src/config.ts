@@ -19,7 +19,7 @@ export const config = {
     url: process.env.AI_GRADING_SERVICE_URL || 'http://localhost:3006',
   },
   notificationService: {
-    url: process.env.NOTIFICATION_SERVICE_URL || 'http://localhost:3001',
+    url: process.env.NOTIFICATION_SERVICE_URL || 'http://notifications-service:3003',
   },
   examService: {
     url: process.env.EXAM_SERVICE_URL || 'http://exam-service:3003',
@@ -27,5 +27,10 @@ export const config = {
   minio: {
     internalEndpoint: process.env.MINIO_INTERNAL_ENDPOINT || 'http://minio:9000',
     bucketName: process.env.MINIO_BUCKET_NAME || 'exam-files',
+  },
+  kafka: {
+    broker: process.env.KAFKA_BROKER || 'kafka:9092',
+    clientId: 'grading-service',
+    topic: 'exam-events',
   },
 };

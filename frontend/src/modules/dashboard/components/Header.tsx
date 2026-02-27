@@ -123,7 +123,20 @@ const Header = () => {
               type: payload.type || 'info',
             };
             setNotifications(prev => [n, ...prev]);
-            toast.success('Nueva notificación', { duration: 2000 });
+
+            // Si es notificación de examen calificado, mostrar toast con link a resultados
+            const resultId = payload.data?.resultId || payload.resultId;
+            if (payload.type === 'exam.graded' && resultId) {
+              toast.success('¡Tu examen ha sido calificado!', {
+                duration: 8000,
+                action: {
+                  label: 'Ver resultados',
+                  onClick: () => navigate(`/student/results/${resultId}`),
+                },
+              });
+            } else {
+              toast.success('Nueva notificación', { duration: 2000 });
+            }
           };
 
           notifHandlerRef.current = handler;

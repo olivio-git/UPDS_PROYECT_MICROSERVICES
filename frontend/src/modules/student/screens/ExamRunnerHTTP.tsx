@@ -9,6 +9,7 @@ import { Progress } from '@/components/atoms/progress';
 import GradientWrapper from '@/components/background/GrandWrapperSection';
 import { MainLayout } from '@/components/layout';
 import { useExamSessionHTTP } from '@/hooks/useExamSessionHTTP';
+import { examResultService } from '@/services/examResultService';
 import { examService } from '@/services/examService';
 import {
   AlertCircle,
@@ -37,6 +38,7 @@ const ExamRunnerHTTP: React.FC = () => {
   // State for starting/resuming detection
   const [initializingExam, setInitializingExam] = useState(false);
   const [examCompleting, setExamCompleting] = useState(false);
+  const [isWaitingForResult, setIsWaitingForResult] = useState(false);
   const [showFinishConfirm, setShowFinishConfirm] = useState(false);
   // Track which questions are uploading audio
   const [uploadingAudio, setUploadingAudio] = useState<Record<string, boolean>>({});
@@ -96,18 +98,27 @@ const ExamRunnerHTTP: React.FC = () => {
     onSessionStart: () => {
       toast.success('¡Tu examen ha comenzado!');
     },
-    onSessionEnd: () => {
-      // Set completing state to show completion UI
+    onSessionEnd: (attemptId: string) => {
       setExamCompleting(true);
 
-      // Show completion message and navigate after a delay
-      toast.success('¡Examen completado! Redirigiendo al dashboard...', {
-        duration: 3000,
-      });
-
-      setTimeout(() => {
-        navigate('/student/dashboard');
-      }, 2000);
+      if (attemptId) {
+        setIsWaitingForResult(true);
+        examResultService.pollForResult(attemptId, 30, 2000)
+          .then((result) => {
+            const resultId = (result as any)._id || (result as any).id;
+            navigate(`/student/results/${resultId}`);
+          })
+          .catch(() => {
+            toast.info('Los resultados se están procesando. Los verás en tu dashboard.', { duration: 5000 });
+            navigate('/student/dashboard');
+          })
+          .finally(() => {
+            setIsWaitingForResult(false);
+          });
+      } else {
+        toast.success('¡Examen completado! Redirigiendo al dashboard...', { duration: 3000 });
+        setTimeout(() => navigate('/student/dashboard'), 2000);
+      }
     },
     onAutoSave: (success) => {
       if (!success) {
@@ -275,7 +286,9 @@ const ExamRunnerHTTP: React.FC = () => {
                     ¡Examen Completado!
                   </h3>
                   <p className="text-gray-400">
-                    Tu examen ha sido finalizado exitosamente. Redirigiendo...
+                    {isWaitingForResult
+                      ? 'Procesando resultados, espera un momento...'
+                      : 'Tu examen ha sido finalizado exitosamente. Redirigiendo...'}
                   </p>
                   <div className="mt-4">
                     <Loader2 className="h-6 w-6 animate-spin text-blue-500 mx-auto" />
