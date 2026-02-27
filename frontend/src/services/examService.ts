@@ -832,7 +832,8 @@ class ExamService {
     audioBlob: Blob
   ): Promise<string> {
     const formData = new FormData();
-    const ext = audioBlob.type.includes('ogg') ? 'ogg' : 'webm';
+    const rawExt = audioBlob.type.split(';')[0].split('/')[1] ?? 'webm';
+    const ext = ['webm', 'ogg', 'mp4', 'wav', 'aac', 'flac'].includes(rawExt) ? rawExt : 'webm';
     formData.append('audio', audioBlob, `response_${Date.now()}.${ext}`);
     formData.append('questionId', questionId);
 

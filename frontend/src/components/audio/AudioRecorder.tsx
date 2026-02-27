@@ -2,6 +2,17 @@ import { cn } from '@/lib/utils';
 import { Download, Mic, Pause, Play, RotateCcw, Square, Trash2 } from 'lucide-react';
 import React, { useEffect, useRef, useState } from 'react';
 
+function getSupportedMimeType(): string {
+  const candidates = [
+    'audio/webm;codecs=opus',
+    'audio/webm',
+    'audio/mp4',
+    'audio/ogg;codecs=opus',
+    'audio/ogg',
+  ];
+  return candidates.find(t => MediaRecorder.isTypeSupported(t)) ?? '';
+}
+
 interface AudioRecorderProps {
   onRecordingComplete?: (audioBlob: Blob, audioUrl: string) => void;
   onRecordingStart?: () => void;
@@ -50,10 +61,17 @@ const AudioRecorder: React.FC<AudioRecorderProps> = ({
   }, []);
 
   const startRecording = async () => {
+    if (!navigator.mediaDevices?.getUserMedia || typeof MediaRecorder === 'undefined') {
+      setError('Tu navegador no soporta grabación de audio. Usa Chrome, Firefox o Safari actualizado.');
+      return;
+    }
     try {
       setError(null);
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      const mediaRecorder = new MediaRecorder(stream);
+      const mimeType = getSupportedMimeType();
+      const mediaRecorder = mimeType
+        ? new MediaRecorder(stream, { mimeType })
+        : new MediaRecorder(stream);
       mediaRecorderRef.current = mediaRecorder;
 
       const chunks: Blob[] = [];
@@ -110,9 +128,22 @@ const AudioRecorder: React.FC<AudioRecorderProps> = ({
       }, 1000);
 
       onRecordingStart?.();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error al acceder al micrófono:', error);
-      setError('No se pudo acceder al micrófono. Verifica los permisos.');
+      const isNotHttps =
+        window.location.protocol !== 'https:' &&
+        window.location.hostname !== 'localhost';
+      let msg: string;
+      if (isNotHttps) {
+        msg = 'La grabación de audio requiere HTTPS. Contacta al administrador del sistema.';
+      } else if (error?.name === 'NotAllowedError' || error?.name === 'PermissionDeniedError') {
+        msg = 'Permiso de micrófono denegado. Habilítalo en la configuración del navegador.';
+      } else if (error?.name === 'NotFoundError' || error?.name === 'DevicesNotFoundError') {
+        msg = 'No se encontró ningún micrófono. Conecta un dispositivo de audio.';
+      } else {
+        msg = 'No se pudo acceder al micrófono. Verifica los permisos.';
+      }
+      setError(msg);
     }
   };
 
@@ -172,7 +203,8 @@ const AudioRecorder: React.FC<AudioRecorderProps> = ({
     if (!audioBlob || !audioUrl) return;
     const a = document.createElement('a');
     a.href = audioUrl;
-    a.download = `recording_${new Date().toISOString().slice(0, 19)}.wav`;
+    const ext = audioBlob.type.split(';')[0].split('/')[1] || 'webm';
+    a.download = `recording_${new Date().toISOString().slice(0, 19)}.${ext}`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
