@@ -170,48 +170,57 @@ const ReportsScreen: React.FC = () => {
           </div>
 
           {/* Filtros siempre visibles */}
-          <div className="flex flex-wrap items-center gap-2 bg-box border border-line rounded-lg px-3 py-2">
-            <span className="flex items-center gap-1.5 text-slate-500 text-xs shrink-0">
+          <div className="flex items-end gap-3 bg-box border border-line rounded-lg px-4 py-2.5">
+            {/* Label */}
+            <span className="flex items-center gap-1.5 text-slate-500 text-xs shrink-0 pb-1.5">
               <Filter className="h-3 w-3" />
-              Filtrar:
+              Filtrar
             </span>
-            <Input
-              type="date"
-              value={filters.startDate || ''}
-              onChange={e => handleFilterChange('startDate', e.target.value)}
-              className="bg-slate-800/60 border-line text-white text-xs h-7 w-32"
-            />
-            <span className="text-slate-600 text-xs">—</span>
-            <Input
-              type="date"
-              value={filters.endDate || ''}
-              onChange={e => handleFilterChange('endDate', e.target.value)}
-              className="bg-slate-800/60 border-line text-white text-xs h-7 w-32"
-            />
-            <div className="w-px h-4 bg-slate-700 mx-1" />
-            <Input
-              type="number"
-              placeholder="Mín %"
-              value={filters.minScore || ''}
-              onChange={e => handleFilterChange('minScore', Number(e.target.value))}
-              className="bg-slate-800/60 border-line text-white text-xs h-7 w-20"
-            />
-            <Input
-              type="number"
-              placeholder="Máx %"
-              value={filters.maxScore || ''}
-              onChange={e => handleFilterChange('maxScore', Number(e.target.value))}
-              className="bg-slate-800/60 border-line text-white text-xs h-7 w-20"
-            />
-            <div className="w-px h-4 bg-slate-700 mx-1" />
-            <Button onClick={() => loadReportsData(filters)} size="sm"
-              className="h-7 text-xs bg-blue-600 hover:bg-blue-700 text-white px-3">
-              Aplicar
-            </Button>
-            <Button onClick={handleClearFilters} variant="ghost" size="sm"
-              className="h-7 text-xs text-slate-400 hover:text-white hover:bg-slate-800 px-2">
-              Limpiar
-            </Button>
+
+            <div className="w-px h-8 bg-slate-700 shrink-0" />
+
+            {/* Rango de fechas */}
+            <div className="flex items-end gap-2 shrink-0">
+              <div className="flex flex-col gap-0.5">
+                <label className="text-[10px] text-slate-500 pl-0.5">Desde</label>
+                <Input type="date" value={filters.startDate || ''}
+                  onChange={e => handleFilterChange('startDate', e.target.value)}
+                  className="bg-slate-800/60 border-line text-white text-xs h-8 w-36" />
+              </div>
+              <span className="text-slate-600 text-xs pb-2 shrink-0">—</span>
+              <div className="flex flex-col gap-0.5">
+                <label className="text-[10px] text-slate-500 pl-0.5">Hasta</label>
+                <Input type="date" value={filters.endDate || ''}
+                  onChange={e => handleFilterChange('endDate', e.target.value)}
+                  className="bg-slate-800/60 border-line text-white text-xs h-8 w-36" />
+              </div>
+            </div>
+
+            <div className="w-px h-8 bg-slate-700 shrink-0" />
+
+            {/* Rango de puntaje */}
+            <div className="flex items-end gap-2 shrink-0">
+              <div className="flex flex-col gap-0.5">
+                <label className="text-[10px] text-slate-500 pl-0.5">Mín. %</label>
+                <Input type="number" placeholder="0" value={filters.minScore || ''}
+                  onChange={e => handleFilterChange('minScore', Number(e.target.value))}
+                  className="bg-slate-800/60 border-line text-white text-xs h-8 w-28" />
+              </div>
+              <div className="flex flex-col gap-0.5">
+                <label className="text-[10px] text-slate-500 pl-0.5">Máx. %</label>
+                <Input type="number" placeholder="100" value={filters.maxScore || ''}
+                  onChange={e => handleFilterChange('maxScore', Number(e.target.value))}
+                  className="bg-slate-800/60 border-line text-white text-xs h-8 w-28" />
+              </div>
+              <Button onClick={() => loadReportsData(filters)} size="sm"
+                className="h-8 text-xs bg-blue-600 hover:bg-blue-700 text-white px-4 shrink-0">
+                Aplicar
+              </Button>
+              <Button onClick={handleClearFilters} variant="ghost" size="sm"
+                className="h-8 text-xs text-slate-400 hover:text-white hover:bg-slate-800 px-3 shrink-0">
+                Limpiar
+              </Button>
+            </div>
           </div>
         </div>
 
