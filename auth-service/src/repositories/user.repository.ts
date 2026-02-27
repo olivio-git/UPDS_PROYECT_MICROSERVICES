@@ -1,6 +1,6 @@
 import { Collection, Db, ObjectId } from 'mongodb';
-import { User, Session } from '../types';
 import { config } from '../config';
+import { Session, User } from '../types';
 
 export class UserRepository {
   private usersCollection: Collection<User>;
@@ -53,7 +53,6 @@ export class UserRepository {
       { $set: { password: newPassword, updatedAt: new Date() } },
       { returnDocument: 'after' }
     );
-    console.log(result, "User password updated");
     return result || null;
   }
 
@@ -63,8 +62,15 @@ export class UserRepository {
   }
 
   async updateUser(userId: string, updateData: Partial<User>): Promise<User | null> {
+    const id = new ObjectId(userId);
+    // console.log(id,"<-- ID DEL USUARIO A ACTUALIZAR");
+    // console.log(updateData,"<-- DATOS A ACTUALIZAR DEL USUARIO");
+    const user = await this.usersCollection.findOne({ _id: id } as any);
+    if (!user) {
+      throw new Error('Usuario no encontrado');
+    };
     const result = await this.usersCollection.findOneAndUpdate(
-      { _id: userId as any },
+      { _id: user?._id },
       { 
         $set: { 
           ...updateData, 

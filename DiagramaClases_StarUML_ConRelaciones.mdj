@@ -1,0 +1,585 @@
+{
+	"_type": "Project",
+	"_id": "AAA AAFF+h6SjaM2Hec=",
+	"name": "Sistema Evaluación UPDS - Con Relaciones",
+	"ownedElements": [
+		{
+			"_type": "UMLModel",
+			"_id": "AAAAAAFF+qBWK6M3Z8Y=",
+			"_parent": {
+				"$ref": "AAAAAAFF+h6SjaM2Hec="
+			},
+			"name": "Model",
+			"ownedElements": [
+				{
+					"_type": "UMLClassDiagram",
+					"_id": "AAAAAAFF+qBtyKM79qY=",
+					"_parent": {
+						"$ref": "AAAAAAFF+qBWK6M3Z8Y="
+					},
+					"name": "Diagrama de Clases - Sistema Completo",
+					"defaultDiagram": true
+				},
+				{
+					"_type": "UMLClass",
+					"_id": "class_user",
+					"_parent": {
+						"$ref": "AAAAAAFF+qBWK6M3Z8Y="
+					},
+					"name": "User",
+					"attributes": [
+						{"_type": "UMLAttribute", "_id": "user_1", "_parent": {"$ref": "class_user"}, "name": "_id", "type": "ObjectId"},
+						{"_type": "UMLAttribute", "_id": "user_2", "_parent": {"$ref": "class_user"}, "name": "email", "type": "String"},
+						{"_type": "UMLAttribute", "_id": "user_3", "_parent": {"$ref": "class_user"}, "name": "password", "type": "String"},
+						{"_type": "UMLAttribute", "_id": "user_4", "_parent": {"$ref": "class_user"}, "name": "firstName", "type": "String"},
+						{"_type": "UMLAttribute", "_id": "user_5", "_parent": {"$ref": "class_user"}, "name": "lastName", "type": "String"},
+						{"_type": "UMLAttribute", "_id": "user_6", "_parent": {"$ref": "class_user"}, "name": "role", "type": "String"},
+						{"_type": "UMLAttribute", "_id": "user_7", "_parent": {"$ref": "class_user"}, "name": "status", "type": "String"},
+						{"_type": "UMLAttribute", "_id": "user_8", "_parent": {"$ref": "class_user"}, "name": "permissions", "type": "Array"}
+					],
+					"operations": [
+						{"_type": "UMLOperation", "_id": "user_op1", "_parent": {"$ref": "class_user"}, "name": "login()"},
+						{"_type": "UMLOperation", "_id": "user_op2", "_parent": {"$ref": "class_user"}, "name": "logout()"},
+						{"_type": "UMLOperation", "_id": "user_op3", "_parent": {"$ref": "class_user"}, "name": "hasPermission()"}
+					]
+				},
+				{
+					"_type": "UMLClass",
+					"_id": "class_candidate",
+					"_parent": {
+						"$ref": "AAAAAAFF+qBWK6M3Z8Y="
+					},
+					"name": "Candidate",
+					"attributes": [
+						{"_type": "UMLAttribute", "_id": "cand_1", "_parent": {"$ref": "class_candidate"}, "name": "_id", "type": "ObjectId"},
+						{"_type": "UMLAttribute", "_id": "cand_2", "_parent": {"$ref": "class_candidate"}, "name": "userId", "type": "ObjectId"},
+						{"_type": "UMLAttribute", "_id": "cand_3", "_parent": {"$ref": "class_candidate"}, "name": "personalInfo", "type": "Object"},
+						{"_type": "UMLAttribute", "_id": "cand_4", "_parent": {"$ref": "class_candidate"}, "name": "academicInfo", "type": "Object"},
+						{"_type": "UMLAttribute", "_id": "cand_5", "_parent": {"$ref": "class_candidate"}, "name": "status", "type": "String"}
+					]
+				},
+				{
+					"_type": "UMLClass",
+					"_id": "class_role",
+					"_parent": {
+						"$ref": "AAAAAAFF+qBWK6M3Z8Y="
+					},
+					"name": "Role",
+					"attributes": [
+						{"_type": "UMLAttribute", "_id": "role_1", "_parent": {"$ref": "class_role"}, "name": "_id", "type": "ObjectId"},
+						{"_type": "UMLAttribute", "_id": "role_2", "_parent": {"$ref": "class_role"}, "name": "name", "type": "String"},
+						{"_type": "UMLAttribute", "_id": "role_3", "_parent": {"$ref": "class_role"}, "name": "permissions", "type": "Array"}
+					]
+				},
+				{
+					"_type": "UMLClass",
+					"_id": "class_level",
+					"_parent": {
+						"$ref": "AAAAAAFF+qBWK6M3Z8Y="
+					},
+					"name": "Level",
+					"attributes": [
+						{"_type": "UMLAttribute", "_id": "level_1", "_parent": {"$ref": "class_level"}, "name": "_id", "type": "ObjectId"},
+						{"_type": "UMLAttribute", "_id": "level_2", "_parent": {"$ref": "class_level"}, "name": "code", "type": "String"},
+						{"_type": "UMLAttribute", "_id": "level_3", "_parent": {"$ref": "class_level"}, "name": "name", "type": "String"}
+					]
+				},
+				{
+					"_type": "UMLClass",
+					"_id": "class_question",
+					"_parent": {
+						"$ref": "AAAAAAFF+qBWK6M3Z8Y="
+					},
+					"name": "Question",
+					"attributes": [
+						{"_type": "UMLAttribute", "_id": "q_1", "_parent": {"$ref": "class_question"}, "name": "_id", "type": "ObjectId"},
+						{"_type": "UMLAttribute", "_id": "q_2", "_parent": {"$ref": "class_question"}, "name": "examId", "type": "ObjectId"},
+						{"_type": "UMLAttribute", "_id": "q_3", "_parent": {"$ref": "class_question"}, "name": "type", "type": "String"},
+						{"_type": "UMLAttribute", "_id": "q_4", "_parent": {"$ref": "class_question"}, "name": "competency", "type": "String"},
+						{"_type": "UMLAttribute", "_id": "q_5", "_parent": {"$ref": "class_question"}, "name": "level", "type": "String"},
+						{"_type": "UMLAttribute", "_id": "q_6", "_parent": {"$ref": "class_question"}, "name": "points", "type": "Number"}
+					]
+				},
+				{
+					"_type": "UMLClass",
+					"_id": "class_exam",
+					"_parent": {
+						"$ref": "AAAAAAFF+qBWK6M3Z8Y="
+					},
+					"name": "Exam",
+					"attributes": [
+						{"_type": "UMLAttribute", "_id": "exam_1", "_parent": {"$ref": "class_exam"}, "name": "_id", "type": "ObjectId"},
+						{"_type": "UMLAttribute", "_id": "exam_2", "_parent": {"$ref": "class_exam"}, "name": "name", "type": "String"},
+						{"_type": "UMLAttribute", "_id": "exam_3", "_parent": {"$ref": "class_exam"}, "name": "level", "type": "String"},
+						{"_type": "UMLAttribute", "_id": "exam_4", "_parent": {"$ref": "class_exam"}, "name": "status", "type": "String"}
+					]
+				},
+				{
+					"_type": "UMLClass",
+					"_id": "class_examsession",
+					"_parent": {
+						"$ref": "AAAAAAFF+qBWK6M3Z8Y="
+					},
+					"name": "ExamSession",
+					"attributes": [
+						{"_type": "UMLAttribute", "_id": "es_1", "_parent": {"$ref": "class_examsession"}, "name": "_id", "type": "ObjectId"},
+						{"_type": "UMLAttribute", "_id": "es_2", "_parent": {"$ref": "class_examsession"}, "name": "sessionId", "type": "String"},
+						{"_type": "UMLAttribute", "_id": "es_3", "_parent": {"$ref": "class_examsession"}, "name": "examId", "type": "ObjectId"},
+						{"_type": "UMLAttribute", "_id": "es_4", "_parent": {"$ref": "class_examsession"}, "name": "status", "type": "String"}
+					]
+				},
+				{
+					"_type": "UMLClass",
+					"_id": "class_activesession",
+					"_parent": {
+						"$ref": "AAAAAAFF+qBWK6M3Z8Y="
+					},
+					"name": "ActiveSession",
+					"attributes": [
+						{"_type": "UMLAttribute", "_id": "as_1", "_parent": {"$ref": "class_activesession"}, "name": "_id", "type": "ObjectId"},
+						{"_type": "UMLAttribute", "_id": "as_2", "_parent": {"$ref": "class_activesession"}, "name": "sessionId", "type": "String"},
+						{"_type": "UMLAttribute", "_id": "as_3", "_parent": {"$ref": "class_activesession"}, "name": "status", "type": "String"},
+						{"_type": "UMLAttribute", "_id": "as_4", "_parent": {"$ref": "class_activesession"}, "name": "participants", "type": "Map"}
+					]
+				},
+				{
+					"_type": "UMLClass",
+					"_id": "class_attempt",
+					"_parent": {
+						"$ref": "AAAAAAFF+qBWK6M3Z8Y="
+					},
+					"name": "Attempt",
+					"attributes": [
+						{"_type": "UMLAttribute", "_id": "att_1", "_parent": {"$ref": "class_attempt"}, "name": "_id", "type": "ObjectId"},
+						{"_type": "UMLAttribute", "_id": "att_2", "_parent": {"$ref": "class_attempt"}, "name": "sessionId", "type": "String"},
+						{"_type": "UMLAttribute", "_id": "att_3", "_parent": {"$ref": "class_attempt"}, "name": "candidateId", "type": "ObjectId"},
+						{"_type": "UMLAttribute", "_id": "att_4", "_parent": {"$ref": "class_attempt"}, "name": "examId", "type": "ObjectId"},
+						{"_type": "UMLAttribute", "_id": "att_5", "_parent": {"$ref": "class_attempt"}, "name": "status", "type": "String"}
+					]
+				},
+				{
+					"_type": "UMLClass",
+					"_id": "class_response",
+					"_parent": {
+						"$ref": "AAAAAAFF+qBWK6M3Z8Y="
+					},
+					"name": "Response",
+					"attributes": [
+						{"_type": "UMLAttribute", "_id": "resp_1", "_parent": {"$ref": "class_response"}, "name": "_id", "type": "ObjectId"},
+						{"_type": "UMLAttribute", "_id": "resp_2", "_parent": {"$ref": "class_response"}, "name": "attemptId", "type": "ObjectId"},
+						{"_type": "UMLAttribute", "_id": "resp_3", "_parent": {"$ref": "class_response"}, "name": "questionId", "type": "ObjectId"},
+						{"_type": "UMLAttribute", "_id": "resp_4", "_parent": {"$ref": "class_response"}, "name": "answer", "type": "Any"},
+						{"_type": "UMLAttribute", "_id": "resp_5", "_parent": {"$ref": "class_response"}, "name": "pointsEarned", "type": "Number"}
+					]
+				},
+				{
+					"_type": "UMLClass",
+					"_id": "class_examresult",
+					"_parent": {
+						"$ref": "AAAAAAFF+qBWK6M3Z8Y="
+					},
+					"name": "ExamResult",
+					"attributes": [
+						{"_type": "UMLAttribute", "_id": "er_1", "_parent": {"$ref": "class_examresult"}, "name": "_id", "type": "ObjectId"},
+						{"_type": "UMLAttribute", "_id": "er_2", "_parent": {"$ref": "class_examresult"}, "name": "attemptId", "type": "ObjectId"},
+						{"_type": "UMLAttribute", "_id": "er_3", "_parent": {"$ref": "class_examresult"}, "name": "candidateId", "type": "ObjectId"},
+						{"_type": "UMLAttribute", "_id": "er_4", "_parent": {"$ref": "class_examresult"}, "name": "overallScore", "type": "Number"},
+						{"_type": "UMLAttribute", "_id": "er_5", "_parent": {"$ref": "class_examresult"}, "name": "passed", "type": "Boolean"}
+					]
+				},
+				{
+					"_type": "UMLClass",
+					"_id": "class_gradingresult",
+					"_parent": {
+						"$ref": "AAAAAAFF+qBWK6M3Z8Y="
+					},
+					"name": "GradingResult",
+					"attributes": [
+						{"_type": "UMLAttribute", "_id": "gr_1", "_parent": {"$ref": "class_gradingresult"}, "name": "_id", "type": "ObjectId"},
+						{"_type": "UMLAttribute", "_id": "gr_2", "_parent": {"$ref": "class_gradingresult"}, "name": "attemptId", "type": "ObjectId"},
+						{"_type": "UMLAttribute", "_id": "gr_3", "_parent": {"$ref": "class_gradingresult"}, "name": "questionId", "type": "ObjectId"},
+						{"_type": "UMLAttribute", "_id": "gr_4", "_parent": {"$ref": "class_gradingresult"}, "name": "score", "type": "Number"},
+						{"_type": "UMLAttribute", "_id": "gr_5", "_parent": {"$ref": "class_gradingresult"}, "name": "feedback", "type": "String"}
+					]
+				},
+				{
+					"_type": "UMLAssociation",
+					"_id": "assoc_user_candidate",
+					"_parent": {
+						"$ref": "AAAAAAFF+qBWK6M3Z8Y="
+					},
+					"name": "has",
+					"end1": {
+						"_type": "UMLAssociationEnd",
+						"_id": "assoc_user_candidate_end1",
+						"_parent": {"$ref": "assoc_user_candidate"},
+						"reference": {"$ref": "class_user"},
+						"multiplicity": "1",
+						"navigable": "navigable"
+					},
+					"end2": {
+						"_type": "UMLAssociationEnd",
+						"_id": "assoc_user_candidate_end2",
+						"_parent": {"$ref": "assoc_user_candidate"},
+						"reference": {"$ref": "class_candidate"},
+						"multiplicity": "0..1",
+						"navigable": "navigable"
+					}
+				},
+				{
+					"_type": "UMLAssociation",
+					"_id": "assoc_user_role",
+					"_parent": {
+						"$ref": "AAAAAAFF+qBWK6M3Z8Y="
+					},
+					"name": "assigned",
+					"end1": {
+						"_type": "UMLAssociationEnd",
+						"_id": "assoc_user_role_end1",
+						"_parent": {"$ref": "assoc_user_role"},
+						"reference": {"$ref": "class_user"},
+						"multiplicity": "*"
+					},
+					"end2": {
+						"_type": "UMLAssociationEnd",
+						"_id": "assoc_user_role_end2",
+						"_parent": {"$ref": "assoc_user_role"},
+						"reference": {"$ref": "class_role"},
+						"multiplicity": "*"
+					}
+				},
+				{
+					"_type": "UMLAssociation",
+					"_id": "assoc_user_question",
+					"_parent": {
+						"$ref": "AAAAAAFF+qBWK6M3Z8Y="
+					},
+					"name": "creates",
+					"end1": {
+						"_type": "UMLAssociationEnd",
+						"_id": "assoc_user_question_end1",
+						"_parent": {"$ref": "assoc_user_question"},
+						"reference": {"$ref": "class_user"},
+						"multiplicity": "1"
+					},
+					"end2": {
+						"_type": "UMLAssociationEnd",
+						"_id": "assoc_user_question_end2",
+						"_parent": {"$ref": "assoc_user_question"},
+						"reference": {"$ref": "class_question"},
+						"multiplicity": "*"
+					}
+				},
+				{
+					"_type": "UMLAssociation",
+					"_id": "assoc_user_exam",
+					"_parent": {
+						"$ref": "AAAAAAFF+qBWK6M3Z8Y="
+					},
+					"name": "creates",
+					"end1": {
+						"_type": "UMLAssociationEnd",
+						"_id": "assoc_user_exam_end1",
+						"_parent": {"$ref": "assoc_user_exam"},
+						"reference": {"$ref": "class_user"},
+						"multiplicity": "1"
+					},
+					"end2": {
+						"_type": "UMLAssociationEnd",
+						"_id": "assoc_user_exam_end2",
+						"_parent": {"$ref": "assoc_user_exam"},
+						"reference": {"$ref": "class_exam"},
+						"multiplicity": "*"
+					}
+				},
+				{
+					"_type": "UMLAssociation",
+					"_id": "assoc_level_question",
+					"_parent": {
+						"$ref": "AAAAAAFF+qBWK6M3Z8Y="
+					},
+					"name": "categorizes",
+					"end1": {
+						"_type": "UMLAssociationEnd",
+						"_id": "assoc_level_question_end1",
+						"_parent": {"$ref": "assoc_level_question"},
+						"reference": {"$ref": "class_level"},
+						"multiplicity": "1"
+					},
+					"end2": {
+						"_type": "UMLAssociationEnd",
+						"_id": "assoc_level_question_end2",
+						"_parent": {"$ref": "assoc_level_question"},
+						"reference": {"$ref": "class_question"},
+						"multiplicity": "*"
+					}
+				},
+				{
+					"_type": "UMLAssociation",
+					"_id": "assoc_level_exam",
+					"_parent": {
+						"$ref": "AAAAAAFF+qBWK6M3Z8Y="
+					},
+					"name": "targets",
+					"end1": {
+						"_type": "UMLAssociationEnd",
+						"_id": "assoc_level_exam_end1",
+						"_parent": {"$ref": "assoc_level_exam"},
+						"reference": {"$ref": "class_level"},
+						"multiplicity": "1"
+					},
+					"end2": {
+						"_type": "UMLAssociationEnd",
+						"_id": "assoc_level_exam_end2",
+						"_parent": {"$ref": "assoc_level_exam"},
+						"reference": {"$ref": "class_exam"},
+						"multiplicity": "*"
+					}
+				},
+				{
+					"_type": "UMLAssociation",
+					"_id": "assoc_question_exam",
+					"_parent": {
+						"$ref": "AAAAAAFF+qBWK6M3Z8Y="
+					},
+					"name": "belongs_to",
+					"end1": {
+						"_type": "UMLAssociationEnd",
+						"_id": "assoc_question_exam_end1",
+						"_parent": {"$ref": "assoc_question_exam"},
+						"reference": {"$ref": "class_question"},
+						"multiplicity": "*"
+					},
+					"end2": {
+						"_type": "UMLAssociationEnd",
+						"_id": "assoc_question_exam_end2",
+						"_parent": {"$ref": "assoc_question_exam"},
+						"reference": {"$ref": "class_exam"},
+						"multiplicity": "1"
+					}
+				},
+				{
+					"_type": "UMLAssociation",
+					"_id": "assoc_exam_examsession",
+					"_parent": {
+						"$ref": "AAAAAAFF+qBWK6M3Z8Y="
+					},
+					"name": "instantiates",
+					"end1": {
+						"_type": "UMLAssociationEnd",
+						"_id": "assoc_exam_examsession_end1",
+						"_parent": {"$ref": "assoc_exam_examsession"},
+						"reference": {"$ref": "class_exam"},
+						"multiplicity": "1"
+					},
+					"end2": {
+						"_type": "UMLAssociationEnd",
+						"_id": "assoc_exam_examsession_end2",
+						"_parent": {"$ref": "assoc_exam_examsession"},
+						"reference": {"$ref": "class_examsession"},
+						"multiplicity": "*"
+					}
+				},
+				{
+					"_type": "UMLAssociation",
+					"_id": "assoc_examsession_activesession",
+					"_parent": {
+						"$ref": "AAAAAAFF+qBWK6M3Z8Y="
+					},
+					"name": "managed_by",
+					"end1": {
+						"_type": "UMLAssociationEnd",
+						"_id": "assoc_examsession_activesession_end1",
+						"_parent": {"$ref": "assoc_examsession_activesession"},
+						"reference": {"$ref": "class_examsession"},
+						"multiplicity": "1"
+					},
+					"end2": {
+						"_type": "UMLAssociationEnd",
+						"_id": "assoc_examsession_activesession_end2",
+						"_parent": {"$ref": "assoc_examsession_activesession"},
+						"reference": {"$ref": "class_activesession"},
+						"multiplicity": "0..1"
+					}
+				},
+				{
+					"_type": "UMLAssociation",
+					"_id": "assoc_examsession_attempt",
+					"_parent": {
+						"$ref": "AAAAAAFF+qBWK6M3Z8Y="
+					},
+					"name": "contains",
+					"end1": {
+						"_type": "UMLAssociationEnd",
+						"_id": "assoc_examsession_attempt_end1",
+						"_parent": {"$ref": "assoc_examsession_attempt"},
+						"reference": {"$ref": "class_examsession"},
+						"multiplicity": "1"
+					},
+					"end2": {
+						"_type": "UMLAssociationEnd",
+						"_id": "assoc_examsession_attempt_end2",
+						"_parent": {"$ref": "assoc_examsession_attempt"},
+						"reference": {"$ref": "class_attempt"},
+						"multiplicity": "*"
+					}
+				},
+				{
+					"_type": "UMLAssociation",
+					"_id": "assoc_candidate_attempt",
+					"_parent": {
+						"$ref": "AAAAAAFF+qBWK6M3Z8Y="
+					},
+					"name": "taken_by",
+					"end1": {
+						"_type": "UMLAssociationEnd",
+						"_id": "assoc_candidate_attempt_end1",
+						"_parent": {"$ref": "assoc_candidate_attempt"},
+						"reference": {"$ref": "class_candidate"},
+						"multiplicity": "1"
+					},
+					"end2": {
+						"_type": "UMLAssociationEnd",
+						"_id": "assoc_candidate_attempt_end2",
+						"_parent": {"$ref": "assoc_candidate_attempt"},
+						"reference": {"$ref": "class_attempt"},
+						"multiplicity": "*"
+					}
+				},
+				{
+					"_type": "UMLAssociation",
+					"_id": "assoc_attempt_response",
+					"_parent": {
+						"$ref": "AAAAAAFF+qBWK6M3Z8Y="
+					},
+					"name": "contains",
+					"end1": {
+						"_type": "UMLAssociationEnd",
+						"_id": "assoc_attempt_response_end1",
+						"_parent": {"$ref": "assoc_attempt_response"},
+						"reference": {"$ref": "class_attempt"},
+						"multiplicity": "1",
+						"aggregation": "composite"
+					},
+					"end2": {
+						"_type": "UMLAssociationEnd",
+						"_id": "assoc_attempt_response_end2",
+						"_parent": {"$ref": "assoc_attempt_response"},
+						"reference": {"$ref": "class_response"},
+						"multiplicity": "*"
+					}
+				},
+				{
+					"_type": "UMLAssociation",
+					"_id": "assoc_attempt_examresult",
+					"_parent": {
+						"$ref": "AAAAAAFF+qBWK6M3Z8Y="
+					},
+					"name": "produces",
+					"end1": {
+						"_type": "UMLAssociationEnd",
+						"_id": "assoc_attempt_examresult_end1",
+						"_parent": {"$ref": "assoc_attempt_examresult"},
+						"reference": {"$ref": "class_attempt"},
+						"multiplicity": "1"
+					},
+					"end2": {
+						"_type": "UMLAssociationEnd",
+						"_id": "assoc_attempt_examresult_end2",
+						"_parent": {"$ref": "assoc_attempt_examresult"},
+						"reference": {"$ref": "class_examresult"},
+						"multiplicity": "0..1"
+					}
+				},
+				{
+					"_type": "UMLAssociation",
+					"_id": "assoc_question_response",
+					"_parent": {
+						"$ref": "AAAAAAFF+qBWK6M3Z8Y="
+					},
+					"name": "generates",
+					"end1": {
+						"_type": "UMLAssociationEnd",
+						"_id": "assoc_question_response_end1",
+						"_parent": {"$ref": "assoc_question_response"},
+						"reference": {"$ref": "class_question"},
+						"multiplicity": "1"
+					},
+					"end2": {
+						"_type": "UMLAssociationEnd",
+						"_id": "assoc_question_response_end2",
+						"_parent": {"$ref": "assoc_question_response"},
+						"reference": {"$ref": "class_response"},
+						"multiplicity": "*"
+					}
+				},
+				{
+					"_type": "UMLAssociation",
+					"_id": "assoc_response_gradingresult",
+					"_parent": {
+						"$ref": "AAAAAAFF+qBWK6M3Z8Y="
+					},
+					"name": "evaluated_as",
+					"end1": {
+						"_type": "UMLAssociationEnd",
+						"_id": "assoc_response_gradingresult_end1",
+						"_parent": {"$ref": "assoc_response_gradingresult"},
+						"reference": {"$ref": "class_response"},
+						"multiplicity": "1"
+					},
+					"end2": {
+						"_type": "UMLAssociationEnd",
+						"_id": "assoc_response_gradingresult_end2",
+						"_parent": {"$ref": "assoc_response_gradingresult"},
+						"reference": {"$ref": "class_gradingresult"},
+						"multiplicity": "0..1"
+					}
+				},
+				{
+					"_type": "UMLAssociation",
+					"_id": "assoc_candidate_examresult",
+					"_parent": {
+						"$ref": "AAAAAAFF+qBWK6M3Z8Y="
+					},
+					"name": "has",
+					"end1": {
+						"_type": "UMLAssociationEnd",
+						"_id": "assoc_candidate_examresult_end1",
+						"_parent": {"$ref": "assoc_candidate_examresult"},
+						"reference": {"$ref": "class_candidate"},
+						"multiplicity": "1"
+					},
+					"end2": {
+						"_type": "UMLAssociationEnd",
+						"_id": "assoc_candidate_examresult_end2",
+						"_parent": {"$ref": "assoc_candidate_examresult"},
+						"reference": {"$ref": "class_examresult"},
+						"multiplicity": "*"
+					}
+				},
+				{
+					"_type": "UMLAssociation",
+					"_id": "assoc_candidate_examsession",
+					"_parent": {
+						"$ref": "AAAAAAFF+qBWK6M3Z8Y="
+					},
+					"name": "participates_in",
+					"end1": {
+						"_type": "UMLAssociationEnd",
+						"_id": "assoc_candidate_examsession_end1",
+						"_parent": {"$ref": "assoc_candidate_examsession"},
+						"reference": {"$ref": "class_candidate"},
+						"multiplicity": "*"
+					},
+					"end2": {
+						"_type": "UMLAssociationEnd",
+						"_id": "assoc_candidate_examsession_end2",
+						"_parent": {"$ref": "assoc_candidate_examsession"},
+						"reference": {"$ref": "class_examsession"},
+						"multiplicity": "*"
+					}
+				}
+			]
+		}
+	]
+}

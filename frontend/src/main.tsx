@@ -1,9 +1,9 @@
-import { createRoot } from "react-dom/client";
-import "./index.css";
 import { Toaster } from "@/components/atoms/sonner";
 import { ThemeProvider } from "@/context/ThemeContext";
-import Navigation from "./navigation/Navigation";
+import { createRoot } from "react-dom/client";
 import { BrowserRouter } from "react-router";
+import "./index.css";
+import Navigation from "./navigation/Navigation";
 
 createRoot(document.getElementById("root")!).render(
   <BrowserRouter>

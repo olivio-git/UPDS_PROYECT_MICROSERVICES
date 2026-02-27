@@ -68,7 +68,6 @@ class UserService {
       if (filters.status) queryParams.append('status', filters.status);
       if (filters.sortBy) queryParams.append('sortBy', filters.sortBy);
       if (filters.sortOrder) queryParams.append('sortOrder', filters.sortOrder);
-
       const response = await this.makeAuthenticatedRequest(() =>
         axios.get(
           `${this.baseUrl}/api/v1/users?${queryParams.toString()}`,
@@ -315,6 +314,184 @@ class UserService {
       };
     } catch (error: any) {
       return this.handleError(error, 'Error asignando rol');
+    }
+  }
+
+  /**
+   * Exportar usuarios a Excel
+   */
+  async exportUsers(filters: UserFilters = {}): Promise<ApiResponse> {
+    try {
+      console.log('📤 Exportando usuarios a Excel');
+
+      const queryParams = new URLSearchParams();
+
+      // Agregar filtros al export
+      if (filters.search) queryParams.append('search', filters.search);
+      if (filters.role) queryParams.append('role', filters.role);
+      if (filters.status) queryParams.append('status', filters.status);
+      if (filters.sortBy) queryParams.append('sortBy', filters.sortBy);
+      if (filters.sortOrder) queryParams.append('sortOrder', filters.sortOrder);
+
+      const response = await this.makeAuthenticatedRequest(() =>
+        axios.get(
+          `${this.baseUrl}/api/v1/users/export?${queryParams.toString()}`,
+          {
+            headers: this.getAuthHeaders(),
+            responseType: 'blob', // Important for downloading binary data
+            timeout: 30000 // 30 seconds for export
+          }
+        )
+      );
+
+      // Create blob and download
+      const blob = new Blob([response.data], {
+        type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+      });
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+
+      // Generate filename with current date
+      const fileName = `usuarios_${new Date().toISOString().split('T')[0]}.xlsx`;
+      link.download = fileName;
+
+      // Trigger download
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+
+      // Clean up
+      window.URL.revokeObjectURL(url);
+
+      console.log('✅ Usuarios exportados exitosamente');
+      toast.success('Usuarios exportados exitosamente');
+
+      return {
+        success: true,
+        message: 'Usuarios exportados exitosamente'
+      };
+    } catch (error: any) {
+      console.error('❌ Error exportando usuarios:', error);
+      return this.handleError(error, 'Error exportando usuarios');
+    }
+  }
+
+  /**
+   * Importar usuarios desde Excel
+   */
+  async importUsers(file: File): Promise<ApiResponse> {
+    try {
+      console.log('📤 Importando usuarios desde Excel:', file.name);
+
+      // Validate file type
+      const allowedTypes = [
+        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', // .xlsx
+        'application/vnd.ms-excel', // .xls
+        'text/csv' // .csv
+      ];
+
+      if (!allowedTypes.includes(file.type)) {
+        const errorMessage = 'Tipo de archivo no válido. Use .xlsx, .xls o .csv';
+        toast.error(errorMessage);
+        return {
+          success: false,
+          message: errorMessage,
+          error: 'INVALID_FILE_TYPE'
+        };
+      }
+
+      // Validate file size (max 10MB)
+      const maxSize = 10 * 1024 * 1024; // 10MB
+      if (file.size > maxSize) {
+        const errorMessage = 'Archivo muy grande. Máximo 10MB permitido';
+        toast.error(errorMessage);
+        return {
+          success: false,
+          message: errorMessage,
+          error: 'FILE_TOO_LARGE'
+        };
+      }
+
+      // Create FormData
+      const formData = new FormData();
+      formData.append('file', file);
+
+      const response = await this.makeAuthenticatedRequest(() =>
+        axios.post(
+          `${this.baseUrl}/api/v1/users/import`,
+          formData,
+          {
+            headers: {
+              'Authorization': this.getAuthHeaders().Authorization,
+              // Don't set Content-Type, let browser set it with boundary for FormData
+            },
+            timeout: 60000 // 1 minute for import
+          }
+        )
+      );
+
+      console.log('✅ Usuarios importados exitosamente:', response.data);
+
+      const successMessage = response.data.message || 'Usuarios importados exitosamente';
+      toast.success(successMessage);
+
+      return {
+        success: true,
+        message: successMessage,
+        data: response.data.data
+      };
+    } catch (error: any) {
+      console.error('❌ Error importando usuarios:', error);
+      return this.handleError(error, 'Error importando usuarios');
+    }
+  }
+
+  /**
+   * Descargar template de Excel para importación
+   */
+  async downloadTemplate(): Promise<ApiResponse> {
+    try {
+      console.log('📤 Descargando template de usuarios');
+
+      const response = await this.makeAuthenticatedRequest(() =>
+        axios.get(
+          `${this.baseUrl}/api/v1/users/template`,
+          {
+            headers: this.getAuthHeaders(),
+            responseType: 'blob',
+            timeout: 15000
+          }
+        )
+      );
+
+      // Create blob and download
+      const blob = new Blob([response.data], {
+        type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+      });
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = 'plantilla_usuarios.xlsx';
+
+      // Trigger download
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+
+      // Clean up
+      window.URL.revokeObjectURL(url);
+
+      console.log('✅ Template descargado exitosamente');
+      toast.success('Plantilla descargada exitosamente');
+
+      return {
+        success: true,
+        message: 'Plantilla descargada exitosamente'
+      };
+    } catch (error: any) {
+      console.error('❌ Error descargando template:', error);
+      return this.handleError(error, 'Error descargando plantilla');
     }
   }
 

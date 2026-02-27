@@ -1,8 +1,10 @@
+import Bull from 'bull';
 import { createClient, RedisClientType } from 'redis';
 import { logger } from '../utils/logger';
 import { env } from './env';
 
 let redisClient: RedisClientType;
+let sessionSchedulerQueue: Bull.Queue | null = null;
 
 export const connectRedis = async (): Promise<void> => {
   try {
@@ -23,6 +25,9 @@ export const connectRedis = async (): Promise<void> => {
     });
 
     await redisClient.connect();
+
+    // 👇 NO crear la cola aquí, se creará cuando sea necesaria
+    logger.info('✅ Redis connection established, Bull Queue will be created on demand');
   } catch (error) {
     logger.error('Failed to connect to Redis:', error);
     // Don't exit, Redis is optional for caching
@@ -35,7 +40,31 @@ export const getRedisClient = (): RedisClientType => {
   }
   return redisClient;
 };
+export const getSessionSchedulerQueue = (): Bull.Queue => {
+  if (!sessionSchedulerQueue) {
+    // Verificar que Redis esté conectado
+    if (!redisClient || !redisClient.isOpen) {
+      throw new Error('Redis client not connected. Cannot create Bull queue.');
+    }
 
+    try {
+      sessionSchedulerQueue = new Bull('session-scheduler', {
+        redis: {
+          host: env.REDIS_HOST,
+          port: env.REDIS_PORT,
+          password: env.REDIS_PASSWORD || undefined
+        }
+      });
+
+      logger.info('✅ Bull Queue for session scheduling created');
+    } catch (error) {
+      logger.error('Failed to create Bull queue:', error);
+      throw new Error('Failed to create session scheduler queue');
+    }
+  }
+
+  return sessionSchedulerQueue;
+};
 // Cache helper functions
 export const cache = {
   async get(key: string): Promise<any> {

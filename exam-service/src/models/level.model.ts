@@ -1,4 +1,4 @@
-import { Schema, model, Document, Types } from 'mongoose';
+import { Document, Schema, Types, model } from 'mongoose';
 
 export interface ILevel extends Document {
   code: string; // A1, A2, B1, B2, C1, C2
@@ -21,6 +21,16 @@ export interface ILevel extends Document {
       canDoStatements: string[];
     };
     speaking: {
+      minScore: number;
+      description: string;
+      canDoStatements: string[];
+    };
+    grammar: {
+      minScore: number;
+      description: string;
+      canDoStatements: string[];
+    };
+    vocabulary: {
       minScore: number;
       description: string;
       canDoStatements: string[];
@@ -68,6 +78,16 @@ const levelSchema = new Schema<ILevel>({
       minScore: { type: Number, required: true },
       description: String,
       canDoStatements: [String]
+    },
+    grammar: {
+      minScore: { type: Number, required: true },
+      description: String,
+      canDoStatements: [String]
+    },
+    vocabulary: {
+      minScore: { type: Number, required: true },
+      description: String,
+      canDoStatements: [String]
     }
   },
   overallMinScore: {
@@ -89,7 +109,6 @@ const levelSchema = new Schema<ILevel>({
 });
 
 // Index
-levelSchema.index({ code: 1 });
 levelSchema.index({ isActive: 1 });
 
 export const Level = model<ILevel>('Level', levelSchema);

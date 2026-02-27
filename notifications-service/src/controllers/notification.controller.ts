@@ -64,6 +64,21 @@ export class NotificationController {
           });
           break;
 
+        case 'exam_graded':
+          result = await this.notificationService.sendExamGradedEmail({
+            email: to,
+            firstName: data.firstName || 'Estudiante',
+            lastName: data.lastName || '',
+            examName: data.examName || 'Examen de prueba',
+            score: data.score ?? 75,
+            maxScore: data.maxScore ?? 100,
+            percentage: data.percentage ?? 75,
+            status: data.status || 'completed',
+            pdfBase64: data.pdfBase64,
+            pdfFilename: data.pdfFilename,
+          });
+          break;
+
         default:
           return res.status(400).json({
             success: false,
@@ -228,6 +243,57 @@ export class NotificationController {
           timestamp: new Date().toISOString()
         }
       });
+    }
+  };
+
+  // In-app notifications
+  listNotifications = async (req: Request, res: Response<ApiResponse>) => {
+    try {
+      const { recipientId, onlyUnread = 'false', page = '1', limit = '50' } = req.query;
+      if (!recipientId) {
+        return res.status(400).json({ success: false, message: 'recipientId is required' });
+      }
+      console.log(recipientId,onlyUnread,page,limit,'first')
+      const items = await (this.notificationService as any).listInAppNotifications(
+        recipientId as string,
+        onlyUnread === 'true',
+        parseInt(limit as string, 10) || 50,
+        parseInt(page as string, 10) || 1
+      );
+
+      res.status(200).json({ success: true, message: 'Notifications fetched', data: items });
+    } catch (error: any) {
+      res.status(500).json({ success: false, message: error.message || 'Error listing notifications' });
+    }
+  };
+
+  markAsRead = async (req: Request, res: Response<ApiResponse>) => {
+    try {
+      const { id } = req.params;
+      if (!id) return res.status(400).json({ success: false, message: 'id is required' });
+
+      await (this.notificationService as any).markNotificationAsRead(id);
+
+      res.status(200).json({ success: true, message: 'Notification marked as read' });
+    } catch (error: any) {
+      res.status(500).json({ success: false, message: error.message || 'Error marking as read' });
+    }
+  };
+
+  deleteNotification = async (req: Request, res: Response<ApiResponse>) => {
+    try {
+      const { id } = req.params;
+      if (!id) return res.status(400).json({ success: false, message: 'id is required' });
+
+      const deleted = await (this.notificationService as any).deleteInAppNotification(id);
+
+      if (deleted) {
+        res.status(200).json({ success: true, message: 'Notification deleted' });
+      } else {
+        res.status(404).json({ success: false, message: 'Notification not found' });
+      }
+    } catch (error: any) {
+      res.status(500).json({ success: false, message: error.message || 'Error deleting notification' });
     }
   };
 }

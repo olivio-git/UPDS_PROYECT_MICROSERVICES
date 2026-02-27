@@ -1,32 +1,82 @@
 // src/services/candidate.service.ts - Implementación completa
 
-import { 
-  CreateCandidateRequest, 
-  UpdateCandidateRequest,
-  PaginationParams,
-  FilterParams,
+import { ObjectId } from 'mongodb';
+import { CandidateModel } from '../models/Candidate';
+import { CacheRepository } from '../repositories/cache.repository';
+import { CandidateRepository } from '../repositories/candidate.repository';
+import {
   ApiResponse,
   BulkImportResult,
-  Candidate,
   CandidateStatus,
-  TechnicalSetup
+  CreateCandidateRequest,
+  FilterParams,
+  PaginationParams,
+  TechnicalSetup,
+  UpdateCandidateRequest
 } from '../types';
-import { CandidateRepository } from '../repositories/candidate.repository';
-import { CandidateModel } from '../models/Candidate';
 import { eventService } from './event.service';
-import { ObjectId } from 'mongodb';
 
 export class CandidateService {
   private candidateRepository: CandidateRepository;
+  private redis: CacheRepository;
+  private readonly USER_VERIFICATION_PREFIX = 'user_tech:';
 
   constructor() {
     this.candidateRepository = new CandidateRepository();
-    console.log('👨‍🎓 CandidateService inicializado');
+    this.redis = new CacheRepository();
   }
 
   // ================================
   // CRUD OPERATIONS
   // ================================
+
+  // 🆕 NUEVO: Buscar candidato por userId
+  async findByUserId(userId: string): Promise<CandidateModel | null> {
+    try {
+      return await this.candidateRepository.findByUserId(userId);
+    } catch (error) {
+      console.error(`Error finding candidate by userId ${userId}:`, error);
+      throw error;
+    }
+  }
+  async findByAuthUserId(id: string): Promise<CandidateModel | null> {
+    try {
+      return await this.candidateRepository.findByAuthUserId(id);
+    } catch (error) {
+      console.error(`Error finding candidate by id ${id}:`, error);
+      throw error;
+    }
+  }
+  // 🆕 NUEVO: Crear candidato desde User
+  async createFromUser(user: any): Promise<CandidateModel> {
+    try {
+      // Verificar que no existe candidato para este usuario
+      const existing = await this.findByUserId(user._id.toString());
+      if (existing) {
+        throw new Error('Candidate already exists for this user');
+      }
+
+      // Crear candidato con datos del usuario
+      const candidateData = CandidateModel.createFromUser(user);
+      const candidate = await this.candidateRepository.create(candidateData.toJSON());
+
+      // Publicar evento
+      try {
+        await eventService.publishCandidateRegistered(
+          candidate._id!.toString(),
+          candidate.toJSON(),
+          user._id.toString()
+        );
+      } catch (eventError) {
+        console.warn('⚠️ Error publicando evento de candidato creado desde usuario:', eventError);
+      }
+
+      return candidate;
+    } catch (error) {
+      console.error('Error creating candidate from user:', error);
+      throw error;
+    }
+  }
 
   async createCandidate(candidateData: CreateCandidateRequest, registeredBy?: string): Promise<ApiResponse<any>> {
     try {
@@ -101,7 +151,7 @@ export class CandidateService {
   async getCandidateById(id: string): Promise<ApiResponse<any>> {
     try {
       const candidate = await this.candidateRepository.findById(id);
-      
+
       if (!candidate) {
         return {
           success: false,
@@ -150,7 +200,11 @@ export class CandidateService {
       }
 
       const updatedCandidate = await this.candidateRepository.update(id, updates);
-      
+      if (updates.technicalSetup) {
+        console.log('💾 Guardando verificación técnica en Redis:', updates.technicalSetup);
+        await this.redis.set(`${this.USER_VERIFICATION_PREFIX}${id}`, JSON.stringify(updates.technicalSetup), 3600); // Expira en 1 hora
+        console.log('✅ Verificación técnica guardada en Redis');
+      }
       // Publicar evento de candidato actualizado
       if (updatedCandidate) {
         try {
@@ -159,7 +213,7 @@ export class CandidateService {
           console.warn('⚠️ Error publicando evento de candidato actualizado:', eventError);
         }
       }
-      
+
       return {
         success: true,
         message: 'Candidato actualizado exitosamente',
@@ -174,7 +228,40 @@ export class CandidateService {
       };
     }
   }
-
+  async getTechnicalSetupById(id: string): Promise<ApiResponse<any>> {
+    try {
+      // Verificar si el candidato existe
+      const existingCandidate = await this.candidateRepository.findById(id);
+      if (!existingCandidate) {
+        return {
+          success: false,
+          message: 'Candidato no encontrado',
+          error: 'CANDIDATE_NOT_FOUND'
+        };
+      }
+      const technicalSetupRaw = await this.redis.get(`${this.USER_VERIFICATION_PREFIX}${id}`);
+      if (typeof technicalSetupRaw !== 'string' || !technicalSetupRaw) {
+        return {
+          success: false,
+          message: 'No se encontró configuración técnica para este candidato',
+          error: 'TECHNICAL_SETUP_NOT_FOUND'
+        };
+      }
+      // Parsear la configuración técnica almacenada como string JSON
+      return {
+        success: true,
+        message: 'Candidato actualizado exitosamente',
+        data: { technicalSetup: JSON.parse(technicalSetupRaw) }
+      };
+    } catch (error) {
+      console.error('Error actualizando candidato:', error);
+      return {
+        success: false,
+        message: 'Error interno del servidor',
+        error: error instanceof Error ? error.message : 'Unknown error'
+      };
+    }
+  }
   async deleteCandidate(id: string): Promise<ApiResponse<any>> {
     try {
       const candidateExists = await this.candidateRepository.findById(id);
@@ -187,7 +274,7 @@ export class CandidateService {
       }
 
       const deleted = await this.candidateRepository.delete(id);
-      
+
       if (!deleted) {
         return {
           success: false,
@@ -214,9 +301,9 @@ export class CandidateService {
   async getCandidates(pagination: PaginationParams, filters: FilterParams): Promise<ApiResponse<any>> {
     try {
       const { candidates, total } = await this.candidateRepository.findAll(pagination, filters);
-      
+
       const totalPages = Math.ceil(total / pagination.limit);
-      
+
       return {
         success: true,
         message: 'Lista de candidatos obtenida exitosamente',
@@ -247,7 +334,7 @@ export class CandidateService {
   async updateCandidateStatus(id: string, status: CandidateStatus): Promise<ApiResponse<any>> {
     try {
       const updatedCandidate = await this.candidateRepository.updateStatus(id, status);
-      
+
       if (!updatedCandidate) {
         return {
           success: false,
@@ -274,9 +361,9 @@ export class CandidateService {
   async searchCandidates(searchTerm: string, pagination: PaginationParams): Promise<ApiResponse<any>> {
     try {
       const { candidates, total } = await this.candidateRepository.search(searchTerm, pagination);
-      
+
       const totalPages = Math.ceil(total / pagination.limit);
-      
+
       return {
         success: true,
         message: 'Búsqueda completada exitosamente',
@@ -304,7 +391,7 @@ export class CandidateService {
   async getCandidateStats(): Promise<ApiResponse<any>> {
     try {
       const stats = await this.candidateRepository.getStatistics();
-      
+
       return {
         success: true,
         message: 'Estadísticas obtenidas exitosamente',
@@ -323,7 +410,7 @@ export class CandidateService {
   async bulkDeleteCandidates(ids: string[]): Promise<ApiResponse<any>> {
     try {
       const deleted = await this.candidateRepository.bulkDelete(ids);
-      
+
       return {
         success: true,
         message: 'Candidatos eliminados en lote exitosamente',

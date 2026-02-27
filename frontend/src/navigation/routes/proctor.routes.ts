@@ -2,12 +2,12 @@ import type { RouteType } from '../types/RouteTypes';
 import { Home, Monitor, Users, FileText, AlertTriangle, Settings } from "lucide-react";
 
 // Placeholder components - implementar cuando sea necesario
-const ProctorDashboard = () => <div>Proctor Dashboard - Por implementar</div>;
-const ProctorMonitor = () => <div>Proctor Monitor - Por implementar</div>;
-const ProctorSessions = () => <div>Proctor Sessions - Por implementar</div>;
-const ProctorReports = () => <div>Proctor Reports - Por implementar</div>;
-const ProctorIncidents = () => <div>Proctor Incidents - Por implementar</div>;
-const ProctorSettings = () => <div>Proctor Settings - Por implementar</div>;
+const ProctorDashboard = () => null;
+const ProctorMonitor = () => null;
+const ProctorSessions = () => null;
+const ProctorReports = () => null;
+const ProctorIncidents = () => null;
+const ProctorSettings = () => null;
 
 export const proctorRoutes: RouteType[] = [
   {

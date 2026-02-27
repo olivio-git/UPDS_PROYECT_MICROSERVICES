@@ -1,7 +1,7 @@
 import { Consumer } from 'kafkajs';
-import { NotificationService } from '../services/notification.service';
-import { OtpEmailData, UserEventData, KafkaMessage } from '../types';
 import { config } from '../config';
+import { NotificationService } from '../services/notification.service';
+import { KafkaMessage, Notification, OtpEmailData } from '../types';
 
 export class KafkaConsumerService {
   constructor(
@@ -17,7 +17,8 @@ export class KafkaConsumerService {
       await this.consumer.subscribe({
         topics: [
           config.kafka.topics.userEvents,
-          config.kafka.topics.otpEvents
+          config.kafka.topics.otpEvents,
+          config.kafka.topics.examEvents
         ],
         fromBeginning: false
       });
@@ -28,9 +29,16 @@ export class KafkaConsumerService {
             const messageValue = message.value?.toString();
             if (!messageValue) return;
 
-            const kafkaMessage: KafkaMessage = JSON.parse(messageValue);
-            
-            console.log(`📨 Mensaje recibido del topic ${topic}:`, kafkaMessage.eventType);
+            const raw = JSON.parse(messageValue);
+
+            // Normalize message shape: some services publish { type, data } while others use { eventType, userData }
+            const kafkaMessage: any = {
+              ...raw,
+              eventType: raw.eventType || raw.type,
+              data: raw.data || raw.userData || raw.payload || raw
+            };
+
+            console.log(`📨 Mensaje recibido del topic ${topic}:`, kafkaMessage.eventType || kafkaMessage.type);
 
             await this.handleMessage(topic, kafkaMessage);
 
@@ -58,13 +66,17 @@ export class KafkaConsumerService {
         await this.handleOtpEvent(message);
         break;
 
+      case config.kafka.topics.examEvents:
+        await this.handleExamEvent(message);
+        break;
+
       default:
         console.log(`⚠️ Topic no manejado: ${topic}`);
     }
   }
 
   private async handleUserEvent(message: KafkaMessage): Promise<void> {
-    const { eventType, userData } = message;
+    const { eventType, data: userData } = message;
     console.log(userData,"🔍 [DEBUG] Datos del usuario:", userData);
     try {
       console.log(`🔍 [DEBUG] Evento recibido: ${eventType}`);
@@ -120,7 +132,9 @@ export class KafkaConsumerService {
             });
           }
           break;
-
+        case 'user.add_user_to_session':
+          console.log(`➕ Usuario agregado a sesión: ${userData.email} a la sesión ${userData.sessionId}`);
+          break;
         case 'user.account_locked':
           console.log(`🚫 Cuenta bloqueada: ${userData.email}`);
           // Aquí podrías enviar notificación de cuenta bloqueada
@@ -172,6 +186,100 @@ export class KafkaConsumerService {
       }
     } catch (error) {
       console.error(`❌ Error manejando evento OTP ${eventType}:`, error);
+    }
+  }
+
+  private async handleExamEvent(message: KafkaMessage): Promise<void> {
+    const { eventType, data } = message as any;
+    if (!eventType) console.warn('⚠️ handleExamEvent: eventType is falsy, message:', JSON.stringify(message));
+    try {
+      switch (eventType) {
+        case 'session.candidate.added': {
+          // Single candidate added
+          const candidateId = data.candidateId;
+          if (!candidateId) {
+            console.warn('No candidateId in event data');
+            return;
+          }
+          const notifPayload: Omit<Notification, '_id' | 'createdAt' | 'updatedAt'> = {
+            recipientId: candidateId,
+            recipientType: 'candidate',
+            type: 'session.candidate.added',
+            channel: 'in-app',
+            content: {
+              title: 'Has sido agregado a una sesión',
+              body: `Te han agregado a la sesión ${data.sessionName || data.sessionId}`,
+              link: `/sessions/${data.sessionId}`
+            },
+            read: false,
+            priority: 'normal',
+            metadata: { sessionId: data.sessionId, addedBy: data.addedBy },
+          };
+          const created = await this.notificationService.createInAppNotification(notifPayload);
+          if (created) {
+            console.log(`🔔 Notificación in-app creada para candidate ${candidateId}`);
+          }
+          break;
+        }
+
+        case 'session.candidates.added': {
+          // Multiple candidates added — notify each one
+          const candidateIds: string[] = data.candidateIds || [];
+          if (candidateIds.length === 0) {
+            console.warn('No candidateIds in event data');
+            return;
+          }
+          for (const candidateId of candidateIds) {
+            const notifPayload: Omit<Notification, '_id' | 'createdAt' | 'updatedAt'> = {
+              recipientId: candidateId,
+              recipientType: 'candidate',
+              type: 'session.candidate.added',
+              channel: 'in-app',
+              content: {
+                title: 'Has sido agregado a una sesión',
+                body: `Te han agregado a la sesión ${data.sessionName || data.sessionId}`,
+                link: `/sessions/${data.sessionId}`
+              },
+              read: false,
+              priority: 'normal',
+              metadata: { sessionId: data.sessionId },
+            };
+            await this.notificationService.createInAppNotification(notifPayload);
+          }
+          console.log(`🔔 Notificaciones in-app creadas para ${candidateIds.length} candidatos`);
+          break;
+        }
+
+        case 'session.started':
+        case 'session.ended':
+        case 'session.cancelled': {
+          // Emit session.status.changed to all enrolled candidates and creator via socket
+          const enrolledCandidateIds: string[] = data.enrolledCandidateIds || [];
+          const sessionSocketPayload = {
+            sessionId: String(data.sessionId),
+            sessionName: data.sessionName,
+            status: data.status,
+            examId: data.examId ? String(data.examId) : undefined,
+          };
+
+          for (const candidateId of enrolledCandidateIds) {
+            this.notificationService.emitToUser(candidateId, 'session.status.changed', sessionSocketPayload);
+          }
+
+          // Also emit to the creator/teacher so admin views update
+          if (data.createdBy) {
+            this.notificationService.emitToUser(String(data.createdBy), 'session.status.changed', sessionSocketPayload);
+          }
+
+          console.log(`📡 session.status.changed emitido a ${enrolledCandidateIds.length} candidatos (evento: ${eventType})`);
+          break;
+        }
+
+        default:
+          console.log(`⚠️ Evento de exam no manejado: ${eventType}`);
+      }
+    } catch (error) {
+      console.error(`❌ Error manejando evento exam ${eventType}:`, error);
     }
   }
 

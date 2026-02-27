@@ -1,6 +1,6 @@
 import Redis from 'ioredis';
-import { getRedisClient } from '../database/connections';
 import config from '../config';
+import { getRedisClient } from '../database/connections';
 
 export class CacheRepository {
   private redis: Redis;
@@ -31,6 +31,7 @@ export class CacheRepository {
     try {
       const serializedValue = JSON.stringify(value);
       const result = await this.redis.setex(this.getCacheKey(key), ttlSeconds, serializedValue);
+      // const result = await this.redis.setex(key, ttlSeconds, serializedValue);
       return result === 'OK';
     } catch (error) {
       console.error('Error guardando en cache:', error);

@@ -1,5 +1,5 @@
-import express from 'express';
 import cors from 'cors';
+import express from 'express';
 import helmet from 'helmet';
 import morgan from 'morgan';
 
@@ -7,14 +7,16 @@ import { config } from './config';
 import DatabaseConnections from './database/connections';
 
 // Repositories
-import { NotificationRepository } from './repositories/notification.repository';
 import { CacheRepository } from './repositories/cache.repository';
+import { NotificationRepository } from './repositories/notification.repository';
+import NotificationInAppRepository from './repositories/notification_inapp.repository';
 
 // Services
 import { EmailService } from './services/email.service';
-import { NotificationService } from './services/notification.service';
 import { EventService } from './services/event.service';
 import { KafkaConsumerService } from './services/kafka-consumer.service';
+import { NotificationService } from './services/notification.service';
+import SocketService from './services/socket.service';
 
 // Controllers
 import { NotificationController } from './controllers/notification.controller';
@@ -29,6 +31,7 @@ class NotificationServiceApp {
   private app: express.Application;
   private dbConnections: DatabaseConnections;
   private kafkaConsumerService?: KafkaConsumerService;
+  private socketService?: SocketService;
 
   constructor() {
     this.app = express();
@@ -71,20 +74,26 @@ class NotificationServiceApp {
     const redisClient = await this.dbConnections.connectRedis();
     const { producer: kafkaProducer, consumer: kafkaConsumer } = await this.dbConnections.connectKafka();
 
-    console.log('📦 Inicializando repositorios...');
-    // Repositories
-    const notificationRepository = new NotificationRepository(database);
-    const cacheRepository = new CacheRepository(redisClient);
+  console.log('📦 Inicializando repositorios...');
+  // Repositories
+  const notificationRepository = new NotificationRepository(database);
+  const notificationInAppRepository = new NotificationInAppRepository(database);
+  const cacheRepository = new CacheRepository(redisClient);
 
     console.log('⚙️ Inicializando servicios...');
     // Services
     const emailService = new EmailService();
     const eventService = new EventService(kafkaProducer);
+    // Socket service
+    this.socketService = new SocketService();
+
     const notificationService = new NotificationService(
       notificationRepository,
       cacheRepository,
       emailService,
-      eventService
+      eventService,
+      notificationInAppRepository,
+      this.socketService as any
     );
 
     // Kafka Consumer Service
@@ -96,6 +105,12 @@ class NotificationServiceApp {
 
     // Iniciar procesamiento de cola en background
     this.startBackgroundProcesses(notificationService);
+
+    return {
+      notificationController,
+      notificationService,
+      notificationInAppRepository
+    };
 
     return {
       notificationController,
@@ -207,9 +222,17 @@ class NotificationServiceApp {
       
       // Configurar cierre graceful
       this.setupGracefulShutdown();
-      
-      // Iniciar servidor
-      this.app.listen(config.app.port, () => {
+
+      // Iniciar servidor y adjuntar Socket.IO
+      const http = require('http');
+      const server = http.createServer(this.app);
+
+      // iniciar socket service
+      if (this.socketService) {
+        this.socketService.init(server);
+      }
+
+      server.listen(config.app.port, () => {
         console.log(`\n✅ Notifications Service ejecutándose en puerto ${config.app.port}`);
         console.log(`🌐 Entorno: ${config.app.nodeEnv}`);
         console.log(`📊 Health check: http://localhost:${config.app.port}/health`);

@@ -1,15 +1,13 @@
-import { useState, useEffect } from "react"
-import { ArrowLeft, Mail, Clock, AlertCircle } from "lucide-react"
+import { Alert, AlertDescription } from "@/components/atoms/alert"
+import { Button } from "@/components/atoms/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/atoms/card"
 import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/atoms/input-otp"
-import { Button } from "@/components/atoms/button"
-import { Alert, AlertDescription } from "@/components/atoms/alert"
 import { useAuthStore } from "@/modules/auth/services/authStore"
+import GradientBackground from "@/modules/home/screens/GradientBackground"
+import { AlertCircle, ArrowLeft, Clock, KeyRound } from "lucide-react"
+import { useEffect, useState } from "react"
 import { useLocation, useNavigate } from "react-router-dom"
 import { toast } from "sonner"
-import GradientBackground from "@/modules/home/screens/GradientBackground"
-import ImageLogo from "@/assets/images/logo.webp"
-
 interface OTPVerificationProps {
   email?: string
   purpose?: "login" | "password_reset" | "email_verification"
@@ -41,8 +39,22 @@ const OtpVerificator = ({
   const [canResend, setCanResend] = useState(false)
 
   // Get email and purpose from props, location state, or store
-  const email = propEmail || location.state?.email || otp.otpEmail
-  const purpose = propPurpose || location.state?.purpose || otp.otpPurpose
+  // Prioridad: location.state (navegación) > store > props
+  const email = location.state?.email || propEmail || otp.otpEmail
+  const purpose = location.state?.purpose || propPurpose || otp.otpPurpose
+
+  // Debug logs
+  useEffect(() => {
+    console.log('🔍 [OTP-Verification] Estado actual:', {
+      propPurpose,
+      locationPurpose: location.state?.purpose,
+      otpStorePurpose: otp.otpPurpose,
+      finalPurpose: purpose,
+      email,
+      locationEmail: location.state?.email,
+      otpStoreEmail: otp.otpEmail
+    });
+  }, [propPurpose, location.state?.purpose, otp.otpPurpose, purpose, email, location.state?.email, otp.otpEmail]);
 
   // Redirect if no email 
   useEffect(() => {
@@ -96,8 +108,15 @@ const OtpVerificator = ({
               verifiedEmail: email
             }
           })
+        } else if (purpose === "password_reset") {
+          console.log("🔐 OTP verificado para reset password, redirigiendo a formulario de nueva contraseña")
+          navigate('/reset-password', {
+            state: {
+              email: email
+            }
+          })
         } else {
-          // Para otros propósitos (password_reset, email_verification)
+          // Para otros propósitos (email_verification)
           console.log(`✅ OTP verificado para ${purpose}`)
         }
       }
@@ -184,7 +203,7 @@ const OtpVerificator = ({
         <Card className="w-full max-w-md bg-transparent shadow-none">
           <CardHeader className="space-y-1 text-center">
             <div className="flex items-center justify-center w-12 h-12 bg-gray-100 rounded-full mx-auto mb-4">
-              <Mail className="h-6 w-6 text-black" />
+              <KeyRound className="h-6 w-6 text-gray-800" />
             </div>
             <CardTitle className="text-3xl font-medium text-card-foreground">
               Verificar Código
@@ -219,8 +238,8 @@ const OtpVerificator = ({
 
             {/* Información sobre el propósito */}
             <Alert className="border-blue-500/50 bg-blue-500/10">
-              <AlertCircle className="h-5 w-5 text-blue-600" /> 
-              <AlertDescription className="text-blue-600">
+              <AlertCircle className="h-5 w-5 text-blue-500" /> 
+              <AlertDescription className="text-blue-500">
                 {getActionText()}
               </AlertDescription>
             </Alert>
@@ -250,8 +269,9 @@ const OtpVerificator = ({
               {/* Botón de verificar estilizado */}
               <Button
                 onClick={handleVerify}
+                size={'sm'}
                 disabled={otpCode.length !== 6 || isLoading || otp.attemptsRemaining === 0}
-                className="w-full bg-white hover:bg-gray-100 text-black font-medium disabled:opacity-50"
+                className="w-full bg-brand-blue hover:bg-gray-100 text-white font-medium disabled:opacity-50"
               >
                 {isLoading ? "Verificando..." : 
                   purpose === "login" ? "Verificar y Continuar al Login" :

@@ -2,10 +2,10 @@ import { Router } from 'express';
 import { AuthController } from '../controllers/auth.controller';
 import { OtpController } from '../controllers/otp.controller';
 import { AuthMiddleware } from '../middleware/auth.middleware';
+import { asyncHandler } from '../middleware/error.middleware';
 import { ServiceMiddleware } from '../middleware/service.middleware';
 import { validateSchema } from '../middleware/validation.middleware';
-import { asyncHandler } from '../middleware/error.middleware';
-import { LoginSchema, RegisterSchema, RefreshTokenSchema, ChangePasswordSchema } from '../schemas/auth.schemas';
+import { ChangePasswordSchema, LoginSchema, RefreshTokenSchema, RegisterSchema } from '../schemas/auth.schemas';
 
 export const createAuthRoutes = (
   authController: AuthController,
@@ -77,7 +77,7 @@ export const createAuthRoutes = (
   // Rutas OTP
   router.post(
     '/otp/generate',
-    // authMiddleware.rateLimiter(5, 10 * 60 * 1000), // 5 intentos por 10 minutos
+    // authMiddleware.rateLimiter(3, 5 * 60 * 1000), // 5 intentos por 10 minutos
     asyncHandler(otpController.generateOtp)
   );
 
@@ -95,6 +95,13 @@ export const createAuthRoutes = (
   router.delete(
     '/otp/revoke',
     asyncHandler(otpController.revokeOtp)
+  );
+
+  // Reset password endpoint
+  router.post(
+    '/reset-password',
+    authMiddleware.rateLimiter(3, 5 * 60 * 1000), // 3 intentos por 5 minutos
+    asyncHandler(authController.resetPassword)
   );
 
   return router;

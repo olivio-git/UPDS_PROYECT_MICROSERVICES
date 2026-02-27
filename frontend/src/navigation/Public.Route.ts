@@ -1,7 +1,8 @@
 import LoginScreen from "@/modules/auth/screens/LoginScreen";
 import OtpInitialScreen from "@/modules/auth/screens/OtpInitialScreen";
+import ResetPasswordScreen from "@/modules/auth/screens/ResetPasswordScreen";
 import type RouteType from "./RouteType";
-import { LogIn, Mail, Shield } from "lucide-react"
+import { LogIn, Mail, Shield, KeyRound } from "lucide-react"
 import OtpVerificator from "@/modules/auth/screens/Otp-Verification";
 
 export const publicRoutes: RouteType[] = [
@@ -31,5 +32,14 @@ export const publicRoutes: RouteType[] = [
     isAdmin: false,
     role: ["all"],
     icon: Mail
+  },
+  {
+    path: "/reset-password",
+    name: "Reset Password",
+    type: "public",
+    element: ResetPasswordScreen,
+    isAdmin: false,
+    role: ["all"],
+    icon: KeyRound
   },
 ];

@@ -1,18 +1,15 @@
-import { 
-  CreateUserRequest, 
-  UpdateUserRequest,
-  PaginationParams,
-  FilterParams,
+import { authServiceIntegration } from '../integrations/auth-service.integration';
+import { UserRepository } from '../repositories/user.repository';
+import {
   ApiResponse,
-  User,
+  CreateUserRequest,
+  FilterParams,
+  PaginationParams,
+  UpdateUserRequest,
   UserRole,
   UserStatus
 } from '../types';
-import { UserRepository } from '../repositories/user.repository';
-import { UserModel } from '../models/User';
-import { ObjectId } from 'mongodb';
 import { eventService } from './event.service';
-import { authServiceIntegration } from '../integrations/auth-service.integration';
 
 export class UserService {
   private userRepository: UserRepository;
@@ -243,7 +240,22 @@ export class UserService {
 
       console.log('✅ Usuario creado exitosamente en user-management');
 
-      // 7. Publicar evento de usuario creado (que triggeará el envío de email con contraseña)
+      // 7. 🆕 Auto-crear candidato si es student
+      if (userData.role === 'student') {
+        try {
+          // Importar dinámicamente para evitar dependencias circulares
+          const { CandidateService } = await import('./candidate.service');
+          const candidateService = new CandidateService();
+          
+          await candidateService.createFromUser(user.toJSON());
+          console.log(`✅ Auto-created candidate for student user ${user._id}`);
+        } catch (error) {
+          console.warn(`⚠️ Failed to auto-create candidate for user ${user._id}:`, error);
+          // No fallar la creación del usuario si falla el candidato
+        }
+      }
+
+      // 8. Publicar evento de usuario creado (que triggeará el envío de email con contraseña)
       try {
         await eventService.publishUserCreated(
           user._id!.toString(),
@@ -383,7 +395,7 @@ export class UserService {
       // Publicar evento de usuario actualizado
       if (updatedUser) {
         try {
-          await eventService.publishUserUpdated(id, updates);
+          await eventService.publishUserUpdated(existingUser.authServiceUserId!, updates);
         } catch (eventError) {
           console.warn('⚠️ Error publicando evento de usuario actualizado:', eventError);
         }
@@ -485,64 +497,80 @@ export class UserService {
       };
     }
   }
- 
+  async getProctors(pagination: PaginationParams, filters: FilterParams): Promise<ApiResponse<any>> {
+    try {
+      const { proctors, total } = await this.userRepository.findProctors(pagination, filters);
+
+      const totalPages = Math.ceil(total / pagination.limit);
+      
+      return {
+        success: true,
+        message: 'Lista de proctores obtenida exitosamente',
+        data: {
+          proctors: proctors.map(proctor => proctor.toJSON()),
+          total,
+          page: pagination.page,
+          limit: pagination.limit,
+          totalPages,
+          hasNext: pagination.page < totalPages,
+          hasPrev: pagination.page > 1
+        }
+      };
+    } catch (error) {
+      console.error('Error obteniendo usuarios:', error);
+      return {
+        success: false,
+        message: 'Error interno del servidor',
+        error: error instanceof Error ? error.message : 'Unknown error'
+      };
+    }
+  }
   // ================================
   // SPECIALIZED OPERATIONS
   // ================================
 
-  async activateUser(id: string): Promise<ApiResponse<any>> {
-    try {
-      const updatedUser = await this.userRepository.updateStatus(id, 'active');
-      
-      if (!updatedUser) {
-        return {
-          success: false,
-          message: 'Usuario no encontrado',
-          error: 'USER_NOT_FOUND'
-        };
-      }
-
-      return {
-        success: true,
-        message: 'Usuario activado exitosamente',
-        data: { user: updatedUser.toJSON() }
-      };
-    } catch (error) {
-      console.error('Error activando usuario:', error);
-      return {
-        success: false,
-        message: 'Error interno del servidor',
-        error: error instanceof Error ? error.message : 'Unknown error'
-      };
+  async activateUser(id: string) {
+    const existing = await this.userRepository.findById(id);
+    if (!existing) return { success: false, message: 'Usuario no encontrado', error: 'USER_NOT_FOUND' };
+  
+    const updatedUser = await this.userRepository.updateStatus(id, 'active');
+    // Publicar evento
+    if(!updatedUser?.authServiceUserId) {
+      return { success: false, message: 'Error al actualizar usuario', error: 'UPDATE_FAILED' };
     }
-  }
-
-  async deactivateUser(id: string): Promise<ApiResponse<any>> {
     try {
-      const updatedUser = await this.userRepository.updateStatus(id, 'inactive');
-      
-      if (!updatedUser) {
-        return {
-          success: false,
-          message: 'Usuario no encontrado',
-          error: 'USER_NOT_FOUND'
-        };
-      }
-
-      return {
-        success: true,
-        message: 'Usuario desactivado exitosamente',
-        data: { user: updatedUser.toJSON() }
-      };
-    } catch (error) {
-      console.error('Error desactivando usuario:', error);
-      return {
-        success: false,
-        message: 'Error interno del servidor',
-        error: error instanceof Error ? error.message : 'Unknown error'
-      };
+      await eventService.publishUserStatusChanged(
+        updatedUser?.authServiceUserId,
+        existing.status || 'inactive',
+        'active'
+      );
+    } catch (e) {
+      console.warn('Status event publish failed:', e);
     }
+    return { success: true, message: 'Usuario activado exitosamente', data: { user: updatedUser!.toJSON() } };
   }
+  
+  async deactivateUser(id: string) {
+    const existing = await this.userRepository.findById(id);
+    if (!existing) return { success: false, message: 'Usuario no encontrado', error: 'USER_NOT_FOUND' };
+  
+    const updatedUser = await this.userRepository.updateStatus(id, 'inactive');
+    // Publicar evento
+     // Publicar evento
+    if(!updatedUser?.authServiceUserId) {
+      return { success: false, message: 'Error al actualizar usuario', error: 'UPDATE_FAILED' };
+    }
+    try {
+      await eventService.publishUserStatusChanged(
+        updatedUser?.authServiceUserId,
+        existing.status || 'active',
+        'inactive'
+      );
+    } catch (e) {
+      console.warn('Status event publish failed:', e);
+    }
+    return { success: true, message: 'Usuario desactivado exitosamente', data: { user: updatedUser!.toJSON() } };
+  } 
 
   async searchUsers(searchTerm: string, pagination: PaginationParams): Promise<ApiResponse<any>> {
     try {
@@ -670,7 +698,8 @@ export class UserService {
         ];
       case 'student':
         return [
-          { resource: 'exams', actions: ['read', 'execute'] }
+          { resource: 'exams', actions: ['read', 'execute','delete','manage'] },
+          { resource: 'candidates', actions: ['read', 'execute', 'manage','delete','update','create'] }
         ];
       default:
         return [];

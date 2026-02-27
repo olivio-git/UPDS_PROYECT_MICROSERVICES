@@ -1,10 +1,10 @@
 import bcrypt from 'bcryptjs';
-import { UserRepository } from '../repositories/user.repository';
 import { CacheRepository } from '../repositories/cache.repository';
-import { JwtService } from './jwt.service';
-import { EventService } from './event.service';
-import { User, AuthResponse, JWTPayload } from '../types';
+import { UserRepository } from '../repositories/user.repository';
 import { ChangePasswordRequest, LoginRequest, RegisterRequest } from '../schemas/auth.schemas';
+import { AuthResponse, JWTPayload, User } from '../types';
+import { EventService } from './event.service';
+import { JwtService } from './jwt.service';
 
 export class AuthService {
   constructor(
@@ -58,7 +58,7 @@ export class AuthService {
     return {
       user: this.sanitizeUser(user),
       ...tokens,
-      expiresIn: 3600 // 1 hora
+      expiresIn: 172800 // 1 hora
     };
   }
 
@@ -123,7 +123,7 @@ export class AuthService {
     return {
       user: this.sanitizeUser(user),
       ...tokens,
-      expiresIn: 3600
+      expiresIn: 172800
     };
   }
 
@@ -159,7 +159,7 @@ export class AuthService {
     return {
       user: this.sanitizeUser(user),
       ...tokens,
-      expiresIn: 3600
+      expiresIn: 172800
     };
   }
 
@@ -255,6 +255,34 @@ export class AuthService {
     };
 
     return permissions[role] || permissions.student;
+  }
+
+  async resetPassword(email: string, newPassword: string): Promise<boolean> {
+    // Buscar usuario
+    const user = await this.userRepository.findUserByEmail(email);
+    if (!user) {
+      throw new Error('Usuario no encontrado');
+    }
+
+    // Hash de la nueva contraseña
+    const hashedNewPassword = await bcrypt.hash(newPassword, 12);
+
+    // Actualizar contraseña
+    await this.userRepository.updateUserPassword(user._id as string, hashedNewPassword);
+
+    // Emitir evento
+    await this.eventService.publishUserEvent('user.password_reset', {
+      userId: user._id?.toString(),
+      email: user.email,
+      timestamp: new Date()
+    });
+
+    // Invalidar todas las sesiones existentes por seguridad
+    await this.userRepository.deleteUserSessions(user._id!);
+    await this.cacheRepository.deleteSession(user._id!);
+    await this.cacheRepository.invalidateUserCache(user._id!);
+
+    return true;
   }
 
   private sanitizeUser(user: User): Omit<User, 'password'> {

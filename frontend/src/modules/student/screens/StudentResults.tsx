@@ -1,110 +1,146 @@
-import { useState } from "react";
-import { 
-  Trophy, 
-  TrendingUp, 
-  TrendingDown,
-  Calendar,
+import { Badge } from '@/components/atoms/badge';
+import { Button } from '@/components/atoms/button';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/atoms/card';
+import { Progress } from '@/components/atoms/progress';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/atoms/select';
+import GradientWrapper from '@/components/background/GrandWrapperSection';
+import { MainLayout } from '@/components/layout';
+import CustomizableTable from '@/components/common/CustomizableTable';
+import { api } from '@/services/api.service';
+import {
+  examResultService,
+  type StudentExamResult,
+  type StudentResultsListResponse,
+} from '@/services/examResultService';
+import {
+  createColumnHelper,
+  useReactTable,
+  getCoreRowModel,
+  getSortedRowModel,
+  getPaginationRowModel,
+  type SortingState,
+  type PaginationState,
+} from '@tanstack/react-table';
+import {
+  AlertCircle,
+  ArrowLeft,
+  BarChart3,
+  CheckCircle,
+  ChevronLeft,
+  ChevronRight,
+  Clock,
   Download,
   Eye,
-  BarChart3,
-  Target,
-  Clock,
   FileText,
-  Award,
-  ArrowLeft
-} from "lucide-react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/atoms/card";
-import { Button } from "@/components/atoms/button";
-import { Badge } from "@/components/atoms/badge";
-import { Progress } from "@/components/atoms/progress";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/atoms/select";
-import { MainLayout } from "@/components/layout";
-import { ContentGradientSection } from "@/components/background";
-import { useNavigate, useParams } from "react-router-dom";
-import { toast } from "sonner";
+  Loader2,
+  Target,
+  TrendingDown,
+  TrendingUp,
+  Trophy,
+  XCircle
+} from 'lucide-react';
+import { useEffect, useMemo, useState } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
+import { toast } from 'sonner';
 
-interface ExamResult {
-  id: number;
-  examName: string;
-  examType: 'placement' | 'progress' | 'final';
-  date: string;
-  duration: number;
-  level: string;
-  overallScore: number;
-  passed: boolean;
-  competencies: {
-    listening: { score: number; feedback: string };
-    reading: { score: number; feedback: string };
-    writing: { score: number; feedback: string };
-    speaking: { score: number; feedback: string };
-  };
-  feedback: string;
-  recommendations: string[];
-  certificateGenerated: boolean;
-  nextLevel?: string;
-}
+const columnHelper = createColumnHelper<StudentExamResult>();
 
 const StudentResults = () => {
   const navigate = useNavigate();
   const { resultId } = useParams();
-  const [selectedPeriod, setSelectedPeriod] = useState("all");
-  const [selectedLevel, setSelectedLevel] = useState("all");
+  const [selectedPeriod, setSelectedPeriod] = useState('all');
+  const [selectedLevel, setSelectedLevel] = useState('all');
+  const [sorting, setSorting] = useState<SortingState>([]);
+  const [pagination, setPagination] = useState<PaginationState>({ pageIndex: 0, pageSize: 10 });
 
-  // Mock data - En producción vendría de la API
-  const [results] = useState<ExamResult[]>([
-    {
-      id: 1,
-      examName: "Evaluación B1 - Sesión 3",
-      examType: 'progress',
-      date: "2025-07-20",
-      duration: 120,
-      level: "B1",
-      overallScore: 78,
-      passed: true,
-      competencies: {
-        listening: { score: 85, feedback: "Excelente comprensión de conversaciones cotidianas" },
-        reading: { score: 72, feedback: "Buen nivel de comprensión, mejorar vocabulario técnico" },
-        writing: { score: 75, feedback: "Estructura clara, trabajar en conectores" },
-        speaking: { score: 80, feedback: "Fluidez adecuada, pronunciación clara" }
-      },
-      feedback: "Has mostrado un progreso consistente en todas las competencias. Tu nivel B1 está bien consolidado.",
-      recommendations: [
-        "Practicar más vocabulario técnico para mejorar la comprensión lectora",
-        "Trabajar con conectores avanzados en la escritura",
-        "Continuar con ejercicios de listening de nivel B2"
-      ],
-      certificateGenerated: true,
-      nextLevel: "B2"
-    },
-    {
-      id: 2,
-      examName: "Evaluación B1 - Sesión 2",
-      examType: 'progress',
-      date: "2025-07-10",
-      duration: 120,
-      level: "B1",
-      overallScore: 82,
-      passed: true,
-      competencies: {
-        listening: { score: 88, feedback: "Comprensión excelente en contextos variados" },
-        reading: { score: 78, feedback: "Mejora notable en textos académicos" },
-        writing: { score: 80, feedback: "Coherencia y cohesión mejoradas" },
-        speaking: { score: 82, feedback: "Mayor confianza y fluidez" }
-      },
-      feedback: "Excelente progreso. Estás listo para desafíos de nivel B2.",
-      recommendations: [
-        "Comenzar con materiales de nivel B2",
-        "Practicar escritura académica",
-        "Expandir vocabulario avanzado"
-      ],
-      certificateGenerated: true,
-      nextLevel: "B2"
-    }
-  ]);
+  // States for list view
+  const [resultsData, setResultsData] =
+    useState<StudentResultsListResponse | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const [currentResult, setCurrentResult] = useState<ExamResult | null>(
-    resultId ? results.find(r => r.id === parseInt(resultId)) || null : null
+  // States for detail view
+  const [currentResult, setCurrentResult] = useState<StudentExamResult | null>(
+    null
   );
+  const [detailLoading, setDetailLoading] = useState(false);
+  const [detailError, setDetailError] = useState<string | null>(null);
+
+  // States for detailed exam data (with questions)
+  const [examDetailData, setExamDetailData] = useState<any>(null);
+
+  // Load results list on mount or when filters change
+  useEffect(() => {
+    if (!resultId) {
+      setPagination(p => ({ ...p, pageIndex: 0 }));
+      loadStudentResults();
+    }
+  }, [selectedPeriod, selectedLevel, resultId]);
+
+  // Load specific result if resultId is provided
+  useEffect(() => {
+    if (resultId) {
+      loadResultDetail(resultId);
+    }
+  }, [resultId]);
+
+  const loadStudentResults = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      const filters = {
+        level: selectedLevel !== 'all' ? selectedLevel : undefined,
+        period: selectedPeriod !== 'all' ? selectedPeriod : undefined,
+        limit: 50,
+      };
+
+      const data = await examResultService.getStudentResults(filters);
+      setResultsData(data);
+    } catch (err: any) {
+      console.error('Error loading student results:', err);
+      setError(err.message);
+      setResultsData(null);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const loadResultDetail = async (id: string) => {
+    try {
+      setDetailLoading(true);
+      setDetailError(null);
+
+      // Cargar resumen del resultado para el UI
+      const result = await examResultService.getStudentResultDetail(id);
+      setCurrentResult(result);
+      // Cargar datos detallados del examen (con preguntas)
+      const detailResponse = await api.get(`/api/v1/exam-results/${id}/detailed`) as any;
+      console.log(detailResponse,'detailResponse in loadResultDetail');
+      if (detailResponse.success) {
+        setExamDetailData(detailResponse.data);
+      }
+    } catch (err: any) {
+      console.error('Error loading result detail:', err);
+      setDetailError(err.message);
+      setCurrentResult(null);
+      setExamDetailData(null);
+    } finally {
+      setDetailLoading(false);
+    }
+  };
 
   const getScoreColor = (score: number) => {
     if (score >= 80) return 'text-green-400';
@@ -113,19 +149,33 @@ const StudentResults = () => {
   };
 
   const getScoreBadgeColor = (score: number) => {
-    if (score >= 80) return 'bg-green-500/20 text-green-300 border-green-500/30';
-    if (score >= 60) return 'bg-yellow-500/20 text-yellow-300 border-yellow-500/30';
+    if (score >= 80)
+      return 'bg-green-500/20 text-green-300 border-green-500/30';
+    if (score >= 60)
+      return 'bg-yellow-500/20 text-yellow-300 border-yellow-500/30';
     return 'bg-red-500/20 text-red-300 border-red-500/30';
   };
 
   const getTypeBadge = (type: string) => {
     switch (type) {
       case 'placement':
-        return <Badge className="bg-purple-500/20 text-purple-300 border border-purple-500/30">Ubicación</Badge>;
+        return (
+          <Badge className="bg-purple-500/20 text-purple-300 border border-purple-500/30">
+            Ubicación
+          </Badge>
+        );
       case 'progress':
-        return <Badge className="bg-orange-500/20 text-orange-300 border border-orange-500/30">Progreso</Badge>;
+        return (
+          <Badge className="bg-orange-500/20 text-orange-300 border border-orange-500/30">
+            Progreso
+          </Badge>
+        );
       case 'final':
-        return <Badge className="bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">Final</Badge>;
+        return (
+          <Badge className="bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
+            Final
+          </Badge>
+        );
       default:
         return <Badge variant="secondary">{type}</Badge>;
     }
@@ -135,7 +185,7 @@ const StudentResults = () => {
     return new Date(dateString).toLocaleDateString('es-ES', {
       year: 'numeric',
       month: 'long',
-      day: 'numeric'
+      day: 'numeric',
     });
   };
 
@@ -144,206 +194,664 @@ const StudentResults = () => {
       listening: 'Comprensión Auditiva',
       reading: 'Comprensión Lectora',
       writing: 'Expresión Escrita',
-      speaking: 'Expresión Oral'
+      speaking: 'Expresión Oral',
     };
     return names[key as keyof typeof names] || key;
   };
 
-  const handleDownloadCertificate = (resultId: number) => {
-    toast.success("Descargando certificado...");
+  const getQuestionTypeName = (type: string) => {
+    const types = {
+      multiple_choice: 'Selección Múltiple',
+      single_choice: 'Selección Única',
+      true_false: 'Verdadero/Falso',
+      fill_blank: 'Completar',
+      essay: 'Ensayo',
+      speaking: 'Expresión Oral',
+      listening: 'Comprensión Auditiva'
+    };
+    return types[type as keyof typeof types] || type;
   };
 
-  const handleViewDetails = (result: ExamResult) => {
-    setCurrentResult(result);
+  const renderQuestionResponse = (question: any) => {
+    const questionData = question.questionData;
+
+    // Mostrar el texto de la pregunta
+    const questionContent = (
+      <div className="space-y-3">
+        {questionData && (
+          <div className="bg-gray-900/50 p-3 rounded-lg border border-gray-700">
+            <h4 className="font-medium text-white mb-2">Pregunta:</h4>
+            <p className="text-gray-300 text-sm">{questionData.questionText}</p>
+            {questionData.instructions && (
+              <p className="text-gray-400 text-xs mt-2 italic">{questionData.instructions}</p>
+            )}
+            {questionData.context && (
+              <div className="mt-2 p-2 bg-gray-800/50 rounded">
+                <p className="text-gray-300 text-xs">{questionData.context}</p>
+              </div>
+            )}
+          </div>
+        )}
+
+        <div className="space-y-2">
+          <p className="text-xs text-gray-500">Tu respuesta:</p>
+          {renderAnswerContent()}
+        </div>
+      </div>
+    );
+
+    function renderAnswerContent() {
+      switch (question.questionType) {
+        case 'multiple_choice':
+          if (question.response?.selectedOptions && questionData?.options) {
+            return (
+              <div className="space-y-2">
+                {questionData.options.map((option: any) => {
+                  const isSelected = question.response.selectedOptions.includes(option.id);
+                  const isCorrect = option.isCorrect;
+                  return (
+                    <div
+                      key={option.id}
+                      className={`p-2 rounded text-sm border ${
+                        isSelected && isCorrect
+                          ? 'bg-green-900/30 border-green-700 text-green-300'
+                          : isSelected && !isCorrect
+                          ? 'bg-red-900/30 border-red-700 text-red-300'
+                          : isCorrect
+                          ? 'bg-blue-900/30 border-blue-700 text-blue-300'
+                          : 'bg-gray-800/30 border-gray-700 text-gray-400'
+                      }`}
+                    >
+                      <span className="font-medium mr-2">
+                        {isSelected ? '✓' : isCorrect ? '→' : '○'}
+                      </span>
+                      {option.text}
+                      {isCorrect && !isSelected && (
+                        <span className="ml-2 text-xs">(Respuesta correcta)</span>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            );
+          }
+          break;
+
+        case 'true_false':
+          const userAnswer = question.response?.answer;
+          const correctAnswer = questionData?.correctAnswer;
+          return (
+            <div className="space-y-2">
+              <Badge
+                className={`text-xs ${
+                  question.isCorrect
+                    ? 'bg-green-500/20 text-green-300 border-green-500/30'
+                    : 'bg-red-500/20 text-red-300 border-red-500/30'
+                }`}
+              >
+                {userAnswer ? 'Verdadero' : 'Falso'}
+              </Badge>
+              {!question.isCorrect && (
+                <p className="text-xs text-blue-300">
+                  Respuesta correcta: {correctAnswer ? 'Verdadero' : 'Falso'}
+                </p>
+              )}
+            </div>
+          );
+
+        case 'fill_blank':
+        case 'open_text':
+          return (
+            <div className="space-y-2">
+              <div className="bg-gray-800 p-2 rounded text-sm">
+                <p className="text-white">"{question.response?.text || 'Sin respuesta'}"</p>
+              </div>
+              {questionData?.correctAnswer && (
+                <p className="text-xs text-blue-300">
+                  Respuesta esperada: {questionData.correctAnswer}
+                </p>
+              )}
+            </div>
+          );
+
+        case 'audio_response':
+        case 'speaking': {
+          const rawUrl: string = question.response?.audioUrl || '';
+          const audioUrl = rawUrl.replace(/^https?:\/\/minio(:\d+)?/, 'http://localhost:9000');
+          return (
+            <div className="space-y-2">
+              {audioUrl ? (
+                <div className="space-y-1">
+                  <audio controls className="w-full rounded" src={audioUrl}>
+                    Tu navegador no soporta audio.
+                  </audio>
+                  {question.response?.transcription && (
+                    <p className="text-xs text-gray-400 italic">"{question.response.transcription}"</p>
+                  )}
+                </div>
+              ) : (
+                <div className="bg-gray-800 p-3 rounded text-sm">
+                  <p className="text-gray-400 italic">Sin respuesta de audio</p>
+                </div>
+              )}
+            </div>
+          );
+        }
+
+        case 'essay':
+          return (
+            <div className="space-y-2">
+              <div className="bg-gray-800 p-3 rounded text-sm max-h-32 overflow-y-auto">
+                <p className="text-white whitespace-pre-wrap">
+                  {question.response?.text || question.response?.answer || 'Sin respuesta'}
+                </p>
+              </div>
+              {questionData?.sampleAnswer && (
+                <details className="text-xs">
+                  <summary className="text-blue-300 cursor-pointer">Ver respuesta de ejemplo</summary>
+                  <p className="text-gray-400 mt-1 p-2 bg-gray-800/50 rounded">
+                    {questionData.sampleAnswer}
+                  </p>
+                </details>
+              )}
+            </div>
+          );
+
+        default:
+          return (
+            <div className="space-y-2">
+              <div className="bg-gray-800 p-2 rounded text-sm">
+                <p className="text-gray-300">Respuesta registrada</p>
+              </div>
+            </div>
+          );
+      }
+    }
+
+    return questionContent;
   };
 
-  const calculateProgress = () => {
-    if (results.length < 2) return 0;
-    const latest = results[0].overallScore;
-    const previous = results[1].overallScore;
-    return latest - previous;
+  const handleDownloadPDF = async (resultId: string) => {
+    if (!resultId) {
+      toast.error('ID de resultado requerido para generar PDF');
+      return;
+    }
+
+    try {
+      toast.loading('Generando PDF profesional...', { id: 'pdf-generation' });
+
+      // Call backend endpoint for professional PDF generation with LLM
+      const resp = await api.get(`/api/v1/exam-results/${resultId}/export-pdf`, {
+        params: {
+          includeQuestions: true,
+          includeAI: true,
+          includeLLM: true, // Enable LLM interpretation
+          language: 'spanish',
+          llmDepth: 'detailed',
+          llmFocus: 'academic'
+        },
+        responseType: 'blob' // Important for downloading binary data
+      }) as Blob | { data: Blob };
+
+      // Create blob and download
+      const blob = resp instanceof Blob ? resp : resp.data;
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+
+      // Generate filename with current date
+      const fileName = `Resultado_Examen_${resultId}_${new Date().toISOString().split('T')[0]}.pdf`;
+      link.download = fileName;
+
+      // Trigger download
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+
+      // Clean up
+      window.URL.revokeObjectURL(url);
+
+      toast.success('PDF descargado exitosamente', { id: 'pdf-generation' });
+    } catch (error) {
+      console.error('Error generating PDF:', error);
+      toast.error('Error al generar el PDF profesional', { id: 'pdf-generation' });
+    }
   };
 
-  const getAverageScore = () => {
-    return Math.round(results.reduce((sum, result) => sum + result.overallScore, 0) / results.length);
+  // const handleDownloadPDFFromHTML = async () => {
+  //   try {
+  //     toast.loading('Capturando página y generando PDF...', { id: 'pdf-html-generation' });
+
+  //     const fileName = `Resultado_${currentResult?.examName?.replace(/[^a-zA-Z0-9]/g, '_')}_${new Date().toISOString().split('T')[0]}.pdf`;
+  //     await PDFService.generateFromHTML('exam-result-content', fileName);
+
+  //     toast.success('PDF descargado exitosamente', { id: 'pdf-html-generation' });
+  //   } catch (error) {
+  //     console.error('Error generating PDF from HTML:', error);
+  //     toast.error('Error al generar el PDF', { id: 'pdf-html-generation' });
+  //   }
+  // };
+
+  const handleViewDetails = (result: StudentExamResult) => {
+    navigate(`/student/results/${result.id}`);
   };
 
-  const filteredResults = results.filter(result => {
-    const levelMatch = selectedLevel === "all" || result.level === selectedLevel;
-    const periodMatch = selectedPeriod === "all" || 
-      (selectedPeriod === "recent" && new Date(result.date) > new Date(Date.now() - 30 * 24 * 60 * 60 * 1000));
-    return levelMatch && periodMatch;
+  const handleBackToResults = () => {
+    navigate('/student/results');
+  };
+
+  // --- Columnas de la tabla de resultados ---
+  const columns = useMemo(
+    () => [
+      // Columna: Examen
+      columnHelper.accessor('examName', {
+        id: 'examName',
+        size: 250,
+        header: 'Examen',
+        cell: ({ row }) => (
+          <div className="min-w-0">
+            <p className="font-medium text-gray-200 truncate leading-tight">
+              {row.original.examName}
+            </p>
+            <p className="text-xs text-gray-500 mt-0.5 truncate leading-tight">
+              {getTypeBadge(row.original.examType)}
+            </p>
+          </div>
+        ),
+        enableSorting: true,
+      }),
+
+      // Columna: Fecha
+      columnHelper.accessor('date', {
+        id: 'date',
+        size: 120,
+        header: 'Fecha',
+        cell: ({ getValue }) => (
+          <span className="text-sm text-gray-300">
+            {new Date(getValue()).toLocaleDateString('es-ES', {
+              day: '2-digit',
+              month: '2-digit',
+              year: 'numeric',
+            })}
+          </span>
+        ),
+        enableSorting: true,
+      }),
+
+      // Columna: Nivel
+      columnHelper.display({
+        id: 'level',
+        size: 70,
+        header: 'Nivel',
+        cell: ({ row }) => (
+          <span className="inline-flex items-center px-2 py-0.5 text-xs font-medium rounded bg-blue-500/20 text-blue-300 border border-blue-500/30">
+            {row.original.level}
+          </span>
+        ),
+        enableSorting: false,
+      }),
+
+      // Columna: Puntaje
+      columnHelper.accessor('overallScore', {
+        id: 'overallScore',
+        size: 90,
+        header: 'Puntaje',
+        cell: ({ getValue }) => {
+          const score = getValue();
+          return (
+            <div className="space-y-1">
+              <span
+                className={`text-sm font-semibold ${getScoreColor(score)}`}
+              >
+                {score}%
+              </span>
+              <Progress value={score} className="h-1 w-full" />
+            </div>
+          );
+        },
+        enableSorting: true,
+      }),
+
+      // Columna: Estado
+      columnHelper.display({
+        id: 'status',
+        size: 110,
+        header: 'Estado',
+        cell: ({ row }) => {
+          const { passed } = row.original;
+          return passed ? (
+            <span className="inline-flex items-center px-2 py-0.5 text-xs font-medium rounded bg-green-500/20 text-green-300 border border-green-500/30">
+              APROBADO
+            </span>
+          ) : (
+            <span className="inline-flex items-center px-2 py-0.5 text-xs font-medium rounded bg-red-500/20 text-red-300 border border-red-500/30">
+              NO APROBADO
+            </span>
+          );
+        },
+        enableSorting: false,
+      }),
+
+      // Columna: Acciones
+      columnHelper.display({
+        id: 'actions',
+        size: 80,
+        header: 'Acciones',
+        cell: ({ row }) => (
+          <Button
+            size="sm"
+            variant="outline"
+            className="text-white bg-gray-800 hover:bg-gray-700 border-line h-7 px-2 text-xs"
+            onClick={() => handleViewDetails(row.original)}
+            aria-label={`Ver detalle de ${row.original.examName}`}
+          >
+            <Eye className="h-3.5 w-3.5 mr-1" />
+            Ver
+          </Button>
+        ),
+        enableSorting: false,
+      }),
+    ],
+    [resultsData]
+  );
+
+  const resultsTable = useReactTable({
+    data: resultsData?.results ?? [],
+    columns,
+    state: { sorting, pagination },
+    onSortingChange: (updaterOrValue) => {
+      if (typeof updaterOrValue === 'function') {
+        setSorting(updaterOrValue(sorting));
+      } else {
+        setSorting(updaterOrValue);
+      }
+      // Reset to first page on sort change
+      setPagination(p => ({ ...p, pageIndex: 0 }));
+    },
+    onPaginationChange: setPagination,
+    getCoreRowModel: getCoreRowModel(),
+    getSortedRowModel: getSortedRowModel(),
+    getPaginationRowModel: getPaginationRowModel(),
   });
 
-  if (currentResult) {
+  // Show detail view if resultId exists
+  if (resultId) {
+    if (detailLoading) {
+      return (
+        <MainLayout gradientVariant="primary">
+          <div className="max-w-6xl mx-auto flex items-center justify-center min-h-96">
+            <div className="text-center">
+              <Loader2 className="h-8 w-8 animate-spin text-gray-400 mx-auto mb-4" />
+              <p className="text-gray-300">Cargando resultado...</p>
+            </div>
+          </div>
+        </MainLayout>
+      );
+    }
+
+    if (detailError) {
+      return (
+        <MainLayout gradientVariant="primary">
+          <div className="max-w-6xl mx-auto flex items-center justify-center min-h-96">
+            <div className="text-center">
+              <AlertCircle className="h-8 w-8 text-red-400 mx-auto mb-4" />
+              <p className="text-red-300 mb-4">Error: {detailError}</p>
+              <Button onClick={handleBackToResults} variant="outline">
+                Volver a Resultados
+              </Button>
+            </div>
+          </div>
+        </MainLayout>
+      );
+    }
+
+    if (!currentResult) {
+      return (
+        <MainLayout gradientVariant="primary">
+          <div className="max-w-6xl mx-auto flex items-center justify-center min-h-96">
+            <div className="text-center">
+              <FileText className="h-8 w-8 text-gray-400 mx-auto mb-4" />
+              <p className="text-gray-300 mb-4">Resultado no encontrado</p>
+              <Button onClick={handleBackToResults} variant="outline">
+                Volver a Resultados
+              </Button>
+            </div>
+          </div>
+        </MainLayout>
+      );
+    }
+
     // Vista detallada de un resultado específico
     return (
       <MainLayout gradientVariant="primary">
-        <div className="max-w-6xl mx-auto space-y-8">
-          <ContentGradientSection variant="secondary" position="top-right" className="mb-8">
-            <div className="text-center space-y-6 m-6">
-              <div className="space-y-2">
-                <h1 className="mb-4 text-3xl font-extrabold text-gray-900 dark:text-white md:text-5xl lg:text-6xl">
-                  Resultado del{" "}
-                  <span className="text-transparent bg-clip-text bg-gradient-to-r to-emerald-600 from-sky-400">
-                    Examen
-                  </span>
-                </h1>
-                <p className="text-xl text-gray-300 max-w-2xl mx-auto font-portfolio">
-                  Análisis detallado de tu desempeño
-                </p>
-              </div>
-            </div>
-          </ContentGradientSection>
-
-          <Card className="bg-[#0B1422] backdrop-blur-sm border border-gray-700/50">
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <div>
-                  <CardTitle className="text-white">{currentResult.examName}</CardTitle>
-                  <CardDescription className="text-gray-300">
-                    {formatDate(currentResult.date)} • {currentResult.duration} minutos
-                  </CardDescription>
-                </div>
-                <div className="flex items-center gap-3">
-                  <Button
-                    variant="outline"
-                    onClick={() => setCurrentResult(null)}
-                    className="border-gray-600 text-gray-300 hover:bg-gray-800"
-                  >
-                    <ArrowLeft className="h-4 w-4 mr-2" />
-                    Volver a Resultados
-                  </Button>
-                  {getTypeBadge(currentResult.examType)}
-                  {currentResult.certificateGenerated && (
-                    <Button
-                      onClick={() => handleDownloadCertificate(currentResult.id)}
-                      className="bg-green-600 hover:bg-green-700"
+        <div id="exam-result-content" className="max-w-5xl mx-auto space-y-4 mt-6 px-4 pb-10">
+          <Card className="bg-[#0B1422] backdrop-blur-sm border border-line">
+            <CardContent className="p-5">
+              <div className="flex items-start justify-between gap-4">
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2 mb-0.5">
+                    <button
+                      onClick={handleBackToResults}
+                      className="flex items-center gap-1 text-xs text-gray-500 hover:text-gray-300 transition-colors"
                     >
-                      <Download className="h-4 w-4 mr-2" />
-                      Certificado
-                    </Button>
-                  )}
+                      <ArrowLeft className="h-3 w-3" />
+                      Resultados
+                    </button>
+                  </div>
+                  <h2 className="text-base font-semibold text-white leading-snug truncate">
+                    {currentResult.examName}
+                  </h2>
+                  <p className="text-xs text-gray-500 mt-0.5">
+                    {formatDate(currentResult.date)} · {currentResult.duration} min
+                  </p>
                 </div>
+                <Badge className={`flex-shrink-0 text-sm font-bold px-3 py-1 ${getScoreBadgeColor(currentResult.overallScore)}`}>
+                  {currentResult.overallScore}%
+                </Badge>
               </div>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <div className="text-center">
-                  <div className={`text-4xl font-bold ${getScoreColor(currentResult.overallScore)} mb-2`}>
-                    {currentResult.overallScore}%
-                  </div>
-                  <p className="text-gray-300">Puntuación General</p>
-                  <Badge className={`mt-2 ${getScoreBadgeColor(currentResult.overallScore)}`}>
-                    {currentResult.passed ? 'APROBADO' : 'NO APROBADO'}
-                  </Badge>
-                </div>
-                <div className="text-center">
-                  <div className="text-4xl font-bold text-blue-400 mb-2">
-                    {currentResult.level}
-                  </div>
-                  <p className="text-gray-300">Nivel Evaluado</p>
-                  {currentResult.nextLevel && (
-                    <Badge className="mt-2 bg-blue-500/20 text-blue-300 border border-blue-500/30">
-                      Siguiente: {currentResult.nextLevel}
-                    </Badge>
-                  )}
-                </div>
-                <div className="text-center">
-                  <div className="text-4xl font-bold text-purple-400 mb-2">
-                    {currentResult.duration}
-                  </div>
-                  <p className="text-gray-300">Minutos</p>
-                  <Badge className="mt-2 bg-purple-500/20 text-purple-300 border border-purple-500/30">
-                    Completado
-                  </Badge>
-                </div>
+              <div className="flex flex-wrap gap-2 mt-4">
+                <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium border ${getScoreBadgeColor(currentResult.overallScore)}`}>
+                  {currentResult.passed ? <CheckCircle className="h-3 w-3" /> : <XCircle className="h-3 w-3" />}
+                  {currentResult.passed ? 'Aprobado' : 'No aprobado'}
+                </span>
+                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium border border-blue-500/30 text-blue-300 bg-blue-500/10">
+                  Nivel {currentResult.level}
+                </span>
+                {currentResult.nextLevel && (
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium border border-gray-700 text-gray-400 bg-transparent">
+                    Siguiente: {currentResult.nextLevel}
+                  </span>
+                )}
+                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium border border-gray-700 text-gray-400">
+                  <Clock className="h-3 w-3" />
+                  {currentResult.duration} min
+                </span>
               </div>
             </CardContent>
           </Card>
 
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            <div className="lg:col-span-2 space-y-6">
-              <Card className="bg-[#0B1422] backdrop-blur-sm border border-gray-700/50">
-                <CardHeader>
-                  <CardTitle className="text-white flex items-center gap-2">
-                    <BarChart3 className="h-5 w-5 text-blue-400" />
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
+            <div className="lg:col-span-2 space-y-4">
+              <Card className="bg-[#0B1422] backdrop-blur-sm border border-line">
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-white flex items-center gap-2 text-sm">
+                    <BarChart3 className="h-4 w-4 text-blue-400" />
                     Desglose por Competencias
                   </CardTitle>
                 </CardHeader>
-                <CardContent className="space-y-6">
-                  {Object.entries(currentResult.competencies).map(([skill, data]) => (
-                    <div key={skill} className="space-y-3">
-                      <div className="flex items-center justify-between">
-                        <h4 className="font-medium text-white">{getCompetencyName(skill)}</h4>
-                        <span className={`font-bold ${getScoreColor(data.score)}`}>
-                          {data.score}%
-                        </span>
-                      </div>
-                      <Progress value={data.score} className="w-full" />
-                      <p className="text-sm text-gray-400">{data.feedback}</p>
-                    </div>
-                  ))}
+                <CardContent className="space-y-4 pt-0">
+                  {Object.entries(currentResult.competencies ?? {}).map(
+                    ([skill, data]) => {
+                      const comp =
+                        (data as { score?: number; feedback?: string }) || {};
+                      const score = comp.score ?? 0;
+                      const feedback = comp.feedback ?? '';
+                      return (
+                        <div key={skill} className="space-y-1.5">
+                          <div className="flex items-center justify-between">
+                            <h4 className="text-sm font-medium text-gray-200">
+                              {getCompetencyName(skill)}
+                            </h4>
+                            <span className={`text-sm font-semibold ${getScoreColor(score)}`}>
+                              {score}%
+                            </span>
+                          </div>
+                          <Progress value={score} className="h-1.5 w-full" />
+                          {feedback && <p className="text-xs text-gray-500">{feedback}</p>}
+                        </div>
+                      );
+                    }
+                  )}
                 </CardContent>
               </Card>
 
-              <Card className="bg-[#0B1422] backdrop-blur-sm border border-gray-700/50">
-                <CardHeader>
-                  <CardTitle className="text-white flex items-center gap-2">
-                    <FileText className="h-5 w-5 text-green-400" />
+              <Card className="bg-[#0B1422] backdrop-blur-sm border border-line">
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-white flex items-center gap-2 text-sm">
+                    <FileText className="h-4 w-4 text-green-400" />
                     Retroalimentación General
                   </CardTitle>
                 </CardHeader>
-                <CardContent>
-                  <p className="text-gray-300 mb-4">{currentResult.feedback}</p>
-                  
-                  <div className="space-y-3">
-                    <h4 className="font-medium text-white">Recomendaciones para Mejorar:</h4>
-                    <ul className="space-y-2">
-                      {currentResult.recommendations.map((rec, index) => (
-                        <li key={index} className="flex items-start gap-2 text-sm text-gray-300">
-                          <Target className="h-4 w-4 text-yellow-400 mt-0.5 flex-shrink-0" />
-                          {rec}
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
+                <CardContent className="pt-0">
+                  <p className="text-sm text-gray-300 mb-3 leading-relaxed">{currentResult.feedback}</p>
+                  {currentResult.recommendations?.length > 0 && (
+                    <div>
+                      <p className="text-xs font-medium text-gray-400 mb-2">Recomendaciones:</p>
+                      <ul className="space-y-1.5">
+                        {currentResult.recommendations.map((rec, index) => (
+                          <li key={index} className="flex items-start gap-2 text-xs text-gray-400">
+                            <Target className="h-3.5 w-3.5 text-yellow-400 mt-0.5 flex-shrink-0" />
+                            {rec}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
                 </CardContent>
               </Card>
+
+              {/* Detalle de preguntas del examen */}
+              {examDetailData?.questionResults && (
+                <Card className="bg-[#0B1422] backdrop-blur-sm border border-line">
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-white flex items-center gap-2 text-sm">
+                      <Eye className="h-4 w-4 text-purple-400" />
+                      Preguntas del Examen
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="p-0">
+                    {examDetailData.questionResults.map((question: any, index: number) => {
+                      // Defensive deduplication: aiAnalysis.feedback is sometimes the same
+                      // string as question.feedback (bug in older grading results).
+                      // Only show aiAnalysis.feedback if it's non-empty AND differs from feedback.
+                      const aiFeedback = question.aiAnalysis?.feedback?.trim() || '';
+                      const mainFeedback = question.feedback?.trim() || '';
+                      const showAiFeedback = aiFeedback && aiFeedback !== mainFeedback;
+                      const hasSuggestions = question.aiAnalysis?.suggestions?.length > 0;
+                      const hasAiSection = showAiFeedback || hasSuggestions;
+
+                      const scoreColor =
+                        question.isCorrect === true
+                          ? 'bg-green-500/20 text-green-300 border-green-500/30'
+                          : question.isCorrect === false
+                          ? 'bg-red-500/20 text-red-300 border-red-500/30'
+                          : 'bg-blue-500/20 text-blue-300 border-blue-500/30';
+
+                      return (
+                        <div key={question.questionId}>
+                          {/* Separador entre preguntas */}
+                          {index > 0 && (
+                            <div className="flex items-center gap-3 px-6">
+                              <div className="flex-1 h-px bg-gray-700/60" />
+                              <span className="text-xs text-gray-600 font-medium">#{index + 1}</span>
+                              <div className="flex-1 h-px bg-gray-700/60" />
+                            </div>
+                          )}
+
+                          <div className="px-5 py-3 space-y-3">
+                            {/* Header */}
+                            <div className="flex items-center justify-between gap-3">
+                              <div className="flex items-center gap-2.5 flex-wrap">
+                                <span className="w-7 h-7 rounded-full bg-gray-700 flex items-center justify-center text-xs font-semibold text-white flex-shrink-0">
+                                  {index + 1}
+                                </span>
+                                <span className="text-sm text-gray-300">{getQuestionTypeName(question.questionType)}</span>
+                                <span className="text-gray-600">·</span>
+                                <span className="text-xs text-gray-400">{getCompetencyName(question.competency)}</span>
+                                {question.isCorrect !== undefined && (
+                                  question.isCorrect
+                                    ? <CheckCircle className="h-4 w-4 text-green-400" />
+                                    : <XCircle className="h-4 w-4 text-red-400" />
+                                )}
+                              </div>
+                              <Badge className={scoreColor}>
+                                {question.score}/{question.maxScore}
+                              </Badge>
+                            </div>
+
+                            {/* Respuesta del estudiante */}
+                            <div className="pl-9">
+                              {renderQuestionResponse(question)}
+                            </div>
+
+                            {/* Retroalimentación principal */}
+                            {mainFeedback && (
+                              <div className="ml-9 bg-blue-900/20 border border-blue-700/30 rounded-lg px-4 py-3">
+                                <h5 className="text-xs font-semibold text-blue-300 mb-1">Retroalimentación</h5>
+                                <p className="text-blue-200 text-xs leading-relaxed">{mainFeedback}</p>
+                              </div>
+                            )}
+
+                            {/* Análisis de IA — solo si tiene contenido distinto */}
+                            {hasAiSection && (
+                              <div className="ml-9 bg-purple-900/20 border border-purple-700/30 rounded-lg px-4 py-3 space-y-2">
+                                <h5 className="text-xs font-semibold text-purple-300">Análisis de IA</h5>
+                                {showAiFeedback && (
+                                  <p className="text-purple-200 text-xs leading-relaxed">{aiFeedback}</p>
+                                )}
+                                {hasSuggestions && (
+                                  <div>
+                                    <p className="text-xs text-purple-300 font-medium mb-1.5">Sugerencias:</p>
+                                    <ul className="space-y-1">
+                                      {question.aiAnalysis.suggestions.map((s: string, idx: number) => (
+                                        <li key={idx} className="flex items-start gap-2 text-purple-200 text-xs">
+                                          <span className="text-purple-500 mt-0.5 flex-shrink-0">›</span>
+                                          {s}
+                                        </li>
+                                      ))}
+                                    </ul>
+                                  </div>
+                                )}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </CardContent>
+                </Card>
+              )}
             </div>
 
-            <div className="space-y-6">
-              <Card className="bg-[#0B1422] backdrop-blur-sm border border-gray-700/50">
-                <CardHeader>
-                  <CardTitle className="text-white">Acciones</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-3">
-                  {currentResult.certificateGenerated && (
-                    <Button
-                      onClick={() => handleDownloadCertificate(currentResult.id)}
-                      className="w-full bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700"
-                    >
-                      <Award className="h-4 w-4 mr-2" />
-                      Descargar Certificado
-                    </Button>
-                  )}
-                  
+            <div className="space-y-3">
+              <Card className="bg-[#0B1422] backdrop-blur-sm border border-line">
+                <CardContent className="p-4 space-y-2">
                   <Button
-                    variant="outline"
-                    className="w-full border-gray-600 text-gray-300 hover:bg-gray-800"
-                    onClick={() => toast.info("Próximamente disponible")}
+                    size="sm"
+                    onClick={() => handleDownloadPDF(currentResult.id)}
+                    className="w-full text-white bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800"
                   >
                     <Download className="h-4 w-4 mr-2" />
-                    Descargar Reporte PDF
+                    Descargar PDF
                   </Button>
-                  
                   <Button
                     variant="outline"
-                    className="w-full border-gray-600 text-gray-300 hover:bg-gray-800"
-                    onClick={() => navigate('/student/exams')}
+                    size="sm"
+                    className="w-full border-line text-gray-300 hover:bg-gray-800 bg-transparent"
+                    onClick={handleBackToResults}
                   >
-                    <Calendar className="h-4 w-4 mr-2" />
-                    Ver Próximos Exámenes
+                    <ArrowLeft className="h-4 w-4 mr-2" />
+                    Volver a lista
                   </Button>
                 </CardContent>
               </Card>
@@ -355,215 +863,211 @@ const StudentResults = () => {
   }
 
   // Vista principal de todos los resultados
+  const totalRows = resultsData?.results?.length ?? 0;
+  const pageCount = resultsTable.getPageCount();
+  const pageIndex = resultsTable.getState().pagination.pageIndex;
+  const pageSize = resultsTable.getState().pagination.pageSize;
+  const firstRow = totalRows === 0 ? 0 : pageIndex * pageSize + 1;
+  const lastRow = Math.min((pageIndex + 1) * pageSize, totalRows);
+
   return (
     <MainLayout gradientVariant="primary">
-      <div className="max-w-7xl mx-auto space-y-8">
-        <ContentGradientSection variant="secondary" position="top-right" className="mb-8">
-          <div className="text-center space-y-6 m-6">
-            <div className="space-y-2">
-              <h1 className="mb-4 text-3xl font-extrabold text-gray-900 dark:text-white md:text-5xl lg:text-6xl">
-                Mis{" "}
-                <span className="text-transparent bg-clip-text bg-gradient-to-r to-emerald-600 from-sky-400">
-                  Resultados
-                </span>
-              </h1>
-              <p className="text-xl text-gray-300 max-w-2xl mx-auto font-portfolio">
-                Historial de evaluaciones y progreso académico
-              </p>
-            </div>
+      <div className="max-w-7xl mx-auto px-4 pt-6 pb-12 space-y-6">
+
+        {/* Encabezado */}
+        <div>
+          <h1 className="text-2xl font-bold text-white">Mis Resultados</h1>
+          <p className="text-sm text-gray-400 mt-1">Historial completo de tus evaluaciones</p>
+        </div>
+
+        {/* Estado: cargando */}
+        {loading && (
+          <div className="flex items-center justify-center py-16">
+            <Loader2 className="h-7 w-7 animate-spin text-gray-400 mr-3" />
+            <span className="text-gray-300">Cargando resultados...</span>
           </div>
-        </ContentGradientSection>
+        )}
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          <Card className="bg-[#0B1422] backdrop-blur-sm border border-gray-700/50">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-gray-300">Promedio General</p>
-                  <p className={`text-2xl font-bold ${getScoreColor(getAverageScore())}`}>
-                    {getAverageScore()}%
-                  </p>
-                </div>
-                <BarChart3 className="h-8 w-8 text-blue-400" />
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-[#0B1422] backdrop-blur-sm border border-gray-700/50">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-gray-300">Progreso</p>
-                  <div className="flex items-center gap-2">
-                    <p className={`text-2xl font-bold ${
-                      calculateProgress() >= 0 ? 'text-green-400' : 'text-red-400'
-                    }`}>
-                      {calculateProgress() >= 0 ? '+' : ''}{calculateProgress()}%
-                    </p>
-                    {calculateProgress() >= 0 ? (
-                      <TrendingUp className="h-4 w-4 text-green-400" />
-                    ) : (
-                      <TrendingDown className="h-4 w-4 text-red-400" />
-                    )}
-                  </div>
-                </div>
-                <Trophy className="h-8 w-8 text-yellow-400" />
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-[#0B1422] backdrop-blur-sm border border-gray-700/50">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-gray-300">Exámenes</p>
-                  <p className="text-2xl font-bold text-purple-400">
-                    {results.length}
-                  </p>
-                </div>
-                <FileText className="h-8 w-8 text-purple-400" />
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-[#0B1422] backdrop-blur-sm border border-gray-700/50">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-gray-300">Certificados</p>
-                  <p className="text-2xl font-bold text-green-400">
-                    {results.filter(r => r.certificateGenerated).length}
-                  </p>
-                </div>
-                <Award className="h-8 w-8 text-green-400" />
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
-        <Card className="bg-[#0B1422] backdrop-blur-sm border border-gray-700/50">
-          <CardHeader>
-            <CardTitle className="text-white">Filtrar Resultados</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="flex flex-col sm:flex-row gap-4">
-              <div className="flex-1">
-                <label className="text-sm font-medium text-gray-300 mb-2 block">Período</label>
-                <Select value={selectedPeriod} onValueChange={setSelectedPeriod}>
-                  <SelectTrigger className="bg-gray-800 border-gray-600 text-white">
-                    <SelectValue placeholder="Seleccionar período" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">Todos los períodos</SelectItem>
-                    <SelectItem value="recent">Últimos 30 días</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="flex-1">
-                <label className="text-sm font-medium text-gray-300 mb-2 block">Nivel</label>
-                <Select value={selectedLevel} onValueChange={setSelectedLevel}>
-                  <SelectTrigger className="bg-gray-800 border-gray-600 text-white">
-                    <SelectValue placeholder="Seleccionar nivel" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">Todos los niveles</SelectItem>
-                    <SelectItem value="A1">A1</SelectItem>
-                    <SelectItem value="A2">A2</SelectItem>
-                    <SelectItem value="B1">B1</SelectItem>
-                    <SelectItem value="B2">B2</SelectItem>
-                    <SelectItem value="C1">C1</SelectItem>
-                    <SelectItem value="C2">C2</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {filteredResults.map((result) => (
-            <Card
-              key={result.id}
-              className="bg-[#0B1422] backdrop-blur-sm border border-gray-700/50 hover:border-gray-600/50 transition-all cursor-pointer"
-              onClick={() => handleViewDetails(result)}
-            >
-              <CardHeader>
-                <div className="flex items-start justify-between">
-                  <div className="flex-1">
-                    <CardTitle className="text-white text-lg mb-2">{result.examName}</CardTitle>
-                    <CardDescription className="text-gray-300">
-                      {formatDate(result.date)} • {result.duration} min
-                    </CardDescription>
-                  </div>
-                  <div className="flex flex-col gap-2">
-                    {getTypeBadge(result.examType)}
-                    <Badge className={getScoreBadgeColor(result.overallScore)}>
-                      {result.overallScore}%
-                    </Badge>
-                  </div>
-                </div>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="flex items-center gap-2">
-                    <Trophy className="h-4 w-4 text-yellow-400" />
-                    <span className="text-sm text-gray-300">Nivel {result.level}</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Clock className="h-4 w-4 text-blue-400" />
-                    <span className="text-sm text-gray-300">{result.duration} min</span>
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <div className="flex justify-between text-xs text-gray-400">
-                    <span>Progreso General</span>
-                    <span>{result.overallScore}%</span>
-                  </div>
-                  <Progress value={result.overallScore} className="w-full" />
-                </div>
-
-                <div className="flex items-center justify-between pt-2">
-                  <div className="flex items-center gap-2">
-                    {result.passed ? (
-                      <Badge className="bg-green-500/20 text-green-300 border border-green-500/30">
-                        APROBADO
-                      </Badge>
-                    ) : (
-                      <Badge className="bg-red-500/20 text-red-300 border border-red-500/30">
-                        NO APROBADO
-                      </Badge>
-                    )}
-                    {result.certificateGenerated && (
-                      <Award className="h-4 w-4 text-green-400" />
-                    )}
-                  </div>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    className="border-gray-600 text-gray-300 hover:bg-gray-800"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleViewDetails(result);
-                    }}
-                  >
-                    <Eye className="h-4 w-4 mr-2" />
-                    Ver Detalles
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-
-        {filteredResults.length === 0 && (
-          <Card className="bg-[#0B1422] backdrop-blur-sm border border-gray-700/50">
+        {/* Estado: error */}
+        {error && !loading && (
+          <Card className="bg-[#0B1422] border border-red-700/50">
             <CardContent className="p-8 text-center">
-              <FileText className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-              <h3 className="text-lg font-semibold text-white mb-2">No hay resultados</h3>
-              <p className="text-gray-400">No se encontraron resultados con los filtros seleccionados.</p>
+              <AlertCircle className="h-10 w-10 text-red-400 mx-auto mb-3" />
+              <h3 className="text-base font-semibold text-white mb-1">Error al cargar resultados</h3>
+              <p className="text-red-300 text-sm mb-4">{error}</p>
+              <Button onClick={loadStudentResults} variant="outline" size="sm">Reintentar</Button>
             </CardContent>
           </Card>
+        )}
+
+        {!loading && !error && resultsData && (
+          <>
+            {/* Stats row */}
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+              <Card className="bg-[#0B1422] border border-line">
+                <CardContent className="p-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-xs text-gray-400">Promedio</p>
+                      <p className={`text-xl font-semibold ${getScoreColor(resultsData.averageScore)}`}>
+                        {resultsData.averageScore}%
+                      </p>
+                    </div>
+                    <BarChart3 className="h-7 w-7 text-blue-400 opacity-70" />
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card className="bg-[#0B1422] border border-line">
+                <CardContent className="p-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-xs text-gray-400">Progreso</p>
+                      <div className="flex items-center gap-1">
+                        <p className={`text-xl font-semibold ${resultsData.progressTrend >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                          {resultsData.progressTrend >= 0 ? '+' : ''}{resultsData.progressTrend}%
+                        </p>
+                        {resultsData.progressTrend >= 0
+                          ? <TrendingUp className="h-4 w-4 text-green-400" />
+                          : <TrendingDown className="h-4 w-4 text-red-400" />}
+                      </div>
+                    </div>
+                    <Trophy className="h-7 w-7 text-yellow-400 opacity-70" />
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card className="bg-[#0B1422] border border-line">
+                <CardContent className="p-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-xs text-gray-400">Total exámenes</p>
+                      <p className="text-xl font-semibold text-purple-400">{resultsData.totalResults}</p>
+                    </div>
+                    <FileText className="h-7 w-7 text-purple-400 opacity-70" />
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card className="bg-[#0B1422] border border-line">
+                <CardContent className="p-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-xs text-gray-400">Completados</p>
+                      <p className="text-xl font-semibold text-green-400">
+                        {resultsData.results.filter(r => r.status === 'completed').length}
+                      </p>
+                    </div>
+                    <Trophy className="h-7 w-7 text-green-400 opacity-70" />
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Tabla con filtros integrados */}
+            <GradientWrapper position="top-right" variant="cosmic" intensity="low" size="lg" animate={false}>
+              <Card className="bg-[#0B1422] border border-line">
+                {/* Header con filtros inline */}
+                <CardHeader className="border-b border-line pb-4">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                    <div>
+                      <CardTitle className="text-white text-base">Historial de Evaluaciones</CardTitle>
+                      <CardDescription className="text-gray-400 text-xs mt-0.5">
+                        {totalRows > 0 ? `${totalRows} resultado${totalRows !== 1 ? 's' : ''}` : 'Sin resultados'}
+                      </CardDescription>
+                    </div>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <Select value={selectedPeriod} onValueChange={setSelectedPeriod}>
+                        <SelectTrigger className="h-8 text-xs w-36 bg-gray-800/60 border-line text-gray-200">
+                          <SelectValue placeholder="Período" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">Todos los períodos</SelectItem>
+                          <SelectItem value="recent">Últimos 30 días</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <Select value={selectedLevel} onValueChange={setSelectedLevel}>
+                        <SelectTrigger className="h-8 text-xs w-28 bg-gray-800/60 border-line text-gray-200">
+                          <SelectValue placeholder="Nivel" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">Todos los niveles</SelectItem>
+                          <SelectItem value="A1">A1</SelectItem>
+                          <SelectItem value="A2">A2</SelectItem>
+                          <SelectItem value="B1">B1</SelectItem>
+                          <SelectItem value="B2">B2</SelectItem>
+                          <SelectItem value="C1">C1</SelectItem>
+                          <SelectItem value="C2">C2</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                </CardHeader>
+
+                {/* Tabla */}
+                <CardContent className="p-0">
+                  <CustomizableTable
+                    table={resultsTable}
+                    isLoading={loading}
+                    isFetching={false}
+                    isError={!!error}
+                    errorMessage={error ?? undefined}
+                    noDataMessage={
+                      selectedLevel !== 'all' || selectedPeriod !== 'all'
+                        ? 'No hay resultados con los filtros seleccionados.'
+                        : 'Aún no has completado ninguna evaluación.'
+                    }
+                    rows={pagination.pageSize}
+                  />
+                </CardContent>
+
+                {/* Paginación */}
+                {totalRows > 0 && (
+                  <div className="flex items-center justify-between px-4 py-3 border-t border-line">
+                    <p className="text-xs text-gray-400">
+                      Mostrando <span className="text-gray-200 font-medium">{firstRow}–{lastRow}</span> de{' '}
+                      <span className="text-gray-200 font-medium">{totalRows}</span> resultados
+                    </p>
+                    <div className="flex items-center gap-1">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="h-7 w-7 p-0 border-line bg-transparent text-gray-300 hover:bg-gray-800 disabled:opacity-30"
+                        onClick={() => resultsTable.previousPage()}
+                        disabled={!resultsTable.getCanPreviousPage()}
+                      >
+                        <ChevronLeft className="h-4 w-4" />
+                      </Button>
+                      {Array.from({ length: pageCount }, (_, i) => i).map(i => (
+                        <Button
+                          key={i}
+                          variant="outline"
+                          size="sm"
+                          className={`h-7 w-7 p-0 text-xs border-line ${
+                            i === pageIndex
+                              ? 'bg-blue-600/30 text-blue-300 border-blue-500/50'
+                              : 'bg-transparent text-gray-400 hover:bg-gray-800'
+                          }`}
+                          onClick={() => resultsTable.setPageIndex(i)}
+                        >
+                          {i + 1}
+                        </Button>
+                      ))}
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="h-7 w-7 p-0 border-line bg-transparent text-gray-300 hover:bg-gray-800 disabled:opacity-30"
+                        onClick={() => resultsTable.nextPage()}
+                        disabled={!resultsTable.getCanNextPage()}
+                      >
+                        <ChevronRight className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
+                )}
+              </Card>
+            </GradientWrapper>
+          </>
         )}
       </div>
     </MainLayout>

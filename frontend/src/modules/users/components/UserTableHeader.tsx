@@ -1,8 +1,8 @@
-import React, { useState } from 'react';
 import { Button } from '@/components/atoms/button';
 import { Input } from '@/components/atoms/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/atoms/select';
-import { Search, Filter, Trash2, UserPlus, Download, Upload, X } from 'lucide-react';
+import { Filter, Search, Trash2, Upload, UserPlus, X } from 'lucide-react';
+import React, { useState } from 'react';
 import type { UserFilters, UserRole, UserStatus } from '../types/user.types';
 import { USER_ROLES, USER_STATUSES } from '../types/user.types';
 
@@ -122,7 +122,7 @@ const UserTableHeader: React.FC<UserTableHeaderProps> = ({
               Importar
             </Button>
           )}
-
+{/* 
           {onExportUsers && (
             <Button
               variant="outline"
@@ -134,12 +134,12 @@ const UserTableHeader: React.FC<UserTableHeaderProps> = ({
               <Download className="w-4 h-4" />
               Exportar
             </Button>
-          )}
+          )} */}
 
           <Button
             onClick={onCreateUser}
             size="sm"
-            className="gap-1 bg-blue-600 hover:bg-blue-700"
+            className="gap-1 bg-blue-600 hover:bg-blue-700 text-white"
             disabled={isLoading}
           >
             <UserPlus className="w-4 h-4" />

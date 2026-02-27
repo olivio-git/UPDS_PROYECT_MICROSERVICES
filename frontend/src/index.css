@@ -55,7 +55,7 @@
     --gradient-learning: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     --gradient-success: linear-gradient(135deg, #43cea2 0%, #185a9d 100%);
     --gradient-primary: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-
+    --color-brand-blue: #09f;
     --radius: 0.75rem;
   }
 }
@@ -618,11 +618,25 @@
   input:-webkit-autofill:hover,
   input:-webkit-autofill:focus,
   input:-webkit-autofill:active {
-    -webkit-box-shadow: 0 0 0 30px white inset !important; /* Fondo blanco */
-    -webkit-text-fill-color: #333 !important; /* Color del texto */
-    border: 1px solid #e2e8f0 !important; /* Color del borde (gray-200 en Tailwind) */
-    border-radius: 0.620rem !important; /* rounded-md en Tailwind = 6px */
-    padding-left: 10px;
+    /* Forzar fondo transparente usando una sombra interna con color rgba(255,255,255,0) */
+    -webkit-box-shadow: 0 0 0 30px rgba(255,255,255,0) inset !important;
+    box-shadow: 0 0 0 30px rgba(255,255,255,0) inset !important;
+    -webkit-text-fill-color: hsl(var(--foreground)) !important;
+    transition: background-color 9999s ease-in-out 0s; /* Evita flash amarillo en algunos navegadores */
+    caret-color: hsl(var(--foreground));
+    border: 1px solid hsl(var(--border)) !important;
+  }
+
+  /* Variante para inputs sin borde (como el tuyo con border-b) */
+  .input-no-bg:-webkit-autofill,
+  .input-no-bg:-webkit-autofill:hover,
+  .input-no-bg:-webkit-autofill:focus,
+  .input-no-bg:-webkit-autofill:active {
+    -webkit-box-shadow: 0 0 0 30px transparent inset !important;
+    box-shadow: 0 0 0 30px transparent inset !important;
+    -webkit-text-fill-color: hsl(var(--foreground)) !important;
+    border: 0 !important;
+    border-bottom: 1px solid hsl(var(--border)) !important;
   }
 }
 
@@ -877,4 +891,10 @@ nav {
 
 .epilogue-uniquifier {
   font-family: "Epilogue", sans-serif;
+}
+
+
+
+.bg-brand-blue {
+    background-color: var(--color-brand-blue);
 }

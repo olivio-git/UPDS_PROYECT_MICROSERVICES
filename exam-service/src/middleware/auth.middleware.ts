@@ -1,9 +1,9 @@
-import { Request, Response, NextFunction } from 'express';
-import jwt from 'jsonwebtoken';
 import axios from 'axios';
+import { NextFunction, Request, Response } from 'express';
+import jwt from 'jsonwebtoken';
 import { env } from '../config/env';
-import { logger } from '../utils/logger';
 import { cache } from '../config/redis';
+import { logger } from '../utils/logger';
 
 // Extend Request interface to include user
 declare global {
@@ -14,15 +14,15 @@ declare global {
   }
 }
 
-export const authMiddleware = async (req: Request, res: Response, next: NextFunction) => {
+export const authMiddleware = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
     const token = extractToken(req);
-
     if (!token) {
-      return res.status(401).json({
+      res.status(401).json({
         success: false,
         message: 'No token provided'
       });
+      return;
     }
 
     // Check cache first
@@ -31,20 +31,21 @@ export const authMiddleware = async (req: Request, res: Response, next: NextFunc
     
     if (cachedUser) {
       req.user = cachedUser;
-      return next();
+      next();
+      return;
     }
 
     // Verify token locally first
     try {
-      const decoded = jwt.verify(token, env.JWT_SECRET) as any;
+      const decoded = jwt.verify(token as string, env.JWT_SECRET) as any;
       
       // Optionally validate against auth service
       if (env.NODE_ENV === 'production') {
-        const isValid = await validateTokenWithAuthService(token);
+        const isValid = await validateTokenWithAuthService(token as string);
         if (!isValid) {
           throw new Error('Token validation failed');
         }
-      }
+      } 
 
       req.user = {
         id: decoded.userId || decoded.id,
@@ -59,34 +60,38 @@ export const authMiddleware = async (req: Request, res: Response, next: NextFunc
       next();
     } catch (jwtError) {
       logger.error('JWT verification failed:', jwtError);
-      return res.status(401).json({
+      res.status(401).json({
         success: false,
         message: 'Invalid or expired token'
       });
+      return;
     }
   } catch (error) {
     logger.error('Auth middleware error:', error);
-    return res.status(500).json({
+    res.status(500).json({
       success: false,
       message: 'Authentication error'
     });
+    return;
   }
 };
 
 export const requireRole = (...roles: string[]) => {
-  return (req: Request, res: Response, next: NextFunction) => {
+  return (req: Request, res: Response, next: NextFunction): void => {
     if (!req.user) {
-      return res.status(401).json({
+      res.status(401).json({
         success: false,
         message: 'Authentication required'
       });
+      return;
     }
 
     if (!roles.includes(req.user.role)) {
-      return res.status(403).json({
+      res.status(403).json({
         success: false,
         message: 'Insufficient permissions'
       });
+      return;
     }
 
     next();
@@ -94,22 +99,24 @@ export const requireRole = (...roles: string[]) => {
 };
 
 export const requirePermission = (...permissions: string[]) => {
-  return (req: Request, res: Response, next: NextFunction) => {
+  return (req: Request, res: Response, next: NextFunction): void => {
     if (!req.user) {
-      return res.status(401).json({
+      res.status(401).json({
         success: false,
         message: 'Authentication required'
       });
+      return;
     }
 
     const userPermissions = req.user.permissions || [];
     const hasPermission = permissions.some(p => userPermissions.includes(p));
 
     if (!hasPermission) {
-      return res.status(403).json({
+        res.status(403).json({
         success: false,
         message: 'Insufficient permissions'
       });
+      return;
     }
 
     next();

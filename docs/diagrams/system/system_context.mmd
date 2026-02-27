@@ -1,0 +1,61 @@
+  %% System context diagram (Mermaid)
+      graph LR
+      User[User (Student / Admin / Proctor / Teacher)]
+      Frontend[Frontend (React + TS)]
+      APIGw[API Gateway (Nginx / Kong)]
+
+      %% System context diagram (Mermaid)
+      graph LR
+          User[User (Student / Admin / Proctor / Teacher)]
+          Frontend[Frontend (React + TS)]
+          APIGw[API Gateway (Nginx / Kong)]
+
+          subgraph Microservices
+            Auth[auth-service\n(port 3000)]
+            Notif[notifications-service\n(port 3001)]
+            UserMgmt[user-management-service\n(port 3002)]
+            Exam[exam-service\n(port 3003)]
+            Session[session-manager-service\n(port 3004)]
+            AI[ai-grading-service\n(port 3006)]
+          end
+
+          subgraph Infra
+            Mongo[(MongoDB)]
+            Redis[(Redis)]
+            Kafka[(Kafka Cluster)]
+            MinIO[(MinIO / S3)]
+            Ollama[(LLM - Ollama)]
+          end
+
+          User --> Frontend
+          Frontend --> APIGw
+          APIGw --> Auth
+          APIGw --> Notif
+          APIGw --> UserMgmt
+          APIGw --> Exam
+          APIGw --> Session
+          APIGw --> AI
+
+          Auth --> Mongo
+          UserMgmt --> Mongo
+          Exam --> Mongo
+          Session --> Mongo
+          Notif --> Mongo
+          AI --> Mongo
+
+          Exam --> Kafka
+          Session --> Kafka
+          Auth --> Kafka
+          Kafka --> AI
+          AI --> Kafka
+
+          Exam --> MinIO
+          AI --> Ollama
+          Session --> Redis
+          Auth --> Redis
+
+          style Mongo fill:#4db33d,color:#fff
+          style Kafka fill:#ff6600,color:#fff
+          style MinIO fill:#6b6b6b,color:#fff
+          style Redis fill:#dc382d,color:#fff
+          style Ollama fill:#5a3d9a,color:#fff

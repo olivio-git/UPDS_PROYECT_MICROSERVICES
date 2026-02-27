@@ -1,8 +1,8 @@
 import { createBrowserRouter } from "react-router-dom";
-import { publicRoutes } from "./Public.Route";
+import AuthWrapper from "./AuthWrapper";
 import { protectedRoutes } from "./Protected.Route";
+import { publicRoutes } from "./Public.Route";
 import { RootLayout } from "./RootLayout";
-import AuthWrapper from "./AuthWrapper"; 
 
 const allRoutes = [...publicRoutes, ...protectedRoutes]; 
 export const router = createBrowserRouter([

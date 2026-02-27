@@ -79,3 +79,26 @@ export interface EmailSendResult {
   messageId?: string;
   error?: string;
 }
+
+export interface Notification {
+  _id?: string;
+  recipientId: string;
+  recipientType?: 'user' | 'candidate' | 'proctor';
+  type: string; // e.g. 'session.candidate.added'
+  channel?: 'in-app' | 'email' | 'sms';
+  content: {
+    title: string;
+    body?: string;
+    link?: string;
+    [key: string]: any;
+  };
+  delivery?: {
+    delivered?: boolean;
+    deliveredAt?: Date | null;
+  };
+  read?: boolean;
+  priority?: 'low' | 'normal' | 'high';
+  metadata?: Record<string, any>;
+  createdAt: Date;
+  updatedAt: Date;
+}

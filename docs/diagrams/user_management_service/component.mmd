@@ -1,0 +1,16 @@
+%% User Management component diagram
+graph TB
+    subgraph user-management-service
+      U1[Express API - /api/v1]
+      U2[Controllers: Users / Candidates / Roles]
+      U3[Services: Import/Export, Permissions]
+      U4[MongoDB Collections: users, candidates, roles]
+      U5[Kafka Consumer/Producer]
+      U6[MinIO, file uploads]
+    end
+
+    U1 --> U2
+    U2 --> U3
+    U3 --> U4
+    U2 --> U5
+    U3 --> U6

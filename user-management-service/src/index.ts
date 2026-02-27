@@ -22,10 +22,6 @@ const server = createServer(app);
 
 async function startServer() {
   try {
-    app.get('/health', (req, res) => {
-      res.json({ status: 'OK', timestamp: new Date().toISOString() });
-    });
-    
     // ================================
     // MIDDLEWARE DE SEGURIDAD Y GENERAL
     // ================================
@@ -71,6 +67,13 @@ async function startServer() {
     app.use(express.urlencoded({ extended: true, limit: '10mb' }));
     app.use(requestLogger); 
     app.use(responseFormatter);
+
+    // ================================
+    // HEALTH CHECK ENDPOINT (After CORS middleware)
+    // ================================
+    app.get('/health', (req, res) => {
+      res.json({ status: 'OK', timestamp: new Date().toISOString() });
+    });
 
     // ================================
     // CONEXIÓN A BASES DE DATOS (Paso Crítico)

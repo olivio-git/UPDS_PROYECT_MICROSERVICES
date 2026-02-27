@@ -1,8 +1,8 @@
-import { Schema, model, Document, Types } from 'mongoose';
+import { Document, Schema, Types, model } from 'mongoose';
 
 export interface IQuestion extends Document {
-  type: 'multiple_choice' | 'true_false' | 'open_text' | 'essay' | 'audio_response' | 'file_upload';
-  competency: 'reading' | 'writing' | 'listening' | 'speaking';
+  type: 'multiple_choice' | 'true_false' | 'open_text' | 'essay' | 'fill_blanks' | 'drag_drop' | 'matching' | 'ordering' | 'audio_response' | 'file_upload';
+  competency: 'reading' | 'writing' | 'listening' | 'speaking' | 'grammar' | 'vocabulary';
   level: string; // A1, A2, B1, B2, C1, C2
   difficulty: number; // 1-5
   content: {
@@ -10,14 +10,33 @@ export interface IQuestion extends Document {
     instructions?: string;
     context?: string; // Reading passage, audio transcript, etc.
     mediaUrl?: string; // Audio file, image, etc.
+    mediaType?: 'audio' | 'image' | 'video'; // Tipo de archivo multimedia
     options?: Array<{
       id: string;
       text: string;
       isCorrect?: boolean;
     }>;
-    correctAnswer?: string;
+    correctAnswer?: string | string[];
     sampleAnswer?: string;
     keywords?: string[];
+    // Para fill_blanks
+    template?: string; // "The cat is ___ the house"
+    blanks?: Array<{
+      position: number;
+      correctAnswers: string[];
+      caseSensitive?: boolean;
+    }>;
+    // Para drag_drop, matching, ordering
+    items?: Array<{
+      id: string;
+      content: string;
+      correctPosition?: number;
+      matchingPair?: string;
+      mediaUrl?: string;
+    }>;
+    // Para audio_response
+    promptAudioUrl?: string;
+    expectedResponseType?: 'word' | 'sentence' | 'paragraph';
   };
   metadata: {
     topic?: string;
@@ -45,12 +64,12 @@ const questionSchema = new Schema<IQuestion>({
   type: {
     type: String,
     required: true,
-    enum: ['multiple_choice', 'true_false', 'open_text', 'essay', 'audio_response', 'file_upload']
+    enum: ['multiple_choice', 'true_false', 'open_text', 'essay', 'fill_blanks', 'drag_drop', 'matching', 'ordering', 'audio_response', 'file_upload']
   },
   competency: {
     type: String,
     required: true,
-    enum: ['reading', 'writing', 'listening', 'speaking']
+    enum: ['reading', 'writing', 'listening', 'speaking', 'grammar', 'vocabulary']
   },
   level: {
     type: String,
@@ -68,14 +87,41 @@ const questionSchema = new Schema<IQuestion>({
     instructions: String,
     context: String,
     mediaUrl: String,
+    mediaType: {
+      type: String,
+      enum: ['audio', 'image', 'video']
+    },
     options: [{
+      _id: false,
       id: String,
       text: String,
       isCorrect: Boolean
     }],
-    correctAnswer: String,
+    correctAnswer: Schema.Types.Mixed, // Puede ser string o array
     sampleAnswer: String,
-    keywords: [String]
+    keywords: [String],
+    // Para fill_blanks
+    template: String,
+    blanks: [{
+      position: Number,
+      correctAnswers: [String],
+      caseSensitive: { type: Boolean, default: false }
+    }],
+    // Para drag_drop, matching, ordering
+    items: [{
+      _id: false,
+      id: String,
+      content: String,
+      correctPosition: Number,
+      matchingPair: String,
+      mediaUrl: String
+    }],
+    // Para audio_response
+    promptAudioUrl: String,
+    expectedResponseType: {
+      type: String,
+      enum: ['word', 'sentence', 'paragraph']
+    }
   },
   metadata: {
     topic: String,

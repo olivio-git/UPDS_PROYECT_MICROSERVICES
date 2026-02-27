@@ -6,7 +6,7 @@ export class JwtService {
   
   generateAccessToken(payload: JWTPayload): string {
     return jwt.sign(payload, config.jwt.secret, {
-      expiresIn: '1h',
+      expiresIn: '2d',
       issuer: 'cba-auth-service',
       audience: 'cba-platform'
     });
@@ -17,7 +17,7 @@ export class JwtService {
       { userId, type: 'refresh' },
       config.jwt.refreshSecret,
       {
-        expiresIn: '1h',
+        expiresIn: '7d',
         issuer: 'cba-auth-service',
         audience: 'cba-platform'
       }

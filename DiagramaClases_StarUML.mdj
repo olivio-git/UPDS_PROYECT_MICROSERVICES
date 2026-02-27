@@ -1,0 +1,2376 @@
+{
+	"_type": "Project",
+	"_id": "AAAAAAFF+h6SjaM2Hec=",
+	"name": "Sistema Evaluación UPDS - Actualizado",
+	"ownedElements": [
+		{
+			"_type": "UMLModel",
+			"_id": "AAAAAAFF+qBWK6M3Z8Y=",
+			"_parent": {
+				"$ref": "AAAAAAFF+h6SjaM2Hec="
+			},
+			"name": "Model",
+			"ownedElements": [
+				{
+					"_type": "UMLClassDiagram",
+					"_id": "AAAAAAFF+qBtyKM79qY=",
+					"_parent": {
+						"$ref": "AAAAAAFF+qBWK6M3Z8Y="
+					},
+					"name": "Diagrama de Clases - Sistema de Evaluación",
+					"defaultDiagram": true,
+					"ownedViews": [
+						{
+							"_type": "UMLClassView",
+							"_id": "class_user_view",
+							"_parent": {
+								"$ref": "AAAAAAFF+qBtyKM79qY="
+							},
+							"model": {
+								"$ref": "class_user"
+							},
+							"subViews": [
+								{
+									"_type": "UMLNameCompartmentView",
+									"_id": "class_user_name",
+									"_parent": {
+										"$ref": "class_user_view"
+									},
+									"model": {
+										"$ref": "class_user"
+									},
+									"font": "Arial;13;1",
+									"left": 50,
+									"top": 50,
+									"width": 250,
+									"height": 15,
+									"text": "User"
+								},
+								{
+									"_type": "UMLAttributeCompartmentView",
+									"_id": "class_user_attrs",
+									"_parent": {
+										"$ref": "class_user_view"
+									},
+									"model": {
+										"$ref": "class_user"
+									},
+									"font": "Arial;13;0",
+									"left": 50,
+									"top": 70,
+									"width": 250,
+									"height": 180
+								},
+								{
+									"_type": "UMLOperationCompartmentView",
+									"_id": "class_user_ops",
+									"_parent": {
+										"$ref": "class_user_view"
+									},
+									"model": {
+										"$ref": "class_user"
+									},
+									"font": "Arial;13;0",
+									"left": 50,
+									"top": 255,
+									"width": 250,
+									"height": 80
+								}
+							],
+							"font": "Arial;13;0",
+							"left": 50,
+							"top": 50,
+							"width": 250,
+							"height": 285,
+							"fillColor": "#e3f2fd"
+						},
+						{
+							"_type": "UMLClassView",
+							"_id": "class_candidate_view",
+							"_parent": {
+								"$ref": "AAAAAAFF+qBtyKM79qY="
+							},
+							"model": {
+								"$ref": "class_candidate"
+							},
+							"subViews": [
+								{
+									"_type": "UMLNameCompartmentView",
+									"_id": "class_candidate_name",
+									"_parent": {
+										"$ref": "class_candidate_view"
+									},
+									"model": {
+										"$ref": "class_candidate"
+									},
+									"font": "Arial;13;1",
+									"left": 350,
+									"top": 50,
+									"width": 250,
+									"height": 15,
+									"text": "Candidate"
+								},
+								{
+									"_type": "UMLAttributeCompartmentView",
+									"_id": "class_candidate_attrs",
+									"_parent": {
+										"$ref": "class_candidate_view"
+									},
+									"model": {
+										"$ref": "class_candidate"
+									},
+									"font": "Arial;13;0",
+									"left": 350,
+									"top": 70,
+									"width": 250,
+									"height": 140
+								},
+								{
+									"_type": "UMLOperationCompartmentView",
+									"_id": "class_candidate_ops",
+									"_parent": {
+										"$ref": "class_candidate_view"
+									},
+									"model": {
+										"$ref": "class_candidate"
+									},
+									"font": "Arial;13;0",
+									"left": 350,
+									"top": 215,
+									"width": 250,
+									"height": 80
+								}
+							],
+							"font": "Arial;13;0",
+							"left": 350,
+							"top": 50,
+							"width": 250,
+							"height": 245,
+							"fillColor": "#e3f2fd"
+						},
+						{
+							"_type": "UMLClassView",
+							"_id": "class_role_view",
+							"_parent": {
+								"$ref": "AAAAAAFF+qBtyKM79qY="
+							},
+							"model": {
+								"$ref": "class_role"
+							},
+							"font": "Arial;13;0",
+							"left": 50,
+							"top": 360,
+							"width": 250,
+							"height": 150,
+							"fillColor": "#e3f2fd"
+						},
+						{
+							"_type": "UMLClassView",
+							"_id": "class_level_view",
+							"_parent": {
+								"$ref": "AAAAAAFF+qBtyKM79qY="
+							},
+							"model": {
+								"$ref": "class_level"
+							},
+							"font": "Arial;13;0",
+							"left": 650,
+							"top": 50,
+							"width": 250,
+							"height": 150,
+							"fillColor": "#f3e5f5"
+						},
+						{
+							"_type": "UMLClassView",
+							"_id": "class_rubric_view",
+							"_parent": {
+								"$ref": "AAAAAAFF+qBtyKM79qY="
+							},
+							"model": {
+								"$ref": "class_rubric"
+							},
+							"font": "Arial;13;0",
+							"left": 650,
+							"top": 220,
+							"width": 250,
+							"height": 170,
+							"fillColor": "#f3e5f5"
+						},
+						{
+							"_type": "UMLClassView",
+							"_id": "class_question_view",
+							"_parent": {
+								"$ref": "AAAAAAFF+qBtyKM79qY="
+							},
+							"model": {
+								"$ref": "class_question"
+							},
+							"font": "Arial;13;0",
+							"left": 950,
+							"top": 50,
+							"width": 250,
+							"height": 200,
+							"fillColor": "#f3e5f5"
+						},
+						{
+							"_type": "UMLClassView",
+							"_id": "class_exam_view",
+							"_parent": {
+								"$ref": "AAAAAAFF+qBtyKM79qY="
+							},
+							"model": {
+								"$ref": "class_exam"
+							},
+							"font": "Arial;13;0",
+							"left": 950,
+							"top": 270,
+							"width": 250,
+							"height": 200,
+							"fillColor": "#f3e5f5"
+						},
+						{
+							"_type": "UMLClassView",
+							"_id": "class_examsession_view",
+							"_parent": {
+								"$ref": "AAAAAAFF+qBtyKM79qY="
+							},
+							"model": {
+								"$ref": "class_examsession"
+							},
+							"font": "Arial;13;0",
+							"left": 50,
+							"top": 540,
+							"width": 280,
+							"height": 220,
+							"fillColor": "#e8f5e9"
+						},
+						{
+							"_type": "UMLClassView",
+							"_id": "class_activesession_view",
+							"_parent": {
+								"$ref": "AAAAAAFF+qBtyKM79qY="
+							},
+							"model": {
+								"$ref": "class_activesession"
+							},
+							"font": "Arial;13;0",
+							"left": 360,
+							"top": 540,
+							"width": 280,
+							"height": 200,
+							"fillColor": "#e8f5e9"
+						},
+						{
+							"_type": "UMLClassView",
+							"_id": "class_attempt_view",
+							"_parent": {
+								"$ref": "AAAAAAFF+qBtyKM79qY="
+							},
+							"model": {
+								"$ref": "class_attempt"
+							},
+							"font": "Arial;13;0",
+							"left": 50,
+							"top": 790,
+							"width": 250,
+							"height": 180,
+							"fillColor": "#e8f5e9"
+						},
+						{
+							"_type": "UMLClassView",
+							"_id": "class_response_view",
+							"_parent": {
+								"$ref": "AAAAAAFF+qBtyKM79qY="
+							},
+							"model": {
+								"$ref": "class_response"
+							},
+							"font": "Arial;13;0",
+							"left": 330,
+							"top": 790,
+							"width": 250,
+							"height": 160,
+							"fillColor": "#e8f5e9"
+						},
+						{
+							"_type": "UMLClassView",
+							"_id": "class_examresult_view",
+							"_parent": {
+								"$ref": "AAAAAAFF+qBtyKM79qY="
+							},
+							"model": {
+								"$ref": "class_examresult"
+							},
+							"font": "Arial;13;0",
+							"left": 610,
+							"top": 790,
+							"width": 270,
+							"height": 200,
+							"fillColor": "#e8f5e9"
+						},
+						{
+							"_type": "UMLClassView",
+							"_id": "class_technicalverification_view",
+							"_parent": {
+								"$ref": "AAAAAAFF+qBtyKM79qY="
+							},
+							"model": {
+								"$ref": "class_technicalverification"
+							},
+							"font": "Arial;13;0",
+							"left": 670,
+							"top": 540,
+							"width": 270,
+							"height": 180,
+							"fillColor": "#e8f5e9"
+						},
+						{
+							"_type": "UMLClassView",
+							"_id": "class_email_view",
+							"_parent": {
+								"$ref": "AAAAAAFF+qBtyKM79qY="
+							},
+							"model": {
+								"$ref": "class_email"
+							},
+							"font": "Arial;13;0",
+							"left": 1250,
+							"top": 50,
+							"width": 250,
+							"height": 200,
+							"fillColor": "#fce4ec"
+						},
+						{
+							"_type": "UMLClassView",
+							"_id": "class_emailtemplate_view",
+							"_parent": {
+								"$ref": "AAAAAAFF+qBtyKM79qY="
+							},
+							"model": {
+								"$ref": "class_emailtemplate"
+							},
+							"font": "Arial;13;0",
+							"left": 1250,
+							"top": 270,
+							"width": 250,
+							"height": 140,
+							"fillColor": "#fce4ec"
+						},
+						{
+							"_type": "UMLClassView",
+							"_id": "class_notificationinapp_view",
+							"_parent": {
+								"$ref": "AAAAAAFF+qBtyKM79qY="
+							},
+							"model": {
+								"$ref": "class_notificationinapp"
+							},
+							"font": "Arial;13;0",
+							"left": 1250,
+							"top": 430,
+							"width": 250,
+							"height": 160,
+							"fillColor": "#fce4ec"
+						},
+						{
+							"_type": "UMLClassView",
+							"_id": "class_gradingresult_view",
+							"_parent": {
+								"$ref": "AAAAAAFF+qBtyKM79qY="
+							},
+							"model": {
+								"$ref": "class_gradingresult"
+							},
+							"font": "Arial;13;0",
+							"left": 910,
+							"top": 790,
+							"width": 270,
+							"height": 200,
+							"fillColor": "#fff3e0"
+						},
+						{
+							"_type": "UMLClassView",
+							"_id": "class_filestorage_view",
+							"_parent": {
+								"$ref": "AAAAAAFF+qBtyKM79qY="
+							},
+							"model": {
+								"$ref": "class_filestorage"
+							},
+							"font": "Arial;13;0",
+							"left": 1250,
+							"top": 610,
+							"width": 250,
+							"height": 160,
+							"fillColor": "#fff9c4"
+						},
+						{
+							"_type": "UMLClassView",
+							"_id": "class_auditlog_view",
+							"_parent": {
+								"$ref": "AAAAAAFF+qBtyKM79qY="
+							},
+							"model": {
+								"$ref": "class_auditlog"
+							},
+							"font": "Arial;13;0",
+							"left": 1250,
+							"top": 790,
+							"width": 250,
+							"height": 140,
+							"fillColor": "#efebe9"
+						}
+					]
+				},
+				{
+					"_type": "UMLClass",
+					"_id": "class_user",
+					"_parent": {
+						"$ref": "AAAAAAFF+qBWK6M3Z8Y="
+					},
+					"name": "User",
+					"attributes": [
+						{
+							"_type": "UMLAttribute",
+							"_id": "user_attr1",
+							"_parent": {
+								"$ref": "class_user"
+							},
+							"name": "_id: ObjectId"
+						},
+						{
+							"_type": "UMLAttribute",
+							"_id": "user_attr2",
+							"_parent": {
+								"$ref": "class_user"
+							},
+							"name": "email: String"
+						},
+						{
+							"_type": "UMLAttribute",
+							"_id": "user_attr3",
+							"_parent": {
+								"$ref": "class_user"
+							},
+							"name": "password: String"
+						},
+						{
+							"_type": "UMLAttribute",
+							"_id": "user_attr4",
+							"_parent": {
+								"$ref": "class_user"
+							},
+							"name": "firstName: String"
+						},
+						{
+							"_type": "UMLAttribute",
+							"_id": "user_attr5",
+							"_parent": {
+								"$ref": "class_user"
+							},
+							"name": "lastName: String"
+						},
+						{
+							"_type": "UMLAttribute",
+							"_id": "user_attr6",
+							"_parent": {
+								"$ref": "class_user"
+							},
+							"name": "role: String"
+						},
+						{
+							"_type": "UMLAttribute",
+							"_id": "user_attr7",
+							"_parent": {
+								"$ref": "class_user"
+							},
+							"name": "status: String"
+						},
+						{
+							"_type": "UMLAttribute",
+							"_id": "user_attr8",
+							"_parent": {
+								"$ref": "class_user"
+							},
+							"name": "profile: Object"
+						},
+						{
+							"_type": "UMLAttribute",
+							"_id": "user_attr9",
+							"_parent": {
+								"$ref": "class_user"
+							},
+							"name": "permissions: Array"
+						},
+						{
+							"_type": "UMLAttribute",
+							"_id": "user_attr10",
+							"_parent": {
+								"$ref": "class_user"
+							},
+							"name": "createdAt: Date"
+						},
+						{
+							"_type": "UMLAttribute",
+							"_id": "user_attr11",
+							"_parent": {
+								"$ref": "class_user"
+							},
+							"name": "updatedAt: Date"
+						},
+						{
+							"_type": "UMLAttribute",
+							"_id": "user_attr12",
+							"_parent": {
+								"$ref": "class_user"
+							},
+							"name": "authServiceUserId: String"
+						}
+					],
+					"operations": [
+						{
+							"_type": "UMLOperation",
+							"_id": "user_op1",
+							"_parent": {
+								"$ref": "class_user"
+							},
+							"name": "login()"
+						},
+						{
+							"_type": "UMLOperation",
+							"_id": "user_op2",
+							"_parent": {
+								"$ref": "class_user"
+							},
+							"name": "logout()"
+						},
+						{
+							"_type": "UMLOperation",
+							"_id": "user_op3",
+							"_parent": {
+								"$ref": "class_user"
+							},
+							"name": "updateProfile()"
+						},
+						{
+							"_type": "UMLOperation",
+							"_id": "user_op4",
+							"_parent": {
+								"$ref": "class_user"
+							},
+							"name": "changePassword()"
+						},
+						{
+							"_type": "UMLOperation",
+							"_id": "user_op5",
+							"_parent": {
+								"$ref": "class_user"
+							},
+							"name": "hasPermission()"
+						}
+					]
+				},
+				{
+					"_type": "UMLClass",
+					"_id": "class_candidate",
+					"_parent": {
+						"$ref": "AAAAAAFF+qBWK6M3Z8Y="
+					},
+					"name": "Candidate",
+					"attributes": [
+						{
+							"_type": "UMLAttribute",
+							"_id": "candidate_attr1",
+							"_parent": {
+								"$ref": "class_candidate"
+							},
+							"name": "_id: ObjectId"
+						},
+						{
+							"_type": "UMLAttribute",
+							"_id": "candidate_attr2",
+							"_parent": {
+								"$ref": "class_candidate"
+							},
+							"name": "userId: ObjectId"
+						},
+						{
+							"_type": "UMLAttribute",
+							"_id": "candidate_attr3",
+							"_parent": {
+								"$ref": "class_candidate"
+							},
+							"name": "personalInfo: Object"
+						},
+						{
+							"_type": "UMLAttribute",
+							"_id": "candidate_attr4",
+							"_parent": {
+								"$ref": "class_candidate"
+							},
+							"name": "academicInfo: Object"
+						},
+						{
+							"_type": "UMLAttribute",
+							"_id": "candidate_attr5",
+							"_parent": {
+								"$ref": "class_candidate"
+							},
+							"name": "technicalSetup: Object"
+						},
+						{
+							"_type": "UMLAttribute",
+							"_id": "candidate_attr6",
+							"_parent": {
+								"$ref": "class_candidate"
+							},
+							"name": "examHistory: Array"
+						},
+						{
+							"_type": "UMLAttribute",
+							"_id": "candidate_attr7",
+							"_parent": {
+								"$ref": "class_candidate"
+							},
+							"name": "status: String"
+						},
+						{
+							"_type": "UMLAttribute",
+							"_id": "candidate_attr8",
+							"_parent": {
+								"$ref": "class_candidate"
+							},
+							"name": "registeredBy: ObjectId"
+						}
+					],
+					"operations": [
+						{
+							"_type": "UMLOperation",
+							"_id": "candidate_op1",
+							"_parent": {
+								"$ref": "class_candidate"
+							},
+							"name": "register()"
+						},
+						{
+							"_type": "UMLOperation",
+							"_id": "candidate_op2",
+							"_parent": {
+								"$ref": "class_candidate"
+							},
+							"name": "verify()"
+						},
+						{
+							"_type": "UMLOperation",
+							"_id": "candidate_op3",
+							"_parent": {
+								"$ref": "class_candidate"
+							},
+							"name": "updateTechnicalSetup()"
+						},
+						{
+							"_type": "UMLOperation",
+							"_id": "candidate_op4",
+							"_parent": {
+								"$ref": "class_candidate"
+							},
+							"name": "getExamHistory()"
+						}
+					]
+				},
+				{
+					"_type": "UMLClass",
+					"_id": "class_role",
+					"_parent": {
+						"$ref": "AAAAAAFF+qBWK6M3Z8Y="
+					},
+					"name": "Role",
+					"attributes": [
+						{
+							"_type": "UMLAttribute",
+							"_id": "role_attr1",
+							"_parent": {
+								"$ref": "class_role"
+							},
+							"name": "_id: ObjectId"
+						},
+						{
+							"_type": "UMLAttribute",
+							"_id": "role_attr2",
+							"_parent": {
+								"$ref": "class_role"
+							},
+							"name": "name: String"
+						},
+						{
+							"_type": "UMLAttribute",
+							"_id": "role_attr3",
+							"_parent": {
+								"$ref": "class_role"
+							},
+							"name": "description: String"
+						},
+						{
+							"_type": "UMLAttribute",
+							"_id": "role_attr4",
+							"_parent": {
+								"$ref": "class_role"
+							},
+							"name": "permissions: Array"
+						},
+						{
+							"_type": "UMLAttribute",
+							"_id": "role_attr5",
+							"_parent": {
+								"$ref": "class_role"
+							},
+							"name": "isSystem: Boolean"
+						}
+					],
+					"operations": [
+						{
+							"_type": "UMLOperation",
+							"_id": "role_op1",
+							"_parent": {
+								"$ref": "class_role"
+							},
+							"name": "assignTo()"
+						},
+						{
+							"_type": "UMLOperation",
+							"_id": "role_op2",
+							"_parent": {
+								"$ref": "class_role"
+							},
+							"name": "validate()"
+						}
+					]
+				},
+				{
+					"_type": "UMLClass",
+					"_id": "class_level",
+					"_parent": {
+						"$ref": "AAAAAAFF+qBWK6M3Z8Y="
+					},
+					"name": "Level",
+					"attributes": [
+						{
+							"_type": "UMLAttribute",
+							"_id": "level_attr1",
+							"_parent": {
+								"$ref": "class_level"
+							},
+							"name": "_id: ObjectId"
+						},
+						{
+							"_type": "UMLAttribute",
+							"_id": "level_attr2",
+							"_parent": {
+								"$ref": "class_level"
+							},
+							"name": "code: String"
+						},
+						{
+							"_type": "UMLAttribute",
+							"_id": "level_attr3",
+							"_parent": {
+								"$ref": "class_level"
+							},
+							"name": "name: String"
+						},
+						{
+							"_type": "UMLAttribute",
+							"_id": "level_attr4",
+							"_parent": {
+								"$ref": "class_level"
+							},
+							"name": "description: String"
+						},
+						{
+							"_type": "UMLAttribute",
+							"_id": "level_attr5",
+							"_parent": {
+								"$ref": "class_level"
+							},
+							"name": "competencies: Object"
+						},
+						{
+							"_type": "UMLAttribute",
+							"_id": "level_attr6",
+							"_parent": {
+								"$ref": "class_level"
+							},
+							"name": "order: Number"
+						}
+					],
+					"operations": [
+						{
+							"_type": "UMLOperation",
+							"_id": "level_op1",
+							"_parent": {
+								"$ref": "class_level"
+							},
+							"name": "validateScore()"
+						},
+						{
+							"_type": "UMLOperation",
+							"_id": "level_op2",
+							"_parent": {
+								"$ref": "class_level"
+							},
+							"name": "getRequirements()"
+						}
+					]
+				},
+				{
+					"_type": "UMLClass",
+					"_id": "class_rubric",
+					"_parent": {
+						"$ref": "AAAAAAFF+qBWK6M3Z8Y="
+					},
+					"name": "Rubric",
+					"attributes": [
+						{
+							"_type": "UMLAttribute",
+							"_id": "rubric_attr1",
+							"_parent": {
+								"$ref": "class_rubric"
+							},
+							"name": "_id: ObjectId"
+						},
+						{
+							"_type": "UMLAttribute",
+							"_id": "rubric_attr2",
+							"_parent": {
+								"$ref": "class_rubric"
+							},
+							"name": "name: String"
+						},
+						{
+							"_type": "UMLAttribute",
+							"_id": "rubric_attr3",
+							"_parent": {
+								"$ref": "class_rubric"
+							},
+							"name": "description: String"
+						},
+						{
+							"_type": "UMLAttribute",
+							"_id": "rubric_attr4",
+							"_parent": {
+								"$ref": "class_rubric"
+							},
+							"name": "criteria: Array"
+						},
+						{
+							"_type": "UMLAttribute",
+							"_id": "rubric_attr5",
+							"_parent": {
+								"$ref": "class_rubric"
+							},
+							"name": "type: String"
+						},
+						{
+							"_type": "UMLAttribute",
+							"_id": "rubric_attr6",
+							"_parent": {
+								"$ref": "class_rubric"
+							},
+							"name": "totalMaxScore: Number"
+						},
+						{
+							"_type": "UMLAttribute",
+							"_id": "rubric_attr7",
+							"_parent": {
+								"$ref": "class_rubric"
+							},
+							"name": "applicableQuestionTypes: Array"
+						}
+					],
+					"operations": [
+						{
+							"_type": "UMLOperation",
+							"_id": "rubric_op1",
+							"_parent": {
+								"$ref": "class_rubric"
+							},
+							"name": "calculateScore()"
+						},
+						{
+							"_type": "UMLOperation",
+							"_id": "rubric_op2",
+							"_parent": {
+								"$ref": "class_rubric"
+							},
+							"name": "validateCriteria()"
+						}
+					]
+				},
+				{
+					"_type": "UMLClass",
+					"_id": "class_question",
+					"_parent": {
+						"$ref": "AAAAAAFF+qBWK6M3Z8Y="
+					},
+					"name": "Question",
+					"attributes": [
+						{
+							"_type": "UMLAttribute",
+							"_id": "question_attr1",
+							"_parent": {
+								"$ref": "class_question"
+							},
+							"name": "_id: ObjectId"
+						},
+						{
+							"_type": "UMLAttribute",
+							"_id": "question_attr2",
+							"_parent": {
+								"$ref": "class_question"
+							},
+							"name": "examId: ObjectId"
+						},
+						{
+							"_type": "UMLAttribute",
+							"_id": "question_attr3",
+							"_parent": {
+								"$ref": "class_question"
+							},
+							"name": "type: String"
+						},
+						{
+							"_type": "UMLAttribute",
+							"_id": "question_attr4",
+							"_parent": {
+								"$ref": "class_question"
+							},
+							"name": "competency: String"
+						},
+						{
+							"_type": "UMLAttribute",
+							"_id": "question_attr5",
+							"_parent": {
+								"$ref": "class_question"
+							},
+							"name": "level: String"
+						},
+						{
+							"_type": "UMLAttribute",
+							"_id": "question_attr6",
+							"_parent": {
+								"$ref": "class_question"
+							},
+							"name": "difficulty: Number"
+						},
+						{
+							"_type": "UMLAttribute",
+							"_id": "question_attr7",
+							"_parent": {
+								"$ref": "class_question"
+							},
+							"name": "questionText: String"
+						},
+						{
+							"_type": "UMLAttribute",
+							"_id": "question_attr8",
+							"_parent": {
+								"$ref": "class_question"
+							},
+							"name": "questionAudio: String"
+						},
+						{
+							"_type": "UMLAttribute",
+							"_id": "question_attr9",
+							"_parent": {
+								"$ref": "class_question"
+							},
+							"name": "options: Array"
+						},
+						{
+							"_type": "UMLAttribute",
+							"_id": "question_attr10",
+							"_parent": {
+								"$ref": "class_question"
+							},
+							"name": "correctAnswer: Any"
+						},
+						{
+							"_type": "UMLAttribute",
+							"_id": "question_attr11",
+							"_parent": {
+								"$ref": "class_question"
+							},
+							"name": "points: Number"
+						}
+					],
+					"operations": [
+						{
+							"_type": "UMLOperation",
+							"_id": "question_op1",
+							"_parent": {
+								"$ref": "class_question"
+							},
+							"name": "evaluate()"
+						},
+						{
+							"_type": "UMLOperation",
+							"_id": "question_op2",
+							"_parent": {
+								"$ref": "class_question"
+							},
+							"name": "validate()"
+						},
+						{
+							"_type": "UMLOperation",
+							"_id": "question_op3",
+							"_parent": {
+								"$ref": "class_question"
+							},
+							"name": "getMediaUrl()"
+						}
+					]
+				},
+				{
+					"_type": "UMLClass",
+					"_id": "class_exam",
+					"_parent": {
+						"$ref": "AAAAAAFF+qBWK6M3Z8Y="
+					},
+					"name": "Exam",
+					"attributes": [
+						{
+							"_type": "UMLAttribute",
+							"_id": "exam_attr1",
+							"_parent": {
+								"$ref": "class_exam"
+							},
+							"name": "_id: ObjectId"
+						},
+						{
+							"_type": "UMLAttribute",
+							"_id": "exam_attr2",
+							"_parent": {
+								"$ref": "class_exam"
+							},
+							"name": "name: String"
+						},
+						{
+							"_type": "UMLAttribute",
+							"_id": "exam_attr3",
+							"_parent": {
+								"$ref": "class_exam"
+							},
+							"name": "description: String"
+						},
+						{
+							"_type": "UMLAttribute",
+							"_id": "exam_attr4",
+							"_parent": {
+								"$ref": "class_exam"
+							},
+							"name": "level: String"
+						},
+						{
+							"_type": "UMLAttribute",
+							"_id": "exam_attr5",
+							"_parent": {
+								"$ref": "class_exam"
+							},
+							"name": "duration: Number"
+						},
+						{
+							"_type": "UMLAttribute",
+							"_id": "exam_attr6",
+							"_parent": {
+								"$ref": "class_exam"
+							},
+							"name": "sections: Array"
+						},
+						{
+							"_type": "UMLAttribute",
+							"_id": "exam_attr7",
+							"_parent": {
+								"$ref": "class_exam"
+							},
+							"name": "status: String"
+						},
+						{
+							"_type": "UMLAttribute",
+							"_id": "exam_attr8",
+							"_parent": {
+								"$ref": "class_exam"
+							},
+							"name": "passingScore: Number"
+						},
+						{
+							"_type": "UMLAttribute",
+							"_id": "exam_attr9",
+							"_parent": {
+								"$ref": "class_exam"
+							},
+							"name": "totalPoints: Number"
+						}
+					],
+					"operations": [
+						{
+							"_type": "UMLOperation",
+							"_id": "exam_op1",
+							"_parent": {
+								"$ref": "class_exam"
+							},
+							"name": "publish()"
+						},
+						{
+							"_type": "UMLOperation",
+							"_id": "exam_op2",
+							"_parent": {
+								"$ref": "class_exam"
+							},
+							"name": "archive()"
+						},
+						{
+							"_type": "UMLOperation",
+							"_id": "exam_op3",
+							"_parent": {
+								"$ref": "class_exam"
+							},
+							"name": "validateStructure()"
+						},
+						{
+							"_type": "UMLOperation",
+							"_id": "exam_op4",
+							"_parent": {
+								"$ref": "class_exam"
+							},
+							"name": "clone()"
+						}
+					]
+				},
+				{
+					"_type": "UMLClass",
+					"_id": "class_examsession",
+					"_parent": {
+						"$ref": "AAAAAAFF+qBWK6M3Z8Y="
+					},
+					"name": "ExamSession",
+					"attributes": [
+						{
+							"_type": "UMLAttribute",
+							"_id": "examsession_attr1",
+							"_parent": {
+								"$ref": "class_examsession"
+							},
+							"name": "_id: ObjectId"
+						},
+						{
+							"_type": "UMLAttribute",
+							"_id": "examsession_attr2",
+							"_parent": {
+								"$ref": "class_examsession"
+							},
+							"name": "sessionId: String"
+						},
+						{
+							"_type": "UMLAttribute",
+							"_id": "examsession_attr3",
+							"_parent": {
+								"$ref": "class_examsession"
+							},
+							"name": "examId: ObjectId"
+						},
+						{
+							"_type": "UMLAttribute",
+							"_id": "examsession_attr4",
+							"_parent": {
+								"$ref": "class_examsession"
+							},
+							"name": "name: String"
+						},
+						{
+							"_type": "UMLAttribute",
+							"_id": "examsession_attr5",
+							"_parent": {
+								"$ref": "class_examsession"
+							},
+							"name": "sessionType: String"
+						},
+						{
+							"_type": "UMLAttribute",
+							"_id": "examsession_attr6",
+							"_parent": {
+								"$ref": "class_examsession"
+							},
+							"name": "scheduledStartTime: Date"
+						},
+						{
+							"_type": "UMLAttribute",
+							"_id": "examsession_attr7",
+							"_parent": {
+								"$ref": "class_examsession"
+							},
+							"name": "status: String"
+						},
+						{
+							"_type": "UMLAttribute",
+							"_id": "examsession_attr8",
+							"_parent": {
+								"$ref": "class_examsession"
+							},
+							"name": "participants: Array"
+						},
+						{
+							"_type": "UMLAttribute",
+							"_id": "examsession_attr9",
+							"_parent": {
+								"$ref": "class_examsession"
+							},
+							"name": "proctors: Array"
+						},
+						{
+							"_type": "UMLAttribute",
+							"_id": "examsession_attr10",
+							"_parent": {
+								"$ref": "class_examsession"
+							},
+							"name": "settings: Object"
+						}
+					],
+					"operations": [
+						{
+							"_type": "UMLOperation",
+							"_id": "examsession_op1",
+							"_parent": {
+								"$ref": "class_examsession"
+							},
+							"name": "schedule()"
+						},
+						{
+							"_type": "UMLOperation",
+							"_id": "examsession_op2",
+							"_parent": {
+								"$ref": "class_examsession"
+							},
+							"name": "start()"
+						},
+						{
+							"_type": "UMLOperation",
+							"_id": "examsession_op3",
+							"_parent": {
+								"$ref": "class_examsession"
+							},
+							"name": "end()"
+						},
+						{
+							"_type": "UMLOperation",
+							"_id": "examsession_op4",
+							"_parent": {
+								"$ref": "class_examsession"
+							},
+							"name": "addCandidate()"
+						},
+						{
+							"_type": "UMLOperation",
+							"_id": "examsession_op5",
+							"_parent": {
+								"$ref": "class_examsession"
+							},
+							"name": "cancel()"
+						}
+					]
+				},
+				{
+					"_type": "UMLClass",
+					"_id": "class_activesession",
+					"_parent": {
+						"$ref": "AAAAAAFF+qBWK6M3Z8Y="
+					},
+					"name": "ActiveSession",
+					"attributes": [
+						{
+							"_type": "UMLAttribute",
+							"_id": "activesession_attr1",
+							"_parent": {
+								"$ref": "class_activesession"
+							},
+							"name": "_id: ObjectId"
+						},
+						{
+							"_type": "UMLAttribute",
+							"_id": "activesession_attr2",
+							"_parent": {
+								"$ref": "class_activesession"
+							},
+							"name": "sessionId: String"
+						},
+						{
+							"_type": "UMLAttribute",
+							"_id": "activesession_attr3",
+							"_parent": {
+								"$ref": "class_activesession"
+							},
+							"name": "examId: ObjectId"
+						},
+						{
+							"_type": "UMLAttribute",
+							"_id": "activesession_attr4",
+							"_parent": {
+								"$ref": "class_activesession"
+							},
+							"name": "status: String"
+						},
+						{
+							"_type": "UMLAttribute",
+							"_id": "activesession_attr5",
+							"_parent": {
+								"$ref": "class_activesession"
+							},
+							"name": "participants: Map"
+						},
+						{
+							"_type": "UMLAttribute",
+							"_id": "activesession_attr6",
+							"_parent": {
+								"$ref": "class_activesession"
+							},
+							"name": "proctors: Map"
+						},
+						{
+							"_type": "UMLAttribute",
+							"_id": "activesession_attr7",
+							"_parent": {
+								"$ref": "class_activesession"
+							},
+							"name": "actualStartTime: Date"
+						},
+						{
+							"_type": "UMLAttribute",
+							"_id": "activesession_attr8",
+							"_parent": {
+								"$ref": "class_activesession"
+							},
+							"name": "stats: Object"
+						}
+					],
+					"operations": [
+						{
+							"_type": "UMLOperation",
+							"_id": "activesession_op1",
+							"_parent": {
+								"$ref": "class_activesession"
+							},
+							"name": "trackParticipant()"
+						},
+						{
+							"_type": "UMLOperation",
+							"_id": "activesession_op2",
+							"_parent": {
+								"$ref": "class_activesession"
+							},
+							"name": "updateProgress()"
+						},
+						{
+							"_type": "UMLOperation",
+							"_id": "activesession_op3",
+							"_parent": {
+								"$ref": "class_activesession"
+							},
+							"name": "getParticipants()"
+						}
+					]
+				},
+				{
+					"_type": "UMLClass",
+					"_id": "class_attempt",
+					"_parent": {
+						"$ref": "AAAAAAFF+qBWK6M3Z8Y="
+					},
+					"name": "Attempt",
+					"attributes": [
+						{
+							"_type": "UMLAttribute",
+							"_id": "attempt_attr1",
+							"_parent": {
+								"$ref": "class_attempt"
+							},
+							"name": "_id: ObjectId"
+						},
+						{
+							"_type": "UMLAttribute",
+							"_id": "attempt_attr2",
+							"_parent": {
+								"$ref": "class_attempt"
+							},
+							"name": "sessionId: String"
+						},
+						{
+							"_type": "UMLAttribute",
+							"_id": "attempt_attr3",
+							"_parent": {
+								"$ref": "class_attempt"
+							},
+							"name": "examId: ObjectId"
+						},
+						{
+							"_type": "UMLAttribute",
+							"_id": "attempt_attr4",
+							"_parent": {
+								"$ref": "class_attempt"
+							},
+							"name": "candidateId: ObjectId"
+						},
+						{
+							"_type": "UMLAttribute",
+							"_id": "attempt_attr5",
+							"_parent": {
+								"$ref": "class_attempt"
+							},
+							"name": "startTime: Date"
+						},
+						{
+							"_type": "UMLAttribute",
+							"_id": "attempt_attr6",
+							"_parent": {
+								"$ref": "class_attempt"
+							},
+							"name": "endTime: Date"
+						},
+						{
+							"_type": "UMLAttribute",
+							"_id": "attempt_attr7",
+							"_parent": {
+								"$ref": "class_attempt"
+							},
+							"name": "timeSpent: Number"
+						},
+						{
+							"_type": "UMLAttribute",
+							"_id": "attempt_attr8",
+							"_parent": {
+								"$ref": "class_attempt"
+							},
+							"name": "status: String"
+						},
+						{
+							"_type": "UMLAttribute",
+							"_id": "attempt_attr9",
+							"_parent": {
+								"$ref": "class_attempt"
+							},
+							"name": "responses: Array"
+						},
+						{
+							"_type": "UMLAttribute",
+							"_id": "attempt_attr10",
+							"_parent": {
+								"$ref": "class_attempt"
+							},
+							"name": "score: Number"
+						}
+					],
+					"operations": [
+						{
+							"_type": "UMLOperation",
+							"_id": "attempt_op1",
+							"_parent": {
+								"$ref": "class_attempt"
+							},
+							"name": "submit()"
+						},
+						{
+							"_type": "UMLOperation",
+							"_id": "attempt_op2",
+							"_parent": {
+								"$ref": "class_attempt"
+							},
+							"name": "abandon()"
+						},
+						{
+							"_type": "UMLOperation",
+							"_id": "attempt_op3",
+							"_parent": {
+								"$ref": "class_attempt"
+							},
+							"name": "resume()"
+						}
+					]
+				},
+				{
+					"_type": "UMLClass",
+					"_id": "class_response",
+					"_parent": {
+						"$ref": "AAAAAAFF+qBWK6M3Z8Y="
+					},
+					"name": "Response",
+					"attributes": [
+						{
+							"_type": "UMLAttribute",
+							"_id": "response_attr1",
+							"_parent": {
+								"$ref": "class_response"
+							},
+							"name": "_id: ObjectId"
+						},
+						{
+							"_type": "UMLAttribute",
+							"_id": "response_attr2",
+							"_parent": {
+								"$ref": "class_response"
+							},
+							"name": "attemptId: ObjectId"
+						},
+						{
+							"_type": "UMLAttribute",
+							"_id": "response_attr3",
+							"_parent": {
+								"$ref": "class_response"
+							},
+							"name": "questionId: ObjectId"
+						},
+						{
+							"_type": "UMLAttribute",
+							"_id": "response_attr4",
+							"_parent": {
+								"$ref": "class_response"
+							},
+							"name": "answer: Any"
+						},
+						{
+							"_type": "UMLAttribute",
+							"_id": "response_attr5",
+							"_parent": {
+								"$ref": "class_response"
+							},
+							"name": "isCorrect: Boolean"
+						},
+						{
+							"_type": "UMLAttribute",
+							"_id": "response_attr6",
+							"_parent": {
+								"$ref": "class_response"
+							},
+							"name": "pointsEarned: Number"
+						},
+						{
+							"_type": "UMLAttribute",
+							"_id": "response_attr7",
+							"_parent": {
+								"$ref": "class_response"
+							},
+							"name": "feedback: String"
+						},
+						{
+							"_type": "UMLAttribute",
+							"_id": "response_attr8",
+							"_parent": {
+								"$ref": "class_response"
+							},
+							"name": "timeSpent: Number"
+						}
+					],
+					"operations": [
+						{
+							"_type": "UMLOperation",
+							"_id": "response_op1",
+							"_parent": {
+								"$ref": "class_response"
+							},
+							"name": "autoEvaluate()"
+						},
+						{
+							"_type": "UMLOperation",
+							"_id": "response_op2",
+							"_parent": {
+								"$ref": "class_response"
+							},
+							"name": "manualEvaluate()"
+						}
+					]
+				},
+				{
+					"_type": "UMLClass",
+					"_id": "class_examresult",
+					"_parent": {
+						"$ref": "AAAAAAFF+qBWK6M3Z8Y="
+					},
+					"name": "ExamResult",
+					"attributes": [
+						{
+							"_type": "UMLAttribute",
+							"_id": "examresult_attr1",
+							"_parent": {
+								"$ref": "class_examresult"
+							},
+							"name": "_id: ObjectId"
+						},
+						{
+							"_type": "UMLAttribute",
+							"_id": "examresult_attr2",
+							"_parent": {
+								"$ref": "class_examresult"
+							},
+							"name": "sessionId: String"
+						},
+						{
+							"_type": "UMLAttribute",
+							"_id": "examresult_attr3",
+							"_parent": {
+								"$ref": "class_examresult"
+							},
+							"name": "examId: ObjectId"
+						},
+						{
+							"_type": "UMLAttribute",
+							"_id": "examresult_attr4",
+							"_parent": {
+								"$ref": "class_examresult"
+							},
+							"name": "candidateId: ObjectId"
+						},
+						{
+							"_type": "UMLAttribute",
+							"_id": "examresult_attr5",
+							"_parent": {
+								"$ref": "class_examresult"
+							},
+							"name": "attemptId: ObjectId"
+						},
+						{
+							"_type": "UMLAttribute",
+							"_id": "examresult_attr6",
+							"_parent": {
+								"$ref": "class_examresult"
+							},
+							"name": "overallScore: Number"
+						},
+						{
+							"_type": "UMLAttribute",
+							"_id": "examresult_attr7",
+							"_parent": {
+								"$ref": "class_examresult"
+							},
+							"name": "maxScore: Number"
+						},
+						{
+							"_type": "UMLAttribute",
+							"_id": "examresult_attr8",
+							"_parent": {
+								"$ref": "class_examresult"
+							},
+							"name": "percentage: Number"
+						},
+						{
+							"_type": "UMLAttribute",
+							"_id": "examresult_attr9",
+							"_parent": {
+								"$ref": "class_examresult"
+							},
+							"name": "passed: Boolean"
+						},
+						{
+							"_type": "UMLAttribute",
+							"_id": "examresult_attr10",
+							"_parent": {
+								"$ref": "class_examresult"
+							},
+							"name": "competencyScores: Array"
+						}
+					],
+					"operations": [
+						{
+							"_type": "UMLOperation",
+							"_id": "examresult_op1",
+							"_parent": {
+								"$ref": "class_examresult"
+							},
+							"name": "calculateScores()"
+						},
+						{
+							"_type": "UMLOperation",
+							"_id": "examresult_op2",
+							"_parent": {
+								"$ref": "class_examresult"
+							},
+							"name": "determineLevel()"
+						},
+						{
+							"_type": "UMLOperation",
+							"_id": "examresult_op3",
+							"_parent": {
+								"$ref": "class_examresult"
+							},
+							"name": "exportPDF()"
+						}
+					]
+				},
+				{
+					"_type": "UMLClass",
+					"_id": "class_technicalverification",
+					"_parent": {
+						"$ref": "AAAAAAFF+qBWK6M3Z8Y="
+					},
+					"name": "TechnicalVerification",
+					"attributes": [
+						{
+							"_type": "UMLAttribute",
+							"_id": "technicalverification_attr1",
+							"_parent": {
+								"$ref": "class_technicalverification"
+							},
+							"name": "_id: ObjectId"
+						},
+						{
+							"_type": "UMLAttribute",
+							"_id": "technicalverification_attr2",
+							"_parent": {
+								"$ref": "class_technicalverification"
+							},
+							"name": "userId: ObjectId"
+						},
+						{
+							"_type": "UMLAttribute",
+							"_id": "technicalverification_attr3",
+							"_parent": {
+								"$ref": "class_technicalverification"
+							},
+							"name": "sessionId: String"
+						},
+						{
+							"_type": "UMLAttribute",
+							"_id": "technicalverification_attr4",
+							"_parent": {
+								"$ref": "class_technicalverification"
+							},
+							"name": "browserInfo: Object"
+						},
+						{
+							"_type": "UMLAttribute",
+							"_id": "technicalverification_attr5",
+							"_parent": {
+								"$ref": "class_technicalverification"
+							},
+							"name": "permissions: Object"
+						},
+						{
+							"_type": "UMLAttribute",
+							"_id": "technicalverification_attr6",
+							"_parent": {
+								"$ref": "class_technicalverification"
+							},
+							"name": "devices: Array"
+						},
+						{
+							"_type": "UMLAttribute",
+							"_id": "technicalverification_attr7",
+							"_parent": {
+								"$ref": "class_technicalverification"
+							},
+							"name": "networkTest: Object"
+						},
+						{
+							"_type": "UMLAttribute",
+							"_id": "technicalverification_attr8",
+							"_parent": {
+								"$ref": "class_technicalverification"
+							},
+							"name": "verified: Boolean"
+						}
+					],
+					"operations": [
+						{
+							"_type": "UMLOperation",
+							"_id": "technicalverification_op1",
+							"_parent": {
+								"$ref": "class_technicalverification"
+							},
+							"name": "initiate()"
+						},
+						{
+							"_type": "UMLOperation",
+							"_id": "technicalverification_op2",
+							"_parent": {
+								"$ref": "class_technicalverification"
+							},
+							"name": "finalize()"
+						},
+						{
+							"_type": "UMLOperation",
+							"_id": "technicalverification_op3",
+							"_parent": {
+								"$ref": "class_technicalverification"
+							},
+							"name": "canProceed()"
+						}
+					]
+				},
+				{
+					"_type": "UMLClass",
+					"_id": "class_email",
+					"_parent": {
+						"$ref": "AAAAAAFF+qBWK6M3Z8Y="
+					},
+					"name": "Email",
+					"attributes": [
+						{
+							"_type": "UMLAttribute",
+							"_id": "email_attr1",
+							"_parent": {
+								"$ref": "class_email"
+							},
+							"name": "_id: ObjectId"
+						},
+						{
+							"_type": "UMLAttribute",
+							"_id": "email_attr2",
+							"_parent": {
+								"$ref": "class_email"
+							},
+							"name": "to: String"
+						},
+						{
+							"_type": "UMLAttribute",
+							"_id": "email_attr3",
+							"_parent": {
+								"$ref": "class_email"
+							},
+							"name": "from: String"
+						},
+						{
+							"_type": "UMLAttribute",
+							"_id": "email_attr4",
+							"_parent": {
+								"$ref": "class_email"
+							},
+							"name": "subject: String"
+						},
+						{
+							"_type": "UMLAttribute",
+							"_id": "email_attr5",
+							"_parent": {
+								"$ref": "class_email"
+							},
+							"name": "body: String"
+						},
+						{
+							"_type": "UMLAttribute",
+							"_id": "email_attr6",
+							"_parent": {
+								"$ref": "class_email"
+							},
+							"name": "templateId: String"
+						},
+						{
+							"_type": "UMLAttribute",
+							"_id": "email_attr7",
+							"_parent": {
+								"$ref": "class_email"
+							},
+							"name": "status: String"
+						},
+						{
+							"_type": "UMLAttribute",
+							"_id": "email_attr8",
+							"_parent": {
+								"$ref": "class_email"
+							},
+							"name": "attempts: Number"
+						},
+						{
+							"_type": "UMLAttribute",
+							"_id": "email_attr9",
+							"_parent": {
+								"$ref": "class_email"
+							},
+							"name": "sentAt: Date"
+						}
+					],
+					"operations": [
+						{
+							"_type": "UMLOperation",
+							"_id": "email_op1",
+							"_parent": {
+								"$ref": "class_email"
+							},
+							"name": "send()"
+						},
+						{
+							"_type": "UMLOperation",
+							"_id": "email_op2",
+							"_parent": {
+								"$ref": "class_email"
+							},
+							"name": "retry()"
+						},
+						{
+							"_type": "UMLOperation",
+							"_id": "email_op3",
+							"_parent": {
+								"$ref": "class_email"
+							},
+							"name": "markSent()"
+						}
+					]
+				},
+				{
+					"_type": "UMLClass",
+					"_id": "class_emailtemplate",
+					"_parent": {
+						"$ref": "AAAAAAFF+qBWK6M3Z8Y="
+					},
+					"name": "EmailTemplate",
+					"attributes": [
+						{
+							"_type": "UMLAttribute",
+							"_id": "emailtemplate_attr1",
+							"_parent": {
+								"$ref": "class_emailtemplate"
+							},
+							"name": "_id: ObjectId"
+						},
+						{
+							"_type": "UMLAttribute",
+							"_id": "emailtemplate_attr2",
+							"_parent": {
+								"$ref": "class_emailtemplate"
+							},
+							"name": "name: String"
+						},
+						{
+							"_type": "UMLAttribute",
+							"_id": "emailtemplate_attr3",
+							"_parent": {
+								"$ref": "class_emailtemplate"
+							},
+							"name": "code: String"
+						},
+						{
+							"_type": "UMLAttribute",
+							"_id": "emailtemplate_attr4",
+							"_parent": {
+								"$ref": "class_emailtemplate"
+							},
+							"name": "subject: String"
+						},
+						{
+							"_type": "UMLAttribute",
+							"_id": "emailtemplate_attr5",
+							"_parent": {
+								"$ref": "class_emailtemplate"
+							},
+							"name": "htmlBody: String"
+						},
+						{
+							"_type": "UMLAttribute",
+							"_id": "emailtemplate_attr6",
+							"_parent": {
+								"$ref": "class_emailtemplate"
+							},
+							"name": "variables: Array"
+						},
+						{
+							"_type": "UMLAttribute",
+							"_id": "emailtemplate_attr7",
+							"_parent": {
+								"$ref": "class_emailtemplate"
+							},
+							"name": "isActive: Boolean"
+						}
+					],
+					"operations": [
+						{
+							"_type": "UMLOperation",
+							"_id": "emailtemplate_op1",
+							"_parent": {
+								"$ref": "class_emailtemplate"
+							},
+							"name": "render()"
+						},
+						{
+							"_type": "UMLOperation",
+							"_id": "emailtemplate_op2",
+							"_parent": {
+								"$ref": "class_emailtemplate"
+							},
+							"name": "validate()"
+						}
+					]
+				},
+				{
+					"_type": "UMLClass",
+					"_id": "class_notificationinapp",
+					"_parent": {
+						"$ref": "AAAAAAFF+qBWK6M3Z8Y="
+					},
+					"name": "NotificationInApp",
+					"attributes": [
+						{
+							"_type": "UMLAttribute",
+							"_id": "notificationinapp_attr1",
+							"_parent": {
+								"$ref": "class_notificationinapp"
+							},
+							"name": "_id: ObjectId"
+						},
+						{
+							"_type": "UMLAttribute",
+							"_id": "notificationinapp_attr2",
+							"_parent": {
+								"$ref": "class_notificationinapp"
+							},
+							"name": "userId: String"
+						},
+						{
+							"_type": "UMLAttribute",
+							"_id": "notificationinapp_attr3",
+							"_parent": {
+								"$ref": "class_notificationinapp"
+							},
+							"name": "type: String"
+						},
+						{
+							"_type": "UMLAttribute",
+							"_id": "notificationinapp_attr4",
+							"_parent": {
+								"$ref": "class_notificationinapp"
+							},
+							"name": "title: String"
+						},
+						{
+							"_type": "UMLAttribute",
+							"_id": "notificationinapp_attr5",
+							"_parent": {
+								"$ref": "class_notificationinapp"
+							},
+							"name": "message: String"
+						},
+						{
+							"_type": "UMLAttribute",
+							"_id": "notificationinapp_attr6",
+							"_parent": {
+								"$ref": "class_notificationinapp"
+							},
+							"name": "actionUrl: String"
+						},
+						{
+							"_type": "UMLAttribute",
+							"_id": "notificationinapp_attr7",
+							"_parent": {
+								"$ref": "class_notificationinapp"
+							},
+							"name": "read: Boolean"
+						},
+						{
+							"_type": "UMLAttribute",
+							"_id": "notificationinapp_attr8",
+							"_parent": {
+								"$ref": "class_notificationinapp"
+							},
+							"name": "createdAt: Date"
+						}
+					],
+					"operations": [
+						{
+							"_type": "UMLOperation",
+							"_id": "notificationinapp_op1",
+							"_parent": {
+								"$ref": "class_notificationinapp"
+							},
+							"name": "markAsRead()"
+						},
+						{
+							"_type": "UMLOperation",
+							"_id": "notificationinapp_op2",
+							"_parent": {
+								"$ref": "class_notificationinapp"
+							},
+							"name": "delete()"
+						}
+					]
+				},
+				{
+					"_type": "UMLClass",
+					"_id": "class_gradingresult",
+					"_parent": {
+						"$ref": "AAAAAAFF+qBWK6M3Z8Y="
+					},
+					"name": "GradingResult",
+					"attributes": [
+						{
+							"_type": "UMLAttribute",
+							"_id": "gradingresult_attr1",
+							"_parent": {
+								"$ref": "class_gradingresult"
+							},
+							"name": "_id: ObjectId"
+						},
+						{
+							"_type": "UMLAttribute",
+							"_id": "gradingresult_attr2",
+							"_parent": {
+								"$ref": "class_gradingresult"
+							},
+							"name": "attemptId: ObjectId"
+						},
+						{
+							"_type": "UMLAttribute",
+							"_id": "gradingresult_attr3",
+							"_parent": {
+								"$ref": "class_gradingresult"
+							},
+							"name": "questionId: ObjectId"
+						},
+						{
+							"_type": "UMLAttribute",
+							"_id": "gradingresult_attr4",
+							"_parent": {
+								"$ref": "class_gradingresult"
+							},
+							"name": "candidateId: ObjectId"
+						},
+						{
+							"_type": "UMLAttribute",
+							"_id": "gradingresult_attr5",
+							"_parent": {
+								"$ref": "class_gradingresult"
+							},
+							"name": "candidateAnswer: Any"
+						},
+						{
+							"_type": "UMLAttribute",
+							"_id": "gradingresult_attr6",
+							"_parent": {
+								"$ref": "class_gradingresult"
+							},
+							"name": "score: Number"
+						},
+						{
+							"_type": "UMLAttribute",
+							"_id": "gradingresult_attr7",
+							"_parent": {
+								"$ref": "class_gradingresult"
+							},
+							"name": "maxScore: Number"
+						},
+						{
+							"_type": "UMLAttribute",
+							"_id": "gradingresult_attr8",
+							"_parent": {
+								"$ref": "class_gradingresult"
+							},
+							"name": "feedback: String"
+						},
+						{
+							"_type": "UMLAttribute",
+							"_id": "gradingresult_attr9",
+							"_parent": {
+								"$ref": "class_gradingresult"
+							},
+							"name": "competencyScores: Object"
+						},
+						{
+							"_type": "UMLAttribute",
+							"_id": "gradingresult_attr10",
+							"_parent": {
+								"$ref": "class_gradingresult"
+							},
+							"name": "mcerLevel: String"
+						}
+					],
+					"operations": [
+						{
+							"_type": "UMLOperation",
+							"_id": "gradingresult_op1",
+							"_parent": {
+								"$ref": "class_gradingresult"
+							},
+							"name": "generateFeedback()"
+						},
+						{
+							"_type": "UMLOperation",
+							"_id": "gradingresult_op2",
+							"_parent": {
+								"$ref": "class_gradingresult"
+							},
+							"name": "calculateLevel()"
+						}
+					]
+				},
+				{
+					"_type": "UMLClass",
+					"_id": "class_filestorage",
+					"_parent": {
+						"$ref": "AAAAAAFF+qBWK6M3Z8Y="
+					},
+					"name": "FileStorage",
+					"attributes": [
+						{
+							"_type": "UMLAttribute",
+							"_id": "filestorage_attr1",
+							"_parent": {
+								"$ref": "class_filestorage"
+							},
+							"name": "_id: ObjectId"
+						},
+						{
+							"_type": "UMLAttribute",
+							"_id": "filestorage_attr2",
+							"_parent": {
+								"$ref": "class_filestorage"
+							},
+							"name": "filename: String"
+						},
+						{
+							"_type": "UMLAttribute",
+							"_id": "filestorage_attr3",
+							"_parent": {
+								"$ref": "class_filestorage"
+							},
+							"name": "contentType: String"
+						},
+						{
+							"_type": "UMLAttribute",
+							"_id": "filestorage_attr4",
+							"_parent": {
+								"$ref": "class_filestorage"
+							},
+							"name": "size: Number"
+						},
+						{
+							"_type": "UMLAttribute",
+							"_id": "filestorage_attr5",
+							"_parent": {
+								"$ref": "class_filestorage"
+							},
+							"name": "path: String"
+						},
+						{
+							"_type": "UMLAttribute",
+							"_id": "filestorage_attr6",
+							"_parent": {
+								"$ref": "class_filestorage"
+							},
+							"name": "bucket: String"
+						},
+						{
+							"_type": "UMLAttribute",
+							"_id": "filestorage_attr7",
+							"_parent": {
+								"$ref": "class_filestorage"
+							},
+							"name": "uploadedBy: ObjectId"
+						}
+					],
+					"operations": [
+						{
+							"_type": "UMLOperation",
+							"_id": "filestorage_op1",
+							"_parent": {
+								"$ref": "class_filestorage"
+							},
+							"name": "upload()"
+						},
+						{
+							"_type": "UMLOperation",
+							"_id": "filestorage_op2",
+							"_parent": {
+								"$ref": "class_filestorage"
+							},
+							"name": "download()"
+						},
+						{
+							"_type": "UMLOperation",
+							"_id": "filestorage_op3",
+							"_parent": {
+								"$ref": "class_filestorage"
+							},
+							"name": "getPresignedUrl()"
+						}
+					]
+				},
+				{
+					"_type": "UMLClass",
+					"_id": "class_auditlog",
+					"_parent": {
+						"$ref": "AAAAAAFF+qBWK6M3Z8Y="
+					},
+					"name": "AuditLog",
+					"attributes": [
+						{
+							"_type": "UMLAttribute",
+							"_id": "auditlog_attr1",
+							"_parent": {
+								"$ref": "class_auditlog"
+							},
+							"name": "_id: ObjectId"
+						},
+						{
+							"_type": "UMLAttribute",
+							"_id": "auditlog_attr2",
+							"_parent": {
+								"$ref": "class_auditlog"
+							},
+							"name": "userId: ObjectId"
+						},
+						{
+							"_type": "UMLAttribute",
+							"_id": "auditlog_attr3",
+							"_parent": {
+								"$ref": "class_auditlog"
+							},
+							"name": "action: String"
+						},
+						{
+							"_type": "UMLAttribute",
+							"_id": "auditlog_attr4",
+							"_parent": {
+								"$ref": "class_auditlog"
+							},
+							"name": "resource: String"
+						},
+						{
+							"_type": "UMLAttribute",
+							"_id": "auditlog_attr5",
+							"_parent": {
+								"$ref": "class_auditlog"
+							},
+							"name": "resourceId: ObjectId"
+						},
+						{
+							"_type": "UMLAttribute",
+							"_id": "auditlog_attr6",
+							"_parent": {
+								"$ref": "class_auditlog"
+							},
+							"name": "details: Object"
+						},
+						{
+							"_type": "UMLAttribute",
+							"_id": "auditlog_attr7",
+							"_parent": {
+								"$ref": "class_auditlog"
+							},
+							"name": "timestamp: Date"
+						}
+					],
+					"operations": [
+						{
+							"_type": "UMLOperation",
+							"_id": "auditlog_op1",
+							"_parent": {
+								"$ref": "class_auditlog"
+							},
+							"name": "log()"
+						},
+						{
+							"_type": "UMLOperation",
+							"_id": "auditlog_op2",
+							"_parent": {
+								"$ref": "class_auditlog"
+							},
+							"name": "query()"
+						}
+					]
+				}
+			]
+		}
+	]
+}

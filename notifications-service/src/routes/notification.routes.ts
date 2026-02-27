@@ -41,5 +41,21 @@ export const createNotificationRoutes = (
     asyncHandler(notificationController.getServiceHealth)
   );
 
+  // In-app notifications
+  router.get(
+    '/inapp',
+    asyncHandler(notificationController.listNotifications)
+  );
+
+  router.patch(
+    '/inapp/:id/read',
+    asyncHandler(notificationController.markAsRead)
+  );
+
+  router.delete(
+    '/inapp/:id',
+    asyncHandler(notificationController.deleteNotification)
+  );
+
   return router;
 };

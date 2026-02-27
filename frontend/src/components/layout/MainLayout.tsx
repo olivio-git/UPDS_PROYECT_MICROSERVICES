@@ -1,4 +1,4 @@
-import Header from '@/modules/dashboard/components/Header'; 
+import Header from '@/modules/dashboard/components/Header';
 import GradientBackground from '@/modules/home/screens/GradientBackground';
 
 interface MainLayoutProps {
@@ -21,7 +21,7 @@ const MainLayout = ({
         <GradientBackground 
           grid={false}
           lights={true}
-          size='sm'
+          size='md'
         />
       )}
       

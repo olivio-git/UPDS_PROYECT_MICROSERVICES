@@ -1,14 +1,21 @@
-import { Schema, model, Document, Types } from 'mongoose';
+import { Document, Schema, Types, model } from 'mongoose';
 
 export interface IExam extends Document {
   name: string;
   description: string;
-  type: 'placement' | 'progress' | 'final' | 'mock';
+  type: 'placement' | 'progress' | 'final' | 'mock' | 'practice';
   targetLevel: string; // A1, A2, B1, B2, C1, C2
+  placementConfig?: {
+    mode: 'static' | 'adaptive';
+    startingLevel?: string;
+    maxQuestions?: number;
+    consecutiveWrongThreshold?: number;
+    levelPassingThreshold?: number;
+  };
   structure: {
     sections: Array<{
       name: string;
-      competency: 'reading' | 'writing' | 'listening' | 'speaking';
+      competency: 'reading' | 'writing' | 'listening' | 'speaking' | 'grammar' | 'vocabulary';
       duration: number; // in minutes
       questionCount: number;
       weight: number; // percentage
@@ -41,25 +48,33 @@ const examSchema = new Schema<IExam>({
   },
   description: {
     type: String,
-    required: true,
+    required: false,
+    default: '',
     maxlength: 1000
   },
   type: {
     type: String,
     required: true,
-    enum: ['placement', 'progress', 'final', 'mock']
+  enum: ['placement', 'progress', 'final', 'mock', 'practice']
   },
   targetLevel: {
     type: String,
     required: true,
     enum: ['A1', 'A2', 'B1', 'B2', 'C1', 'C2']
   },
+  placementConfig: {
+    mode: { type: String, enum: ['static', 'adaptive'], default: 'static' },
+    startingLevel: { type: String, enum: ['A1', 'A2', 'B1', 'B2', 'C1', 'C2'] },
+    maxQuestions: { type: Number, default: 20 },
+    consecutiveWrongThreshold: { type: Number, default: 3 },
+    levelPassingThreshold: { type: Number, default: 60 }
+  },
   structure: {
     sections: [{
       name: String,
       competency: {
         type: String,
-        enum: ['reading', 'writing', 'listening', 'speaking']
+  enum: ['reading', 'writing', 'listening', 'speaking', 'grammar', 'vocabulary']
       },
       duration: Number,
       questionCount: Number,

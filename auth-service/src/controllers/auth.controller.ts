@@ -1,9 +1,9 @@
 import { Request, Response } from 'express';
+import { AuthenticatedRequest } from '../middleware/auth.middleware';
+import { LoginRequest, RefreshTokenRequest, RegisterRequest } from '../schemas/auth.schemas';
 import { AuthService } from '../services/auth.service';
 import { OtpService } from '../services/otp.service';
-import { LoginRequest, RegisterRequest, RefreshTokenRequest } from '../schemas/auth.schemas';
 import { ApiResponse } from '../types';
-import { AuthenticatedRequest } from '../middleware/auth.middleware';
 
 export class AuthController {
   constructor(
@@ -38,6 +38,7 @@ export class AuthController {
   changePassword = async (req: AuthenticatedRequest, res: Response<ApiResponse>) => {
     try {
       const { userId, oldPassword, newPassword } = req.body;
+      console.log(req.body);
       if (!userId || !oldPassword || !newPassword) {
         return res.status(400).json({
           success: false,
@@ -208,6 +209,34 @@ export class AuthController {
         success: false,
         message: 'Token inválido',
         error: 'Token validation failed'
+      });
+    }
+  };
+
+  resetPassword = async (req: Request<{}, ApiResponse>, res: Response<ApiResponse>) => {
+    try {
+      const { email, newPassword } = req.body;
+
+      if (!email || !newPassword) {
+        return res.status(400).json({
+          success: false,
+          message: 'Email y nueva contraseña son requeridos',
+          error: 'Missing required fields'
+        });
+      }
+
+      const result = await this.authService.resetPassword(email, newPassword);
+
+      res.status(200).json({
+        success: true,
+        message: 'Contraseña restablecida exitosamente',
+        data: { success: result }
+      });
+    } catch (error: any) {
+      res.status(400).json({
+        success: false,
+        message: error.message || 'Error restableciendo la contraseña',
+        error: 'Password reset failed'
       });
     }
   };

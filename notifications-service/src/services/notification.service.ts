@@ -1,17 +1,49 @@
-import { NotificationRepository } from '../repositories/notification.repository';
+import { config } from '../config';
 import { CacheRepository } from '../repositories/cache.repository';
+import { NotificationRepository } from '../repositories/notification.repository';
+import NotificationInAppRepository from '../repositories/notification_inapp.repository';
+import { EmailNotification, Notification, OtpEmailData, UserEventData } from '../types';
 import { EmailService } from './email.service';
 import { EventService } from './event.service';
-import { EmailNotification, OtpEmailData, UserEventData } from '../types';
-import { config } from '../config';
+import SocketService from './socket.service';
 
 export class NotificationService {
   constructor(
     private notificationRepository: NotificationRepository,
     private cacheRepository: CacheRepository,
     private emailService: EmailService,
-    private eventService: EventService
+    private eventService: EventService,
+    private notificationInAppRepository?: NotificationInAppRepository,
+    private socketService?: SocketService
   ) {}
+
+  // Emit a socket event directly to a user room (fire-and-forget)
+  emitToUser(userId: string, event: string, payload: any): void {
+    if (this.socketService) {
+      this.socketService.emitToUser(userId, event, payload);
+    }
+  }
+
+  // Create and deliver an in-app notification
+  async createInAppNotification(payload: Omit<Notification, '_id' | 'createdAt' | 'updatedAt'>): Promise<Notification | null> {
+    try {
+      if (!this.notificationInAppRepository) return null;
+      const created = await this.notificationInAppRepository.createNotification(payload);
+
+      // Emit via socket if provided
+      if (this.socketService) {
+        this.socketService.emitToUser(payload.recipientId, 'notification.created', created);
+      }
+
+      // Publish event for other services
+      await this.eventService.publishNotificationEvent('notification.created', created);
+
+      return created;
+    } catch (error) {
+      console.error('❌ Error creando notificación in-app:', error);
+      return null;
+    }
+  }
 
   async sendOtpEmail(otpData: OtpEmailData): Promise<{ success: boolean; emailId?: string }> {
     try {
@@ -192,6 +224,52 @@ export class NotificationService {
     }
   }
 
+  async sendExamGradedEmail(data: {
+    email: string;
+    firstName: string;
+    lastName: string;
+    examName: string;
+    score: number;
+    maxScore: number;
+    percentage: number;
+    status: string;
+    pdfBase64?: string;
+    pdfFilename?: string;
+  }): Promise<{ success: boolean; emailId?: string }> {
+    try {
+      const passed = data.status === 'completed' && data.percentage >= 60;
+      const emailNotification = await this.notificationRepository.createEmailNotification({
+        to: data.email,
+        subject: passed
+          ? `✅ Resultado de tu examen: ${data.examName}`
+          : `📋 Resultado de tu examen: ${data.examName}`,
+        template: 'exam_graded',
+        templateData: {
+          firstName: data.firstName,
+          lastName: data.lastName,
+          examName: data.examName,
+          score: data.score,
+          maxScore: data.maxScore,
+          percentage: data.percentage,
+          status: data.status,
+          pdfBase64: data.pdfBase64,
+          pdfFilename: data.pdfFilename,
+        },
+        status: 'pending',
+        priority: 'normal',
+        retryCount: 0,
+        maxRetries: config.email.retryAttempts
+      });
+
+      await this.processEmailNotification(emailNotification);
+
+      return { success: true, emailId: emailNotification._id!.toString() };
+    } catch (error: any) {
+      console.error('❌ Error en sendExamGradedEmail:', error);
+      return { success: false };
+    }
+  }
+
   async processEmailQueue(): Promise<void> {
     try {
       const pendingEmails = await this.notificationRepository.getPendingEmails(config.email.batchSize);
@@ -287,6 +365,21 @@ export class NotificationService {
             email.to,
             email.templateData.resetToken,
             email.templateData.firstName
+          );
+          break;
+
+        case 'exam_graded':
+          result = await this.emailService.sendExamGradedEmail(
+            email.to,
+            email.templateData.firstName,
+            email.templateData.lastName || '',
+            email.templateData.examName,
+            email.templateData.score,
+            email.templateData.maxScore,
+            email.templateData.percentage,
+            email.templateData.status,
+            email.templateData.pdfBase64,
+            email.templateData.pdfFilename
           );
           break;
 
@@ -410,7 +503,36 @@ export class NotificationService {
       return [];
     }
   }
+  
+    // In-app helpers
+    async listInAppNotifications(recipientId: string, onlyUnread = false, limit = 50, page = 1) {
+      if (!this.notificationInAppRepository) return [];
+      return await this.notificationInAppRepository.listNotifications(recipientId, onlyUnread, limit, page);
+    }
 
+    async markNotificationAsRead(notificationId: string) {
+      if (!this.notificationInAppRepository) return;
+      await this.notificationInAppRepository.markAsRead(notificationId);
+    }
+
+    async deleteInAppNotification(notificationId: string) {
+      if (!this.notificationInAppRepository) return false;
+      const deleted = await this.notificationInAppRepository.deleteNotification(notificationId);
+
+      if (deleted) {
+        // Emit socket event
+        if (this.socketService) {
+          // We don't have recipientId here; emit to all? emit generic event
+          this.socketService.emitToUser(notificationId, 'notification.deleted', { id: notificationId });
+        }
+
+        // Publish event for other services
+        await this.eventService.publishNotificationEvent('notification.deleted', { id: notificationId });
+      }
+
+      return deleted;
+    }
+  
   private delay(ms: number): Promise<void> {
     return new Promise(resolve => setTimeout(resolve, ms));
   }
