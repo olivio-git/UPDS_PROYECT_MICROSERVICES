@@ -15,8 +15,6 @@ import {
 import {
   Award,
   BarChart3,
-  ChevronDown,
-  ChevronUp,
   Clock,
   Download,
   FileText,
@@ -41,7 +39,6 @@ const ReportsScreen: React.FC = () => {
   const [studentData, setStudentData] = useState<StudentStats | null>(null);
   const [trendsData, setTrendsData] = useState<TrendsData | null>(null);
   const [loading, setLoading] = useState(true);
-  const [filtersExpanded, setFiltersExpanded] = useState(false);
   const [exportModalOpen, setExportModalOpen] = useState(false);
   const [exportReportType, setExportReportType] = useState<'competency' | 'students'>('competency');
   const [exportLoading, setExportLoading] = useState(false);
@@ -86,6 +83,12 @@ const ReportsScreen: React.FC = () => {
 
   const handleFilterChange = (key: keyof ReportFilters, value: any) => {
     setFilters(prev => ({ ...prev, [key]: value }));
+  };
+
+  const handleClearFilters = () => {
+    const empty: ReportFilters = {};
+    setFilters(empty);
+    loadReportsData(empty);
   };
 
   const handleOpenExportModal = (type: 'competency' | 'students') => {
@@ -140,98 +143,87 @@ const ReportsScreen: React.FC = () => {
     <MainLayout>
       <div className="space-y-3 p-4">
 
-        {/* ── Header ── */}
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-xl font-bold text-white">Reportes y Análisis</h1>
-            <p className="text-slate-400 text-xs">Rendimiento académico · Competencias · Tendencias</p>
+        {/* ── Header + Filtros inline ── */}
+        <div className="space-y-2">
+          {/* Título + acciones */}
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-xl font-bold text-white">Reportes y Análisis</h1>
+              <p className="text-slate-500 text-xs">Rendimiento académico · Competencias · Tendencias</p>
+            </div>
+            <div className="flex items-center gap-2">
+              <Button onClick={() => loadReportsData()} size="sm" variant="ghost"
+                className="text-slate-400 hover:text-white hover:bg-slate-800 h-8 w-8 p-0">
+                <RefreshCw className="h-3.5 w-3.5" />
+              </Button>
+              <Button onClick={() => handleOpenExportModal('competency')} size="sm" variant="outline"
+                className="border-line text-slate-300 bg-slate-800 hover:bg-slate-700 text-xs h-8">
+                <Download className="h-3 w-3 mr-1.5" />
+                Competencias
+              </Button>
+              <Button onClick={() => handleOpenExportModal('students')} size="sm"
+                className="bg-blue-700 hover:bg-blue-600 text-white text-xs h-8">
+                <Download className="h-3 w-3 mr-1.5" />
+                Estudiantes
+              </Button>
+            </div>
           </div>
-          <div className="flex items-center gap-2">
-            <Button onClick={() => loadReportsData()} size="sm" variant="ghost"
-              className="text-slate-400 hover:text-white hover:bg-slate-800 h-8 px-2">
-              <RefreshCw className="h-3.5 w-3.5" />
+
+          {/* Filtros siempre visibles */}
+          <div className="flex flex-wrap items-center gap-2 bg-box border border-line rounded-lg px-3 py-2">
+            <span className="flex items-center gap-1.5 text-slate-500 text-xs shrink-0">
+              <Filter className="h-3 w-3" />
+              Filtrar:
+            </span>
+            <Input
+              type="date"
+              value={filters.startDate || ''}
+              onChange={e => handleFilterChange('startDate', e.target.value)}
+              className="bg-slate-800/60 border-line text-white text-xs h-7 w-32"
+            />
+            <span className="text-slate-600 text-xs">—</span>
+            <Input
+              type="date"
+              value={filters.endDate || ''}
+              onChange={e => handleFilterChange('endDate', e.target.value)}
+              className="bg-slate-800/60 border-line text-white text-xs h-7 w-32"
+            />
+            <div className="w-px h-4 bg-slate-700 mx-1" />
+            <Input
+              type="number"
+              placeholder="Mín %"
+              value={filters.minScore || ''}
+              onChange={e => handleFilterChange('minScore', Number(e.target.value))}
+              className="bg-slate-800/60 border-line text-white text-xs h-7 w-20"
+            />
+            <Input
+              type="number"
+              placeholder="Máx %"
+              value={filters.maxScore || ''}
+              onChange={e => handleFilterChange('maxScore', Number(e.target.value))}
+              className="bg-slate-800/60 border-line text-white text-xs h-7 w-20"
+            />
+            <div className="w-px h-4 bg-slate-700 mx-1" />
+            <Button onClick={() => loadReportsData(filters)} size="sm"
+              className="h-7 text-xs bg-blue-600 hover:bg-blue-700 text-white px-3">
+              Aplicar
             </Button>
-            <Button onClick={() => handleOpenExportModal('competency')} size="sm" variant="outline"
-              className="border-line text-slate-300 bg-slate-800 hover:bg-slate-700 text-xs h-8">
-              <Download className="h-3 w-3 mr-1.5" />
-              Competencias
-            </Button>
-            <Button onClick={() => handleOpenExportModal('students')} size="sm"
-              className="bg-blue-700 hover:bg-blue-600 text-white text-xs h-8">
-              <Download className="h-3 w-3 mr-1.5" />
-              Estudiantes
+            <Button onClick={handleClearFilters} variant="ghost" size="sm"
+              className="h-7 text-xs text-slate-400 hover:text-white hover:bg-slate-800 px-2">
+              Limpiar
             </Button>
           </div>
         </div>
-
-        {/* ── Filtros colapsables ── */}
-        <Card className="bg-box border-line">
-          <CardHeader className="py-2 px-4">
-            <button
-              onClick={() => setFiltersExpanded(!filtersExpanded)}
-              className="flex items-center justify-between w-full text-left"
-            >
-              <span className="flex items-center gap-2 text-slate-300 text-sm font-medium">
-                <Filter className="h-3.5 w-3.5 text-slate-400" />
-                Filtros
-              </span>
-              {filtersExpanded
-                ? <ChevronUp className="h-3.5 w-3.5 text-slate-400" />
-                : <ChevronDown className="h-3.5 w-3.5 text-slate-400" />}
-            </button>
-          </CardHeader>
-          {filtersExpanded && (
-            <CardContent className="pt-0 pb-3 px-4">
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mb-2">
-                <div>
-                  <label className="text-xs text-slate-400 mb-1 block">Fecha inicio</label>
-                  <Input type="date" value={filters.startDate || ''}
-                    onChange={e => handleFilterChange('startDate', e.target.value)}
-                    className="bg-slate-800 border-line text-white text-xs h-7" />
-                </div>
-                <div>
-                  <label className="text-xs text-slate-400 mb-1 block">Fecha fin</label>
-                  <Input type="date" value={filters.endDate || ''}
-                    onChange={e => handleFilterChange('endDate', e.target.value)}
-                    className="bg-slate-800 border-line text-white text-xs h-7" />
-                </div>
-                <div>
-                  <label className="text-xs text-slate-400 mb-1 block">Puntaje mínimo</label>
-                  <Input type="number" placeholder="0–100" value={filters.minScore || ''}
-                    onChange={e => handleFilterChange('minScore', Number(e.target.value))}
-                    className="bg-slate-800 border-line text-white text-xs h-7" />
-                </div>
-                <div>
-                  <label className="text-xs text-slate-400 mb-1 block">Puntaje máximo</label>
-                  <Input type="number" placeholder="0–100" value={filters.maxScore || ''}
-                    onChange={e => handleFilterChange('maxScore', Number(e.target.value))}
-                    className="bg-slate-800 border-line text-white text-xs h-7" />
-                </div>
-              </div>
-              <div className="flex gap-2">
-                <Button onClick={() => loadReportsData(filters)} size="sm"
-                  className="h-7 text-xs bg-blue-600 hover:bg-blue-700 text-white">
-                  Aplicar
-                </Button>
-                <Button onClick={() => { const e: ReportFilters = {}; setFilters(e); loadReportsData(e); }}
-                  variant="outline" size="sm"
-                  className="h-7 text-xs border-line text-slate-300 bg-slate-800 hover:bg-slate-700">
-                  Limpiar
-                </Button>
-              </div>
-            </CardContent>
-          )}
-        </Card>
 
         {/* ── KPIs ── */}
         {dashboardData && (
           <div className="grid grid-cols-2 md:grid-cols-5 gap-2">
             {[
-              { label: 'Estudiantes', value: dashboardData.overview.totalStudents, sub: `${dashboardData.overview.evaluatedStudents} eval.`, icon: Users, color: 'text-blue-400' },
-              { label: 'Promedio',    value: dashboardData.overview.averageScore.toFixed(1), sub: 'sobre 100', icon: Award, color: 'text-amber-400' },
-              { label: 'Exámenes',   value: dashboardData.overview.totalExams, sub: 'realizados', icon: FileText, color: 'text-emerald-400' },
-              { label: 'Completación', value: `${dashboardData.overview.completionRate.toFixed(1)}%`, sub: 'terminados', icon: Target, color: 'text-purple-400' },
-              { label: 'Ef. Tiempo', value: `${dashboardData.trends.timeEfficiency.toFixed(1)}%`, sub: 'uso óptimo', icon: Clock, color: 'text-indigo-400' },
+              { label: 'Estudiantes',  value: dashboardData.overview.totalStudents,               sub: `${dashboardData.overview.evaluatedStudents} eval.`, icon: Users,      color: 'text-blue-400'   },
+              { label: 'Promedio',     value: dashboardData.overview.averageScore.toFixed(1),      sub: 'sobre 100',                                         icon: Award,      color: 'text-amber-400'  },
+              { label: 'Exámenes',     value: dashboardData.overview.totalExams,                   sub: 'realizados',                                        icon: FileText,   color: 'text-emerald-400'},
+              { label: 'Completación', value: `${dashboardData.overview.completionRate.toFixed(1)}%`, sub: 'terminados',                                    icon: Target,     color: 'text-purple-400' },
+              { label: 'Ef. Tiempo',   value: `${dashboardData.trends.timeEfficiency.toFixed(1)}%`,  sub: 'uso óptimo',                                     icon: Clock,      color: 'text-indigo-400' },
             ].map(({ label, value, sub, icon: Icon, color }) => (
               <Card key={label} className="bg-box border-line">
                 <CardContent className="p-3">
@@ -241,7 +233,7 @@ const ReportsScreen: React.FC = () => {
                       <p className="text-xl font-bold text-white leading-tight">{value}</p>
                       <p className={`text-xs ${color}`}>{sub}</p>
                     </div>
-                    <Icon className={`h-6 w-6 ${color} opacity-70`} />
+                    <Icon className={`h-6 w-6 ${color} opacity-60`} />
                   </div>
                 </CardContent>
               </Card>
@@ -266,11 +258,9 @@ const ReportsScreen: React.FC = () => {
                   <BarChart data={performanceChartData} margin={{ top: 4, right: 4, bottom: 4, left: -24 }}>
                     <XAxis dataKey="name" tick={{ fill: '#94a3b8', fontSize: 10 }} axisLine={false} tickLine={false} />
                     <YAxis tick={{ fill: '#94a3b8', fontSize: 10 }} axisLine={false} tickLine={false} />
-                    <Tooltip
-                      cursor={{ fill: 'rgba(255,255,255,0.04)' }}
+                    <Tooltip cursor={{ fill: 'rgba(255,255,255,0.04)' }}
                       contentStyle={{ backgroundColor: '#0f172a', border: '1px solid #1e293b', borderRadius: '6px', fontSize: 12 }}
-                      formatter={(v: number) => [`${v}%`, 'Porcentaje']}
-                    />
+                      formatter={(v: number) => [`${v}%`, 'Porcentaje']} />
                     <Bar dataKey="value" radius={[4, 4, 0, 0]}>
                       {performanceChartData.map((e, i) => <Cell key={i} fill={e.fill} />)}
                     </Bar>
@@ -294,16 +284,14 @@ const ReportsScreen: React.FC = () => {
                       <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
                       <XAxis dataKey="period" tick={{ fill: '#94a3b8', fontSize: 10 }} axisLine={false} tickLine={false} />
                       <YAxis domain={[0, 100]} tick={{ fill: '#94a3b8', fontSize: 10 }} axisLine={false} tickLine={false} />
-                      <Tooltip
-                        contentStyle={{ backgroundColor: '#0f172a', border: '1px solid #1e293b', borderRadius: '6px', fontSize: 12 }}
-                        formatter={(v: number) => [`${v.toFixed(1)}`, 'Promedio']}
-                      />
+                      <Tooltip contentStyle={{ backgroundColor: '#0f172a', border: '1px solid #1e293b', borderRadius: '6px', fontSize: 12 }}
+                        formatter={(v: number) => [`${v.toFixed(1)}`, 'Promedio']} />
                       <Line type="monotone" dataKey="averageScore" stroke="#3b82f6" strokeWidth={2}
                         dot={{ fill: '#3b82f6', r: 3 }} activeDot={{ r: 5 }} name="Promedio" />
                     </LineChart>
                   </ResponsiveContainer>
                 ) : (
-                  <div className="h-[180px] flex items-center justify-center text-slate-500 text-xs">
+                  <div className="h-[180px] flex items-center justify-center text-slate-600 text-xs">
                     Sin datos de tendencias
                   </div>
                 )}
@@ -347,7 +335,7 @@ const ReportsScreen: React.FC = () => {
         {dashboardData && (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
 
-            {/* BarChart promedio por competencia */}
+            {/* BarChart + ranking compacto */}
             <Card className="bg-box border-line">
               <CardHeader className="pb-2 pt-3 px-4">
                 <div className="flex items-center justify-between">
@@ -362,26 +350,22 @@ const ReportsScreen: React.FC = () => {
                 </div>
               </CardHeader>
               <CardContent className="pt-0 pb-3 px-4">
-                <ResponsiveContainer width="100%" height={180}>
+                <ResponsiveContainer width="100%" height={160}>
                   <BarChart
                     data={dashboardData.competencyRanking.map(c => ({
                       name: c.competency.charAt(0).toUpperCase() + c.competency.slice(1),
                       promedio: c.averageScore,
-                      difficulty: c.difficulty,
                     }))}
                     margin={{ top: 4, right: 4, bottom: 4, left: -24 }}
                   >
                     <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
                     <XAxis dataKey="name" tick={{ fill: '#94a3b8', fontSize: 10 }} axisLine={false} tickLine={false} />
                     <YAxis domain={[0, 100]} tick={{ fill: '#94a3b8', fontSize: 10 }} axisLine={false} tickLine={false} />
-                    <Tooltip
-                      contentStyle={{ backgroundColor: '#0f172a', border: '1px solid #1e293b', borderRadius: '6px', fontSize: 12 }}
-                      formatter={(v: number) => [`${v.toFixed(1)}`, 'Promedio']}
-                    />
+                    <Tooltip contentStyle={{ backgroundColor: '#0f172a', border: '1px solid #1e293b', borderRadius: '6px', fontSize: 12 }}
+                      formatter={(v: number) => [`${v.toFixed(1)}`, 'Promedio']} />
                     <Bar dataKey="promedio" fill="#8b5cf6" radius={[4, 4, 0, 0]} />
                   </BarChart>
                 </ResponsiveContainer>
-                {/* Ranking compacto debajo del chart */}
                 <div className="grid grid-cols-2 gap-1.5 mt-2">
                   {dashboardData.competencyRanking.map(c => (
                     <div key={c.competency} className="flex items-center justify-between px-2 py-1 rounded bg-slate-800/40 border border-line">
@@ -398,36 +382,48 @@ const ReportsScreen: React.FC = () => {
               </CardContent>
             </Card>
 
-            {/* Áreas + Recomendaciones */}
-            <div className="space-y-3">
-              <Card className="bg-box border-line">
-                <CardHeader className="pb-2 pt-3 px-4">
-                  <CardTitle className="text-white text-sm">Áreas de Mejora</CardTitle>
-                </CardHeader>
-                <CardContent className="pt-0 pb-3 px-4 space-y-1.5">
-                  {dashboardData.improvementAreas.map((area, i) => (
-                    <div key={i} className="flex items-start gap-2 p-1.5 rounded bg-red-500/8 border border-red-500/20">
-                      <div className="w-1.5 h-1.5 rounded-full bg-red-400 mt-1 shrink-0" />
-                      <span className="text-xs text-slate-300 leading-snug">{area}</span>
+            {/* Áreas de Mejora + Recomendaciones — card unificada */}
+            <Card className="bg-box border-line">
+              <CardContent className="p-4">
+                <div className="grid grid-cols-2 gap-4 h-full">
+                  {/* Áreas de Mejora */}
+                  <div>
+                    <p className="text-xs font-semibold text-red-400 mb-2 flex items-center gap-1.5">
+                      <span className="inline-block w-2 h-2 rounded-full bg-red-400" />
+                      Áreas de Mejora
+                    </p>
+                    <div className="space-y-1.5">
+                      {dashboardData.improvementAreas.length > 0 ? dashboardData.improvementAreas.map((area, i) => (
+                        <div key={i} className="flex items-start gap-1.5 p-1.5 rounded border border-red-500/20 bg-red-500/5">
+                          <span className="text-red-500 text-xs mt-0.5 shrink-0">×</span>
+                          <span className="text-xs text-slate-300 leading-snug">{area}</span>
+                        </div>
+                      )) : (
+                        <p className="text-xs text-slate-600 italic">Sin áreas críticas</p>
+                      )}
                     </div>
-                  ))}
-                </CardContent>
-              </Card>
+                  </div>
 
-              <Card className="bg-box border-line">
-                <CardHeader className="pb-2 pt-3 px-4">
-                  <CardTitle className="text-white text-sm">Recomendaciones</CardTitle>
-                </CardHeader>
-                <CardContent className="pt-0 pb-3 px-4 space-y-1.5">
-                  {dashboardData.recommendations.map((rec, i) => (
-                    <div key={i} className="flex items-start gap-2 p-1.5 rounded bg-blue-500/8 border border-blue-500/20">
-                      <div className="w-1.5 h-1.5 rounded-full bg-blue-400 mt-1 shrink-0" />
-                      <span className="text-xs text-slate-300 leading-snug">{rec}</span>
+                  {/* Recomendaciones */}
+                  <div>
+                    <p className="text-xs font-semibold text-blue-400 mb-2 flex items-center gap-1.5">
+                      <span className="inline-block w-2 h-2 rounded-full bg-blue-400" />
+                      Recomendaciones
+                    </p>
+                    <div className="space-y-1.5">
+                      {dashboardData.recommendations.length > 0 ? dashboardData.recommendations.map((rec, i) => (
+                        <div key={i} className="flex items-start gap-1.5 p-1.5 rounded border border-blue-500/20 bg-blue-500/5">
+                          <span className="text-blue-400 text-xs font-bold mt-0.5 shrink-0">{i + 1}.</span>
+                          <span className="text-xs text-slate-300 leading-snug">{rec}</span>
+                        </div>
+                      )) : (
+                        <p className="text-xs text-slate-600 italic">Sin recomendaciones</p>
+                      )}
                     </div>
-                  ))}
-                </CardContent>
-              </Card>
-            </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
           </div>
         )}
 
