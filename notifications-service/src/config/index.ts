@@ -31,7 +31,8 @@ export const config = {
     topics: {
       userEvents: process.env.KAFKA_TOPICS_USER_EVENTS || 'user-events',
       otpEvents: process.env.KAFKA_TOPICS_OTP_EVENTS || 'otp-events',
-      emailEvents: process.env.KAFKA_TOPICS_EMAIL_EVENTS || 'email-events'
+  emailEvents: process.env.KAFKA_TOPICS_EMAIL_EVENTS || 'email-events',
+  examEvents: process.env.KAFKA_TOPICS_EXAM_EVENTS || 'exam-events'
     }
   },
 

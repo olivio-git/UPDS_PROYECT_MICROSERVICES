@@ -27,6 +27,7 @@ import { errorHandler, notFoundHandler } from './middleware/error.middleware';
 // Routes
 import { createAuthRoutes } from './routes/auth.routes';
 
+import { startUserEventsConsumer } from './services/user-events.consumer';
 class AuthServiceApp {
   private app: express.Application;
   private dbConnections: DatabaseConnections;
@@ -71,6 +72,7 @@ class AuthServiceApp {
     const database = await this.dbConnections.connectMongoDB();
     const redisClient = await this.dbConnections.connectRedis();
     const { producer: kafkaProducer } = await this.dbConnections.connectKafka();
+    await startUserEventsConsumer(database);
 
     console.log('📦 Inicializando repositorios...');
     // Repositories

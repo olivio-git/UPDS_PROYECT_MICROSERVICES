@@ -1,0 +1,1 @@
+export { studentExamService, type NextExamData } from './examService';\n

@@ -1,28 +1,24 @@
-import { useState } from "react";
-import { 
-  User, 
-  Mail, 
-  Calendar,
-  MapPin,
-  Phone,
-  BookOpen,
-  Target,
-  Award,
-  Edit,
-  Save,
-  X,
-  Camera
-} from "lucide-react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/atoms/card";
-import { Button } from "@/components/atoms/button";
 import { Badge } from "@/components/atoms/badge";
+import { Button } from "@/components/atoms/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/atoms/card";
 import { Input } from "@/components/atoms/input";
-import { Textarea } from "@/components/atoms/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/atoms/select";
 import { MainLayout } from "@/components/layout";
-import { ContentGradientSection } from "@/components/background";
 import { useAuthStore } from "@/modules/auth/services/authStore";
+import {
+  Camera,
+  Edit,
+  KeyRound,
+  Mail,
+  Phone,
+  Save,
+  Shield,
+  Target,
+  User,
+  X
+} from "lucide-react";
+import { useState } from "react";
 import { toast } from "sonner";
+import { ChangePasswordFlow } from "../components/ChangePasswordFlow";
 
 interface StudentProfile {
   personalInfo: {
@@ -61,14 +57,14 @@ const StudentProfile = () => {
   const { user } = useAuthStore();
   const [isEditing, setIsEditing] = useState(false);
   const [activeTab, setActiveTab] = useState('personal');
-  
+  const [showChangePassword, setShowChangePassword] = useState(false);
   // Mock data - En producción vendría de la API
   const [profile, setProfile] = useState<StudentProfile>({
     personalInfo: {
       firstName: user?.firstName || '',
       lastName: user?.lastName || '',
       email: user?.email || '',
-      phone: '+591 123 456 789',
+      phone: user?.profile?.phone || '',
       birthDate: '1995-03-15',
       nationality: 'Boliviana',
       address: 'Av. Principal 123',
@@ -180,26 +176,18 @@ const StudentProfile = () => {
     };
     return styles[style as keyof typeof styles] || style;
   };
-
+  // console.log(authSDK.getCurrentUser(),"CURRENT USER IN PROFILE");
   return (
     <MainLayout gradientVariant="primary">
-      <div className="max-w-6xl mx-auto space-y-8">
+      <div className="max-w-6xl mx-auto space-y-8 mb-10 ">
         {/* Header */}
-        <ContentGradientSection variant="secondary" position="top-right" className="mb-8">
-          <div className="text-center space-y-6 m-6">
-            <div className="space-y-2">
-              <h1 className="mb-4 text-3xl font-extrabold text-gray-900 dark:text-white md:text-5xl lg:text-6xl">
-                Mi{" "}
-                <span className="text-transparent bg-clip-text bg-gradient-to-r to-emerald-600 from-sky-400">
-                  Perfil
-                </span>
-              </h1>
-              <p className="text-xl text-gray-300 max-w-2xl mx-auto font-portfolio">
-                Información personal y preferencias académicas
-              </p>
-            </div>
+          <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+          <div>
+            <h1 className="text-3xl font-bold text-white">
+              Mi Perfil
+            </h1>
           </div>
-        </ContentGradientSection>
+        </div>
 
         {/* Información Principal */}
         <Card className="bg-[#0B1422] backdrop-blur-sm border border-gray-700/50">
@@ -207,7 +195,7 @@ const StudentProfile = () => {
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-4">
                 <div className="relative">
-                  <div className="w-20 h-20 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-2xl font-bold text-white">
+                  <div className="w-20 h-20 bg-[#F0003C] rounded-full flex items-center justify-center text-2xl font-bold text-white">
                     {profile.personalInfo.firstName.charAt(0)}
                     {profile.personalInfo.lastName.charAt(0)}
                   </div>
@@ -223,30 +211,32 @@ const StudentProfile = () => {
                     {profile.personalInfo.firstName} {profile.personalInfo.lastName}
                   </h2>
                   <p className="text-gray-300">{profile.personalInfo.email}</p>
-                  <div className="flex items-center gap-2 mt-2">
+                  {/* <div className="flex items-center gap-2 mt-2">
                     <Badge className="bg-blue-500/20 text-blue-300 border border-blue-500/30">
                       Nivel Actual: {profile.academicInfo.currentLevel}
                     </Badge>
                     <Badge className="bg-green-500/20 text-green-300 border border-green-500/30">
                       Meta: {profile.academicInfo.targetLevel}
                     </Badge>
-                  </div>
+                  </div> */}
                 </div>
               </div>
               <div className="flex items-center gap-2">
                 {isEditing ? (
                   <>
                     <Button
+                      size={"sm"}
                       onClick={handleSave}
-                      className="bg-green-600 hover:bg-green-700"
+                      className="bg-green-600 hover:bg-green-700 text-white"
                     >
                       <Save className="h-4 w-4 mr-2" />
                       Guardar
                     </Button>
                     <Button
+                      size={"sm"}
                       onClick={handleCancel}
                       variant="outline"
-                      className="border-gray-600 text-gray-300"
+                      className="text-gray-300 bg-[#0F1A29] hover:bg-gray-800 border border-line"
                     >
                       <X className="h-4 w-4 mr-2" />
                       Cancelar
@@ -254,9 +244,10 @@ const StudentProfile = () => {
                   </>
                 ) : (
                   <Button
+                    size={"sm"}
                     onClick={() => setIsEditing(true)}
                     variant="outline"
-                    className="border-gray-600 text-gray-300 hover:bg-gray-800"
+                    className="bg-[#0F1A29] hover:bg-gray-800 border border-line text-gray-300"
                   >
                     <Edit className="h-4 w-4 mr-2" />
                     Editar Perfil
@@ -280,7 +271,7 @@ const StudentProfile = () => {
             <User className="h-4 w-4 inline mr-2" />
             Información Personal
           </button>
-          <button
+          {/* <button
             onClick={() => setActiveTab('academic')}
             className={`flex-1 py-2 px-4 rounded-md transition-all ${
               activeTab === 'academic'
@@ -290,7 +281,7 @@ const StudentProfile = () => {
           >
             <BookOpen className="h-4 w-4 inline mr-2" />
             Información Académica
-          </button>
+          </button> */}
           <button
             onClick={() => setActiveTab('preferences')}
             className={`flex-1 py-2 px-4 rounded-md transition-all ${
@@ -301,6 +292,17 @@ const StudentProfile = () => {
           >
             <Target className="h-4 w-4 inline mr-2" />
             Preferencias
+          </button>
+          <button
+            onClick={() => setActiveTab('security')}
+            className={`flex-1 py-2 px-4 rounded-md transition-all ${
+              activeTab === 'security'
+                ? 'bg-blue-600 text-white'
+                : 'text-gray-300 hover:bg-gray-700'
+            }`}
+          >
+            <Shield className="h-4 w-4 inline mr-2" />
+            Seguridad
           </button>
         </div>
 
@@ -364,7 +366,7 @@ const StudentProfile = () => {
                     </div>
                   )}
                 </div>
-                <div className="space-y-2">
+                {/* <div className="space-y-2">
                   <label className="text-sm font-medium text-gray-300">Fecha de Nacimiento</label>
                   {isEditing ? (
                     <Input
@@ -379,13 +381,14 @@ const StudentProfile = () => {
                       <p className="text-white">{formatDate(profile.personalInfo.birthDate)}</p>
                     </div>
                   )}
-                </div>
+                </div> */}
                 <div className="space-y-2">
                   <label className="text-sm font-medium text-gray-300">Nacionalidad</label>
                   {isEditing ? (
                     <Input
                       value={editedProfile.personalInfo.nationality}
                       onChange={(e) => updatePersonalInfo('nationality', e.target.value)}
+                      disabled={true}
                       className="bg-gray-800 border-gray-600 text-white"
                     />
                   ) : (
@@ -394,7 +397,7 @@ const StudentProfile = () => {
                 </div>
               </div>
               
-              <div className="space-y-4">
+              {/* <div className="space-y-4">
                 <h3 className="text-lg font-medium text-white">Dirección</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-2">
@@ -425,12 +428,12 @@ const StudentProfile = () => {
                     )}
                   </div>
                 </div>
-              </div>
+              </div> */}
             </CardContent>
           </Card>
         )}
 
-        {activeTab === 'academic' && (
+        {/* {activeTab === 'academic' && (
           <Card className="bg-[#0B1422] backdrop-blur-sm border border-gray-700/50">
             <CardHeader>
               <CardTitle className="text-white flex items-center gap-2">
@@ -552,11 +555,11 @@ const StudentProfile = () => {
               </div>
             </CardContent>
           </Card>
-        )}
+        )} */}
 
         {activeTab === 'preferences' && (
           <div className="space-y-6">
-            <Card className="bg-[#0B1422] backdrop-blur-sm border border-gray-700/50">
+            {/* <Card className="bg-[#0B1422] backdrop-blur-sm border border-gray-700/50">
               <CardHeader>
                 <CardTitle className="text-white flex items-center gap-2">
                   <Target className="h-5 w-5 text-purple-400" />
@@ -620,7 +623,7 @@ const StudentProfile = () => {
                   </div>
                 </div>
               </CardContent>
-            </Card>
+            </Card> */}
 
             <Card className="bg-[#0B1422] backdrop-blur-sm border border-gray-700/50">
               <CardHeader>
@@ -674,7 +677,85 @@ const StudentProfile = () => {
             </Card>
           </div>
         )}
+
+        {activeTab === 'security' && (
+          <Card className="bg-[#0B1422] backdrop-blur-sm border border-gray-700/50">
+            <CardHeader>
+              <CardTitle className="text-white flex items-center gap-2">
+                <Shield className="h-5 w-5 text-red-400" />
+                Seguridad de la Cuenta
+              </CardTitle>
+              <CardDescription className="text-gray-300">
+                Gestiona la seguridad y contraseña de tu cuenta
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="space-y-4">
+                <h3 className="text-lg font-medium text-white">Contraseña</h3>
+                <div className="flex items-center justify-between p-4 bg-gray-800/50 rounded-lg border border-gray-700">
+                  <div className="flex items-center gap-3">
+                    <KeyRound className="h-5 w-5 text-blue-400" />
+                    <div>
+                      <p className="text-white font-medium">Contraseña de acceso</p>
+                      <p className="text-gray-400 text-sm">
+                        Última actualización: {new Date().toLocaleDateString('es-ES')}
+                      </p>
+                    </div>
+                  </div>
+                  <Button
+                    onClick={() => setShowChangePassword(true)}
+                    className="bg-blue-600 hover:bg-blue-700 text-white"
+                    size="sm"
+                  >
+                    <Shield className="h-4 w-4 mr-2" />
+                    Cambiar Contraseña
+                  </Button>
+                </div>
+              </div>
+
+              <div className="space-y-4">
+                <h3 className="text-lg font-medium text-white">Información de Seguridad</h3>
+                <div className="grid gap-4">
+                  <div className="flex items-center justify-between p-4 bg-gray-800/50 rounded-lg border border-gray-700">
+                    <div className="flex items-center gap-3">
+                      <Mail className="h-5 w-5 text-green-400" />
+                      <div>
+                        <p className="text-white font-medium">Email verificado</p>
+                        <p className="text-gray-400 text-sm">{profile.personalInfo.email}</p>
+                      </div>
+                    </div>
+                    <Badge className="bg-green-500/20 text-green-300 border border-green-500/30">
+                      Verificado
+                    </Badge>
+                  </div>
+
+                  <div className="flex items-center justify-between p-4 bg-gray-800/50 rounded-lg border border-gray-700">
+                    <div className="flex items-center gap-3">
+                      <Shield className="h-5 w-5 text-blue-400" />
+                      <div>
+                        <p className="text-white font-medium">Autenticación de dos factores</p>
+                        <p className="text-gray-400 text-sm">Verificación adicional con OTP por email</p>
+                      </div>
+                    </div>
+                    <Badge className="bg-blue-500/20 text-blue-300 border border-blue-500/30">
+                      Activo
+                    </Badge>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
       </div>
+
+      <ChangePasswordFlow
+        isOpen={showChangePassword}
+        onClose={() => setShowChangePassword(false)}
+        onSuccess={() => {
+          toast.success('Contraseña actualizada exitosamente');
+          setShowChangePassword(false);
+        }}
+      />
     </MainLayout>
   );
 };

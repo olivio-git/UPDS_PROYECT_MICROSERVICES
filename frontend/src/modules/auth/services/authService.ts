@@ -26,6 +26,11 @@ export interface OTPVerifyRequest {
   purpose: 'login' | 'password_reset' | 'email_verification';
 }
 
+export interface ChangePasswordRequest {
+  currentPassword: string;
+  newPassword: string;
+}
+
 export interface ApiResponse<T = any> {
   success: boolean;
   message: string;
@@ -113,6 +118,7 @@ class AuthService {
     } catch (error: any) {
       console.error('❌ [AuthService] Error generando OTP:', error);
       const errorMessage = error.response?.data?.message || 'Error generando OTP';
+      // showCustomToast();
       toast.error(errorMessage);
       return {
         success: false,
@@ -221,6 +227,131 @@ class AuthService {
   // 🔄 AUTH STATE CHANGES (desde SDK)
   onAuthStateChanged(callback: (state: any) => void) {
     return authSDK.onAuthStateChanged(callback);
+  }
+
+  // 🔐 CHANGE PASSWORD WITH OTP VERIFICATION
+  async initiatePasswordChange(currentPassword: string): Promise<ApiResponse> {
+    console.log('🔐 [AuthService] Iniciando cambio de contraseña con OTP');
+
+    const user = this.getCurrentUser();
+    if (!user?.email) {
+      return {
+        success: false,
+        message: 'Usuario no autenticado',
+        error: 'No authenticated user'
+      };
+    }
+
+    // Primero validamos la contraseña actual intentando hacer login
+    try {
+      const loginValidation = await this.login({
+        email: user.email,
+        password: currentPassword
+      });
+
+      if (!loginValidation.success) {
+        return {
+          success: false,
+          message: 'Contraseña actual incorrecta',
+          error: 'Invalid current password'
+        };
+      }
+
+      // Si la contraseña es correcta, generamos OTP para reset
+      const otpResult = await this.generateOTP({
+        email: user.email,
+        purpose: 'password_reset'
+      });
+
+      return otpResult;
+    } catch (error: any) {
+      console.error('❌ [AuthService] Error validando contraseña actual:', error);
+      return {
+        success: false,
+        message: 'Error validando contraseña actual',
+        error: error.message
+      };
+    }
+  }
+
+  // 🔄 COMPLETE PASSWORD CHANGE
+  async completePasswordChange(otpCode: string, currentPassword: string, newPassword: string): Promise<ApiResponse> {
+    console.log('🔄 [AuthService] Completando cambio de contraseña');
+
+    const user = this.getCurrentUser();
+    if (!user?.email) {
+      return {
+        success: false,
+        message: 'Usuario no autenticado',
+        error: 'No authenticated user'
+      };
+    }
+
+    try {
+      // Verificar OTP primero
+      const otpVerification = await this.verifyOTP({
+        email: user.email,
+        code: otpCode,
+        purpose: 'password_reset'
+      });
+
+      if (!otpVerification.success) {
+        return otpVerification;
+      }
+        
+      // Si OTP es válido, cambiar contraseña
+      const response = await axios.post(`${this.baseUrl}/auth/change-password`, {
+        userId: authSDK.getCurrentUser()?.id || authSDK.getCurrentUser()?._id,
+        oldPassword: currentPassword,
+        newPassword: newPassword
+      },{
+        headers:{
+          Authorization: `Bearer ${authSDK.getAccessToken()}`
+        }
+      });
+
+      return {
+        success: response.data.success,
+        message: response.data.message || 'Contraseña cambiada exitosamente',
+        data: response.data.data
+      };
+    } catch (error: any) {
+      console.error('❌ [AuthService] Error cambiando contraseña:', error);
+      const errorMessage = error.response?.data?.message || 'Error cambiando contraseña';
+      toast.error(errorMessage);
+      return {
+        success: false,
+        message: errorMessage,
+        error: 'Network error'
+      };
+    }
+  }
+
+  // 🔐 RESET PASSWORD (SIN CONTRASEÑA ACTUAL)
+  async resetPassword(email: string, newPassword: string): Promise<ApiResponse> {
+    console.log('🔐 [AuthService] Restableciendo contraseña para:', email);
+
+    try {
+      const response = await axios.post(`${this.baseUrl}/auth/reset-password`, {
+        email,
+        newPassword
+      });
+
+      return {
+        success: response.data.success,
+        message: response.data.message || 'Contraseña restablecida exitosamente',
+        data: response.data.data
+      };
+    } catch (error: any) {
+      console.error('❌ [AuthService] Error restableciendo contraseña:', error);
+      const errorMessage = error.response?.data?.message || 'Error restableciendo contraseña';
+      toast.error(errorMessage);
+      return {
+        success: false,
+        message: errorMessage,
+        error: 'Network error'
+      };
+    }
   }
 }
 

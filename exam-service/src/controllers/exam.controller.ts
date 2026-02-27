@@ -1,4 +1,4 @@
-import { Request, Response, NextFunction } from 'express';
+import { NextFunction, Request, Response } from 'express';
 import { ExamService } from '../services/exam.service';
 import { logger } from '../utils/logger';
 
@@ -9,13 +9,13 @@ export class ExamController {
     this.examService = new ExamService();
   }
 
-  create = async (req: Request, res: Response, next: NextFunction) => {
+  create = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const examData = {
         ...req.body,
         createdBy: req.user.id
       };
-
+      console.log(examData, '  <--- EXAM DATA')
       const exam = await this.examService.create(examData);
 
       res.status(201).json({
@@ -29,7 +29,7 @@ export class ExamController {
     }
   };
 
-  findAll = async (req: Request, res: Response, next: NextFunction) => {
+  findAll = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const { page = 1, limit = 10, type, level, isTemplate } = req.query;
       
@@ -55,12 +55,12 @@ export class ExamController {
     }
   };
 
-  findById = async (req: Request, res: Response, next: NextFunction) => {
+  findById = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-      const exam = await this.examService.findById(req.params.id);
+      const exam = await this.examService.findById(req.params.id as string);
 
       if (!exam) {
-        return res.status(404).json({
+        res.status(404).json({
           success: false,
           message: 'Examen no encontrado'
         });
@@ -76,12 +76,12 @@ export class ExamController {
     }
   };
 
-  update = async (req: Request, res: Response, next: NextFunction) => {
+  update = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-      const exam = await this.examService.update(req.params.id, req.body);
+      const exam = await this.examService.update(req.params.id as string, req.body);
 
       if (!exam) {
-        return res.status(404).json({
+        res.status(404).json({
           success: false,
           message: 'Examen no encontrado'
         });
@@ -98,12 +98,12 @@ export class ExamController {
     }
   };
 
-  delete = async (req: Request, res: Response, next: NextFunction) => {
+  delete = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-      const deleted = await this.examService.delete(req.params.id);
+      const deleted = await this.examService.delete(req.params.id as string);
 
       if (!deleted) {
-        return res.status(404).json({
+        res.status(404).json({
           success: false,
           message: 'Examen no encontrado'
         });
@@ -119,10 +119,10 @@ export class ExamController {
     }
   };
 
-  clone = async (req: Request, res: Response, next: NextFunction) => {
+  clone = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const clonedExam = await this.examService.cloneExam(
-        req.params.id,
+        req.params.id as string,
         req.user.id
       );
 
@@ -137,12 +137,12 @@ export class ExamController {
     }
   };
 
-  generateQuestions = async (req: Request, res: Response, next: NextFunction) => {
+  generateQuestions = async (req: Request, res: Response, next: NextFunction): Promise<void>   => {
     try {
       const { candidateId } = req.body;
       
       const questions = await this.examService.generateQuestions(
-        req.params.id,
+        req.params.id as string,
         candidateId
       );
 
@@ -152,6 +152,62 @@ export class ExamController {
       });
     } catch (error) {
       logger.error('Error generating questions:', error);
+      next(error);
+    }
+  };
+
+  assignQuestions = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const { questionIds } = req.body;
+      
+      if (!questionIds || !Array.isArray(questionIds)) {
+        res.status(400).json({
+          success: false,
+          message: 'questionIds array is required'
+        });
+        return;
+      }
+
+      const exam = await this.examService.assignQuestionsToExam(
+        req.params.id as string,
+        questionIds
+      );
+
+      res.json({
+        success: true,
+        message: 'Preguntas asignadas exitosamente',
+        data: exam
+      });
+    } catch (error) {
+      logger.error('Error assigning questions to exam:', error);
+      next(error);
+    }
+  };
+
+  removeQuestions = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const { questionIds } = req.body;
+      
+      if (!questionIds || !Array.isArray(questionIds)) {
+        res.status(400).json({
+          success: false,
+          message: 'questionIds array is required'
+        });
+        return;
+      }
+
+      const exam = await this.examService.removeQuestionsFromExam(
+        req.params.id as string,
+        questionIds
+      );
+
+      res.json({
+        success: true,
+        message: 'Preguntas removidas exitosamente',
+        data: exam
+      });
+    } catch (error) {
+      logger.error('Error removing questions from exam:', error);
       next(error);
     }
   };

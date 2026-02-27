@@ -8,25 +8,25 @@ export const useAuthPersistence = () => {
 
   useEffect(() => {
     let mounted = true;
-    let unsubscribe: (() => void) | undefined;
+    let unsubscribe: any;
 
     const initAuth = async () => {
       try {
-        console.log('🔧 [useAuthPersistence] Inicializando persistencia...');
+        // console.log('🔧 [useAuthPersistence] Inicializando persistencia...');
         
         // Verificar inmediatamente el estado del SDK
-        const currentUser = authService.getCurrentUser();
-        const isAuth = await authService.isAuthenticated();
+        // const currentUser = authService.getCurrentUser();
+        // const isAuth = await authService.isAuthenticated();
         
-        console.log('🔍 [useAuthPersistence] Estado inmediato del SDK:', {
-          hasUser: !!currentUser,
-          isAuthenticated: isAuth,
-          userRole: currentUser?.role
-        });
+        // console.log('🔍 [useAuthPersistence] Estado inmediato del SDK:', {
+        //   hasUser: !!currentUser,
+        //   isAuthenticated: isAuth,
+        //   userRole: currentUser?.role
+        // });
 
         // Si no está inicializado, inicializar
         if (!isInitialized && mounted) {
-          console.log('🚀 [useAuthPersistence] Ejecutando initialize...');
+          // console.log('🚀 [useAuthPersistence] Ejecutando initialize...');
           unsubscribe = await initialize();
         }
 
@@ -43,7 +43,7 @@ export const useAuthPersistence = () => {
         setTimeout(() => {
           if (mounted) {
             setIsReady(true);
-            console.log('✅ [useAuthPersistence] Persistencia lista');
+            // console.log('✅ [useAuthPersistence] Persistencia lista');
           }
         }, 200);
 

@@ -1,6 +1,25 @@
 # version: "3.8"
 
 services:
+  # API GATEWAY
+  api-gateway:
+    build:
+      context: ./nginx
+      dockerfile: Dockerfile
+    container_name: api-gateway
+    ports:
+      - "80:80"
+    depends_on:
+      - auth-service
+      - user-management-service
+      - notifications-service
+      - exam-service
+      - session-manager-service
+      - ai-grading-service
+      - grading-service
+    networks:
+      - default
+
   #KAFKA INFRAESTRUCTURE:ZOOKEEPER
   zookeeper:
     image: confluentinc/cp-zookeeper:7.4.0
@@ -13,7 +32,7 @@ services:
     ports:
       - "2181:2181"
     healthcheck:
-      test: [ "CMD", "nc", "-z", "localhost", "2181" ]
+      test: ["CMD", "nc", "-z", "localhost", "2181"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -29,13 +48,13 @@ services:
       zookeeper:
         condition: service_healthy
     ports:
-      - "9092:9092"
+      - "9094:9092"
       - "9093:9093"
     environment:
       KAFKA_BROKER_ID: 1
       KAFKA_ZOOKEEPER_CONNECT: "zookeeper:2181"
       KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:29092,PLAINTEXT_HOST://0.0.0.0:9092
-      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:29092,PLAINTEXT_HOST://localhost:9092
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:29092,PLAINTEXT_HOST://localhost:9094
       KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
       KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
@@ -45,7 +64,7 @@ services:
       KAFKA_LOG_RETENTION_CHECK_INTERVAL_MS: 300000
       KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
     healthcheck:
-      test: [ "CMD", "nc", "-z", "localhost", "9092" ]
+      test: ["CMD", "nc", "-z", "localhost", "9092"]
       interval: 10s
       timeout: 5s
       retries: 10
@@ -60,13 +79,28 @@ services:
       - "6379:6379"
     command: redis-server --requirepass ${REDIS_PASSWORD}
     healthcheck:
-      test: [ "CMD", "redis-cli", "--raw", "incr", "ping" ]
+      test: ["CMD", "redis-cli", "--raw", "incr", "ping"]
       interval: 10s
       timeout: 5s
       retries: 5
     volumes:
       - redis_data:/data
-
+  redis-commander:
+    image: rediscommander/redis-commander:latest
+    container_name: redis-commander
+    ports:
+      - "8081:8081"
+    environment:
+      - REDIS_HOSTS=local:redis:6379:0:${REDIS_PASSWORD}
+      # Alternativa más explícita:
+      # - REDIS_HOST=redis
+      # - REDIS_PORT=6379
+      # - REDIS_PASSWORD=${REDIS_PASSWORD}
+    depends_on:
+      redis:
+        condition: service_healthy
+    # profiles:
+    # - debug
   # MONGO DB
   mongo:
     image: mongo:latest
@@ -78,13 +112,12 @@ services:
       - MONGO_INITDB_ROOT_PASSWORD=${MONGO_ROOT_PASSWORD}
       - MONGO_INITDB_DATABASE=${MONGO_DB_NAME}
     healthcheck:
-      test: [ "CMD", "mongosh", "--eval", "db.adminCommand('ping')" ]
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
       interval: 10s
       timeout: 5s
       retries: 5
     volumes:
-      - mongo_data:/data/db
-
+      - ./data/mongodb:/data/db:Z
   #MiniO
   minio:
     image: minio/minio:latest
@@ -97,12 +130,12 @@ services:
       MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
     command: server /data --console-address ":9001"
     healthcheck:
-      test: [ "CMD", "curl", "-f", "http://localhost:9000/minio/health/live" ]
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
       interval: 10s
       timeout: 5s
       retries: 5
     volumes:
-      - minio_multimedia:/data
+      - ./data/minio:/data:Z
 
   #AUTH SERVICE
   auth-service:
@@ -110,8 +143,8 @@ services:
       context: ./auth-service
       dockerfile: dockerfile
     container_name: auth-service
-    ports:
-      - "${AUTH_SERVICE_PORT}:3000"
+    # ports:
+    #   - "${AUTH_SERVICE_PORT}:3000"
     environment:
       - NODE_ENV=${NODE_ENV}
       - PORT=3000
@@ -140,7 +173,15 @@ services:
         condition: service_healthy
     restart: on-failure
     healthcheck:
-      test: [ "CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3000/health" ]
+      test:
+        [
+          "CMD",
+          "wget",
+          "--no-verbose",
+          "--tries=1",
+          "--spider",
+          "http://localhost:3000/health",
+        ]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -151,11 +192,12 @@ services:
       context: ./user-management-service
       dockerfile: dockerfile
     container_name: user-management-service
-    ports:
-      - "${USER_MANAGEMENT_SERVICE_PORT}:3002"
+    # ports:
+    #   - "${USER_MANAGEMENT_SERVICE_PORT}:3002"
     environment:
       - NODE_ENV=${NODE_ENV}
       - PORT=3002
+      - TZ=America/La_Paz
       - MONGO_URI=mongodb://${MONGO_ROOT_USERNAME}:${MONGO_ROOT_PASSWORD}@mongo:27017
       - MONGO_DB_NAME=${MONGO_DB_NAME}
       - MONGO_COLLECTION_USERS=users
@@ -188,7 +230,15 @@ services:
         condition: service_healthy
     restart: on-failure
     healthcheck:
-      test: [ "CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3002/health" ]
+      test:
+        [
+          "CMD",
+          "wget",
+          "--no-verbose",
+          "--tries=1",
+          "--spider",
+          "http://localhost:3002/health",
+        ]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -199,8 +249,8 @@ services:
       context: ./notifications-service
       dockerfile: dockerfile
     container_name: notification-service
-    ports:
-      - "${NOTIFICATION_SERVICE_PORT}:3001"
+    # ports:
+    #   - "${NOTIFICATION_SERVICE_PORT}:3001"
     environment:
       - NODE_ENV=${NODE_ENV}
       - PORT=3001
@@ -236,32 +286,139 @@ services:
         condition: service_healthy
     restart: on-failure
     healthcheck:
-      test: [ "CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3001/health" ]
+      test:
+        [
+          "CMD",
+          "wget",
+          "--no-verbose",
+          "--tries=1",
+          "--spider",
+          "http://localhost:3001/health",
+        ]
       interval: 10s
       timeout: 5s
       retries: 5
   exam-service:
-    build: .
+    build:
+      context: ./exam-service
+      dockerfile: dockerfile
     container_name: exam-service
+    # ports:
+    #   - "${EXAM_SERVICE_PORT:-3003}:3003"
     environment:
-      - NODE_ENV=production
+      - NODE_ENV=${NODE_ENV}
       - PORT=3003
-      - MONGO_URI=mongodb://admin:password@mongo:27017/cba_platform?authSource=admin
+      - TZ=America/La_Paz
+      - MONGO_URI=mongodb://${MONGO_ROOT_USERNAME}:${MONGO_ROOT_PASSWORD}@mongo:27017/${MONGO_DB_NAME}?authSource=admin
+      - MONGO_DB_NAME=${MONGO_DB_NAME}
       - REDIS_HOST=redis
       - REDIS_PORT=6379
+      - REDIS_PASSWORD=${REDIS_PASSWORD}
+      - KAFKA_CLIENT_ID=exam-service
       - KAFKA_BROKER=kafka:29092
-    ports:
-      - "3003:3003"
+      - KAFKA_GROUP_ID=exam-service
+      - KAFKA_TOPIC_EXAM_EVENTS=exam-events
+      - KAFKA_TOPIC_SESSION_EVENTS=session-events
+      - AUTH_SERVICE_URL=http://auth-service:3000
+      - USER_MANAGEMENT_SERVICE_URL=http://user-management-service:3002/api/v1
+      - NOTIFICATION_SERVICE_URL=http://notification-service:3001/notifications
+      - JWT_SECRET=${JWT_SECRET}
+      - MINIO_ENDPOINT=${MINIO_ENDPOINT}
+      - MINIO_PORT=${MINIO_PORT}
+      - MINIO_USE_SSL=false
+      - MINIO_ACCESS_KEY=${MINIO_ROOT_USER}
+      - MINIO_SECRET_KEY=${MINIO_ROOT_PASSWORD}
+      - MINIO_BUCKET_NAME=exam-files
+      - CORS_ORIGIN=${CORS_ORIGIN}
+      - LOG_LEVEL=info
+      - OLLAMA_URL=${OLLAMA_URL}
+      - OLLAMA_MODEL=${OLLAMA_MODEL}
+      - LLM_ENABLED=${LLM_ENABLED}
+      - GRADING_SERVICE_URL=http://grading-service:3007
+      - MINIO_INTERNAL_ENDPOINT=http://minio:9000
+      - MONGO_UMS_DB_NAME=${MONGO_DB_NAME:-cba_user_management_db}
     depends_on:
-      - mongo
-      - redis
-      - kafka
-    networks:
-      - cba-network
-    volumes:
-      - ./logs:/app/logs
-      - ./uploads:/app/uploads
-    restart: unless-stopped
+      redis:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+      mongo:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+      grading-service:
+        condition: service_healthy
+    restart: on-failure
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "wget",
+          "--no-verbose",
+          "--tries=1",
+          "--spider",
+          "http://localhost:3003/health",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # SESSION MANAGER SERVICE - NUEVO
+  session-manager-service:
+    build:
+      context: ./session-manager-service
+      dockerfile: dockerfile
+    container_name: session-manager-service
+    # ports:
+    #   - "${SESSION_MANAGER_PORT:-3004}:3004"
+    environment:
+      - NODE_ENV=${NODE_ENV}
+      - PORT=3004
+      - TZ=America/La_Paz
+      - MONGO_URI=mongodb://${MONGO_ROOT_USERNAME}:${MONGO_ROOT_PASSWORD}@mongo:27017/${MONGO_DB_NAME}?authSource=admin
+      - MONGO_DB_NAME=${MONGO_DB_NAME}
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - REDIS_PASSWORD=${REDIS_PASSWORD}
+      - KAFKA_CLIENT_ID=session-manager-service
+      - KAFKA_BROKER=kafka:29092
+      - KAFKA_GROUP_ID=session-manager-group
+      - KAFKA_TOPIC_SESSION_EVENTS=session-events
+      - KAFKA_TOPIC_EXAM_EVENTS=exam-events
+      - KAFKA_TOPIC_NOTIFICATION_EVENTS=notification-events
+      - AUTH_SERVICE_URL=http://auth-service:3000
+      - EXAM_SERVICE_URL=http://exam-service:3003
+      - NOTIFICATION_SERVICE_URL=http://notification-service:3001
+      - USER_MANAGEMENT_SERVICE_URL=http://user-management-service:3002
+      - JWT_SECRET=${JWT_SECRET}
+      - CORS_ORIGIN=${CORS_ORIGIN}
+      - LOG_LEVEL=info
+      - WEBSOCKET_PING_TIMEOUT=60000
+      - WEBSOCKET_PING_INTERVAL=25000
+      - FRONTEND_URL=${CORS_ORIGIN}
+    depends_on:
+      redis:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+      mongo:
+        condition: service_healthy
+      exam-service:
+        condition: service_healthy
+    restart: on-failure
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "wget",
+          "--no-verbose",
+          "--tries=1",
+          "--spider",
+          "http://localhost:3004/health",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
   #KAFKA_UI - Solo para debugging
   kafka-ui:
     image: provectuslabs/kafka-ui:latest
@@ -277,15 +434,104 @@ services:
         condition: service_healthy
     profiles:
       - debug
+  bull-dashboard:
+    build:
+      context: ./docker/bull-dashboard
+    container_name: bull-dashboard
+    ports:
+      - "3005:3000"
+    environment:
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - REDIS_PASSWORD=${REDIS_PASSWORD}
+    depends_on:
+      redis:
+        condition: service_healthy
+    restart: on-failure
+  # GRADING SERVICE (REST API - GROQ AI)
+  grading-service:
+    build:
+      context: ./mcp-grading-server
+      dockerfile: dockerfile
+    container_name: grading-service
+    # ports:
+    #   - "3007:3007"
+    environment:
+      - NODE_ENV=${NODE_ENV}
+      - PORT=3007
+      - GROQ_API_KEY=${GROQ_API_KEY}
+      - GROQ_MODEL=${GROQ_MODEL:-llama-3.3-70b-versatile}
+      - MONGO_URI=mongodb://${MONGO_ROOT_USERNAME}:${MONGO_ROOT_PASSWORD}@mongo:27017/${MONGO_DB_NAME}?authSource=admin
+      - MONGO_DB_NAME=${MONGO_DB_NAME}
+      - MONGO_LEVELS_DB_NAME=${MONGO_DB_NAME_USER_MANAGEMENT:-cba_user_management_db}
+      - AI_GRADING_SERVICE_URL=http://ai-grading-service:3006
+      - NOTIFICATION_SERVICE_URL=http://notification-service:3001
+      - MINIO_INTERNAL_ENDPOINT=http://minio:9000
+      - MINIO_BUCKET_NAME=exam-files
+      - CORS_ORIGIN=${CORS_ORIGIN}
+    depends_on:
+      mongo:
+        condition: service_healthy
+    restart: on-failure
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "wget",
+          "--no-verbose",
+          "--tries=1",
+          "--spider",
+          "http://localhost:3007/health",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
+  ai-grading-service:
+    build: ./ai-grading-service
+    container_name: ai-grading-service
+    # ports:
+    #   - "3006:3006"
+    environment:
+      - ENV=${NODE_ENV}
+      - MONGODB_URL=mongodb://${MONGO_ROOT_USERNAME}:${MONGO_ROOT_PASSWORD}@mongo:27017
+      - MONGODB_DB_NAME=upds_evaluation # Base de datos específica para AI
+      - REDIS_URL=redis://:${REDIS_PASSWORD}@redis:6379
+      - JWT_SECRET=${JWT_SECRET}
+      - CORS_ORIGIN=${CORS_ORIGIN} # Corregido de CORS_ORIGINS a CORS_ORIGIN
+      - LLM_ENABLED=${LLM_ENABLED}
+      - OLLAMA_URL=${OLLAMA_URL}
+      - OLLAMA_MODEL=${OLLAMA_MODEL}
+      - LLM_TEMPERATURE=${LLM_TEMPERATURE}
+      - LLM_MAX_TOKENS=${LLM_MAX_TOKENS}
+      - LLM_TIMEOUT=${LLM_TIMEOUT}
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    depends_on:
+      mongo:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+    restart: on-failure
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3006/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
 volumes:
   kafka_data:
     driver: local
   redis_data:
     driver: local
+  mongodb_data:
+    driver: local
   mongo_data:
     driver: local
   zookeeper_data:
+    driver: local
+  minio_data:
     driver: local
   minio_multimedia:
     driver: local
@@ -293,5 +539,3 @@ volumes:
 networks:
   default:
     driver: bridge
-  cba-network:
-    external: true

@@ -1,0 +1,10 @@
+%% State diagram for an Attempt (exam attempt)
+stateDiagram-v2
+    [*] --> in_progress
+    in_progress: startedAt set
+    in_progress --> completed: finish / time elapsed / submit all
+    in_progress --> cancelled: cancel / violation / timeout
+    completed --> evaluated: autoGrade / aiGrade / humanGrade
+    evaluated --> archived
+    cancelled --> archived
+    completed --> archived

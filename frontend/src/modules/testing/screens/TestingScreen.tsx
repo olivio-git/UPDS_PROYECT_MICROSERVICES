@@ -1,46 +1,70 @@
-import { useState } from "react";
-import { 
-  Card, 
-  CardContent, 
-  CardDescription, 
-  CardHeader, 
-  CardTitle 
-} from "@/components/atoms/card";
+import { Alert, AlertDescription } from "@/components/atoms/alert";
+import { Badge } from "@/components/atoms/badge";
 import { Button } from "@/components/atoms/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle
+} from "@/components/atoms/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/atoms/dialog";
 import { Input } from "@/components/atoms/input";
 import { Label } from "@/components/atoms/label";
-import { Textarea } from "@/components/atoms/textarea";
-import { Badge } from "@/components/atoms/badge";
+import { ScrollArea } from "@/components/atoms/scroll-area";
 import { Separator } from "@/components/atoms/separator";
-import { Alert, AlertDescription } from "@/components/atoms/alert";
-import { 
-  notificationService, 
-  type NotificationStats, 
-  type EmailHistoryItem 
-} from "@/services/notifications/notificationService";
-import { authService } from "@/modules/auth/services/authService";
-import { useAuth } from "@/hooks/useAuth";
-import { toast } from "sonner";
+import {
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from "@/components/atoms/tabs";
+import { Textarea } from "@/components/atoms/textarea";
+import { CardGradientWrapper, ContentGradientSection } from "@/components/background";
 import { MainLayout } from "@/components/layout";
-import { ContentGradientSection, CardGradientWrapper } from "@/components/background";
-import { 
-  Mail, 
-  Send, 
-  BarChart3, 
-  History, 
+import { useAuth } from "@/hooks/useAuth";
+import { authService } from "@/modules/auth/services/authService";
+import {
+  notificationService,
+  type EmailHistoryItem,
+  type EmailHistoryResponse,
+  type NotificationStats
+} from "@/services/notifications/notificationService";
+import {
+  Activity,
   // RefreshCw, 
   AlertCircle,
+  BarChart3,
+  Calendar,
   CheckCircle,
   Clock,
-  XCircle,
-  TestTube,
+  Copy,
+  Eye,
+  FileText,
+  History,
+  Info,
+  Mail,
+  MessageSquare,
+  RotateCcw,
+  Search,
+  Send,
+  Server,
   // UserPlus,
   // LogIn,
   // Zap,
   Shield,
-  Activity,
-  Server
+  TestTube,
+  User,
+  XCircle
 } from "lucide-react";
+import { useState } from "react";
+import { toast } from "sonner";
 
 const TestingScreen = () => {
   const { 
@@ -53,7 +77,20 @@ const TestingScreen = () => {
   } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
   const [stats, setStats] = useState<NotificationStats | null>(null);
-  const [emailHistory, setEmailHistory] = useState<EmailHistoryItem[]>([]);
+  const [emailHistory, setEmailHistory] = useState<EmailHistoryResponse | null>(null);
+  const [historyEmail, setHistoryEmail] = useState("subelzaolivitocabezas@gmail.com");
+  const [selectedEmail, setSelectedEmail] = useState<EmailHistoryItem | null>(null);
+  const [isEmailDetailOpen, setIsEmailDetailOpen] = useState(false);
+  
+  // Service status tracking
+  const [serviceStatus, setServiceStatus] = useState<{[key: string]: 'checking' | 'healthy' | 'unhealthy' | 'unknown'}>({
+    auth: 'unknown',
+    notification: 'unknown',
+    userManagement: 'unknown',
+    exam: 'unknown',
+    sessionManager: 'unknown',
+    aiGrading: 'unknown'
+  });
   
   // Test email form
   const [testEmail, setTestEmail] = useState({
@@ -80,37 +117,186 @@ const TestingScreen = () => {
 
   // Test auth endpoints
   const testAuthEndpoints = async () => {
-    setIsLoading(true);
+    setServiceStatus(prev => ({ ...prev, auth: 'checking' }));
     try {
       // Test health
       const health = await fetch("http://localhost:3000/health");
       const healthData = await health.json();
       
       if (healthData.success) {
+        setServiceStatus(prev => ({ ...prev, auth: 'healthy' }));
         toast.success("✅ Auth Service: Healthy");
       } else {
+        setServiceStatus(prev => ({ ...prev, auth: 'unhealthy' }));
         toast.error("❌ Auth Service: Unhealthy");
       }
     } catch (error) {
+      setServiceStatus(prev => ({ ...prev, auth: 'unhealthy' }));
       toast.error("❌ Auth Service: Connection failed");
     }
-    setIsLoading(false);
   };
 
   // Test notification endpoints
   const testNotificationEndpoints = async () => {
-    setIsLoading(true);
+    setServiceStatus(prev => ({ ...prev, notification: 'checking' }));
     try {
       const health = await notificationService.checkHealth();
       
       if (health.success) {
+        setServiceStatus(prev => ({ ...prev, notification: 'healthy' }));
         toast.success("✅ Notification Service: Healthy");
       } else {
+        setServiceStatus(prev => ({ ...prev, notification: 'unhealthy' }));
         toast.error("❌ Notification Service: Unhealthy");
       }
     } catch (error) {
+      setServiceStatus(prev => ({ ...prev, notification: 'unhealthy' }));
       toast.error("❌ Notification Service: Connection failed");
     }
+  };
+
+  // Test user management service
+  const testUserManagementService = async () => {
+    setServiceStatus(prev => ({ ...prev, userManagement: 'checking' }));
+    try {
+      const health = await fetch("http://localhost:3002/health");
+      const healthData = await health.json();
+      if (healthData.success || healthData.status === 'OK') {
+        setServiceStatus(prev => ({ ...prev, userManagement: 'healthy' }));
+        toast.success("✅ User Management Service: Healthy");
+      } else {
+        setServiceStatus(prev => ({ ...prev, userManagement: 'unhealthy' }));
+        toast.error("❌ User Management Service: Unhealthy");
+      }
+    } catch (error) {
+      setServiceStatus(prev => ({ ...prev, userManagement: 'unhealthy' }));
+      toast.error("❌ User Management Service: Connection failed");
+    }
+  };
+
+  // Test exam service
+  const testExamService = async () => {
+    setServiceStatus(prev => ({ ...prev, exam: 'checking' }));
+    try {
+      const health = await fetch("http://localhost:3003/health");
+      const healthData = await health.json();
+
+      if (healthData.success || healthData.status === 'healthy') {
+        setServiceStatus(prev => ({ ...prev, exam: 'healthy' }));
+        toast.success("✅ Exam Service: Healthy");
+      } else {
+        setServiceStatus(prev => ({ ...prev, exam: 'unhealthy' }));
+        toast.error("❌ Exam Service: Unhealthy");
+      }
+    } catch (error) {
+      setServiceStatus(prev => ({ ...prev, exam: 'unhealthy' }));
+      toast.error("❌ Exam Service: Connection failed");
+    }
+  };
+
+  // Test session manager service
+  const testSessionManagerService = async () => {
+    setServiceStatus(prev => ({ ...prev, sessionManager: 'checking' }));
+    try {
+      const health = await fetch("http://localhost:3004/health");
+      const healthData = await health.json();
+
+      if (healthData.success || healthData.status === 'healthy') {
+        setServiceStatus(prev => ({ ...prev, sessionManager: 'healthy' }));
+        toast.success("✅ Session Manager Service: Healthy");
+      } else {
+        setServiceStatus(prev => ({ ...prev, sessionManager: 'unhealthy' }));
+        toast.error("❌ Session Manager Service: Unhealthy");
+      }
+    } catch (error) {
+      setServiceStatus(prev => ({ ...prev, sessionManager: 'unhealthy' }));
+      toast.error("❌ Session Manager Service: Connection failed");
+    }
+  };
+
+  // Test AI grading service
+  const testAIGradingService = async () => {
+    setServiceStatus(prev => ({ ...prev, aiGrading: 'checking' }));
+    try {
+      const health = await fetch("http://localhost:3006/health");
+      const healthData = await health.json();
+      console.log(healthData);
+      if (healthData.success || healthData.status === 'healthy') {
+        setServiceStatus(prev => ({ ...prev, aiGrading: 'healthy' }));
+        toast.success("✅ AI Grading Service: Healthy");
+      } else {
+        setServiceStatus(prev => ({ ...prev, aiGrading: 'unhealthy' }));
+        toast.error("❌ AI Grading Service: Unhealthy");
+      }
+    } catch (error) {
+      setServiceStatus(prev => ({ ...prev, aiGrading: 'unhealthy' }));
+      toast.error("❌ AI Grading Service: Connection failed");
+    }
+  };
+
+  // Test all services at once
+  const testAllServices = async () => {
+    setIsLoading(true);
+    
+    // Set all to checking
+    setServiceStatus({
+      auth: 'checking',
+      notification: 'checking',
+      userManagement: 'checking',
+      exam: 'checking',
+      sessionManager: 'checking',
+      aiGrading: 'checking'
+    });
+
+    const services = [
+      { key: 'auth', name: "Auth Service", url: "http://localhost:3000/health" },
+      { key: 'userManagement', name: "User Management", url: "http://localhost:3002/health" },
+      { key: 'exam', name: "Exam Service", url: "http://localhost:3003/health" },
+      { key: 'sessionManager', name: "Session Manager", url: "http://localhost:3004/health" },
+      { key: 'aiGrading', name: "AI Grading", url: "http://localhost:3006/health" }
+    ];
+
+    let healthyCount = 0;
+    const totalServices = services.length + 1; // +1 for notification service
+
+    // Test regular services
+    for (const service of services) {
+      try {
+        const health = await fetch(service.url);
+        const healthData = await health.json();
+        
+        if (healthData.success || healthData.status === 'OK' || healthData.status === 'healthy') {
+          healthyCount++;
+          setServiceStatus(prev => ({ ...prev, [service.key]: 'healthy' }));
+        } else {
+          setServiceStatus(prev => ({ ...prev, [service.key]: 'unhealthy' }));
+        }
+      } catch (error) {
+        setServiceStatus(prev => ({ ...prev, [service.key]: 'unhealthy' }));
+      }
+    }
+
+    // Test notification service separately
+    try {
+      const notificationHealth = await notificationService.checkHealth();
+      if (notificationHealth.success) {
+        healthyCount++;
+        setServiceStatus(prev => ({ ...prev, notification: 'healthy' }));
+      } else {
+        setServiceStatus(prev => ({ ...prev, notification: 'unhealthy' }));
+      }
+    } catch (error) {
+      setServiceStatus(prev => ({ ...prev, notification: 'unhealthy' }));
+    }
+
+    if (healthyCount === totalServices) {
+      toast.success(`✅ Todos los servicios están operativos (${healthyCount}/${totalServices})`);
+    } else if (healthyCount > totalServices / 2) {
+      toast.warning(`⚠️ Algunos servicios tienen problemas (${healthyCount}/${totalServices} operativos)`);
+    } else {
+      toast.error(`❌ Múltiples servicios caídos (${healthyCount}/${totalServices} operativos)`);
+    }
+    
     setIsLoading(false);
   };
 
@@ -320,13 +506,16 @@ const TestingScreen = () => {
   };
 
   // Get email history
-  const getEmailHistory = async () => {
+  const getEmailHistory = async (email?: string) => {
     setIsLoading(true);
     try {
-      const result = await notificationService.getEmailHistory({ limit: 10 });
+      const result = await notificationService.getEmailHistory({ 
+        limit: 20,
+        email: email || historyEmail 
+      });
       if (result.success && result.data) {
         setEmailHistory(result.data);
-        toast.success("✅ Historial obtenido");
+        toast.success(`✅ Historial obtenido para ${result.data.email}`);
       } else {
         toast.error(`❌ Error: ${result.message}`);
       }
@@ -362,6 +551,73 @@ const TestingScreen = () => {
     }
   };
 
+  // Get service status icon
+  const getServiceStatusIcon = (status: 'checking' | 'healthy' | 'unhealthy' | 'unknown') => {
+    switch (status) {
+      case 'healthy':
+        return <CheckCircle className="h-5 w-5 text-green-400" />;
+      case 'unhealthy':
+        return <XCircle className="h-5 w-5 text-red-400" />;
+      case 'checking':
+        return <Clock className="h-5 w-5 text-yellow-400 animate-spin" />;
+      case 'unknown':
+      default:
+        return <AlertCircle className="h-5 w-5 text-gray-400" />;
+    }
+  };
+
+  // Get service status text
+  const getServiceStatusText = (status: 'checking' | 'healthy' | 'unhealthy' | 'unknown') => {
+    switch (status) {
+      case 'healthy':
+        return { text: 'Operativo', color: 'text-green-400' };
+      case 'unhealthy':
+        return { text: 'Caído', color: 'text-red-400' };
+      case 'checking':
+        return { text: 'Verificando...', color: 'text-yellow-400' };
+      case 'unknown':
+      default:
+        return { text: 'Sin verificar', color: 'text-gray-400' };
+    }
+  };
+
+  // Copy to clipboard utility
+  const copyToClipboard = async (text: string) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      toast.success("✅ Copiado al portapapeles");
+    } catch (error) {
+      toast.error("❌ Error al copiar");
+    }
+  };
+
+  // Format template data as markdown
+  const formatTemplateDataAsMarkdown = (templateData: any): string => {
+    if (!templateData || Object.keys(templateData).length === 0) {
+      return "Sin datos del template";
+    }
+
+    const formatValue = (key: string, value: any): string => {
+      if (typeof value === 'object' && value !== null) {
+        return `**${key}:**\n\`\`\`json\n${JSON.stringify(value, null, 2)}\n\`\`\`\n`;
+      }
+      return `**${key}:** \`${value}\`\n`;
+    };
+
+    let markdown = "## Datos del Template\n\n";
+    for (const [key, value] of Object.entries(templateData)) {
+      markdown += formatValue(key, value);
+    }
+
+    return markdown;
+  };
+
+  // Open email detail modal
+  const openEmailDetail = (email: EmailHistoryItem) => {
+    setSelectedEmail(email);
+    setIsEmailDetailOpen(true);
+  };
+
   // Solo mostrar si es admin
   if (!isAdmin()) {
     return (
@@ -380,7 +636,7 @@ const TestingScreen = () => {
 
   return (
     <MainLayout gradientVariant="aurora">
-      <div className="max-w-7xl mx-auto space-y-8">
+      <div className="max-w-7xl mx-auto space-y-20 px-4 sm:px-6 lg:px-8 py-10">
         {/* Header Hero */}
         <div className="text-center space-y-4 mb-12">
           <div className="flex items-center justify-center gap-3">
@@ -398,45 +654,214 @@ const TestingScreen = () => {
 
         {/* Service Health Section */}
         <ContentGradientSection variant="primary" position="top-left">
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
-            {/* Service Health Checks */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+            {/* Service Status Table */}
             <CardGradientWrapper variant="cool" intensity="medium">
               <Card className="bg-gray-900/60 backdrop-blur-sm border border-gray-700/50 h-full">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2 text-white">
                     <Activity className="h-5 w-5 text-green-400" />
-                    Health Checks
+                    Estado de Microservicios
                   </CardTitle>
                   <CardDescription className="text-gray-300">
-                    Verificar estado de los servicios
+                    Monitor en tiempo real de todos los servicios
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
+                  {/* Test All Button */}
                   <Button 
-                    onClick={testAuthEndpoints} 
+                    onClick={testAllServices} 
                     disabled={isLoading}
-                    className="w-full bg-gradient-to-r from-green-500/20 to-emerald-600/20 border border-green-500/30 text-green-300 hover:from-green-500/30 hover:to-emerald-600/30"
+                    className="w-full bg-gradient-to-r from-purple-500/20 to-pink-600/20 border border-purple-500/30 text-purple-300 hover:from-purple-500/30 hover:to-pink-600/30"
                     variant="outline"
                   >
-                    <Server className={`h-4 w-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
-                    Test Auth Service
+                    <Activity className={`h-4 w-4 mr-2 ${isLoading ? 'animate-pulse' : ''}`} />
+                    Verificar Todos los Servicios
                   </Button>
-                  <Button 
-                    onClick={testNotificationEndpoints} 
-                    disabled={isLoading}
-                    className="w-full bg-gradient-to-r from-blue-500/20 to-cyan-600/20 border border-blue-500/30 text-blue-300 hover:from-blue-500/30 hover:to-cyan-600/30"
-                    variant="outline"
-                  >
-                    <Mail className={`h-4 w-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
-                    Test Notification Service
-                  </Button>
+                  
+                  {/* Services Status Table */}
+                  <div className="border border-gray-700 rounded-lg overflow-hidden">
+                    <table className="w-full text-sm">
+                      <thead className="bg-gray-800/50">
+                        <tr>
+                          <th className="px-4 py-3 text-left text-gray-300 font-medium">Servicio</th>
+                          <th className="px-4 py-3 text-center text-gray-300 font-medium">Puerto</th>
+                          <th className="px-4 py-3 text-center text-gray-300 font-medium">Estado</th>
+                          <th className="px-4 py-3 text-center text-gray-300 font-medium">Acción</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-gray-700/50">
+                        <tr className="hover:bg-gray-800/30 transition-colors">
+                          <td className="px-4 py-3 flex items-center gap-2">
+                            <Server className="h-4 w-4 text-green-400" />
+                            <span className="text-white font-medium">Auth Service</span>
+                          </td>
+                          <td className="px-4 py-3 text-center text-gray-400">3000</td>
+                          <td className="px-4 py-3 text-center">
+                            <div className="flex items-center justify-center gap-2">
+                              {getServiceStatusIcon(serviceStatus.auth)}
+                              <span className={getServiceStatusText(serviceStatus.auth).color}>
+                                {getServiceStatusText(serviceStatus.auth).text}
+                              </span>
+                            </div>
+                          </td>
+                          <td className="px-4 py-3 text-center">
+                            <Button
+                              onClick={testAuthEndpoints}
+                              disabled={serviceStatus.auth === 'checking'}
+                              size="sm"
+                              variant="outline"
+                              className="bg-green-500/10 border-green-500/20 text-green-400 hover:bg-green-500/20 text-xs"
+                            >
+                              Test
+                            </Button>
+                          </td>
+                        </tr>
+                        
+                        <tr className="hover:bg-gray-800/30 transition-colors">
+                          <td className="px-4 py-3 flex items-center gap-2">
+                            <Mail className="h-4 w-4 text-blue-400" />
+                            <span className="text-white font-medium">Notifications</span>
+                          </td>
+                          <td className="px-4 py-3 text-center text-gray-400">3001</td>
+                          <td className="px-4 py-3 text-center">
+                            <div className="flex items-center justify-center gap-2">
+                              {getServiceStatusIcon(serviceStatus.notification)}
+                              <span className={getServiceStatusText(serviceStatus.notification).color}>
+                                {getServiceStatusText(serviceStatus.notification).text}
+                              </span>
+                            </div>
+                          </td>
+                          <td className="px-4 py-3 text-center">
+                            <Button
+                              onClick={testNotificationEndpoints}
+                              disabled={serviceStatus.notification === 'checking'}
+                              size="sm"
+                              variant="outline"
+                              className="bg-blue-500/10 border-blue-500/20 text-blue-400 hover:bg-blue-500/20 text-xs"
+                            >
+                              Test
+                            </Button>
+                          </td>
+                        </tr>
+                        
+                        <tr className="hover:bg-gray-800/30 transition-colors">
+                          <td className="px-4 py-3 flex items-center gap-2">
+                            <User className="h-4 w-4 text-indigo-400" />
+                            <span className="text-white font-medium">User Management</span>
+                          </td>
+                          <td className="px-4 py-3 text-center text-gray-400">3002</td>
+                          <td className="px-4 py-3 text-center">
+                            <div className="flex items-center justify-center gap-2">
+                              {getServiceStatusIcon(serviceStatus.userManagement)}
+                              <span className={getServiceStatusText(serviceStatus.userManagement).color}>
+                                {getServiceStatusText(serviceStatus.userManagement).text}
+                              </span>
+                            </div>
+                          </td>
+                          <td className="px-4 py-3 text-center">
+                            <Button
+                              onClick={testUserManagementService}
+                              disabled={serviceStatus.userManagement === 'checking'}
+                              size="sm"
+                              variant="outline"
+                              className="bg-indigo-500/10 border-indigo-500/20 text-indigo-400 hover:bg-indigo-500/20 text-xs"
+                            >
+                              Test
+                            </Button>
+                          </td>
+                        </tr>
+                        
+                        <tr className="hover:bg-gray-800/30 transition-colors">
+                          <td className="px-4 py-3 flex items-center gap-2">
+                            <TestTube className="h-4 w-4 text-orange-400" />
+                            <span className="text-white font-medium">Exam Service</span>
+                          </td>
+                          <td className="px-4 py-3 text-center text-gray-400">3003</td>
+                          <td className="px-4 py-3 text-center">
+                            <div className="flex items-center justify-center gap-2">
+                              {getServiceStatusIcon(serviceStatus.exam)}
+                              <span className={getServiceStatusText(serviceStatus.exam).color}>
+                                {getServiceStatusText(serviceStatus.exam).text}
+                              </span>
+                            </div>
+                          </td>
+                          <td className="px-4 py-3 text-center">
+                            <Button
+                              onClick={testExamService}
+                              disabled={serviceStatus.exam === 'checking'}
+                              size="sm"
+                              variant="outline"
+                              className="bg-orange-500/10 border-orange-500/20 text-orange-400 hover:bg-orange-500/20 text-xs"
+                            >
+                              Test
+                            </Button>
+                          </td>
+                        </tr>
+                        
+                        <tr className="hover:bg-gray-800/30 transition-colors">
+                          <td className="px-4 py-3 flex items-center gap-2">
+                            <Clock className="h-4 w-4 text-yellow-400" />
+                            <span className="text-white font-medium">Session Manager</span>
+                          </td>
+                          <td className="px-4 py-3 text-center text-gray-400">3004</td>
+                          <td className="px-4 py-3 text-center">
+                            <div className="flex items-center justify-center gap-2">
+                              {getServiceStatusIcon(serviceStatus.sessionManager)}
+                              <span className={getServiceStatusText(serviceStatus.sessionManager).color}>
+                                {getServiceStatusText(serviceStatus.sessionManager).text}
+                              </span>
+                            </div>
+                          </td>
+                          <td className="px-4 py-3 text-center">
+                            <Button
+                              onClick={testSessionManagerService}
+                              disabled={serviceStatus.sessionManager === 'checking'}
+                              size="sm"
+                              variant="outline"
+                              className="bg-yellow-500/10 border-yellow-500/20 text-yellow-400 hover:bg-yellow-500/20 text-xs"
+                            >
+                              Test
+                            </Button>
+                          </td>
+                        </tr>
+                        
+                        <tr className="hover:bg-gray-800/30 transition-colors">
+                          <td className="px-4 py-3 flex items-center gap-2">
+                            <Activity className="h-4 w-4 text-emerald-400" />
+                            <span className="text-white font-medium">AI Grading</span>
+                          </td>
+                          <td className="px-4 py-3 text-center text-gray-400">3006</td>
+                          <td className="px-4 py-3 text-center">
+                            <div className="flex items-center justify-center gap-2">
+                              {getServiceStatusIcon(serviceStatus.aiGrading)}
+                              <span className={getServiceStatusText(serviceStatus.aiGrading).color}>
+                                {getServiceStatusText(serviceStatus.aiGrading).text}
+                              </span>
+                            </div>
+                          </td>
+                          <td className="px-4 py-3 text-center">
+                            <Button
+                              onClick={testAIGradingService}
+                              disabled={serviceStatus.aiGrading === 'checking'}
+                              size="sm"
+                              variant="outline"
+                              className="bg-emerald-500/10 border-emerald-500/20 text-emerald-400 hover:bg-emerald-500/20 text-xs"
+                            >
+                              Test
+                            </Button>
+                          </td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
                 </CardContent>
               </Card>
             </CardGradientWrapper>
 
             {/* Email Stats */}
             <CardGradientWrapper variant="warm" intensity="medium">
-              <Card className="bg-gray-900/60 backdrop-blur-sm border border-gray-700/50 h-full">
+              <Card className="bg-gray-900/60 backdrop-blur-sm border border-gray-700/50">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2 text-white">
                     <BarChart3 className="h-5 w-5 text-orange-400" />
@@ -472,46 +897,38 @@ const TestingScreen = () => {
                       </div>
                     </div>
                   )}
-                </CardContent>
-              </Card>
-            </CardGradientWrapper>
 
-            {/* Email History Preview */}
-            <CardGradientWrapper variant="accent" intensity="medium">
-              <Card className="bg-gray-900/60 backdrop-blur-sm border border-gray-700/50 h-full">
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2 text-white">
-                    <History className="h-5 w-5 text-purple-400" />
-                    Historial Rápido
-                  </CardTitle>
-                  <CardDescription className="text-gray-300">
-                    Últimos emails enviados
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <Button 
-                    onClick={getEmailHistory} 
-                    disabled={isLoading}
-                    className="w-full bg-gradient-to-r from-purple-500/20 to-pink-600/20 border border-purple-500/30 text-purple-300 hover:from-purple-500/30 hover:to-pink-600/30"
-                    variant="outline"
-                  >
-                    <History className={`h-4 w-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
-                    Cargar Historial
-                  </Button>
-                  
-                  {emailHistory.length > 0 && (
-                    <div className="space-y-2 max-h-32 overflow-y-auto">
-                      {emailHistory.slice(0, 3).map((email) => (
-                        <div key={email._id} className="flex items-center justify-between p-2 bg-gray-800/50 rounded text-xs">
-                          <div className="flex-1 truncate">
-                            <p className="font-medium text-gray-200 truncate">{email.to}</p>
-                            <p className="text-gray-400">{email.type}</p>
-                          </div>
-                          {getStatusBadge(email.status)}
-                        </div>
-                      ))}
+                  {/* Quick History Preview */}
+                  {/* <div className="border-t border-gray-700/50 pt-4">
+                    <div className="flex items-center gap-2 mb-3">
+                      <History className="h-4 w-4 text-purple-400" />
+                      <span className="text-sm font-medium text-purple-400">Historial Rápido</span>
                     </div>
-                  )}
+                    <Button 
+                      onClick={() => getEmailHistory()} 
+                      disabled={isLoading}
+                      size="sm"
+                      className="w-full bg-gradient-to-r from-purple-500/20 to-pink-600/20 border border-purple-500/30 text-purple-300 hover:from-purple-500/30 hover:to-pink-600/30"
+                      variant="outline"
+                    >
+                      <History className={`h-3 w-3 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
+                      Cargar Historial
+                    </Button>
+                    
+                    {emailHistory?.history && emailHistory.history.length > 0 && (
+                      <div className="space-y-2 max-h-32 overflow-y-auto mt-3">
+                        {emailHistory.history.slice(0, 3).map((email: EmailHistoryItem) => (
+                          <div key={email._id} className="flex items-center justify-between p-2 bg-gray-800/50 rounded text-xs">
+                            <div className="flex-1 truncate">
+                              <p className="font-medium text-gray-200 truncate">{email.to}</p>
+                              <p className="text-gray-400">{email.template}</p>
+                            </div>
+                            {getStatusBadge(email.status)}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div> */}
                 </CardContent>
               </Card>
             </CardGradientWrapper>
@@ -672,7 +1089,131 @@ const TestingScreen = () => {
             </Card>
           </CardGradientWrapper>
         </ContentGradientSection> */}
-
+        {/* Email History Detailed */}
+        <ContentGradientSection variant="accent" position="bottom-center">
+          <CardGradientWrapper variant="sunset" intensity="low">
+            <Card className="bg-gray-900/60 backdrop-blur-sm border border-gray-700/50">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-white">
+                  <History className="h-5 w-5 text-yellow-400" />
+                  Historial Detallado de Emails
+                </CardTitle>
+                <CardDescription className="text-gray-300">
+                  Registro completo de emails enviados por el sistema
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="flex gap-3">
+                  <div className="flex-1">
+                    <Label htmlFor="history-email" className="text-gray-300">Email a consultar</Label>
+                    <Input
+                      id="history-email"
+                      type="email"
+                      value={historyEmail}
+                      onChange={(e) => setHistoryEmail(e.target.value)}
+                      placeholder="Ingresa el email para ver su historial"
+                      className="bg-gray-800/50 border-gray-600 text-white placeholder:text-gray-400"
+                    />
+                  </div>
+                  <div className="flex items-end">
+                    <Button 
+                      onClick={() => getEmailHistory()} 
+                      disabled={isLoading || !historyEmail.trim()}
+                      variant="outline"
+                      className="bg-yellow-700/20 border-yellow-500/30 text-yellow-300 hover:bg-yellow-700/30"
+                    >
+                      <Search className={`h-4 w-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
+                      Buscar
+                    </Button>
+                  </div>
+                </div>
+                
+                {emailHistory && (
+                  <div className="space-y-4">
+                    <Separator className="bg-gray-600" />
+                    
+                    {/* Summary Info */}
+                    <div className="flex items-center justify-between p-3 bg-gray-800/30 rounded-lg border border-gray-700/30">
+                      <div className="text-sm text-gray-300">
+                        <strong className="text-white">{emailHistory.email}</strong>
+                        <span className="mx-2">•</span>
+                        <span>{emailHistory.count} emails encontrados</span>
+                      </div>
+                      <Badge className="bg-blue-500/20 text-blue-300 border border-blue-500/30">
+                        Total: {emailHistory.count}
+                      </Badge>
+                    </div>
+                    
+                    {/* History List */}
+                    {emailHistory.history.length > 0 ? (
+                      <div className="space-y-3 max-h-96 overflow-y-auto">
+                        {emailHistory.history.map((email: EmailHistoryItem) => (
+                          <div key={email._id} className="p-4 bg-gray-800/50 rounded-lg border border-gray-700/50 hover:border-gray-600/70 transition-colors">
+                            <div className="flex items-start justify-between mb-3">
+                              <div className="flex-1 min-w-0">
+                                <h4 className="font-medium text-white text-sm truncate flex items-center gap-2">
+                                  <MessageSquare className="h-4 w-4 text-blue-400" />
+                                  {email.subject}
+                                </h4>
+                                <p className="text-xs text-gray-400 mt-1 flex items-center gap-2">
+                                  <Calendar className="h-3 w-3" />
+                                  <span className="font-mono">{email.template}</span>
+                                  {email.priority && <span className="ml-2 px-1 py-0.5 bg-orange-500/20 text-orange-300 rounded text-xs">
+                                    {email.priority}
+                                  </span>}
+                                </p>
+                              </div>
+                              <div className="flex items-center gap-2 ml-3">
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => openEmailDetail(email)}
+                                  className="bg-blue-500/20 border-blue-500/30 text-blue-300 hover:bg-blue-500/30 h-7 px-2"
+                                >
+                                  <Eye className="h-3 w-3 mr-1" />
+                                  Ver
+                                </Button>
+                                {getStatusBadge(email.status)}
+                              </div>
+                            </div>
+                            
+                            <div className="grid grid-cols-2 gap-4 text-xs text-gray-400">
+                              <div>
+                                <p><span className="text-gray-300">Creado:</span> {new Date(email.createdAt).toLocaleString()}</p>
+                                {email.sentAt && (
+                                  <p><span className="text-gray-300">Enviado:</span> {new Date(email.sentAt).toLocaleString()}</p>
+                                )}
+                              </div>
+                              <div>
+                                <p><span className="text-gray-300">Reintentos:</span> {email.retryCount}/{email.maxRetries}</p>
+                                {email.messageId && (
+                                  <p className="truncate"><span className="text-gray-300">ID:</span> {email.messageId}</p>
+                                )}
+                              </div>
+                            </div>
+                            
+                            {email.error && (
+                              <div className="mt-3 p-2 bg-red-500/10 border border-red-500/20 rounded">
+                                <p className="text-xs text-red-300">
+                                  <span className="font-medium">Error:</span> {email.error}
+                                </p>
+                              </div>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="text-center py-8 text-gray-400">
+                        <History className="h-12 w-12 mx-auto mb-3 opacity-50" />
+                        <p>No se encontraron emails para esta dirección</p>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </CardGradientWrapper>
+        </ContentGradientSection>
         {/* Email Testing and OTP Testing */}
         <ContentGradientSection variant="cool" position="bottom-left">
           <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
@@ -817,54 +1358,346 @@ const TestingScreen = () => {
               </Card>
             </CardGradientWrapper>
           </div>
-        </ContentGradientSection>
+        </ContentGradientSection> 
 
-        {/* Email History Detailed */}
-        <ContentGradientSection variant="accent" position="bottom-center">
+        {/* Email Detail Modal */}
+        <Dialog open={isEmailDetailOpen} onOpenChange={setIsEmailDetailOpen}>
+          <DialogContent className="max-w-4xl max-h-[90vh] bg-box border border-line text-white">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2 text-xl">
+                <Mail className="h-5 w-5 text-blue-400" />
+                Detalles del Email
+              </DialogTitle>
+              <DialogDescription className="text-gray-400">
+                {selectedEmail?.subject}
+              </DialogDescription>
+            </DialogHeader>
+
+            {selectedEmail && (
+              <Tabs defaultValue="overview" className="w-full">
+                <TabsList className="grid w-full grid-cols-4 bg-gray-800">
+                  <TabsTrigger value="overview" className="data-[state=active]:bg-blue-600 text-white">
+                    <Info className="h-4 w-4 mr-2" />
+                    Resumen
+                  </TabsTrigger>
+                  <TabsTrigger value="template" className="data-[state=active]:bg-green-600 text-white">
+                    <FileText className="h-4 w-4 mr-2" />
+                    Template
+                  </TabsTrigger>
+                  <TabsTrigger value="technical" className="data-[state=active]:bg-purple-600 text-white">
+                    <Server className="h-4 w-4 mr-2" />
+                    Técnico
+                  </TabsTrigger>
+                  <TabsTrigger value="raw" className="data-[state=active]:bg-orange-600 text-white">
+                    <FileText className="h-4 w-4 mr-2" />
+                    JSON Raw
+                  </TabsTrigger>
+                </TabsList>
+
+                <ScrollArea className="h-[60vh] w-full">
+                  <TabsContent value="overview" className="space-y-4 p-1">
+                    <Card className="bg-gray-800/50 border-gray-700">
+                      <CardHeader>
+                        <CardTitle className="flex items-center justify-between">
+                          <span className="flex items-center gap-2">
+                            <MessageSquare className="h-5 w-5 text-blue-400" />
+                            Información General
+                          </span>
+                          <div className="flex items-center gap-2">
+                            {getStatusBadge(selectedEmail.status)}
+                            <Button 
+                              size="sm" 
+                              variant="outline"
+                              onClick={() => copyToClipboard(selectedEmail.subject)}
+                              className="h-7 px-2"
+                            >
+                              <Copy className="h-3 w-3" />
+                            </Button>
+                          </div>
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent className="space-y-4">
+                        <div className="grid grid-cols-2 gap-4">
+                          <div className="space-y-3">
+                            <div>
+                              <label className="text-sm font-medium text-gray-300">Destinatario:</label>
+                              <p className="text-white font-mono">{selectedEmail.to}</p>
+                            </div>
+                            <div>
+                              <label className="text-sm font-medium text-gray-300">Asunto:</label>
+                              <p className="text-white">{selectedEmail.subject}</p>
+                            </div>
+                            <div>
+                              <label className="text-sm font-medium text-gray-300">Template:</label>
+                              <Badge className="bg-blue-500/20 text-blue-300 border border-blue-500/30">
+                                {selectedEmail.template}
+                              </Badge>
+                            </div>
+                          </div>
+                          <div className="space-y-3">
+                            <div>
+                              <label className="text-sm font-medium text-gray-300">Prioridad:</label>
+                              <Badge className="bg-orange-500/20 text-orange-300 border border-orange-500/30">
+                                {selectedEmail.priority}
+                              </Badge>
+                            </div>
+                            <div>
+                              <label className="text-sm font-medium text-gray-300">Reintentos:</label>
+                              <p className="text-white">
+                                {selectedEmail.retryCount}/{selectedEmail.maxRetries}
+                                {selectedEmail.retryCount > 0 && (
+                                  <RotateCcw className="h-4 w-4 inline ml-2 text-yellow-400" />
+                                )}
+                              </p>
+                            </div>
+                            <div>
+                              <label className="text-sm font-medium text-gray-300">Message ID:</label>
+                              <p className="text-white font-mono text-xs break-all">{selectedEmail.messageId}</p>
+                            </div>
+                          </div>
+                        </div>
+
+                        <Separator className="bg-gray-700" />
+
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                          <div>
+                            <label className="text-sm font-medium text-gray-300 flex items-center gap-2">
+                              <Calendar className="h-4 w-4" />
+                              Fecha de Creación:
+                            </label>
+                            <p className="text-white">{new Date(selectedEmail.createdAt).toLocaleString()}</p>
+                          </div>
+                          {selectedEmail.sentAt && (
+                            <div>
+                              <label className="text-sm font-medium text-gray-300 flex items-center gap-2">
+                                <Send className="h-4 w-4" />
+                                Fecha de Envío:
+                              </label>
+                              <p className="text-white">{new Date(selectedEmail.sentAt).toLocaleString()}</p>
+                            </div>
+                          )}
+                          {selectedEmail.updatedAt && (
+                            <div>
+                              <label className="text-sm font-medium text-gray-300 flex items-center gap-2">
+                                <Clock className="h-4 w-4" />
+                                Última Actualización:
+                              </label>
+                              <p className="text-white">{new Date(selectedEmail.updatedAt).toLocaleString()}</p>
+                            </div>
+                          )}
+                        </div>
+
+                        {selectedEmail.error && (
+                          <Card className="bg-red-500/10 border border-red-500/20">
+                            <CardHeader>
+                              <CardTitle className="text-red-300 flex items-center gap-2">
+                                <XCircle className="h-5 w-5" />
+                                Error
+                              </CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                              <p className="text-red-200">{selectedEmail.error}</p>
+                            </CardContent>
+                          </Card>
+                        )}
+                      </CardContent>
+                    </Card>
+                  </TabsContent>
+
+                  <TabsContent value="template" className="space-y-4 p-1">
+                    <Card className="bg-gray-800/50 border-gray-700">
+                      <CardHeader>
+                        <CardTitle className="flex items-center justify-between">
+                          <span className="flex items-center gap-2">
+                            <FileText className="h-5 w-5 text-green-400" />
+                            Datos del Template
+                          </span>
+                          <Button 
+                            size="sm" 
+                            variant="outline"
+                            onClick={() => copyToClipboard(formatTemplateDataAsMarkdown(selectedEmail.templateData))}
+                            className="bg-green-500/20 border-green-500/30 text-green-300 hover:bg-green-500/30"
+                          >
+                            <Copy className="h-3 w-3 mr-1" />
+                            Copiar como Markdown
+                          </Button>
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        {selectedEmail.templateData && Object.keys(selectedEmail.templateData).length > 0 ? (
+                          <div className="space-y-4">
+                            {Object.entries(selectedEmail.templateData).map(([key, value]) => (
+                              <div key={key} className="border border-gray-700 rounded-lg p-3">
+                                <div className="flex items-center justify-between mb-2">
+                                  <label className="text-sm font-medium text-gray-300">{key}:</label>
+                                  <Button 
+                                    size="sm" 
+                                    variant="outline"
+                                    onClick={() => copyToClipboard(typeof value === 'object' ? JSON.stringify(value, null, 2) : String(value))}
+                                    className="h-6 px-2"
+                                  >
+                                    <Copy className="h-3 w-3" />
+                                  </Button>
+                                </div>
+                                {typeof value === 'object' && value !== null ? (
+                                  <pre className="text-xs bg-gray-900/50 p-2 rounded overflow-x-auto text-gray-200">
+                                    {JSON.stringify(value, null, 2)}
+                                  </pre>
+                                ) : (
+                                  <p className="text-white bg-gray-900/50 p-2 rounded font-mono text-sm">
+                                    {String(value)}
+                                  </p>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        ) : (
+                          <p className="text-gray-400 text-center py-8">No hay datos del template disponibles</p>
+                        )}
+                      </CardContent>
+                    </Card>
+                  </TabsContent>
+
+                  <TabsContent value="technical" className="space-y-4 p-1">
+                    <Card className="bg-gray-800/50 border-gray-700">
+                      <CardHeader>
+                        <CardTitle className="flex items-center gap-2">
+                          <Server className="h-5 w-5 text-purple-400" />
+                          Información Técnica
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent className="space-y-4">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <Card className="bg-gray-900/50 border-gray-700">
+                            <CardHeader className="pb-3">
+                              <CardTitle className="text-sm">Identificadores</CardTitle>
+                            </CardHeader>
+                            <CardContent className="space-y-2 text-sm">
+                              <div className="flex justify-between">
+                                <span className="text-gray-300">MongoDB ID:</span>
+                                <span className="text-white font-mono text-xs">{selectedEmail._id}</span>
+                              </div>
+                              <div className="flex justify-between">
+                                <span className="text-gray-300">Message ID:</span>
+                                <span className="text-white font-mono text-xs truncate ml-2" title={selectedEmail.messageId}>
+                                  {selectedEmail.messageId}
+                                </span>
+                              </div>
+                            </CardContent>
+                          </Card>
+
+                          <Card className="bg-gray-900/50 border-gray-700">
+                            <CardHeader className="pb-3">
+                              <CardTitle className="text-sm">Configuración de Reintentos</CardTitle>
+                            </CardHeader>
+                            <CardContent className="space-y-2 text-sm">
+                              <div className="flex justify-between">
+                                <span className="text-gray-300">Intentos realizados:</span>
+                                <Badge className="bg-blue-500/20 text-blue-300 border border-blue-500/30">
+                                  {selectedEmail.retryCount}
+                                </Badge>
+                              </div>
+                              <div className="flex justify-between">
+                                <span className="text-gray-300">Máximo permitido:</span>
+                                <Badge className="bg-gray-500/20 text-gray-300 border border-gray-500/30">
+                                  {selectedEmail.maxRetries}
+                                </Badge>
+                              </div>
+                            </CardContent>
+                          </Card>
+                        </div>
+
+                        <Card className="bg-gray-900/50 border-gray-700">
+                          <CardHeader className="pb-3">
+                            <CardTitle className="text-sm">Cronología de Eventos</CardTitle>
+                          </CardHeader>
+                          <CardContent>
+                            <div className="space-y-3">
+                              <div className="flex items-center gap-3">
+                                <div className="w-2 h-2 bg-blue-400 rounded-full"></div>
+                                <div className="flex-1">
+                                  <p className="text-sm text-white">Email creado</p>
+                                  <p className="text-xs text-gray-400">{new Date(selectedEmail.createdAt).toLocaleString()}</p>
+                                </div>
+                              </div>
+                              {selectedEmail.sentAt && (
+                                <div className="flex items-center gap-3">
+                                  <div className="w-2 h-2 bg-green-400 rounded-full"></div>
+                                  <div className="flex-1">
+                                    <p className="text-sm text-white">Email enviado</p>
+                                    <p className="text-xs text-gray-400">{new Date(selectedEmail.sentAt).toLocaleString()}</p>
+                                  </div>
+                                </div>
+                              )}
+                              {selectedEmail.updatedAt !== selectedEmail.createdAt && (
+                                <div className="flex items-center gap-3">
+                                  <div className="w-2 h-2 bg-yellow-400 rounded-full"></div>
+                                  <div className="flex-1">
+                                    <p className="text-sm text-white">Última actualización</p>
+                                    <p className="text-xs text-gray-400">{new Date(selectedEmail.updatedAt).toLocaleString()}</p>
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                          </CardContent>
+                        </Card>
+                      </CardContent>
+                    </Card>
+                  </TabsContent>
+
+                  <TabsContent value="raw" className="space-y-4 p-1">
+                    <Card className="bg-gray-800/50 border-gray-700">
+                      <CardHeader>
+                        <CardTitle className="flex items-center justify-between">
+                          <span className="flex items-center gap-2">
+                            <FileText className="h-5 w-5 text-orange-400" />
+                            Datos Raw (JSON)
+                          </span>
+                          <Button 
+                            size="sm" 
+                            variant="outline"
+                            onClick={() => copyToClipboard(JSON.stringify(selectedEmail, null, 2))}
+                            className="bg-orange-500/20 border-orange-500/30 text-orange-300 hover:bg-orange-500/30"
+                          >
+                            <Copy className="h-3 w-3 mr-1" />
+                            Copiar JSON
+                          </Button>
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <pre className="text-xs bg-gray-900/50 p-4 rounded-lg overflow-x-auto text-gray-200 max-h-96 overflow-y-auto">
+                          {JSON.stringify(selectedEmail, null, 2)}
+                        </pre>
+                      </CardContent>
+                    </Card>
+                  </TabsContent>
+                </ScrollArea>
+              </Tabs>
+            )}
+          </DialogContent>
+        </Dialog>
+
+        {/* <ContentGradientSection variant="accent" position="bottom-center">
           <CardGradientWrapper variant="sunset" intensity="low">
             <Card className="bg-gray-900/60 backdrop-blur-sm border border-gray-700/50">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-white">
                   <History className="h-5 w-5 text-yellow-400" />
-                  Historial Detallado de Emails
+                  Audio de Pruebas
                 </CardTitle>
                 <CardDescription className="text-gray-300">
-                  Registro completo de emails enviados por el sistema
+                  Prueba de audio reproductor
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
-                <Button 
-                  onClick={getEmailHistory} 
-                  disabled={isLoading}
-                  variant="outline"
-                  className="bg-yellow-700/20 border-yellow-500/30 text-yellow-300 hover:bg-yellow-700/30"
-                >
-                  <History className={`h-4 w-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
-                  Recargar Historial Completo
-                </Button>
-                
-                {emailHistory.length > 0 && (
-                  <div className="space-y-2">
-                    <Separator className="bg-gray-600" />
-                    <div className="space-y-3 max-h-80 overflow-y-auto">
-                      {emailHistory.map((email) => (
-                        <div key={email._id} className="flex items-center justify-between p-4 bg-gray-800/50 rounded-lg border border-gray-700/50">
-                          <div className="flex-1">
-                            <p className="font-medium text-white text-sm">{email.to}</p>
-                            <p className="text-xs text-gray-400">{email.type} • {new Date(email.createdAt).toLocaleString()}</p>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            {getStatusBadge(email.status)}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
+                <audio controls className="w-full">
+                  <source src="http://localhost:9000/exam-files/questions/689ae1a5109dc1f7e82fc9ae/audio/1754980792328_Example1.mp3" type="audio/mpeg" />
+                  Tu navegador no soporta el elemento de audio.
+                </audio>
               </CardContent>
             </Card>
           </CardGradientWrapper>
-        </ContentGradientSection>
+        </ContentGradientSection> */}
       </div>
     </MainLayout>
   );

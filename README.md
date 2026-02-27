@@ -1,12 +1,111 @@
-# 🚀 CBA Platform - Microservices API Documentation
+# 🎓 Sistema de Evaluación UPDS - Versión Final con IA
 
-## 📋 Servicios Implementados
+Sistema completo de evaluación académica con inteligencia artificial para análisis avanzado de competencias lingüísticas y generación de feedback personalizado.
+
+# Contexto
+
+Sistema de evaluación lingüística automatizada con IA para el CBA Tarija, diseñado
+para calificar las cuatro habilidades del inglés (Reading, Writing, Listening,
+Speaking) bajo el estándar internacional MCER.
+
+# Stack y Reglas Base
+
+**React (UI):** Gestión de interfaces responsivas, consumo de APIs
+(FastAPI/Node), autenticación OTP/JWT y monitoreo de sesiones en tiempo real vía
+WebSockets.
+**(System):** Orquestación de procesos locales de IA (Ollama), manejo de
+archivos de audio para procesamiento offline y persistencia de logs de auditoría.
+
+# Entidades Core
+
+**Users:** Gestión de identidades con roles (Admin, Docente, Proctor,
+Estudiante) y metadatos académicos.
+**Exams/Questions:** Estructura de evaluaciones, banco de preguntas
+categorizado por niveles MCER y rúbricas de calificación.
+**Sessions:** Instancias de ejecución cronometradas con asignación de
+participantes y control de estado (Scheduled, In-Progress, Evaluated).
+**Responses:** Almacenamiento de respuestas multimodales, puntajes calculados y
+feedback generado por los motores de IA.
+
+# Roadmap y Estado Actual
+
+[ ] Módulo de Gestión de Usuarios y Autenticación OTP/JWT.
+[ ] Configuración Académica (Niveles MCER, Rúbricas y Parámetros).
+[ ] Banco de Preguntas Multimodal (Texto y Audio).
+[ ] Interfaz de Examen Responsiva y Grabación de Audio (WebRTC).
+[ ] Panel de Monitoreo en Tiempo Real para Proctores.
+[ ] Motor de Calificación IA (NLP para Writing y Whisper para Speaking).
+[ ] Sistema de Reportes Estadísticos y Envío Automático de Resultados.
+
+## 🚀 Características Principales
+
+### 🧠 **Evaluación con IA (NUEVO)**
+- **Análisis de Texto**: Evaluación gramatical y estilística con spaCy
+- **Transcripción de Audio**: Conversión automática de audio a texto con Whisper
+- **Clasificación MCER**: Determinación automática de nivel (A1-C2)
+- **LLM Local**: Feedback personalizado con Ollama (sin costos externos)
+
+### 🏗️ **Arquitectura de Microservicios**
+- **Auth Service** (Puerto 3000): Autenticación JWT
+- **User Management** (Puerto 3002): Gestión de usuarios y roles
+- **Exam Service** (Puerto 3003): Creación y gestión de exámenes
+- **Session Manager** (Puerto 3004): Control de sesiones en tiempo real
+- **Notifications** (Puerto 3001): Sistema de notificaciones
+- **AI Grading** (Puerto 3006): **Evaluación inteligente** ← NUEVO
+
+## � Servicios y Puertos Actualizados
 
 | Servicio | Puerto | Base URL | Estado |
 |----------|--------|----------|--------|
+| **Frontend** | 5173 | `/` | ✅ Activo |
 | **auth-service** | 3000 | `/auth` | ✅ Activo |
 | **notifications-service** | 3001 | `/notifications` | ✅ Activo |
 | **user-management-service** | 3002 | `/api/v1` | ✅ Activo |
+| **exam-service** | 3003 | `/api/v1` | ✅ Activo |
+| **session-manager-service** | 3004 | `/api/v1` | ✅ Activo |
+| **🧠 ai-grading-service** | **3006** | **`/api/v1`** | **🆕 NUEVO** |
+
+## 🔧 Despliegue Rápido
+
+### Opción 1: Despliegue Automático
+```bash
+# Para Fish Shell
+chmod +x deploy.fish && ./deploy.fish
+
+# Para Bash
+chmod +x validate-deployment.sh && ./validate-deployment.sh
+```
+
+### Opción 2: Despliegue Manual
+```bash
+# 1. Iniciar Ollama (LLM local)
+ollama serve &
+
+# 2. Levantar todos los servicios
+docker-compose up --build -d
+
+# 3. Verificar servicios
+curl http://localhost:3006/health
+```
+
+## 🧪 Testing del Servicio AI
+
+### Health Check
+```bash
+curl http://localhost:3006/health
+```
+
+### Evaluación de Texto con IA
+```bash
+curl -X POST http://localhost:3006/api/v1/grade/text \
+  -H "Content-Type: application/json" \
+  -d '{
+    "text": "This is a sample essay for testing the AI grading system.",
+    "evaluation_type": "essay",
+    "target_level": "B2",
+    "use_llm": true
+  }'
+```
 
 ---
 

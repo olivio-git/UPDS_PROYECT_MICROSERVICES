@@ -1,7 +1,7 @@
-import { Request, Response, NextFunction } from 'express';
+import { NextFunction, Request, Response } from 'express';
+import { createError } from '../middleware/error.middleware';
 import { UserService } from '../services/user.service';
 import { JWTPayload } from '../types/index';
-import { createError } from '../middleware/error.middleware';
 
 export class UserController {
   private userService: UserService;
@@ -40,7 +40,33 @@ export class UserController {
       next(error);
     }
   };
+  getProctors = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try { 
+      const query = req.query as any;
+      const page = parseInt(query.page) || 1;
+      const limit = parseInt(query.limit) || 10;
+      const search = query.search;
+      const role = query.role;
+      const status = query.status;
+      const sortBy = query.sortBy || 'createdAt';
+      const sortOrder = query.sortOrder || 'desc';
 
+      const sessionId = req.params.sessionId;
+      // Separar parámetros de paginación y filtros
+      const pagination = { page, limit, sortBy, sortOrder };
+      const filters = { search, role, status, sessionId };
+
+      const result = await this.userService.getProctors(pagination, filters);
+
+      if (result.success) {
+        res.status(200).json(result);
+      } else {
+        res.status(400).json(result);
+      }
+    } catch (error) {
+      next(error);
+    }
+  };
   // ================================
   // GET USER BY ID
   // ================================

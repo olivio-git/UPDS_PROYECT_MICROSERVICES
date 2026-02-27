@@ -1,0 +1,16 @@
+%% Notifications component diagram
+graph TB
+    subgraph notifications-service
+      N1[Express API - /notifications]
+      N2[Controllers: Email / Queue / Stats]
+      N3[Services: Resend Client, Templates]
+      N4[MongoDB - notifications collection]
+      N5[Kafka Consumer, email events]
+      N6[Bounce/Retry Worker]
+    end
+
+    N1 --> N2
+    N2 --> N3
+    N3 --> N4
+    N2 --> N5
+    N3 --> N6

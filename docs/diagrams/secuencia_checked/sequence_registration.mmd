@@ -1,0 +1,63 @@
+
+%% Diagrama 1: Admin-initiated user creation and notification flow
+sequenceDiagram
+    participant Admin
+    participant UMFrontend as "User-Management UI"
+    participant APIGW as "API Gateway"
+    participant UM as "user-management-service"
+    participant Auth as "auth-service"
+    participant UMDB as "UserDB (MongoDB)"
+    participant Kafka
+    participant Notif as "notifications-service"
+    participant SMTP
+
+    %% Admin initiates creation (single or bulk)
+    Admin->>UMFrontend: Create user / Upload Excel
+    UMFrontend->>APIGW: POST /api/v1/users (or /users/bulk)
+    APIGW->>UM: POST /api/v1/users
+
+    %% user-management generates credentials and creates user in auth-service
+    UM->>UM: authServiceIntegration.generateUserCredentials(userData)
+    UM->>Auth: POST /auth/internal/register { email, temporaryPassword, firstName, lastName, role }
+    Auth->>Auth: create auth record
+    Auth-->>UM: 201 { authUserId }
+
+    %% user-management persists local record and responds
+    UM->>UMDB: create user record (link to authUserId, role, permissions)
+    UM-->>APIGW: 201 { user }
+    APIGW-->>UMFrontend: 201 { user }
+
+    %% user-management publishes event containing temporary password
+    UM->>Kafka: publish USER_CREATED { userId, email, temporaryPassword, isNewUser }
+
+    %% notifications-service consumes and sends email
+    Kafka->>Notif: USER_CREATED event
+    Notif->>SMTP: send email (template: new_user_credentials, includes temporaryPassword)
+    SMTP-->>Notif: ack
+    Notif-->>Kafka: EMAIL_SENT { userId }
+
+
+------Para usaurio Admin
+sequenceDiagram
+    participant Client
+    participant Frontend
+    participant APIGW as "API Gateway"
+    participant Auth as "auth-service"
+    participant DB as "MongoDB"
+    participant Kafka
+    participant Notif as "notifications-service"
+    participant SMTP
+
+    Client->>Frontend: submit register form
+    Frontend->>APIGW: POST /auth/register
+    APIGW->>Auth: POST /auth/register
+    Auth->>DB: create user
+    DB-->>Auth: user created
+    Auth->>Kafka: publish user.registered
+    Auth-->>APIGW: return tokens
+    APIGW-->>Frontend: 201 { tokens }
+    Kafka->>Notif: user.registered event
+    Notif->>Notif: enqueue email (welcome)
+    Notif->>SMTP: send email
+    SMTP-->>Notif: ack
+    Notif-->>Kafka: email.sent

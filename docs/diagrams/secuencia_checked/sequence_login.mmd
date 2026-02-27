@@ -1,0 +1,82 @@
+sequenceDiagram
+    %% Constants: MAX_ATTEMPTS=3, RATE_LIMIT_WINDOW=300s (5 minutes)
+    participant User
+    participant Frontend as "User-Management UI / Frontend"
+    participant APIGW as "API Gateway"
+    participant Auth as "auth-service"
+    participant Redis as "Redis (cache)"
+    participant SMTP
+
+    %% Step 1: User requests OTP for login
+    User->>Frontend: Enter email and submit (OtpInitialScreen)
+    Frontend->>APIGW: POST /auth/otp/generate { email, purpose: 'login' }
+    APIGW->>Auth: POST /auth/otp/generate { email, purpose }
+    Auth->>Auth: lookup user by email
+    alt user found
+        %% Rate limiting: increment counter and set expiry window
+        Auth->>Redis: INCR ratelimit:otp:{email}
+        Redis-->>Auth: currentCount
+        Auth->>Redis: EXPIRE ratelimit:otp:{email} 300  %% (only if first INCR)
+        Redis-->>Auth: OK
+        alt currentCount > 3
+            Auth-->>APIGW: 429 { error: 'OTP_RATE_LIMIT_EXCEEDED', retryAfter: 300 }
+            APIGW-->>Frontend: 429 { error }
+            Frontend->>User: show rate-limit message (wait 5 minutes)
+        else currentCount <= 3
+            Auth->>SMTP: send OTP email (6-digit)
+            SMTP-->>Auth: ack
+            Auth->>Redis: SET otp:{email} = {code, attempts:0, maxAttempts:3} EX expiresIn
+            Redis-->>Auth: OK
+            Auth-->>APIGW: 200 { success, expiresIn }
+            APIGW-->>Frontend: 200 { success }
+            Frontend->>Frontend: redirect to /otp-verification (OtpVerificator) with email
+        end
+    else user not found
+        Auth-->>APIGW: 404 { error: 'USER_NOT_FOUND' }
+        APIGW-->>Frontend: 404 { error }
+        Frontend->>User: show error
+    end
+
+    %% Step 2: User enters OTP
+    User->>Frontend: Enter OTP (OtpVerificator)
+    Frontend->>APIGW: POST /auth/otp/verify { email, code, purpose: 'login' }
+    APIGW->>Auth: POST /auth/otp/verify { email, code, purpose }
+    Auth->>Redis: GET otp:{email}
+    Redis-->>Auth: { code: '123456', attempts: n, ttl }
+    Auth->>Auth: compare codes and check ttl
+    alt OTP valid
+        Auth->>Redis: DEL otp:{email}
+        Redis-->>Auth: 1
+        Auth-->>APIGW: 200 { success }
+        APIGW-->>Frontend: 200 { success }
+        Frontend->>Frontend: navigate to /login with state { verifiedEmail }
+    else OTP invalid
+        Auth->>Redis: DECR otp:{email}:attempts
+        Redis-->>Auth: updatedAttempts
+        alt attempts > 0
+            Auth-->>APIGW: 400 { error: 'INVALID_OTP', attemptsRemaining: updatedAttempts }
+            APIGW-->>Frontend: 400 { error, attemptsRemaining }
+            Frontend->>User: show error and allow retry or resend
+        else attempts == 0
+            Auth->>Redis: DEL otp:{email}
+            Redis-->>Auth: 1
+            Auth-->>APIGW: 429 { error: 'OTP_LOCKED' }
+            APIGW-->>Frontend: 429 { error }
+            Frontend->>User: show lockout / request new OTP
+        end
+    end
+
+    %% Step 3: Password login after verification
+    User->>Frontend: Enter password and submit (LoginScreen)
+    Frontend->>APIGW: POST /auth/login { email: verifiedEmail, password }
+    APIGW->>Auth: POST /auth/login { email, password }
+    Auth->>Auth: validate credentials, create session / tokens
+    alt credentials valid
+        Auth-->>APIGW: 200 { accessToken, refreshToken, user }
+        APIGW-->>Frontend: 200 { user, tokens }
+        Frontend->>User: redirect to /dashboard (authenticated)
+    else invalid credentials
+        Auth-->>APIGW: 401 { error: 'INVALID_CREDENTIALS' }
+        APIGW-->>Frontend: 401 { error }
+        Frontend->>User: show error
+    end

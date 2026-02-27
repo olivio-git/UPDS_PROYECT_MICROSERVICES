@@ -12,6 +12,7 @@ import {
 
 export class CandidateModel implements Candidate {
   _id?: ObjectId;
+  userId: ObjectId;
   personalInfo: PersonalInfo;
   academicInfo: AcademicInfo;
   technicalSetup: TechnicalSetup;
@@ -24,6 +25,7 @@ export class CandidateModel implements Candidate {
 
   constructor(data: Partial<Candidate>) {
     this._id = data._id ?? undefined;
+    this.userId = data.userId!;
     this.personalInfo = data.personalInfo || {} as PersonalInfo;
     this.academicInfo = data.academicInfo || {} as AcademicInfo;
     this.technicalSetup = data.technicalSetup || this.getDefaultTechnicalSetup();
@@ -196,6 +198,7 @@ export class CandidateModel implements Candidate {
   public toJSON(): Candidate {
     const result: Candidate = {
       _id: this._id,
+      userId: this.userId,
       personalInfo: this.personalInfo,
       academicInfo: this.academicInfo,
       technicalSetup: this.technicalSetup,
@@ -237,15 +240,57 @@ export class CandidateModel implements Candidate {
   public static createMinimal(
     personalInfo: PersonalInfo,
     academicInfo: AcademicInfo,
-    registeredBy: ObjectId
+    registeredBy: ObjectId,
+    userId: ObjectId
   ): CandidateModel {
     return new CandidateModel({
+      userId,
       personalInfo,
       academicInfo,
       registeredBy,
       status: 'registered',
       createdAt: new Date(),
       updatedAt: new Date(),
+    });
+  }
+
+  // 🆕 NUEVO: Factory method para crear desde User
+  public static createFromUser(user: any): CandidateModel {
+    return new CandidateModel({
+      userId: user._id,
+      personalInfo: {
+        firstName: user.firstName,
+        lastName: user.lastName,
+        email: user.email,
+        phone: '',
+        nationality: '',
+        identification: { type: 'ci', number: '' },
+        address: {
+          street: '',
+          city: '',
+          state: '',
+          country: 'Bolivia',
+          zipCode: ''
+        }
+      },
+      academicInfo: {
+        currentLevel: 'A1' as MCERLevel,
+        targetLevel: 'A2' as MCERLevel,
+        studyPurpose: 'personal',
+        institution: 'CBA Tarija'
+      },
+      technicalSetup: {
+        hasCamera: false,
+        hasMicrophone: false,
+        hasStableInternet: false,
+        browser: 'Unknown',
+        operatingSystem: 'Unknown'
+      },
+      examHistory: [],
+      status: 'registered',
+      registeredBy: user._id,
+      createdAt: new Date(),
+      updatedAt: new Date()
     });
   }
 

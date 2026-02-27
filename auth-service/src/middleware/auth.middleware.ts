@@ -1,7 +1,7 @@
-import { Request, Response, NextFunction } from 'express';
-import { JwtService } from '../services/jwt.service';
-import { AuthService } from '../services/auth.service';
+import { NextFunction, Request, Response } from 'express';
 import { CacheRepository } from '../repositories/cache.repository';
+import { AuthService } from '../services/auth.service';
+import { JwtService } from '../services/jwt.service';
 import { ApiResponse, JWTPayload } from '../types';
 
 // Removed duplicate AuthenticatedRequest interface
@@ -17,6 +17,7 @@ export class AuthMiddleware {
     try {
       const authHeader = req.headers.authorization;
       console.log(authHeader,"HEADER IN AUTH MIDDLEWARE");
+      console.log(req.body,"BODY IN AUTH MIDDLEWARE");
       if (!authHeader || !authHeader.startsWith('Bearer ')) {
         return res.status(401).json({
           success: false,

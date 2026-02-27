@@ -1,20 +1,19 @@
-import { Router, Request, Response, NextFunction } from 'express';
+import { NextFunction, Request, Response, Router } from 'express';
 import { UserController } from '../controllers/UserController';
-import { 
-  middlewareStacks, 
-  createValidatedMiddleware, 
+import {
   asyncHandler,
+  middlewareStacks,
   userPermissions,
   validateBody,
-  validateQuery,
-  validateParams
+  validateParams,
+  validateQuery
 } from '../middleware';
-import { 
-  CreateUserSchema, 
-  UpdateUserPasswordSchema, 
-  UpdateUserSchema, 
-  getUsersQuerySchema, 
-  idParamsSchema 
+import {
+  CreateUserSchema,
+  UpdateUserPasswordSchema,
+  UpdateUserSchema,
+  getUsersQuerySchema,
+  idParamsSchema
 } from '../schemas';
 
 // ================================
@@ -67,7 +66,13 @@ router.get('/',
   validateQuery(getUsersQuerySchema),
   asyncHandler(userController.getUsers)
 );
-
+// GET PROCTORS WITH NOT EXISTING IN SESSION
+router.get('/proctors',
+  ...middlewareStacks.basicAuth,
+  userPermissions.read,
+  validateQuery(getUsersQuerySchema),
+  asyncHandler(userController.getProctors)
+);
 /**
  * @route GET /users/:id
  * @desc Obtener usuario por ID

@@ -11,6 +11,8 @@ export const env = {
   // Database
   MONGO_URI: process.env.MONGO_URI || 'mongodb://localhost:27017/cba_platform',
   MONGO_DB_NAME: process.env.MONGO_DB_NAME || 'cba_platform',
+  // User-management-service database (used for User/Candidate lookups via useDb)
+  MONGO_UMS_DB_NAME: process.env.MONGO_UMS_DB_NAME || 'cba_user_management_db',
   
   // Redis
   REDIS_HOST: process.env.REDIS_HOST || 'localhost',
@@ -24,7 +26,21 @@ export const env = {
   
   // Auth Service
   AUTH_SERVICE_URL: process.env.AUTH_SERVICE_URL || 'http://localhost:3000',
+
+  // Grading Service
+  GRADING_SERVICE_URL: process.env.GRADING_SERVICE_URL || 'http://grading-service:3007',
   JWT_SECRET: process.env.JWT_SECRET || 'your-secret-key',
+  
+  // MinIO Configuration
+  MINIO_ENDPOINT: process.env.MINIO_ENDPOINT || 'localhost',
+  MINIO_PORT: parseInt(process.env.MINIO_PORT || '9000', 10),
+  MINIO_USE_SSL: process.env.MINIO_USE_SSL === 'true',
+  MINIO_ACCESS_KEY: process.env.MINIO_ACCESS_KEY || 'minioadmin',
+  MINIO_SECRET_KEY: process.env.MINIO_SECRET_KEY || 'minioadmin',
+  MINIO_BUCKET_NAME: process.env.MINIO_BUCKET_NAME || 'exam-files',
+  MINIO_PUBLIC_URL: process.env.MINIO_PUBLIC_URL || '', // URL pública para acceso externo
+  MINIO_PUBLIC_ENDPOINT: process.env.MINIO_PUBLIC_ENDPOINT || 'localhost', // Endpoint público para URLs
+  MINIO_INTERNAL_ENDPOINT: process.env.MINIO_INTERNAL_ENDPOINT || '', // URL interna Docker (e.g. http://minio:9000)
   
   // Logging
   LOG_LEVEL: process.env.LOG_LEVEL || 'info',
@@ -38,7 +54,7 @@ export const env = {
   MAX_FILE_SIZE: parseInt(process.env.MAX_FILE_SIZE || '10485760', 10), // 10MB
   ALLOWED_FILE_TYPES: process.env.ALLOWED_FILE_TYPES?.split(',') || ['pdf', 'doc', 'docx', 'mp3', 'mp4', 'jpg', 'jpeg', 'png'],
   
-  // AWS S3 (optional)
+  // AWS S3 (optional, for production)
   AWS_ACCESS_KEY_ID: process.env.AWS_ACCESS_KEY_ID || '',
   AWS_SECRET_ACCESS_KEY: process.env.AWS_SECRET_ACCESS_KEY || '',
   AWS_REGION: process.env.AWS_REGION || 'us-east-1',

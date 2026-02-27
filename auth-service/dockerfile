@@ -1,4 +1,4 @@
-# Dockerfile para Auth Service
+# Dockerfile para Exam Service
 FROM node:18-alpine
 
 # Instalar dependencias del sistema
@@ -11,17 +11,20 @@ WORKDIR /app
 COPY package*.json ./
 
 # Instalar dependencias
-RUN npm ci --only=production && npm cache clean --force
-
-# Crear usuario no-root
-RUN addgroup -g 1001 -S nodejs && \
-    adduser -S nodejs -u 1001
+RUN npm ci
 
 # Copiar código fuente
 COPY . .
 
 # Construir la aplicación
 RUN npm run build
+
+# Prune dev dependencies to keep the image small
+RUN npm prune --production
+
+# Crear usuario no-root
+RUN addgroup -g 1001 -S nodejs && \
+    adduser -S nodejs -u 1001
 
 # Cambiar ownership
 RUN chown -R nodejs:nodejs /app

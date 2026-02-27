@@ -11,10 +11,12 @@ export const CONSTANTS = {
 
   // Competencies
   COMPETENCIES: {
-    READING: 'reading',
-    WRITING: 'writing',
-    LISTENING: 'listening',
-    SPEAKING: 'speaking'
+  READING: 'reading',
+  WRITING: 'writing',
+  LISTENING: 'listening',
+  SPEAKING: 'speaking',
+  GRAMMAR: 'grammar',
+  VOCABULARY: 'vocabulary'
   },
 
   // Exam Types
@@ -22,7 +24,8 @@ export const CONSTANTS = {
     PLACEMENT: 'placement',
     PROGRESS: 'progress',
     FINAL: 'final',
-    MOCK: 'mock'
+    MOCK: 'mock',
+    PRACTICE:'practice'
   },
 
   // Question Types
@@ -31,6 +34,10 @@ export const CONSTANTS = {
     TRUE_FALSE: 'true_false',
     OPEN_TEXT: 'open_text',
     ESSAY: 'essay',
+    FILL_BLANKS: 'fill_blanks',
+    DRAG_DROP: 'drag_drop',
+    MATCHING: 'matching',
+    ORDERING: 'ordering',
     AUDIO_RESPONSE: 'audio_response',
     FILE_UPLOAD: 'file_upload'
   },

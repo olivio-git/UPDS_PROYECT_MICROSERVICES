@@ -1,8 +1,8 @@
-import { Routes, Route } from "react-router-dom";
-import { publicRoutes } from "./Public.Route";
-import { protectedRoutes } from "./Protected.Route";
-import RouteRenderer from "./RouteRenderer"; 
 import { useAuthPersistence } from "@/hooks/useAuthPersistence";
+import { Route, Routes } from "react-router-dom";
+import { protectedRoutes } from "./Protected.Route";
+import { publicRoutes } from "./Public.Route";
+import RouteRenderer from "./RouteRenderer";
 
 const Navigation = () => {
   const { isReady, isAuthenticated, user } = useAuthPersistence();
@@ -20,16 +20,15 @@ const Navigation = () => {
   }
 
   // Debug del estado de autenticación
-  console.log('🎯 [Navigation] Estado final:', {
-    isReady,
-    isAuthenticated,
-    hasUser: !!user,
-    userRole: user?.role,
-    userEmail: user?.email
-  });
+  // console.log('🎯 [Navigation] Estado final:', {
+  //   isReady,
+  //   isAuthenticated,
+  //   hasUser: !!user,
+  //   userRole: user?.role,
+  //   userEmail: user?.email
+  // });
 
   const allRoutes = [...publicRoutes, ...protectedRoutes];
-
   return (
     <Routes> 
       {allRoutes.map((route, index) => (

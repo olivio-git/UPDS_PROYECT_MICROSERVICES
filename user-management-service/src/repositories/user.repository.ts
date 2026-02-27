@@ -1,8 +1,8 @@
-import { Collection, Db, ObjectId, Filter, UpdateFilter, FindOptions } from 'mongodb';
-import { connectMongoDB, getDatabase } from '../database/connections';
-import { User, UserRole, UserStatus, PaginationParams, FilterParams } from '../types';
-import { UserModel } from '../models/User';
+import { Collection, Db, Filter, FindOptions, ObjectId, UpdateFilter } from 'mongodb';
 import config from '../config';
+import { getDatabase } from '../database/connections';
+import { UserModel } from '../models/User';
+import { FilterParams, PaginationParams, User, UserRole, UserStatus } from '../types';
 
 export class UserRepository {
   private db: Db;
@@ -141,6 +141,32 @@ export class UserRepository {
       };
     } catch (error) {
       console.error('Error obteniendo usuarios:', error);
+      throw error;
+    }
+  }
+  async findProctors(
+    pagination: PaginationParams,
+    filters: FilterParams = {}
+  ): Promise<{ proctors: UserModel[]; total: number }> {
+    try {
+      const query = this.buildQuery(filters);
+      // Forzar filtro por role proctor
+      query.role = 'proctor';
+      query.status = 'active'; // Solo proctors activos
+      
+      const options = this.buildFindOptions(pagination);
+
+      const [users, total] = await Promise.all([
+        this.collection.find(query, options).toArray(),
+        this.collection.countDocuments(query),
+      ]);
+
+      return {
+        proctors: users.map(user => UserModel.fromDatabase(user)),
+        total,
+      };
+    } catch (error) {
+      console.error('Error obteniendo proctores:', error);
       throw error;
     }
   }

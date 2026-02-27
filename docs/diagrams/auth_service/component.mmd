@@ -1,0 +1,17 @@
+%% Auth service component diagram
+graph TB
+    subgraph auth-service
+      A1[Express API - /auth]
+      A2[Controllers]
+      A3[Services JWT, OTP]
+      A4[MongoDB Users Collection]
+      A5[Redis - Sessions/RateLimit]
+      A6[Kafka Producer]
+    end
+
+    A1 --> A2
+    A2 --> A3
+    A3 --> A4
+    A3 --> A5
+    A3 --> A6
+  

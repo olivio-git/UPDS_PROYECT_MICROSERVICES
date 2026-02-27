@@ -115,3 +115,16 @@ build/Release
 
 # DynamoDB Local files
 .dynamodb/
+
+# Docker volumes data (persistencia local)
+data/mongodb/*
+data/minio/*
+data/redis/*
+data/kafka/*
+data/zookeeper/*
+# Mantener la estructura de carpetas
+!data/mongodb/.gitkeep
+!data/minio/.gitkeep
+!data/redis/.gitkeep
+!data/kafka/.gitkeep
+!data/zookeeper/.gitkeep

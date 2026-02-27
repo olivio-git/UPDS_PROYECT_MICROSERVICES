@@ -1,18 +1,3 @@
-import { useState } from "react";
-import { toast } from "sonner";
-import type { SortingState } from "@tanstack/react-table"; 
-import { MainLayout } from "@/components/layout";
-import UserTableHeader from "../components/UserTableHeader";
-import UserTable from "../components/UserTable";
-import UserForm from "../components/UserForm";
-import Pagination from "../components/Pagination";
-import { useUsers } from "../hooks/useUsers";
-import type {
-  ViewMode,
-  User,
-  CreateUserRequest,
-  UpdateUserRequest,
-} from "../types/user.types";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -23,8 +8,33 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/atoms/alert-dialog";
+import { Button } from "@/components/atoms/button";
+import { Input } from "@/components/atoms/input";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/atoms/dialog";
 import GradientWrapper from "@/components/background/GrandWrapperSection";
-import { Users2 } from "lucide-react";
+import { MainLayout } from "@/components/layout";
+import type { SortingState } from "@tanstack/react-table";
+import { Upload, Download, FileText, Users2 } from "lucide-react";
+import { useState, useRef } from "react";
+import { toast } from "sonner";
+import UserForm from "../components/UserForm";
+import UserTable from "../components/UserTable";
+import UserTableHeader from "../components/UserTableHeader";
+import { useUsers } from "../hooks/useUsers";
+import { userService } from "../services/userService";
+import type {
+  CreateUserRequest,
+  UpdateUserRequest,
+  User,
+  ViewMode,
+} from "../types/user.types";
 
 const UsersScreen = () => {
   // Estados de UI
@@ -36,6 +46,10 @@ const UsersScreen = () => {
   const [isDeleteMultipleDialogOpen, setIsDeleteMultipleDialogOpen] =
     useState(false);
   const [isFormLoading, setIsFormLoading] = useState(false);
+  const [isImportDialogOpen, setIsImportDialogOpen] = useState(false);
+  const [isImporting, setIsImporting] = useState(false);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Hook de usuarios
   const {
@@ -52,7 +66,7 @@ const UsersScreen = () => {
     selectUser,
     selectAllUsers,
     clearSelection,
-    // refreshUsers,
+    refreshUsers,
     createUser,
     updateUser,
     deleteUser,
@@ -62,6 +76,13 @@ const UsersScreen = () => {
     generateTemporaryPassword,
     // getUserById,
   } = useUsers();
+
+  // Debug: ver datos de paginación
+  console.log('UserScreen pagination data:', {
+    pagination,
+    totalUsers,
+    usersLength: users.length
+  });
 
   // Manejadores de navegación
   const handleCreateUser = () => {
@@ -108,6 +129,7 @@ const UsersScreen = () => {
         );
         if (success) {
           toast.success("Usuario actualizado exitosamente");
+          refreshUsers();
           handleBackToTable();
         }
       }
@@ -183,14 +205,89 @@ const UsersScreen = () => {
   };
 
   // Manejadores de exportación/importación
-  const handleExportUsers = () => {
-    // Por implementar: Exportar usuarios
-    toast.info("Función de exportar usuarios por implementar");
+  const handleExportUsers = async () => {
+    try {
+      toast.loading('Exportando usuarios...', { id: 'export-users' });
+
+      // Exportar con los filtros actuales aplicados
+      const result = await userService.exportUsers(filters);
+
+      if (result.success) {
+        toast.success('Usuarios exportados exitosamente', { id: 'export-users' });
+      } else {
+        toast.error(result.message || 'Error exportando usuarios', { id: 'export-users' });
+      }
+    } catch (error) {
+      console.error('Error exporting users:', error);
+      toast.error('Error inesperado al exportar usuarios', { id: 'export-users' });
+    }
   };
 
   const handleImportUsers = () => {
-    // Por implementar: Importar usuarios
-    toast.info("Función de importar usuarios por implementar");
+    setSelectedFile(null);
+    setIsImportDialogOpen(true);
+  };
+
+  const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      setSelectedFile(file);
+    }
+  };
+
+  const handleDownloadTemplate = async () => {
+    try {
+      toast.loading('Descargando plantilla...', { id: 'download-template' });
+
+      const result = await userService.downloadTemplate();
+
+      if (result.success) {
+        toast.success('Plantilla descargada exitosamente', { id: 'download-template' });
+      } else {
+        toast.error(result.message || 'Error descargando plantilla', { id: 'download-template' });
+      }
+    } catch (error) {
+      console.error('Error downloading template:', error);
+      toast.error('Error inesperado al descargar plantilla', { id: 'download-template' });
+    }
+  };
+
+  const handleConfirmImport = async () => {
+    if (!selectedFile) {
+      toast.error('Por favor selecciona un archivo');
+      return;
+    }
+
+    try {
+      setIsImporting(true);
+      toast.loading('Importando usuarios...', { id: 'import-users' });
+
+      const result = await userService.importUsers(selectedFile);
+
+      if (result.success) {
+        toast.success(result.message || 'Usuarios importados exitosamente', { id: 'import-users' });
+        setIsImportDialogOpen(false);
+        setSelectedFile(null);
+
+        // Refrescar la lista de usuarios
+        refreshUsers();
+      } else {
+        toast.error(result.message || 'Error importando usuarios', { id: 'import-users' });
+      }
+    } catch (error) {
+      console.error('Error importing users:', error);
+      toast.error('Error inesperado al importar usuarios', { id: 'import-users' });
+    } finally {
+      setIsImporting(false);
+    }
+  };
+
+  const handleCancelImport = () => {
+    setIsImportDialogOpen(false);
+    setSelectedFile(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
   };
 
   // Manejadores de filtros y paginación
@@ -280,20 +377,13 @@ const UsersScreen = () => {
           errorMessage={errorMessage}
           sorting={sorting}
           setSorting={handleSortingChange}
+          // Props de paginación
+          currentPage={pagination?.page}
+          totalPages={pagination?.totalPages}
+          totalItems={pagination?.total}
+          itemsPerPage={pagination?.limit}
+          onPageChange={handlePageChange}
         />
-
-        {/* Paginación */}
-        {pagination && (
-          <Pagination
-            currentPage={pagination.page}
-            totalPages={pagination.totalPages}
-            totalItems={pagination.total}
-            itemsPerPage={pagination.limit}
-            onPageChange={handlePageChange}
-            onItemsPerPageChange={handleItemsPerPageChange}
-            isLoading={isLoading || isFetching}
-          />
-        )}
       </div>
     );
   };
@@ -310,7 +400,7 @@ const UsersScreen = () => {
         </div>
         <GradientWrapper
           intensity="low"
-          size="lg"
+          size="xl"
           position="right"
           animate={false}
           variant="cosmic"
@@ -372,6 +462,109 @@ const UsersScreen = () => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Dialog para importar usuarios */}
+      <Dialog open={isImportDialogOpen} onOpenChange={setIsImportDialogOpen}>
+        <DialogContent className="bg-gray-900 border border-gray-700 text-white">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Upload className="w-5 h-5" />
+              Importar Usuarios
+            </DialogTitle>
+            <DialogDescription className="text-gray-400">
+              Importa usuarios desde un archivo Excel (.xlsx, .xls) o CSV
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            {/* Botón para descargar plantilla */}
+            <div className="bg-blue-900/20 border border-blue-700/30 rounded-lg p-4">
+              <div className="flex items-center gap-3">
+                <FileText className="w-5 h-5 text-blue-400" />
+                <div className="flex-1">
+                  <h4 className="text-sm font-medium text-blue-300">
+                    ¿Primera vez importando?
+                  </h4>
+                  <p className="text-xs text-gray-400">
+                    Descarga la plantilla de Excel para ver el formato correcto
+                  </p>
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleDownloadTemplate}
+                  className="border-blue-600 text-blue-300 hover:bg-blue-900/30"
+                >
+                  <Download className="w-4 h-4 mr-1" />
+                  Plantilla
+                </Button>
+              </div>
+            </div>
+
+            {/* Selector de archivo */}
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-gray-300">
+                Seleccionar archivo
+              </label>
+              <Input
+                ref={fileInputRef}
+                type="file"
+                accept=".xlsx,.xls,.csv"
+                onChange={handleFileSelect}
+                className="bg-gray-800 border-gray-600 text-white file:bg-gray-700 file:text-white file:border-0 file:mr-4 file:py-2 file:px-4 file:rounded-md file:text-sm"
+              />
+              {selectedFile && (
+                <div className="flex items-center gap-2 text-sm text-green-400">
+                  <FileText className="w-4 h-4" />
+                  {selectedFile.name} ({(selectedFile.size / 1024).toFixed(1)} KB)
+                </div>
+              )}
+            </div>
+
+            {/* Información sobre el formato */}
+            <div className="bg-gray-800/50 border border-gray-700 rounded-lg p-3">
+              <h4 className="text-sm font-medium text-gray-300 mb-2">
+                Formato requerido:
+              </h4>
+              <ul className="text-xs text-gray-400 space-y-1">
+                <li>• firstName: Nombre del usuario</li>
+                <li>• lastName: Apellido del usuario</li>
+                <li>• email: Email único del usuario</li>
+                <li>• role: admin, teacher, proctor, o student</li>
+                <li>• isActive: true o false (opcional, por defecto true)</li>
+              </ul>
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={handleCancelImport}
+              disabled={isImporting}
+              className="border-gray-600 text-gray-300 hover:bg-gray-800"
+            >
+              Cancelar
+            </Button>
+            <Button
+              onClick={handleConfirmImport}
+              disabled={!selectedFile || isImporting}
+              className="bg-green-600 hover:bg-green-700 text-white"
+            >
+              {isImporting ? (
+                <>
+                  <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin mr-2" />
+                  Importando...
+                </>
+              ) : (
+                <>
+                  <Upload className="w-4 h-4 mr-2" />
+                  Importar Usuarios
+                </>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </MainLayout>
   );
 };

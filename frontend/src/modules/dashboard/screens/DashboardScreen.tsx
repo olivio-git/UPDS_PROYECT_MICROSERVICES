@@ -1,36 +1,26 @@
-import { useState, useEffect } from "react";
 import { Button } from "@/components/atoms/button";
-import { useAuthStore } from "@/modules/auth/services/authStore";
-import { MainLayout } from "@/components/layout"; 
 import GradientWrapper from "@/components/background/GrandWrapperSection";
+import { MainLayout } from "@/components/layout";
+import { useAuthStore } from "@/modules/auth/services/authStore";
+import { useEffect } from "react";
 import { useNavigate } from "react-router";
 
 const DashboardScreen = () => {
-  const { user, isAuthenticated } = useAuthStore();
+  const { user } = useAuthStore();
   const navigate = useNavigate();
-  const [forceUpdate, setForceUpdate] = useState(0);
+  // const [forceUpdate, setForceUpdate] = useState(0);
   
   // Escuchar eventos de cambio de autenticación
   useEffect(() => {
     const handleAuthChange = () => {
-      console.log('🔄 [DashboardScreen] Evento auth-state-changed recibido');
-      setForceUpdate(prev => prev + 1);
+      // console.log('🔄 [DashboardScreen] Evento auth-state-changed recibido');
+      // setForceUpdate(prev => prev + 1);
     };
     
     window.addEventListener('auth-state-changed', handleAuthChange);
     return () => window.removeEventListener('auth-state-changed', handleAuthChange);
   }, []);
-  
-  // Debug para ver el estado
-  console.log('🎯 [DashboardScreen] Estado completo:', {
-    hasUser: !!user,
-    isAuthenticated,
-    userRole: user?.role,
-    firstName: user?.firstName,
-    lastName: user?.lastName,
-    email: user?.email,
-    fullUser: user
-  });
+   
   const getRoleBadgeColor = (role: string) => {
     switch (role) {
       case "admin":

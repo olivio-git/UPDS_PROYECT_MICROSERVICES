@@ -1,13 +1,15 @@
 import type { RouteType } from '../types/RouteTypes';
-import { Home, Users, BookOpen, BarChart, Calendar, Settings } from "lucide-react";
+import { Home, Users, BookOpen, BarChart, Calendar, Settings, HelpCircle } from "lucide-react";
+import QuestionsScreen from "@/modules/exams/screens/QuestionsScreen";
+import ExamsScreen from "@/modules/exams/screens/ExamsScreen";
+import SessionsList from "@/modules/exams/components/SessionsList";
 
 // Placeholder components - implementar cuando sea necesario
-const TeacherDashboard = () => <div>Teacher Dashboard - Por implementar</div>;
-const TeacherStudents = () => <div>Teacher Students - Por implementar</div>;
-const TeacherExams = () => <div>Teacher Exams - Por implementar</div>;
-const TeacherAnalytics = () => <div>Teacher Analytics - Por implementar</div>;
-const TeacherSchedule = () => <div>Teacher Schedule - Por implementar</div>;
-const TeacherSettings = () => <div>Teacher Settings - Por implementar</div>;
+const TeacherDashboard = () => null;
+const TeacherStudents = () => null;
+const TeacherAnalytics = () => null;
+const TeacherSchedule = () => null;
+const TeacherSettings = () => null;
 
 export const teacherRoutes: RouteType[] = [
   {
@@ -30,12 +32,30 @@ export const teacherRoutes: RouteType[] = [
     isAdmin: false
   },
   {
+    path: "/teacher/questions",
+    name: "Gestión de Preguntas",
+    type: "protected",
+    element: QuestionsScreen,
+    role: ["teacher"],
+    icon: HelpCircle,
+    isAdmin: false
+  },
+  {
     path: "/teacher/exams",
     name: "Gestión de Exámenes",
     type: "protected",
-    element: TeacherExams,
+    element: ExamsScreen,
     role: ["teacher"],
     icon: BookOpen,
+    isAdmin: false
+  },
+  {
+    path: "/sessions",
+    name: "Mis Sesiones",
+    type: "protected",
+    element: SessionsList,
+    role: ["teacher"],
+    icon: Calendar,
     isAdmin: false
   },
   {

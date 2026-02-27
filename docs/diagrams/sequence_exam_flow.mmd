@@ -1,0 +1,37 @@
+%% Sequence diagram: Exam taking -> submission -> grading (AI) -> results
+sequenceDiagram
+    participant Student
+    participant Frontend
+    participant APIGW as "API Gateway"
+    participant SessionMgr as "session-manager-service"
+    participant ExamSvc as "exam-service"
+    participant DB as "MongoDB"
+    participant Kafka
+    participant AI as "ai-grading-service"
+    participant Notif as "notifications-service"
+
+    Student->>Frontend: click Start Exam
+    Frontend->>APIGW: POST /sessions/:id/start
+    APIGW->>SessionMgr: start session (auth)
+    SessionMgr->>ExamSvc: request questions (generateQuestions)
+    ExamSvc->>DB: query questions / pools
+    DB-->>ExamSvc: questions
+    ExamSvc-->>SessionMgr: questions payload
+    SessionMgr-->>Frontend: session started + questions
+
+    Student->>Frontend: submit answer
+    Frontend->>APIGW: POST /sessions/:id/answer
+    APIGW->>ExamSvc: submitAnswer
+    ExamSvc->>DB: save Response
+    DB-->>ExamSvc: saved
+    ExamSvc->>Kafka: publish response.submitted
+
+    Kafka->>AI: response.submitted event
+    AI->>MinIO: fetch audio/file (if needed)
+    AI->>AI: transcribe / evaluate / score
+    AI->>DB: save evaluation / update Response
+    AI-->>Kafka: response.evaluated
+
+    Kafka->>Notif: response.evaluated
+    Notif->>Notif: enqueue result email
+    Notif->>SMTP: send result

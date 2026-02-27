@@ -1,16 +1,15 @@
-import { Collection, Db, ObjectId, Filter, UpdateFilter, FindOptions } from 'mongodb';
-import { getDatabase } from '../database/connections';
-import { 
-  Candidate, 
-  CandidateStatus, 
-  MCERLevel, 
-  PaginationParams, 
-  FilterParams,
-  BulkImportResult,
-  ImportError
-} from '../types';
-import { CandidateModel } from '../models/Candidate';
+import { Collection, Db, Filter, FindOptions, ObjectId, UpdateFilter } from 'mongodb';
 import config from '../config';
+import { getDatabase } from '../database/connections';
+import { CandidateModel } from '../models/Candidate';
+import {
+  BulkImportResult,
+  Candidate,
+  CandidateStatus,
+  FilterParams,
+  MCERLevel,
+  PaginationParams
+} from '../types';
 
 export class CandidateRepository {
   private db: Db;
@@ -84,6 +83,82 @@ export class CandidateRepository {
     }
   }
 
+  // 🆕 NUEVO: Buscar candidato por userId
+  async findByUserId(userId: string): Promise<CandidateModel | null> {
+    try {
+      const candidateData = await this.collection.findOne({
+        userId: new ObjectId(userId)
+      });
+      
+      return candidateData ? CandidateModel.fromDatabase(candidateData) : null;
+    } catch (error) {
+      console.error(`Error finding candidate by userId ${userId}:`, error);
+      return null;
+    }
+  }
+  async findByAuthUserId(authServiceUserId: string): Promise<CandidateModel | null> {
+    try {
+      const pipeline = [
+        // Stage 1: Lookup para hacer join con la colección users
+        {
+          $lookup: {
+            from: "users", // nombre de la colección users
+            localField: "userId", // campo en candidates que referencia a users
+            foreignField: "_id", // campo _id en users
+            as: "userInfo" // alias para los datos del user
+          }
+        },
+        
+        // Stage 2: Unwind para convertir el array userInfo en objeto
+        {
+          $unwind: "$userInfo"
+        },
+        
+        // Stage 3: Match para filtrar por authServiceUserId
+        {
+          $match: {
+            "userInfo.authServiceUserId": authServiceUserId
+          }
+        },
+        
+        // Stage 4: Project para incluir datos específicos del user (opcional)
+        {
+          $addFields: {
+            "userEmail": "$userInfo.email",
+            "userFullName": {
+              $concat: ["$userInfo.firstName", " ", "$userInfo.lastName"]
+            }
+          }
+        },
+        
+        // Stage 5: Project para limpiar el resultado
+        {
+          $project: {
+            userInfo: 0 // excluir el objeto completo userInfo
+          }
+        },
+        
+        // Stage 5: Limit para obtener solo el primer resultado
+        {
+          $limit: 1
+        }
+      ];
+
+      const result = await this.collection.aggregate(pipeline).toArray();
+      
+      if (result.length === 0) {
+        console.log(`No candidate found for authServiceUserId: ${authServiceUserId}`);
+        return null;
+      }
+      
+      const candidateData = result[0];
+      return CandidateModel.fromDatabase(candidateData);
+      
+    } catch (error) {
+      console.error(`Error finding candidate by authServiceUserId ${authServiceUserId}:`, error);
+      return null;
+    }
+  }
   async update(id: string | ObjectId, updates: UpdateFilter<Candidate>): Promise<CandidateModel | null> {
     try {
       const objectId = typeof id === 'string' ? new ObjectId(id) : id;

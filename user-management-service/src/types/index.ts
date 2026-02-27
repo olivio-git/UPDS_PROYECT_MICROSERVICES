@@ -87,6 +87,7 @@ export interface AvailableHours {
 
 export interface Candidate {
   _id?: ObjectId;
+  userId: ObjectId;
   personalInfo: PersonalInfo;
   academicInfo: AcademicInfo;
   technicalSetup: TechnicalSetup;

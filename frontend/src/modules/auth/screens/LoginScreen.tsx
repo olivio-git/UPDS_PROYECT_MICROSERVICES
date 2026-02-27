@@ -1,15 +1,14 @@
-import { useState, useEffect } from "react"
-import { Eye, EyeOff, ArrowLeft } from "lucide-react"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/atoms/card"
-import { Label } from "@/components/atoms/label"
-import { Input } from "@/components/atoms/input"
-import { Button } from "@/components/atoms/button" 
 import { Alert, AlertDescription } from "@/components/atoms/alert"
+import { Button } from "@/components/atoms/button"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/atoms/card"
+import { Input } from "@/components/atoms/input"
+import { Label } from "@/components/atoms/label"
 import { useAuthStore } from "@/modules/auth/services/authStore"
-import { useNavigate, useLocation } from "react-router-dom"
+import GradientBackground from "@/modules/home/screens/GradientBackground"
+import { ArrowLeft, Eye, EyeOff } from "lucide-react"
+import { useEffect, useState } from "react"
+import { useLocation, useNavigate } from "react-router-dom"
 import { toast } from "sonner"
-import GradientBackground from "@/modules/home/screens/GradientBackground"  
-import ImageLogo from "@/assets/images/logo.webp"
 
 const LoginScreen = () => {
   const navigate = useNavigate()
@@ -107,13 +106,7 @@ const LoginScreen = () => {
 
   return (
     <>
-      <GradientBackground grid={false} objs={false} lights={true} size="xl" /> 
-      <div className="fixed top-4 left-4 z-50">
-        <div className="flex items-center space-x-2">
-          <img className="h-8" src={ImageLogo} alt="Logo" />
-        </div>
-      </div>
-
+      <GradientBackground grid={false} objs={false} lights={true} size="xl" />  
       <div className="min-h-screen flex items-center justify-center p-4">
         <Card className="w-full max-w-md bg-transparent shadow-none">
           <CardHeader className="space-y-1 text-center">
@@ -189,8 +182,9 @@ const LoginScreen = () => {
               </div>
 
               <Button 
-                type="submit" 
-                className="w-full bg-white hover:bg-primary/90 text-black font-medium disabled:opacity-50"
+                type="submit"
+                size={'sm'}
+                className="w-full bg-brand-blue hover:bg-primary/90 text-white font-medium disabled:opacity-50"
                 disabled={isLoading}
               >
                 {isLoading ? "Iniciando sesión..." : "Iniciar Sesión"}
