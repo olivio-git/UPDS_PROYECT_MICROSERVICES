@@ -1,4 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
+import { Types } from 'mongoose';
+import { Question } from '../models/question.model';
 import { RubricService } from '../services/rubric.service';
 import { logger } from '../utils/logger';
 
@@ -105,6 +107,16 @@ export class RubricController {
 
   delete = async (req: Request, res: Response, next: NextFunction) => {
     try {
+      const questionsUsingRubric = await Question.countDocuments({
+        'metadata.rubricId': new Types.ObjectId(req.params.id!)
+      });
+      if (questionsUsingRubric > 0) {
+        return res.status(409).json({
+          success: false,
+          message: `No se puede eliminar esta rúbrica porque ${questionsUsingRubric} pregunta(s) la usan. Desactívala en su lugar.`
+        });
+      }
+
       const deleted = await this.rubricService.delete(req.params.id!);
 
       if (!deleted) {

@@ -26,7 +26,7 @@ interface UseExamSessionOptions {
   sessionType?: 'individual' | 'group';
   autoSaveInterval?: number;
   onSessionStart?: () => void;
-  onSessionEnd?: () => void;
+  onSessionEnd?: (attemptId: string) => void;
   onAutoSave?: (success: boolean) => void;
 }
 
@@ -211,7 +211,7 @@ export const useExamSession = (options: UseExamSessionOptions = {}) => {
         }
 
         toast.success('Examen finalizado exitosamente');
-        onSessionEnd?.();
+        onSessionEnd?.(response.data?.attemptId ?? '');
       } else {
         throw new Error(response.message || 'Failed to finish exam');
       }

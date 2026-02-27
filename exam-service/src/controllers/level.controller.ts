@@ -1,4 +1,5 @@
 import { NextFunction, Request, Response } from 'express';
+import { Question } from '../models/question.model';
 import { LevelService } from '../services/level.service';
 import { logger } from '../utils/logger';
 
@@ -147,14 +148,24 @@ export class LevelController {
 
   delete = async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const deleted = await this.levelService.delete(req.params.id!);
+      const level = await this.levelService.findById(req.params.id!);
 
-      if (!deleted) {
+      if (!level) {
         return res.status(404).json({
           success: false,
           message: 'Nivel no encontrado'
         });
       }
+
+      const questionsUsingLevel = await Question.countDocuments({ level: level.code });
+      if (questionsUsingLevel > 0) {
+        return res.status(409).json({
+          success: false,
+          message: `No se puede eliminar el nivel "${level.code}" porque ${questionsUsingLevel} pregunta(s) lo usan. Desactívalo en su lugar.`
+        });
+      }
+
+      await this.levelService.delete(req.params.id!);
 
       return res.json({
         success: true,

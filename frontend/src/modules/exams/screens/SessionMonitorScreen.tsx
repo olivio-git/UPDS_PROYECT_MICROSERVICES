@@ -12,6 +12,8 @@ import {
   Loader2,
   RefreshCw,
   RotateCcw,
+  Square,
+  UserX,
   Users,
 } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -183,6 +185,8 @@ const SessionMonitorScreen = () => {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [regrading, setRegrading] = useState(false);
+  const [endingSession, setEndingSession] = useState(false);
+  const [kickingCandidate, setKickingCandidate] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
 
@@ -336,6 +340,38 @@ const SessionMonitorScreen = () => {
     }
   }, [sessionId, regrading]);
 
+  // ── End session handler ────────────────────────────────────────────────────
+
+  const handleEndSession = useCallback(async () => {
+    if (!sessionId || endingSession) return;
+    setEndingSession(true);
+    try {
+      await examService.endSession(sessionId);
+      toast.success('Sesión finalizada correctamente');
+      await fetchProgress(true);
+    } catch {
+      toast.error('Error al finalizar la sesión');
+    } finally {
+      setEndingSession(false);
+    }
+  }, [sessionId, endingSession, fetchProgress]);
+
+  // ── Kick candidate handler ─────────────────────────────────────────────────
+
+  const handleKick = useCallback(async (candidateId: string) => {
+    if (!sessionId || kickingCandidate) return;
+    setKickingCandidate(candidateId);
+    try {
+      await examService.kickCandidate(sessionId, candidateId);
+      toast.success('Candidato expulsado de la sesión');
+      await fetchProgress(true);
+    } catch {
+      toast.error('Error al expulsar al candidato');
+    } finally {
+      setKickingCandidate(null);
+    }
+  }, [sessionId, kickingCandidate, fetchProgress]);
+
   // ── Derived data ───────────────────────────────────────────────────────────
 
   const sortedCandidates = data ? sortCandidates(data.candidates) : [];
@@ -465,6 +501,21 @@ const SessionMonitorScreen = () => {
                   <span className="text-xs text-gray-500 hidden sm:block">
                     Actualizado: {lastUpdated.toLocaleTimeString("es-BO")}
                   </span>
+                )}
+                {/* End session button — shown only for in_progress sessions */}
+                {data?.sessionStatus === 'in_progress' && (
+                  <button
+                    onClick={handleEndSession}
+                    disabled={endingSession}
+                    title="Finalizar sesión para todos los candidatos"
+                    aria-label="Finalizar sesión"
+                    className="flex items-center gap-2 px-3 py-2 rounded-lg border border-red-700/60 text-red-300 hover:bg-red-900/20 transition-colors text-sm disabled:opacity-60 disabled:cursor-not-allowed"
+                  >
+                    <Square className={`w-4 h-4 ${endingSession ? 'animate-pulse' : ''}`} />
+                    <span className="hidden sm:inline">
+                      {endingSession ? 'Finalizando...' : 'Finalizar'}
+                    </span>
+                  </button>
                 )}
                 {/* Regrade button — shown only when there are completed attempts */}
                 {(data?.completed ?? 0) > 0 && (
@@ -711,7 +762,7 @@ const SessionMonitorScreen = () => {
                         </div>
 
                         {/* Desktop layout — grid */}
-                        <div className="hidden md:grid md:grid-cols-[2fr_1fr_1.5fr_1fr_1fr] gap-4 items-center">
+                        <div className="hidden md:grid md:grid-cols-[2fr_1fr_1.5fr_1fr_1fr_auto] gap-4 items-center">
                           {/* Name */}
                           <div className="flex items-center gap-3 min-w-0">
                             <div className="w-8 h-8 rounded-full bg-gray-700 flex items-center justify-center text-xs font-semibold text-gray-300 flex-shrink-0">
@@ -769,7 +820,36 @@ const SessionMonitorScreen = () => {
                           <div className="text-sm text-gray-400">
                             {formatRelativeTime(candidate.lastActivity)}
                           </div>
+
+                          {/* Kick action */}
+                          <div className="flex justify-end">
+                            {candidate.status === 'in_progress' && (
+                              <button
+                                onClick={() => handleKick(candidate.candidateId)}
+                                disabled={kickingCandidate === candidate.candidateId}
+                                title="Expulsar candidato"
+                                aria-label="Expulsar candidato"
+                                className="p-1.5 rounded-lg text-gray-500 hover:text-red-400 hover:bg-red-900/20 transition-colors disabled:opacity-50"
+                              >
+                                <UserX className="w-4 h-4" />
+                              </button>
+                            )}
+                          </div>
                         </div>
+
+                        {/* Mobile: kick button */}
+                        {candidate.status === 'in_progress' && (
+                          <div className="md:hidden flex justify-end mt-2">
+                            <button
+                              onClick={() => handleKick(candidate.candidateId)}
+                              disabled={kickingCandidate === candidate.candidateId}
+                              className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs text-red-400 border border-red-800/40 hover:bg-red-900/20 transition-colors disabled:opacity-50"
+                            >
+                              <UserX className="w-3 h-3" />
+                              {kickingCandidate === candidate.candidateId ? 'Expulsando...' : 'Expulsar'}
+                            </button>
+                          </div>
+                        )}
                       </div>
                     );
                   })}
