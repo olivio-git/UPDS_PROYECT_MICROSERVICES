@@ -428,9 +428,6 @@ class ExamResultService {
    * Uses AI feedback if available, otherwise generates standard feedback
    */
   private generateFeedback(result: {score: number; level: string; status: string}): string {
-    // TODO: When backend includes AI feedback, use it:
-    // if (result.overallFeedback) return result.overallFeedback;
-
     if (result.score >= 85) {
       return `Excelente desempeño. Has demostrado un dominio sólido del nivel ${result.level}. Estás listo para avanzar al siguiente nivel.`;
     } else if (result.score >= 70) {
@@ -447,11 +444,6 @@ class ExamResultService {
    * Uses AI recommendations if available, otherwise generates standard recommendations
    */
   private generateRecommendations(result: {score: number; level: string; status: string}): string[] {
-    // TODO: When backend includes AI recommendations, use them:
-    // if (result.recommendations && result.recommendations.length > 0) {
-    //   return result.recommendations;
-    // }
-
     const recommendations: string[] = [];
 
     // Basic recommendations based on overall score
@@ -571,6 +563,26 @@ class ExamResultService {
     };
 
     return names[competency] || competency.charAt(0).toUpperCase() + competency.slice(1);
+  }
+
+  async downloadResultPDF(
+    resultId: string,
+    options: { includeQuestions?: boolean; includeAI?: boolean; language?: 'spanish' | 'english'; examName?: string } = {}
+  ): Promise<void> {
+    const { includeQuestions = true, includeAI = true, language = 'spanish', examName } = options;
+    const resp = await api.get(`/api/v1/exam-results/${resultId}/export-pdf`, {
+      params: { includeQuestions, includeAI, language },
+      responseType: 'blob'
+    }) as any;
+    const blob = resp instanceof Blob ? resp : resp.data;
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `resultado-examen-${(examName ?? resultId).replace(/[^a-zA-Z0-9]/g, '_')}_${new Date().toISOString().split('T')[0]}.pdf`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    window.URL.revokeObjectURL(url);
   }
 
   /**

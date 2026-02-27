@@ -34,6 +34,7 @@ import UsersScreen from "@/modules/users/screens/UserScreen";
 // Exams Module
 // import ExamsModule from "@/modules/exams/pages/ExamsModule";
 import ReportsScreen from "@/modules/admin/screens/ReportsScreen";
+import StudentHistoryScreen from "@/modules/admin/screens/StudentHistoryScreen";
 import UpcomingSessionsScreen from "@/modules/admin/screens/UpcomingSessionsScreen";
 import SessionsList from "@/modules/exams/components/SessionsList";
 import SessionMonitorScreen from "@/modules/exams/screens/SessionMonitorScreen";
@@ -300,23 +301,23 @@ export const protectedRoutes: RouteType[] = [
     role: ["admin", "teacher", "proctor"],
     icon: ClipboardList
   },
-  // {
-  //   path: "/student-history", //Vista de historial de estudiante
-  //   name: "Historial Estudiante",
-  //   type: "protected",
-  //   element: StudentHistoryScreen,
-  //   isAdmin: false,
-  //   role: ["admin", "teacher"],
-  //   icon: User
-  // },
-  // {
-  //   path: "/student-history/:studentId", //Vista específica de historial con ID
-  //   name: "Historial Específico",
-  //   type: "protected",
-  //   element: StudentHistoryScreen,
-  //   isAdmin: false,
-  //   role: ["admin", "teacher", "student"],
-  //   icon: User,
-  //   hidden: true
-  // },
+  {
+    path: "/student-history",
+    name: "Historial Estudiante",
+    type: "protected",
+    element: StudentHistoryScreen,
+    isAdmin: false,
+    role: ["admin", "teacher"],
+    icon: User,
+  },
+  {
+    path: "/student-history/:studentId",
+    name: "Historial Específico",
+    type: "protected",
+    element: StudentHistoryScreen,
+    isAdmin: false,
+    role: ["admin", "teacher", "student"],
+    icon: User,
+    hidden: true
+  },
 ]
