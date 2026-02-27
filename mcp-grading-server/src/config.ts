@@ -19,7 +19,7 @@ export const config = {
     url: process.env.AI_GRADING_SERVICE_URL || 'http://localhost:3006',
   },
   notificationService: {
-    url: process.env.NOTIFICATION_SERVICE_URL || 'http://localhost:3001',
+    url: process.env.NOTIFICATION_SERVICE_URL || 'http://notifications-service:3003',
   },
   examService: {
     url: process.env.EXAM_SERVICE_URL || 'http://exam-service:3003',

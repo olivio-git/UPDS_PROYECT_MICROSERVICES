@@ -31,7 +31,7 @@ interface UseExamSessionHTTPOptions {
   autoSaveInterval?: number;
   timePollingInterval?: number;
   onSessionStart?: () => void;
-  onSessionEnd?: () => void;
+  onSessionEnd?: (attemptId: string) => void;
   onAutoSave?: (success: boolean) => void;
   onTimeWarning?: (minutes: number) => void;
 }
@@ -210,8 +210,9 @@ export const useExamSessionHTTP = (options: UseExamSessionHTTPOptions = {}) => {
         console.log('✅ [useExamSessionHTTP] Exam finished successfully');
 
         // Call onSessionEnd after a small delay to ensure state is updated
+        const attemptId = (response as any)?.data?.attemptId as string | undefined;
         setTimeout(() => {
-          onSessionEnd?.();
+          onSessionEnd?.(attemptId ?? '');
         }, 500);
       } else {
         throw new Error(response.message || 'Failed to finish exam');
