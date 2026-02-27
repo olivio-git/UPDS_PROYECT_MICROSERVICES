@@ -124,6 +124,14 @@ router.post(
   sessionController.cancelSession
 );
 
+// Kick candidate from active session (cancels their attempt)
+router.post(
+  '/:id/candidates/:candidateId/kick',
+  requireRole('admin', 'teacher', 'proctor'),
+  validateParams(sessionSchema.params),
+  sessionController.kickCandidate
+);
+
 // Recalculate grades for all completed attempts in a session
 router.post(
   '/:id/regrade',

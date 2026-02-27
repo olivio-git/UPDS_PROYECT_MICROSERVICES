@@ -316,11 +316,10 @@ const QuestionForm: React.FC<Props> = ({ question, onCancel, onSaved }) => {
 
   // Manejar grabación de audio completada
   const handleRecordingComplete = (audioBlob: Blob) => {
-  // Crear un archivo a partir del blob para usarlo en el upload
-    const audioFile = new File([audioBlob], `recording_${Date.now()}.wav`, {
-      type: 'audio/wav',
-    });
-    setAudioFile(audioFile);
+    const mimeType = audioBlob.type || 'audio/webm';
+    const ext = mimeType.split(';')[0].split('/')[1] || 'webm';
+    const file = new File([audioBlob], `recording_${Date.now()}.${ext}`, { type: mimeType });
+    setAudioFile(file);
   };
 
   // Función de validación

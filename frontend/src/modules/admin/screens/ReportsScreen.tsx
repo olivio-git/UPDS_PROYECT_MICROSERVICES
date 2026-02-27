@@ -63,7 +63,22 @@ const ReportsScreen: React.FC = () => {
   const loadReportsData = async (customFilters?: ReportFilters) => {
     try {
       setLoading(true);
-      const activeFilters = customFilters || filters;
+      const raw = customFilters || filters;
+
+      // Validate date range
+      if (raw.startDate && raw.endDate && raw.startDate > raw.endDate) {
+        toast.error('La fecha de inicio no puede ser posterior a la fecha de fin');
+        setLoading(false);
+        return;
+      }
+
+      // Strip empty strings and empty arrays before sending
+      const activeFilters: ReportFilters = Object.fromEntries(
+        Object.entries(raw).filter(([, v]) =>
+          v !== '' && v !== undefined && v !== null &&
+          !(Array.isArray(v) && v.length === 0)
+        )
+      ) as ReportFilters;
       const [dashboard, competency, student, trends] = await Promise.all([
         reportsService.getDashboardSummary(activeFilters),
         reportsService.getCompetencyAnalysis(activeFilters),

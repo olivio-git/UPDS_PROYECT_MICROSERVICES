@@ -153,12 +153,12 @@ class ExamResultService {
    */
   async getResultByAttempt(attemptId: string): Promise<DetailedExamResult> {
     try {
-      const response = await api.get(`/api/v1/exam-results/attempt/${attemptId}`) as { data: { success: boolean; data: DetailedExamResult; message?: string } };
+      const response = await api.get(`/api/v1/exam-results/attempt/${attemptId}`) as { success: boolean; data: DetailedExamResult; message?: string };
 
-      if (response.data.success) {
-        return response.data.data;
+      if (response.success) {
+        return response.data;
       } else {
-        throw new Error(response.data.message || 'Result not found. The exam may still be processing.');
+        throw new Error(response.message || 'Result not found. The exam may still be processing.');
       }
     } catch (error: any) {
       console.error('Error fetching result by attempt:', error);

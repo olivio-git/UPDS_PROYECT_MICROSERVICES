@@ -1066,4 +1066,23 @@ export class SessionService {
       throw error;
     }
   }
+
+  async kickCandidate(sessionId: string, candidateId: string): Promise<void> {
+    try {
+      const attempt = await Attempt.findOne({
+        sessionId: new Types.ObjectId(sessionId),
+        candidateId: new Types.ObjectId(candidateId),
+        status: 'in_progress',
+      });
+      if (attempt) {
+        attempt.status = 'cancelled';
+        attempt.finishedAt = new Date();
+        await attempt.save();
+      }
+      logger.info(`Candidate ${candidateId} kicked from session ${sessionId}`);
+    } catch (error) {
+      logger.error(`Error kicking candidate ${candidateId} from session ${sessionId}:`, error);
+      throw error;
+    }
+  }
 }

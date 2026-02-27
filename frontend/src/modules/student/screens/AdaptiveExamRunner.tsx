@@ -2,6 +2,7 @@ import { Badge } from '@/components/atoms/badge';
 import { Button } from '@/components/atoms/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/atoms/card';
 import { MainLayout } from '@/components/layout';
+import { examResultService } from '@/services/examResultService';
 import { examService } from '@/services/examService';
 import { AlertCircle, Brain, CheckCircle, Loader2, XCircle } from 'lucide-react';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
@@ -49,6 +50,8 @@ const AdaptiveExamRunner: React.FC = () => {
   const [showFeedback, setShowFeedback] = useState(false);
   const [isFinished, setIsFinished] = useState(false);
   const [stopReason, setStopReason] = useState<string | undefined>(undefined);
+  const [attemptId, setAttemptId] = useState<string | null>(null);
+  const [navigatingToResult, setNavigatingToResult] = useState(false);
 
   const feedbackTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -76,7 +79,8 @@ const AdaptiveExamRunner: React.FC = () => {
       try {
         const resumeResp = await examService.resumeAdaptiveExam(sessionId);
         if (resumeResp.success && resumeResp.data) {
-          const { finished, question, adaptiveState: state } = resumeResp.data;
+          const { finished, question, adaptiveState: state, attemptId: aid } = resumeResp.data;
+          if (aid) setAttemptId(aid);
           if (finished) {
             handleFinished();
             return;
@@ -95,6 +99,7 @@ const AdaptiveExamRunner: React.FC = () => {
         // Start a new adaptive attempt
         const startResp = await examService.startAdaptiveExam(sessionId);
         if (startResp.success && startResp.data) {
+          setAttemptId(startResp.data.attemptId);
           setCurrentQuestion(startResp.data.question);
           setAdaptiveState({ ...startResp.data.adaptiveState, consecutiveWrong: 0 });
         } else {
@@ -213,10 +218,26 @@ const AdaptiveExamRunner: React.FC = () => {
                 Tus resultados estarán disponibles en unos momentos en la sección de resultados.
               </p>
               <Button
-                onClick={() => navigate('/student/results')}
+                disabled={navigatingToResult}
+                onClick={() => {
+                  if (!attemptId) { navigate('/student/results'); return; }
+                  setNavigatingToResult(true);
+                  examResultService.pollForResult(attemptId, 30, 2000)
+                    .then((result) => {
+                      const resultId = (result as any).id || (result as any)._id;
+                      navigate(`/student/results/${resultId}`);
+                    })
+                    .catch(() => {
+                      toast.info('Los resultados se están procesando...', { duration: 5000 });
+                      navigate('/student/results');
+                    });
+                }}
                 className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white"
               >
-                Ver Mis Resultados
+                {navigatingToResult
+                  ? <><Loader2 className="h-4 w-4 animate-spin mr-2" />Cargando resultados...</>
+                  : 'Ver Mis Resultados'
+                }
               </Button>
             </CardContent>
           </Card>

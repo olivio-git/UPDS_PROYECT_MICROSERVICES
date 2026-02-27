@@ -461,6 +461,26 @@ class ExamService {
     }
   }
 
+  async endSession(sessionId: string): Promise<any> {
+    try {
+      const response = await this.api.post(`/sessions/${sessionId}/end`);
+      return response.data;
+    } catch (error) {
+      console.error('Error ending session:', error);
+      throw error;
+    }
+  }
+
+  async kickCandidate(sessionId: string, candidateId: string): Promise<any> {
+    try {
+      const response = await this.api.post(`/sessions/${sessionId}/candidates/${candidateId}/kick`);
+      return response.data;
+    } catch (error) {
+      console.error('Error kicking candidate:', error);
+      throw error;
+    }
+  }
+
   // Obtener sesión por ID
   async getSessionById(id: string): Promise<ApiResponse<ExamSession>> {
     try {

@@ -19,6 +19,7 @@ import React, {
 } from 'react';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { toast } from 'sonner';
+import { examResultService } from '@/services/examResultService';
 import QuestionRenderer from '../components/QuestionRenderer';
 import SectionedExamRenderer from '../components/SectionedExamRenderer';
 
@@ -87,8 +88,20 @@ const ExamRunner: React.FC = () => {
           : 'Examen iniciado'
       );
     },
-    onSessionEnd: () => {
-      navigate('/student/results');
+    onSessionEnd: (attemptId: string) => {
+      if (attemptId) {
+        examResultService.pollForResult(attemptId, 30, 2000)
+          .then((result) => {
+            const resultId = (result as any).id || (result as any)._id;
+            navigate(`/student/results/${resultId}`);
+          })
+          .catch(() => {
+            toast.info('Los resultados se están procesando. Los verás en tu dashboard.', { duration: 5000 });
+            navigate('/student/dashboard');
+          });
+      } else {
+        navigate('/student/results');
+      }
     },
     onAutoSave: (success) => {
       if (!success) {

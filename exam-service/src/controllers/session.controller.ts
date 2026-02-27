@@ -435,6 +435,17 @@ export class SessionController {
     }
   };
 
+  kickCandidate = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      await this.sessionService.kickCandidate(req.params.id!, req.params.candidateId!);
+      return res.json({ success: true, message: 'Candidato expulsado de la sesión' });
+    } catch (error) {
+      logger.error('Error kicking candidate:', error);
+      next(error);
+      return;
+    }
+  };
+
   regradeSession = async (req: Request, res: Response, next: NextFunction) => {
     try {
       const result = await this.sessionService.regradeSession(req.params.id!);
