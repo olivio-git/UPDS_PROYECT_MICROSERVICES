@@ -1,5 +1,6 @@
 import axios from 'axios';
 import { config } from '../config.js';
+import { publishKafkaEvent } from './kafka.service.js';
 
 /**
  * Fetch the exam result PDF from exam-service's internal endpoint.
@@ -92,22 +93,21 @@ export async function sendGradingNotification(params: {
         });
       }
 
-      await axios.post(`${config.notificationService.url}/notifications/send-test`, {
-        to: candidateEmail,
-        type: 'exam_graded',
-        data: {
-          firstName: candidateFirstName || 'Estudiante',
-          lastName: candidateLastName || '',
-          examName,
-          score,
-          maxScore,
-          percentage: parseFloat(percentage.toFixed(1)),
-          status,
-          pdfBase64: pdfBase64 || undefined,
-          pdfFilename: examResultId
-            ? `Resultado_${examName.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.pdf`
-            : undefined,
-        },
+      await publishKafkaEvent('exam.graded', {
+        candidateEmail,
+        candidateFirstName: candidateFirstName || 'Estudiante',
+        candidateLastName: candidateLastName || '',
+        candidateId,
+        examName,
+        examResultId,
+        score,
+        maxScore,
+        percentage: parseFloat(percentage.toFixed(1)),
+        status,
+        pdfBase64: pdfBase64 || undefined,
+        pdfFilename: examResultId
+          ? `Resultado_${examName.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.pdf`
+          : undefined,
       });
     } catch {
       // Email is best-effort

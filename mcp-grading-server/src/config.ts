@@ -28,4 +28,9 @@ export const config = {
     internalEndpoint: process.env.MINIO_INTERNAL_ENDPOINT || 'http://minio:9000',
     bucketName: process.env.MINIO_BUCKET_NAME || 'exam-files',
   },
+  kafka: {
+    broker: process.env.KAFKA_BROKER || 'kafka:9092',
+    clientId: 'grading-service',
+    topic: 'exam-events',
+  },
 };

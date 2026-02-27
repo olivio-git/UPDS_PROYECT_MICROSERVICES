@@ -2,6 +2,7 @@ import express from 'express';
 import cors from 'cors';
 import { config } from './config.js';
 import { connectDB, closeDB } from './db/connection.js';
+import { disconnectKafka } from './services/kafka.service.js';
 import { gradingRouter } from './routes/grading.routes.js';
 
 const app = express();
@@ -42,6 +43,7 @@ async function main() {
   const shutdown = async () => {
     console.log('[grading-service] Cerrando...');
     await closeDB();
+    await disconnectKafka();
     process.exit(0);
   };
   process.on('SIGINT', shutdown);

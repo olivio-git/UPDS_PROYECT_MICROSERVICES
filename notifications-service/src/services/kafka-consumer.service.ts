@@ -275,6 +275,27 @@ export class KafkaConsumerService {
           break;
         }
 
+        case 'exam.graded': {
+          if (!data.candidateEmail) {
+            console.warn('⚠️ exam.graded: sin candidateEmail en el evento — omitiendo email');
+            break;
+          }
+          console.log(`📧 exam.graded → enviando email a: ${data.candidateEmail}`);
+          await this.notificationService.sendExamGradedEmail({
+            email: data.candidateEmail,
+            firstName: data.candidateFirstName || 'Estudiante',
+            lastName: data.candidateLastName || '',
+            examName: data.examName || 'Examen',
+            score: Number(data.score) || 0,
+            maxScore: Number(data.maxScore) || 0,
+            percentage: Number(data.percentage) || 0,
+            status: data.status || 'completed',
+            pdfBase64: data.pdfBase64 || undefined,
+            pdfFilename: data.pdfFilename || undefined,
+          });
+          break;
+        }
+
         default:
           console.log(`⚠️ Evento de exam no manejado: ${eventType}`);
       }
