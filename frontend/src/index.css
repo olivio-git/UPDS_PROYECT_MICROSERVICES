@@ -3,6 +3,33 @@
 /* Tailwind v4: habilita el prefijo dark: cuando <html> tiene la clase .dark */
 @variant dark (&:is(.dark, .dark *));
 
+/* Registro de colores semánticos en el sistema de temas de Tailwind v4.
+   Sin este bloque, border-border / text-foreground / bg-muted / etc. NO
+   tienen un color asociado → caen a currentColor → borde negro/blanco sólido.
+   Con @theme inline, Tailwind genera las utilidades usando hsl(var(--X))
+   y los modificadores de opacidad (/40, /50…) funcionan correctamente. */
+@theme inline {
+  --color-background:         hsl(var(--background));
+  --color-foreground:         hsl(var(--foreground));
+  --color-border:             hsl(var(--border));
+  --color-input:              hsl(var(--input));
+  --color-ring:               hsl(var(--ring));
+  --color-card:               hsl(var(--card));
+  --color-card-foreground:    hsl(var(--card-foreground));
+  --color-popover:            hsl(var(--popover));
+  --color-popover-foreground: hsl(var(--popover-foreground));
+  --color-primary:            hsl(var(--primary));
+  --color-primary-foreground: hsl(var(--primary-foreground));
+  --color-secondary:          hsl(var(--secondary));
+  --color-secondary-foreground: hsl(var(--secondary-foreground));
+  --color-muted:              hsl(var(--muted));
+  --color-muted-foreground:   hsl(var(--muted-foreground));
+  --color-accent:             hsl(var(--accent));
+  --color-accent-foreground:  hsl(var(--accent-foreground));
+  --color-destructive:        hsl(var(--destructive));
+  --color-destructive-foreground: hsl(var(--destructive-foreground));
+}
+
 /* Variables CSS del sistema de temas CBA */
 @layer base {
   :root {
@@ -17,11 +44,11 @@
     --gradient-success: linear-gradient(135deg, #43cea2 0%, #185a9d 100%);
     --gradient-primary: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
 
-    /* === TEMA LIGHT (shadcn/ui defaults) === */
-    --background: 0 0% 100%;
+    /* === TEMA LIGHT === */
+    --background: 220 13% 95%;   /* gris azulado suave — los cards blancos resaltan */
     --foreground: 222.2 84% 4.9%;
 
-    --card: 0 0% 100%;
+    --card: 0 0% 100%;           /* blanco puro — contrasta con el background */
     --card-foreground: 222.2 84% 4.9%;
 
     --popover: 0 0% 100%;
@@ -117,6 +144,45 @@
     --writing: 142 69% 58%;
     --speaking: 25 95% 58%;
   }
+}
+
+/* Fondo y color de texto globales aplicados al body */
+html, body, #root {
+  background-color: hsl(var(--background));
+  color: hsl(var(--foreground));
+  min-height: 100vh;
+}
+
+/* =====================================================
+   Icon wrapper utilities — dual light/dark mode
+   Patrón: light = pastel bg + color saturado
+           dark  = bg oscuro/20 + color claro
+   Uso: <div className="icon-wrap-blue"><Icon /></div>
+   ===================================================== */
+@layer utilities {
+  .icon-wrap-blue   { background-color: #dbeafe; color: #2563eb; }
+  .icon-wrap-green  { background-color: #dcfce7; color: #16a34a; }
+  .icon-wrap-purple { background-color: #f3e8ff; color: #9333ea; }
+  .icon-wrap-amber  { background-color: #fef3c7; color: #d97706; }
+  .icon-wrap-red    { background-color: #fee2e2; color: #dc2626; }
+  .icon-wrap-orange { background-color: #ffedd5; color: #ea580c; }
+  .icon-wrap-cyan   { background-color: #cffafe; color: #0891b2; }
+  .icon-wrap-pink   { background-color: #fce7f3; color: #db2777; }
+  .icon-wrap-indigo { background-color: #e0e7ff; color: #4f46e5; }
+  .icon-wrap-teal   { background-color: #ccfbf1; color: #0d9488; }
+}
+
+@variant dark {
+  .icon-wrap-blue   { background-color: rgb(30  58 138 / 0.2); color: #60a5fa; }
+  .icon-wrap-green  { background-color: rgb(20  83  45 / 0.2); color: #4ade80; }
+  .icon-wrap-purple { background-color: rgb(88  28 135 / 0.2); color: #c084fc; }
+  .icon-wrap-amber  { background-color: rgb(120  53  15 / 0.2); color: #fbbf24; }
+  .icon-wrap-red    { background-color: rgb(127  29  29 / 0.2); color: #f87171; }
+  .icon-wrap-orange { background-color: rgb(124  45   2 / 0.2); color: #fb923c; }
+  .icon-wrap-cyan   { background-color: rgb( 22  78  99 / 0.2); color: #22d3ee; }
+  .icon-wrap-pink   { background-color: rgb(131  24  67 / 0.2); color: #f472b6; }
+  .icon-wrap-indigo { background-color: rgb(49  46 129 / 0.2); color: #818cf8; }
+  .icon-wrap-teal   { background-color: rgb( 19  78  74 / 0.2); color: #2dd4bf; }
 }
 
 /* Clases utilitarias usando las variables personalizadas */
@@ -928,10 +994,18 @@ nav {
 }
 /* Styles extras */
 .bg-box{
-  background-color: #0b1422;
+  background-color: hsl(var(--card));
 }
 .border-line{
-  border-color: #111c2d;
+  border-color: hsl(var(--border));
+}
+@variant dark {
+  .bg-box {
+    background-color: #0b1422;
+  }
+  .border-line {
+    border-color: #111c2d;
+  }
 }
 /* Añade esto */
 .hover\:border-blue-900:hover {

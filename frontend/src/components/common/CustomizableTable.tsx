@@ -44,7 +44,7 @@ const CustomizableTable = <T,>({
                         {headerGroup.headers.map((header) => (
                             <TableHead
                                 key={header.id}
-                                className="relative group select-none text-left border-b border-line hover:bg-gray-800 p-2"
+                                className="relative group select-none text-left border-b border-border hover:bg-muted/50 p-2"
                                 style={{ width: header.getSize() }}
                             >
                                 {header.isPlaceholder ? null : (
@@ -61,7 +61,7 @@ const CustomizableTable = <T,>({
                                                 ) : header.column.getIsSorted() === "desc" ? (
                                                     <ArrowDown className="w-3 h-3" />
                                                 ) : (
-                                                    <ArrowUpDown className="w-3 h-3 text-gray-400" />
+                                                    <ArrowUpDown className="w-3 h-3 text-muted-foreground" />
                                                 )}
                                             </div>
                                         )}
@@ -71,7 +71,7 @@ const CustomizableTable = <T,>({
                                     <div
                                         onMouseDown={header.getResizeHandler()}
                                         onTouchStart={header.getResizeHandler()}
-                                        className="absolute right-0 top-0 h-full bg-gray-900 w-px  cursor-col-resize bg-gray-200 group-hover:bg-blue-400 transition-all duration-300"
+                                        className="absolute right-0 top-0 h-full w-px cursor-col-resize bg-border group-hover:bg-primary/50 transition-all duration-300"
                                     />
                                 )}
                             </TableHead>
@@ -79,7 +79,7 @@ const CustomizableTable = <T,>({
                     </TableRow>
                 ))}
             </TableHeader>
-            <TableBody className="divide-y divide-gray-800">
+            <TableBody className="divide-y divide-border">
                 {isLoading || isFetching ? (
                     [...Array(rows || 25)].map((_, rowIndex) => (
                         <TableRow key={`skeleton-row-${rowIndex}`}>
