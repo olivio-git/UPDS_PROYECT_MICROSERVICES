@@ -26,15 +26,15 @@ const ImportPanel: React.FC<Props> = ({ onCancel, onImported }) => {
     <div className="space-y-6">
       <div className="p-4 bg-dark-light border border-line rounded-lg">
         <div className="flex items-center gap-3">
-          <Upload className="w-5 h-5 text-gray-300" />
+          <Upload className="w-5 h-5 text-muted-foreground" />
           <div>
-            <h3 className="text-gray-100 font-medium">Importar desde CSV/Excel</h3>
-            <p className="text-gray-400 text-sm">Selecciona un archivo .csv o .xlsx con el formato esperado.</p>
+            <h3 className="text-foreground font-medium">Importar desde CSV/Excel</h3>
+            <p className="text-muted-foreground text-sm">Selecciona un archivo .csv o .xlsx con el formato esperado.</p>
           </div>
         </div>
 
         <div className="mt-4 flex items-center gap-3">
-          <label className="px-4 py-2 bg-dark-light border border-line rounded-lg hover:bg-dark-light/80 cursor-pointer text-gray-300 flex items-center gap-2">
+          <label className="px-4 py-2 bg-dark-light border border-line rounded-lg hover:bg-dark-light/80 cursor-pointer text-muted-foreground flex items-center gap-2">
             <FileText className="w-4 h-4" />
             <span>Seleccionar archivo</span>
             <input
@@ -45,12 +45,12 @@ const ImportPanel: React.FC<Props> = ({ onCancel, onImported }) => {
             />
           </label>
 
-          {file && <span className="text-sm text-gray-400">{file.name}</span>}
+          {file && <span className="text-sm text-muted-foreground">{file.name}</span>}
         </div>
       </div>
 
       <div className="flex justify-end gap-3">
-        <button onClick={onCancel} className="px-4 py-2 bg-dark-light border border-line rounded-lg text-gray-300 hover:bg-dark-light/80">
+        <button onClick={onCancel} className="px-4 py-2 bg-dark-light border border-line rounded-lg text-muted-foreground hover:bg-dark-light/80">
           Cancelar
         </button>
         <button

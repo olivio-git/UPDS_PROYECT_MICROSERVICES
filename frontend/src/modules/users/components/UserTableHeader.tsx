@@ -68,14 +68,14 @@ const UserTableHeader: React.FC<UserTableHeaderProps> = ({
   const hasActiveFilters = filters.search || filters.role || filters.status;
 
   return (
-    <div className="space-y-4 bg-box border border-line rounded-lg p-4 text-gray-200">
+    <div className="space-y-4 bg-box border border-line rounded-lg p-4 text-foreground">
       {/* Header principal */}
       <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between p-2">
         <div className="flex-1">
-          <h2 className="text-2xl font-bold text-gray-200">
+          <h2 className="text-2xl font-bold text-foreground">
             Gestión de Usuarios
           </h2>
-          <p className="text-sm text-gray-500 mt-1">
+          <p className="text-sm text-muted-foreground mt-1">
             {totalCount > 0 ? (
               <>
                 Mostrando {totalCount} usuario{totalCount !== 1 ? 's' : ''}
@@ -152,12 +152,12 @@ const UserTableHeader: React.FC<UserTableHeaderProps> = ({
       <div className="flex flex-col sm:flex-row gap-1 rounded-lg items-center justify-between px-1">
         {/* Búsqueda */}
         <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4 focus:outline-none " />
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4 focus:outline-none " />
           <Input
             placeholder="Buscar por nombre, email..."
             value={filters.search || ''}
             onChange={(e) => handleSearchChange(e.target.value)}
-            className="pl-10 pr-3 w-full bg-gray-800/50 border-gray-600 text-white placeholder-gray-400"
+            className="pl-10 pr-3 w-full bg-muted/50 border-border text-foreground placeholder:text-muted-foreground"
           />
         </div>
 
@@ -165,7 +165,7 @@ const UserTableHeader: React.FC<UserTableHeaderProps> = ({
         <Button
           variant="outline"
           onClick={() => setShowFilters(!showFilters)}
-          className={`gap-1 bg-transparent border ${hasActiveFilters ? ' border text-white border-line' : 'text-white border-line'}`}
+          className={`gap-1 bg-transparent border ${hasActiveFilters ? ' border text-foreground border-line' : 'text-foreground border-line'}`}
         >
           <Filter className="w-4 h-4" />
           Filtros
@@ -179,7 +179,7 @@ const UserTableHeader: React.FC<UserTableHeaderProps> = ({
 
       {/* Panel de filtros expandido */}
       {showFilters && (
-        <div className="border border-gray-200 rounded-lg p-4 space-y-4 border-line text-gray-200">
+        <div className="border border-border rounded-lg p-4 space-y-4 text-foreground">
           <div className="flex items-center justify-between">
             <h3 className="text-sm font-medium ">Filtros Avanzados</h3>
             <Button
@@ -195,15 +195,15 @@ const UserTableHeader: React.FC<UserTableHeaderProps> = ({
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {/* Filtro por rol */}
             <div className="space-y-2">
-              <label className="text-sm font-medium text-gray-700">Rol</label>
+              <label className="text-sm font-medium text-muted-foreground">Rol</label>
               <Select value={filters.role || 'all'} onValueChange={handleRoleChange}>
                 <SelectTrigger>
                   <SelectValue placeholder="Todos los roles" />
                 </SelectTrigger>
-                <SelectContent className='bg-gray-900 border border-line'>
+                <SelectContent className='bg-card border border-line'>
                   <SelectItem value="all">Todos los roles</SelectItem>
                   {USER_ROLES.map((role) => (
-                    <SelectItem className="hover:bg-gray-800" key={role.value} value={role.value}>
+                    <SelectItem className="hover:bg-muted" key={role.value} value={role.value}>
                       {role.label}
                     </SelectItem>
                   ))}
@@ -213,15 +213,15 @@ const UserTableHeader: React.FC<UserTableHeaderProps> = ({
 
             {/* Filtro por estado */}
             <div className="space-y-2">
-              <label className="text-sm font-medium text-gray-700">Estado</label>
+              <label className="text-sm font-medium text-muted-foreground">Estado</label>
               <Select value={filters.status || 'all'} onValueChange={handleStatusChange}>
                 <SelectTrigger>
                   <SelectValue placeholder="Todos los estados" />
                 </SelectTrigger>
-                <SelectContent className='bg-gray-900 border border-line'>
+                <SelectContent className='bg-card border border-line'>
                   <SelectItem value="all">Todos los estados</SelectItem>
                   {USER_STATUSES.map((status) => (
-                    <SelectItem className="hover:bg-gray-800" key={status.value} value={status.value}>
+                    <SelectItem className="hover:bg-muted" key={status.value} value={status.value}>
                       {status.label}
                     </SelectItem>
                   ))}
@@ -231,7 +231,7 @@ const UserTableHeader: React.FC<UserTableHeaderProps> = ({
 
             {/* Ordenamiento */}
             <div className="space-y-2">
-              <label className="text-sm font-medium text-gray-700">Ordenar por</label>
+              <label className="text-sm font-medium text-muted-foreground">Ordenar por</label>
               <Select 
                 value={`${filters.sortBy || 'createdAt'}-${filters.sortOrder || 'desc'}`} 
                 onValueChange={(value) => {

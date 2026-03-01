@@ -28,7 +28,7 @@ interface FeedbackState {
 }
 
 const LEVEL_COLORS: Record<string, string> = {
-  A1: 'bg-gray-500/20 text-gray-300 border-gray-500/30',
+  A1: 'bg-muted/50 text-muted-foreground border-border',
   A2: 'bg-green-500/20 text-green-300 border-green-500/30',
   B1: 'bg-blue-500/20 text-blue-300 border-blue-500/30',
   B2: 'bg-purple-500/20 text-purple-300 border-purple-500/30',
@@ -166,7 +166,7 @@ const AdaptiveExamRunner: React.FC = () => {
         <div className="max-w-3xl mx-auto flex items-center justify-center min-h-96">
           <div className="text-center space-y-4">
             <Brain className="h-12 w-12 text-blue-400 mx-auto animate-pulse" />
-            <p className="text-gray-300 text-lg">Iniciando examen de nivelación...</p>
+            <p className="text-foreground/80 text-lg">Iniciando examen de nivelación...</p>
           </div>
         </div>
       </MainLayout>
@@ -193,14 +193,14 @@ const AdaptiveExamRunner: React.FC = () => {
     return (
       <MainLayout gradientVariant="primary">
         <div className="max-w-3xl mx-auto flex items-center justify-center min-h-96">
-          <Card className="bg-[#0B1422] border border-line w-full">
+          <Card className="bg-card border border-line w-full">
             <CardContent className="p-10 text-center space-y-6">
               <CheckCircle className="h-16 w-16 text-green-400 mx-auto" />
               <div>
-                <h2 className="text-2xl font-bold text-white mb-2">
+                <h2 className="text-2xl font-bold text-foreground mb-2">
                   ¡Examen Completado!
                 </h2>
-                <p className="text-gray-300">
+                <p className="text-foreground/80">
                   {stopReason === 'consecutive_wrong'
                     ? 'El examen finalizó automáticamente por límite de errores consecutivos.'
                     : stopReason === 'max_questions'
@@ -209,12 +209,12 @@ const AdaptiveExamRunner: React.FC = () => {
                 </p>
               </div>
               {adaptiveState && (
-                <div className="bg-gray-800/50 rounded-lg p-4 text-sm text-gray-300">
-                  <p>Preguntas respondidas: <span className="text-white font-medium">{adaptiveState.questionsAnswered}</span></p>
-                  <p className="mt-1">Nivel final alcanzado: <span className={`font-medium px-2 py-0.5 rounded ${LEVEL_COLORS[adaptiveState.currentLevel] || 'text-white'}`}>{adaptiveState.currentLevel}</span></p>
+                <div className="bg-muted/50 rounded-lg p-4 text-sm text-foreground/80">
+                  <p>Preguntas respondidas: <span className="text-foreground font-medium">{adaptiveState.questionsAnswered}</span></p>
+                  <p className="mt-1">Nivel final alcanzado: <span className={`font-medium px-2 py-0.5 rounded ${LEVEL_COLORS[adaptiveState.currentLevel] || 'text-foreground'}`}>{adaptiveState.currentLevel}</span></p>
                 </div>
               )}
-              <p className="text-gray-400 text-sm">
+              <p className="text-muted-foreground text-sm">
                 Tus resultados estarán disponibles en unos momentos en la sección de resultados.
               </p>
               <Button
@@ -252,8 +252,8 @@ const AdaptiveExamRunner: React.FC = () => {
         {/* Header */}
         <div className="flex items-center justify-between">
           <div className="space-y-1">
-            <h1 className="text-2xl font-bold text-white">Examen de Nivelación</h1>
-            <p className="text-gray-400 text-sm">Sistema Adaptativo (CAT)</p>
+            <h1 className="text-2xl font-bold text-foreground">Examen de Nivelación</h1>
+            <p className="text-muted-foreground text-sm">Sistema Adaptativo (CAT)</p>
           </div>
           <div className="flex items-center gap-3">
             {adaptiveState && (
@@ -261,7 +261,7 @@ const AdaptiveExamRunner: React.FC = () => {
                 <Badge className={LEVEL_COLORS[adaptiveState.currentLevel] || 'bg-blue-500/20 text-blue-300 border-blue-500/30'}>
                   Nivel actual: {adaptiveState.currentLevel}
                 </Badge>
-                <span className="text-gray-400 text-sm">
+                <span className="text-muted-foreground text-sm">
                   Pregunta {adaptiveState.questionsAnswered + 1} de máx {adaptiveState.maxQuestions}
                 </span>
               </>
@@ -286,7 +286,7 @@ const AdaptiveExamRunner: React.FC = () => {
                 {' '}— {feedback.score}/{feedback.maxScore} puntos
               </p>
               {feedback.feedback && (
-                <p className="text-gray-400 text-sm mt-0.5">{feedback.feedback}</p>
+                <p className="text-muted-foreground text-sm mt-0.5">{feedback.feedback}</p>
               )}
             </div>
           </div>
@@ -294,9 +294,9 @@ const AdaptiveExamRunner: React.FC = () => {
 
         {/* Question Card */}
         {currentQuestion && !showFeedback && (
-          <Card className="bg-[#0B1422] border border-line">
+          <Card className="bg-card border border-line">
             <CardHeader>
-              <CardTitle className="text-white text-base font-medium flex items-center gap-2">
+              <CardTitle className="text-foreground text-base font-medium flex items-center gap-2">
                 <Brain className="h-4 w-4 text-blue-400" />
                 Pregunta {(adaptiveState?.questionsAnswered ?? 0) + 1}
               </CardTitle>
@@ -328,13 +328,13 @@ const AdaptiveExamRunner: React.FC = () => {
 
         {/* Progress indicator */}
         {adaptiveState && (
-          <div className="flex items-center gap-2 text-xs text-gray-500">
+          <div className="flex items-center gap-2 text-xs text-muted-foreground">
             <div className="flex gap-1">
               {Array.from({ length: Math.min(adaptiveState.questionsAnswered, 20) }).map((_, i) => (
                 <div key={i} className="w-2 h-2 rounded-full bg-blue-500/50" />
               ))}
               {Array.from({ length: Math.max(0, adaptiveState.maxQuestions - adaptiveState.questionsAnswered) }).map((_, i) => (
-                <div key={i} className="w-2 h-2 rounded-full bg-gray-700" />
+                <div key={i} className="w-2 h-2 rounded-full bg-muted" />
               ))}
             </div>
             <span>{adaptiveState.questionsAnswered}/{adaptiveState.maxQuestions}</span>

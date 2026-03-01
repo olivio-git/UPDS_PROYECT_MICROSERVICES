@@ -207,12 +207,12 @@ const UserForm: React.FC<UserFormProps> = ({
   return (
     <div className="max-w-4xl mx-auto space-y-6  bg-box p-4 rounded-lg border border-line">
       {/* Header */}
-      <div className="flex items-center gap-4 text-gray-200"> 
+      <div className="flex items-center gap-4 text-foreground">
         <div>
-          <h2 className="text-2xl font-bold text-gray-200">
+          <h2 className="text-2xl font-bold text-foreground">
             {isEditing ? 'Editar Usuario' : 'Nuevo Usuario'}
           </h2>
-          <p className="text-gray-500">
+          <p className="text-muted-foreground">
             {isEditing 
               ? `Modificando información de ${user?.firstName} ${user?.lastName}`
               : 'Completa la información para crear un nuevo usuario'
@@ -225,7 +225,7 @@ const UserForm: React.FC<UserFormProps> = ({
         {/* Información básica */}
         <Card>
           <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-white">
+            <CardTitle className="flex items-center gap-2 text-foreground">
               <Users className="w-5 h-5" />
               Información Básica
             </CardTitle>
@@ -246,7 +246,7 @@ const UserForm: React.FC<UserFormProps> = ({
                   value={formData.email}
                   onChange={(e) => handleInputChange('email', e.target.value)}
                   placeholder="usuario@ejemplo.com"
-                  className={errors.email ? 'border-red-500' : "bg-gray-800/50 border-gray-600 text-white placeholder-gray-400"}
+                  className={errors.email ? 'border-red-500' : "bg-muted/50 border-border text-foreground placeholder:text-muted-foreground"}
                   disabled={isEditing} // No permitir cambiar email en edición
                 />
                 {errors.email && (
@@ -270,19 +270,19 @@ const UserForm: React.FC<UserFormProps> = ({
                   <SelectTrigger className={errors.role ? 'border-red-500' : ''}>
                     <SelectValue placeholder="Seleccionar rol" />
                   </SelectTrigger>
-                  <SelectContent className='bg-gray-900 border border-line'>
+                  <SelectContent className='bg-card border border-line'>
                     {USER_ROLES.map((role) => (
-                      <SelectItem key={role.value} value={role.value} className='hover:bg-gray-800'>
+                      <SelectItem key={role.value} value={role.value} className='hover:bg-muted'>
                         <div>
                           <div className="font-medium">{role.label}</div>
-                          <div className="text-sm text-gray-500">{role.description}</div>
+                          <div className="text-sm text-muted-foreground">{role.description}</div>
                         </div>
                       </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
                 {selectedRoleConfig && (
-                  <div className="text-sm text-gray-600">
+                  <div className="text-sm text-muted-foreground">
                     {selectedRoleConfig.description}
                   </div>
                 )}
@@ -304,7 +304,7 @@ const UserForm: React.FC<UserFormProps> = ({
                   value={formData.firstName}
                   onChange={(e) => handleInputChange('firstName', e.target.value)}
                   placeholder="Juan"
-                  className={errors.firstName ? 'border-red-500' : "bg-gray-800/50 border-gray-600 text-white placeholder-gray-400"}
+                  className={errors.firstName ? 'border-red-500' : "bg-muted/50 border-border text-foreground placeholder:text-muted-foreground"}
                 />
                 {errors.firstName && (
                   <Alert variant="destructive" className="py-2">
@@ -322,7 +322,7 @@ const UserForm: React.FC<UserFormProps> = ({
                   value={formData.lastName}
                   onChange={(e) => handleInputChange('lastName', e.target.value)}
                   placeholder="Pérez"
-                  className={errors.lastName ? 'border-red-500' : "bg-gray-800/50 border-gray-600 text-white placeholder-gray-400"}
+                  className={errors.lastName ? 'border-red-500' : "bg-muted/50 border-border text-foreground placeholder:text-muted-foreground"}
                 />
                 {errors.lastName && (
                   <Alert variant="destructive" className="py-2">
@@ -344,7 +344,7 @@ const UserForm: React.FC<UserFormProps> = ({
                 value={formData.phone || ''}
                 onChange={(e) => handleInputChange('phone', e.target.value)}
                 placeholder="+591 70123456"
-                className={errors.phone ? 'border-red-500' : "bg-gray-800/50 border-gray-600 text-white placeholder-gray-400"}
+                className={errors.phone ? 'border-red-500' : "bg-muted/50 border-border text-foreground placeholder:text-muted-foreground"}
               />
               {errors.phone && (
                 <Alert variant="destructive" className="py-2">
@@ -403,7 +403,7 @@ const UserForm: React.FC<UserFormProps> = ({
                     value={formData.experience || ''}
                     onChange={(e) => handleInputChange('experience', parseInt(e.target.value) || 0)}
                     placeholder="5"
-                    className={errors.experience ? 'border-red-500' : "bg-gray-800/50 border-gray-600 text-white placeholder-gray-400"}
+                    className={errors.experience ? 'border-red-500' : "bg-muted/50 border-border text-foreground placeholder:text-muted-foreground"}
                   />
                   {errors.experience && (
                     <Alert variant="destructive" className="py-2">
@@ -423,8 +423,8 @@ const UserForm: React.FC<UserFormProps> = ({
                       key={specialization}
                       className={`p-2 border border-line rounded-lg cursor-pointer transition-colors ${
                         selectedSpecializations.includes(specialization)
-                          ? 'bg-gray-700 text-white border-blue-500'
-                          : '200 hover:bg-gray-800'
+                          ? 'bg-muted text-foreground border-blue-500'
+                          : 'hover:bg-muted'
                       }`}
                       onClick={() => handleSpecializationToggle(specialization)}
                     >
@@ -470,7 +470,7 @@ const UserForm: React.FC<UserFormProps> = ({
                     value={formData.certificationLevel || ''}
                     onChange={(e) => handleInputChange('certificationLevel', e.target.value)}
                     placeholder="Nivel de certificación"
-                    className={errors.certificationLevel ? 'border-red-500' : "bg-gray-800/50 border-gray-600 text-white placeholder-gray-400"}
+                    className={errors.certificationLevel ? 'border-red-500' : "bg-muted/50 border-border text-foreground placeholder:text-muted-foreground"}
                   />
                   {errors.certificationLevel && (
                     <Alert variant="destructive" className="py-2">
@@ -491,7 +491,7 @@ const UserForm: React.FC<UserFormProps> = ({
                     value={formData.maxSimultaneousSessions || ''}
                     onChange={(e) => handleInputChange('maxSimultaneousSessions', parseInt(e.target.value) || 1)}
                     placeholder="3"
-                    className={errors.maxSimultaneousSessions ? 'border-red-500' : "bg-gray-800/50 border-gray-600 text-white placeholder-gray-400"}
+                    className={errors.maxSimultaneousSessions ? 'border-red-500' : "bg-muted/50 border-border text-foreground placeholder:text-muted-foreground"}
                   />
                   {errors.maxSimultaneousSessions && (
                     <Alert variant="destructive" className="py-2">
@@ -511,8 +511,8 @@ const UserForm: React.FC<UserFormProps> = ({
                       key={language}
                       className={`p-2 border border-line rounded-lg cursor-pointer transition-colors ${
                         selectedLanguages.includes(language)
-                          ? 'bg-gray-700 text-white border-blue-500'
-                          : '200 hover:bg-gray-800'
+                          ? 'bg-muted text-foreground border-blue-500'
+                          : 'hover:bg-muted'
                       }`}
                       onClick={() => handleLanguageToggle(language)}
                     >
@@ -547,7 +547,7 @@ const UserForm: React.FC<UserFormProps> = ({
             variant="outline"
             onClick={onCancel}
             disabled={isLoading}
-            className="gap-1 text-white bg-transparent border border-line hover:bg-gray-800"
+            className="gap-1 text-foreground bg-transparent border border-line hover:bg-muted"
           >
             <X className="w-4 h-4" />
             Cancelar

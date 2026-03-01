@@ -29,8 +29,8 @@ const QuestionAvailabilityIndicator: React.FC<QuestionAvailabilityIndicatorProps
 
   if (loading) {
     return (
-      <div className="flex items-center gap-2 text-xs text-gray-400 mt-1">
-        <div className="w-3 h-3 border border-gray-400 border-t-transparent rounded-full animate-spin" />
+      <div className="flex items-center gap-2 text-xs text-muted-foreground mt-1">
+        <div className="w-3 h-3 border border-muted-foreground border-t-transparent rounded-full animate-spin" />
         <span>Verificando disponibilidad...</span>
       </div>
     );
@@ -54,7 +54,7 @@ const QuestionAvailabilityIndicator: React.FC<QuestionAvailabilityIndicatorProps
 
   if (data.available === 0) {
     return (
-      <div className="flex items-center gap-2 text-xs text-red-400 mt-1">
+      <div className="flex items-center gap-2 text-xs text-red-500 mt-1">
         <AlertTriangle className="w-3 h-3" />
         <span>No hay preguntas disponibles para {getCompetencyDisplayName(competency)} nivel {level}</span>
       </div>
@@ -63,7 +63,7 @@ const QuestionAvailabilityIndicator: React.FC<QuestionAvailabilityIndicatorProps
 
   if (!data.isAvailable) {
     return (
-      <div className="flex items-center gap-2 text-xs text-orange-400 mt-1">
+      <div className="flex items-center gap-2 text-xs text-orange-500 mt-1">
         <AlertTriangle className="w-3 h-3" />
         <span>
           Solo {data.available} pregunta{data.available !== 1 ? 's' : ''} disponible{data.available !== 1 ? 's' : ''}
@@ -75,7 +75,7 @@ const QuestionAvailabilityIndicator: React.FC<QuestionAvailabilityIndicatorProps
 
   if (data.remaining < 5 && data.remaining >= 0) {
     return (
-      <div className="flex items-center gap-2 text-xs text-yellow-400 mt-1">
+      <div className="flex items-center gap-2 text-xs text-yellow-500 mt-1">
         <Info className="w-3 h-3" />
         <span>
           ✓ {data.available} disponibles, quedarían {data.remaining} restantes
@@ -85,7 +85,7 @@ const QuestionAvailabilityIndicator: React.FC<QuestionAvailabilityIndicatorProps
   }
 
   return (
-    <div className="flex items-center gap-2 text-xs text-green-400 mt-1">
+    <div className="flex items-center gap-2 text-xs text-green-500 mt-1">
       <CheckCircle className="w-3 h-3" />
       <span>✓ {data.available} preguntas disponibles</span>
     </div>

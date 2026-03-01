@@ -4,6 +4,7 @@ import { Menu, X, LogOut, User, Bell, Calendar, BookOpen, TrendingUp } from "luc
 import { useNavigate, useLocation } from "react-router-dom";
 import useAuth from "@/hooks/useAuth";
 import ImageLogo from "@/assets/images/logo.webp";
+import { ThemeToggle } from "@/components/theme/ThemeToggle";
 
 // Rutas específicas para estudiantes
 const studentRoutes = [
@@ -59,8 +60,9 @@ const StudentHeader = () => {
                         <img className="h-8" src={ImageLogo} alt="CBA Logo" />
                     </div>
 
+
                     {/* Desktop Navigation */}
-                    <nav className="hidden md:flex px-6 py-1 text-xs font-medium rounded-full bg-background/80 backdrop-blur-xl border border-gray-900/10 text-gray-200 justify-center items-center gap-4">
+                    <nav className="hidden md:flex px-6 py-1 text-xs font-medium rounded-full bg-background/80 backdrop-blur-xl border border-border/40 text-foreground justify-center items-center gap-4">
                         {studentRoutes.map((route) => {
                             const IconComponent = route.icon;
                             const isActive = location.pathname === route.path;
@@ -92,9 +94,9 @@ const StudentHeader = () => {
                             <Button
                                 variant="outline"
                                 size="icon"
-                                className="border border-gray-900/20 bg-background/80 backdrop-blur-sm hover:border-gray-600 hover:bg-gray-900 transition-all duration-300"
+                                className="border border-border/40 bg-background/80 backdrop-blur-sm hover:border-border hover:bg-muted transition-all duration-300"
                             >
-                                <Bell className="h-4 w-4 text-white" />
+                                <Bell className="h-4 w-4 text-foreground" />
                             </Button>
                         </div>
 
@@ -104,23 +106,24 @@ const StudentHeader = () => {
                                 variant="outline"
                                 size="icon"
                                 onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
-                                className="border border-gray-900/20 bg-background/80 backdrop-blur-sm hover:border-gray-600 hover:bg-gray-900 transition-all duration-300"
+                                className="border border-border/40 bg-background/80 backdrop-blur-sm hover:border-border hover:bg-muted transition-all duration-300"
                             >
-                                <User className="h-4 w-4 text-white" />
+                                <User className="h-4 w-4 text-foreground" />
                             </Button>
+                    <ThemeToggle></ThemeToggle>
 
                             {/* User Dropdown */}
                             {isUserMenuOpen && (
-                                <div className="absolute right-0 mt-2 w-48 bg-gray-900/95 backdrop-blur-sm border border-gray-700 rounded-lg shadow-xl">
+                                <div className="absolute right-0 mt-2 w-48 bg-popover/95 backdrop-blur-sm border border-border rounded-lg shadow-xl">
                                     <div className="py-2">
-                                        <div className="px-4 py-2 border-b border-gray-700">
-                                            <p className="text-sm text-gray-200 font-medium">
+                                        <div className="px-4 py-2 border-b border-border">
+                                            <p className="text-sm text-popover-foreground font-medium">
                                                 {user?.firstName} {user?.lastName}
                                             </p>
-                                            <p className="text-xs text-gray-400">Estudiante</p>
+                                            <p className="text-xs text-muted-foreground">Estudiante</p>
                                         </div>
                                         <button
-                                            className="flex items-center gap-2 w-full px-4 py-2 text-sm text-gray-200 hover:bg-gray-800 transition-colors"
+                                            className="flex items-center gap-2 w-full px-4 py-2 text-sm text-popover-foreground hover:bg-muted transition-colors"
                                             onClick={() => {
                                                 setIsUserMenuOpen(false);
                                                 handleNavigation('/student/profile');
@@ -129,9 +132,9 @@ const StudentHeader = () => {
                                             <User className="h-4 w-4" />
                                             Mi Perfil
                                         </button>
-                                        <hr className="my-1 border-gray-700" />
+                                        <hr className="my-1 border-border" />
                                         <button
-                                            className="flex items-center gap-2 w-full px-4 py-2 text-sm text-red-400 hover:bg-gray-800 transition-colors"
+                                            className="flex items-center gap-2 w-full px-4 py-2 text-sm text-red-500 hover:bg-muted transition-colors"
                                             onClick={handleLogout}
                                         >
                                             <LogOut className="h-4 w-4" />
@@ -148,7 +151,7 @@ const StudentHeader = () => {
                                 variant="outline"
                                 size="icon"
                                 onClick={toggleMobileMenu}
-                                className="md:hidden border border-gray-900/20 bg-background/80 backdrop-blur-sm hover:border-gray-600 hover:bg-gray-900 transition-all duration-300"
+                                className="md:hidden border border-border/40 bg-background/80 backdrop-blur-sm hover:border-border hover:bg-muted transition-all duration-300"
                             >
                                 <Menu className="h-4 w-4 text-white" />
                             </Button>
@@ -166,34 +169,34 @@ const StudentHeader = () => {
                     />
 
                     {/* Mobile Menu Panel */}
-                    <div className="fixed top-0 left-0 h-full w-64 bg-gray-900/95 backdrop-blur-sm border-r border-gray-700 shadow-xl transform transition-transform duration-300">
+                    <div className="fixed top-0 left-0 h-full w-64 bg-popover/95 backdrop-blur-sm border-r border-border shadow-xl transform transition-transform duration-300">
                         <div className="flex flex-col h-full">
                             {/* Header */}
-                            <div className="flex items-center justify-between p-4 border-b border-gray-700">
-                                <h2 className="text-lg font-bold text-gray-200">
+                            <div className="flex items-center justify-between p-4 border-b border-border">
+                                <h2 className="text-lg font-bold text-popover-foreground">
                                     CBA Platform
                                 </h2>
                                 <Button
                                     variant="ghost"
                                     size="icon"
                                     onClick={toggleMobileMenu}
-                                    className="text-gray-400 hover:text-gray-200"
+                                    className="text-muted-foreground hover:text-foreground"
                                 >
-                                    <X className="h-4 w-4 text-white" />
+                                    <X className="h-4 w-4 text-foreground" />
                                 </Button>
                             </div>
 
                             {/* User Info */}
-                            <div className="p-4 border-b border-gray-700">
+                            <div className="p-4 border-b border-border">
                                 <div className="flex items-center gap-3">
                                     <div className="w-10 h-10 bg-blue-600 rounded-full flex items-center justify-center text-white font-medium">
                                         {user?.firstName?.[0]}{user?.lastName?.[0]}
                                     </div>
                                     <div>
-                                        <p className="text-sm font-medium text-gray-200">
+                                        <p className="text-sm font-medium text-popover-foreground">
                                             {user?.firstName} {user?.lastName}
                                         </p>
-                                        <p className="text-xs text-gray-400">Estudiante</p>
+                                        <p className="text-xs text-muted-foreground">Estudiante</p>
                                     </div>
                                 </div>
                             </div>
@@ -213,7 +216,7 @@ const StudentHeader = () => {
                                                     flex items-center gap-3 w-full p-3 rounded-lg text-left transition-all duration-200
                                                     ${isActive
                                                         ? "bg-blue-500/20 text-blue-400"
-                                                        : "text-gray-300 hover:bg-gray-800 hover:text-blue-400"
+                                                        : "text-foreground/70 hover:bg-muted hover:text-blue-400"
                                                     }
                                                 `}
                                             >
@@ -226,9 +229,9 @@ const StudentHeader = () => {
                             </nav>
 
                             {/* User Actions */}
-                            <div className="p-4 border-t border-gray-700">
+                            <div className="p-4 border-t border-border">
                                 <button
-                                    className="flex items-center gap-3 w-full p-3 text-red-400 hover:bg-red-500/10 rounded-lg transition-all duration-200"
+                                    className="flex items-center gap-3 w-full p-3 text-red-500 hover:bg-red-500/10 rounded-lg transition-all duration-200"
                                     onClick={handleLogout}
                                 >
                                     <LogOut className="h-5 w-5" />

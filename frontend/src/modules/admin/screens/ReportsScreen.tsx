@@ -137,7 +137,7 @@ const ReportsScreen: React.FC = () => {
       case 'easy':   return 'text-emerald-400 bg-emerald-500/10 border border-emerald-500/20';
       case 'medium': return 'text-amber-400 bg-amber-500/10 border border-amber-500/20';
       case 'hard':   return 'text-red-400 bg-red-500/10 border border-red-500/20';
-      default:       return 'text-slate-400 bg-slate-500/10 border border-slate-500/20';
+      default:       return 'text-muted-foreground bg-muted/10 border border-border/20';
     }
   };
 
@@ -147,7 +147,7 @@ const ReportsScreen: React.FC = () => {
         <div className="min-h-screen flex items-center justify-center">
           <div className="text-center space-y-3">
             <Loader2 className="h-7 w-7 animate-spin mx-auto text-blue-500" />
-            <p className="text-slate-400 text-sm">Cargando reportes...</p>
+            <p className="text-muted-foreground text-sm">Cargando reportes...</p>
           </div>
         </div>
       </MainLayout>
@@ -163,16 +163,16 @@ const ReportsScreen: React.FC = () => {
           {/* Título + acciones */}
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-xl font-bold text-white">Reportes y Análisis</h1>
-              <p className="text-slate-500 text-xs">Rendimiento académico · Competencias · Tendencias</p>
+              <h1 className="text-xl font-bold text-foreground">Reportes y Análisis</h1>
+              <p className="text-muted-foreground text-xs">Rendimiento académico · Competencias · Tendencias</p>
             </div>
             <div className="flex items-center gap-2">
               <Button onClick={() => loadReportsData()} size="sm" variant="ghost"
-                className="text-slate-400 hover:text-white hover:bg-slate-800 h-8 w-8 p-0">
+                className="text-muted-foreground hover:text-foreground hover:bg-muted h-8 w-8 p-0">
                 <RefreshCw className="h-3.5 w-3.5" />
               </Button>
               <Button onClick={() => handleOpenExportModal('competency')} size="sm" variant="outline"
-                className="border-line text-slate-300 bg-slate-800 hover:bg-slate-700 text-xs h-8">
+                className="border-line text-foreground/80 bg-muted hover:bg-muted text-xs h-8">
                 <Download className="h-3 w-3 mr-1.5" />
                 Competencias
               </Button>
@@ -187,52 +187,52 @@ const ReportsScreen: React.FC = () => {
           {/* Filtros siempre visibles */}
           <div className="flex items-end gap-3 bg-box border border-line rounded-lg px-4 py-2.5">
             {/* Label */}
-            <span className="flex items-center gap-1.5 text-slate-500 text-xs shrink-0 pb-1.5">
+            <span className="flex items-center gap-1.5 text-muted-foreground text-xs shrink-0 pb-1.5">
               <Filter className="h-3 w-3" />
               Filtrar
             </span>
 
-            <div className="w-px h-8 bg-slate-700 shrink-0" />
+            <div className="w-px h-8 bg-border shrink-0" />
 
             {/* Rango de fechas */}
             <div className="flex items-end gap-2 shrink-0">
               <div className="flex flex-col gap-0.5">
-                <label className="text-[10px] text-slate-500 pl-0.5">Desde</label>
+                <label className="text-[10px] text-muted-foreground pl-0.5">Desde</label>
                 <Input type="date" value={filters.startDate || ''}
                   onChange={e => handleFilterChange('startDate', e.target.value)}
-                  className="bg-slate-800/60 border-line text-white text-xs h-8 w-36" />
+                  className="bg-muted/60 border-line text-foreground text-xs h-8 w-36" />
               </div>
-              <span className="text-slate-600 text-xs pb-2 shrink-0">—</span>
+              <span className="text-muted-foreground text-xs pb-2 shrink-0">—</span>
               <div className="flex flex-col gap-0.5">
-                <label className="text-[10px] text-slate-500 pl-0.5">Hasta</label>
+                <label className="text-[10px] text-muted-foreground pl-0.5">Hasta</label>
                 <Input type="date" value={filters.endDate || ''}
                   onChange={e => handleFilterChange('endDate', e.target.value)}
-                  className="bg-slate-800/60 border-line text-white text-xs h-8 w-36" />
+                  className="bg-muted/60 border-line text-foreground text-xs h-8 w-36" />
               </div>
             </div>
 
-            <div className="w-px h-8 bg-slate-700 shrink-0" />
+            <div className="w-px h-8 bg-border shrink-0" />
 
             {/* Rango de puntaje */}
             <div className="flex items-end gap-2 shrink-0">
               <div className="flex flex-col gap-0.5">
-                <label className="text-[10px] text-slate-500 pl-0.5">Mín. %</label>
+                <label className="text-[10px] text-muted-foreground pl-0.5">Mín. %</label>
                 <Input type="number" placeholder="0" value={filters.minScore || ''}
                   onChange={e => handleFilterChange('minScore', Number(e.target.value))}
-                  className="bg-slate-800/60 border-line text-white text-xs h-8 w-28" />
+                  className="bg-muted/60 border-line text-foreground text-xs h-8 w-28" />
               </div>
               <div className="flex flex-col gap-0.5">
-                <label className="text-[10px] text-slate-500 pl-0.5">Máx. %</label>
+                <label className="text-[10px] text-muted-foreground pl-0.5">Máx. %</label>
                 <Input type="number" placeholder="100" value={filters.maxScore || ''}
                   onChange={e => handleFilterChange('maxScore', Number(e.target.value))}
-                  className="bg-slate-800/60 border-line text-white text-xs h-8 w-28" />
+                  className="bg-muted/60 border-line text-foreground text-xs h-8 w-28" />
               </div>
               <Button onClick={() => loadReportsData(filters)} size="sm"
                 className="h-8 text-xs bg-blue-600 hover:bg-blue-700 text-white px-4 shrink-0">
                 Aplicar
               </Button>
               <Button onClick={handleClearFilters} variant="ghost" size="sm"
-                className="h-8 text-xs text-slate-400 hover:text-white hover:bg-slate-800 px-3 shrink-0">
+                className="h-8 text-xs text-muted-foreground hover:text-foreground hover:bg-muted px-3 shrink-0">
                 Limpiar
               </Button>
             </div>
@@ -253,8 +253,8 @@ const ReportsScreen: React.FC = () => {
                 <CardContent className="p-3">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-xs text-slate-400">{label}</p>
-                      <p className="text-xl font-bold text-white leading-tight">{value}</p>
+                      <p className="text-xs text-muted-foreground">{label}</p>
+                      <p className="text-xl font-bold text-foreground leading-tight">{value}</p>
                       <p className={`text-xs ${color}`}>{sub}</p>
                     </div>
                     <Icon className={`h-6 w-6 ${color} opacity-60`} />
@@ -272,8 +272,8 @@ const ReportsScreen: React.FC = () => {
             {/* Distribución */}
             <Card className="bg-box border-line">
               <CardHeader className="pb-2 pt-3 px-4">
-                <CardTitle className="flex items-center gap-2 text-white text-sm">
-                  <BarChart3 className="h-4 w-4 text-slate-400" />
+                <CardTitle className="flex items-center gap-2 text-foreground text-sm">
+                  <BarChart3 className="h-4 w-4 text-muted-foreground" />
                   Distribución de Rendimiento
                 </CardTitle>
               </CardHeader>
@@ -296,8 +296,8 @@ const ReportsScreen: React.FC = () => {
             {/* Tendencias */}
             <Card className="bg-box border-line">
               <CardHeader className="pb-2 pt-3 px-4">
-                <CardTitle className="flex items-center gap-2 text-white text-sm">
-                  <TrendingUp className="h-4 w-4 text-slate-400" />
+                <CardTitle className="flex items-center gap-2 text-foreground text-sm">
+                  <TrendingUp className="h-4 w-4 text-muted-foreground" />
                   Tendencias
                 </CardTitle>
               </CardHeader>
@@ -315,7 +315,7 @@ const ReportsScreen: React.FC = () => {
                     </LineChart>
                   </ResponsiveContainer>
                 ) : (
-                  <div className="h-[180px] flex items-center justify-center text-slate-600 text-xs">
+                  <div className="h-[180px] flex items-center justify-center text-muted-foreground text-xs">
                     Sin datos de tendencias
                   </div>
                 )}
@@ -325,15 +325,15 @@ const ReportsScreen: React.FC = () => {
             {/* Top Performers */}
             <Card className="bg-box border-line">
               <CardHeader className="pb-2 pt-3 px-4">
-                <CardTitle className="flex items-center gap-2 text-white text-sm">
-                  <Award className="h-4 w-4 text-slate-400" />
+                <CardTitle className="flex items-center gap-2 text-foreground text-sm">
+                  <Award className="h-4 w-4 text-muted-foreground" />
                   Mejores Estudiantes
                 </CardTitle>
               </CardHeader>
               <CardContent className="pt-0 pb-3 px-4 space-y-1.5">
                 {dashboardData.topPerformers.map((student, index) => (
                   <div key={student.studentId + index}
-                    className="flex items-center justify-between px-2.5 py-1.5 rounded-lg bg-slate-800/50 border border-line">
+                    className="flex items-center justify-between px-2.5 py-1.5 rounded-lg bg-muted/50 border border-line">
                     <div className="flex items-center gap-2">
                       <div className={`w-5 h-5 rounded-full flex items-center justify-center text-white text-xs font-bold shrink-0 ${
                         index === 0 ? 'bg-amber-500' : index === 1 ? 'bg-slate-400' : index === 2 ? 'bg-amber-700' : 'bg-blue-600'
@@ -341,8 +341,8 @@ const ReportsScreen: React.FC = () => {
                         {index + 1}
                       </div>
                       <div>
-                        <p className="text-white text-xs font-medium leading-tight">{student.studentName}</p>
-                        <p className="text-slate-500 text-[10px]">{student.examsCompleted} exámenes</p>
+                        <p className="text-foreground text-xs font-medium leading-tight">{student.studentName}</p>
+                        <p className="text-muted-foreground text-[10px]">{student.examsCompleted} exámenes</p>
                       </div>
                     </div>
                     <span className={`px-1.5 py-0.5 rounded text-xs font-semibold ${getPerformanceColor(student.averageScore)}`}>
@@ -363,12 +363,12 @@ const ReportsScreen: React.FC = () => {
             <Card className="bg-box border-line">
               <CardHeader className="pb-2 pt-3 px-4">
                 <div className="flex items-center justify-between">
-                  <CardTitle className="flex items-center gap-2 text-white text-sm">
-                    <Target className="h-4 w-4 text-slate-400" />
+                  <CardTitle className="flex items-center gap-2 text-foreground text-sm">
+                    <Target className="h-4 w-4 text-muted-foreground" />
                     Promedio por Competencia
                   </CardTitle>
                   <Button onClick={() => handleOpenExportModal('competency')} size="sm" variant="outline"
-                    className="h-6 text-xs border-line text-slate-400 bg-transparent hover:bg-slate-800 px-2">
+                    className="h-6 text-xs border-line text-muted-foreground bg-transparent hover:bg-muted px-2">
                     <Download className="h-3 w-3 mr-1" /> CSV
                   </Button>
                 </div>
@@ -392,8 +392,8 @@ const ReportsScreen: React.FC = () => {
                 </ResponsiveContainer>
                 <div className="grid grid-cols-2 gap-1.5 mt-2">
                   {dashboardData.competencyRanking.map(c => (
-                    <div key={c.competency} className="flex items-center justify-between px-2 py-1 rounded bg-slate-800/40 border border-line">
-                      <span className="text-xs text-slate-300 capitalize">{c.competency.replace('_', ' ')}</span>
+                    <div key={c.competency} className="flex items-center justify-between px-2 py-1 rounded bg-muted/40 border border-line">
+                      <span className="text-xs text-foreground/80 capitalize">{c.competency.replace('_', ' ')}</span>
                       <div className="flex items-center gap-1.5">
                         <span className={`text-[10px] px-1 rounded ${getDifficultyColor(c.difficulty)}`}>{c.difficulty}</span>
                         <span className={`text-xs font-medium ${getPerformanceColor(c.averageScore).split(' ')[0]}`}>
@@ -420,10 +420,10 @@ const ReportsScreen: React.FC = () => {
                       {dashboardData.improvementAreas.length > 0 ? dashboardData.improvementAreas.map((area, i) => (
                         <div key={i} className="flex items-start gap-1.5 p-1.5 rounded border border-red-500/20 bg-red-500/5">
                           <span className="text-red-500 text-xs mt-0.5 shrink-0">×</span>
-                          <span className="text-xs text-slate-300 leading-snug">{area}</span>
+                          <span className="text-xs text-foreground/80 leading-snug">{area}</span>
                         </div>
                       )) : (
-                        <p className="text-xs text-slate-600 italic">Sin áreas críticas</p>
+                        <p className="text-xs text-muted-foreground italic">Sin áreas críticas</p>
                       )}
                     </div>
                   </div>
@@ -438,10 +438,10 @@ const ReportsScreen: React.FC = () => {
                       {dashboardData.recommendations.length > 0 ? dashboardData.recommendations.map((rec, i) => (
                         <div key={i} className="flex items-start gap-1.5 p-1.5 rounded border border-blue-500/20 bg-blue-500/5">
                           <span className="text-blue-400 text-xs font-bold mt-0.5 shrink-0">{i + 1}.</span>
-                          <span className="text-xs text-slate-300 leading-snug">{rec}</span>
+                          <span className="text-xs text-foreground/80 leading-snug">{rec}</span>
                         </div>
                       )) : (
-                        <p className="text-xs text-slate-600 italic">Sin recomendaciones</p>
+                        <p className="text-xs text-muted-foreground italic">Sin recomendaciones</p>
                       )}
                     </div>
                   </div>

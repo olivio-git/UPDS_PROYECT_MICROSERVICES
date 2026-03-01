@@ -417,8 +417,8 @@ const UsersScreen = () => {
       >
         <AlertDialogContent className="bg-box">
           <AlertDialogHeader>
-            <AlertDialogTitle className="text-gray-200">Confirmar eliminación</AlertDialogTitle>
-            <AlertDialogDescription className="text-gray-400">
+            <AlertDialogTitle className="text-foreground">Confirmar eliminación</AlertDialogTitle>
+            <AlertDialogDescription className="text-muted-foreground">
               ¿Estás seguro de que deseas eliminar al usuario{" "}
               <strong>
                 {userToDelete?.firstName} {userToDelete?.lastName}
@@ -427,7 +427,7 @@ const UsersScreen = () => {
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel className="bg-transparent text-white border border-line focus:outline-none">Cancelar</AlertDialogCancel>
+            <AlertDialogCancel className="bg-transparent text-foreground border border-line focus:outline-none">Cancelar</AlertDialogCancel>
             <AlertDialogAction
               onClick={confirmDeleteUser}
               className="bg-red-600 hover:bg-red-700 text-white"
@@ -465,13 +465,13 @@ const UsersScreen = () => {
 
       {/* Dialog para importar usuarios */}
       <Dialog open={isImportDialogOpen} onOpenChange={setIsImportDialogOpen}>
-        <DialogContent className="bg-gray-900 border border-gray-700 text-white">
+        <DialogContent className="bg-card border border-border text-foreground">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Upload className="w-5 h-5" />
               Importar Usuarios
             </DialogTitle>
-            <DialogDescription className="text-gray-400">
+            <DialogDescription className="text-muted-foreground">
               Importa usuarios desde un archivo Excel (.xlsx, .xls) o CSV
             </DialogDescription>
           </DialogHeader>
@@ -485,7 +485,7 @@ const UsersScreen = () => {
                   <h4 className="text-sm font-medium text-blue-300">
                     ¿Primera vez importando?
                   </h4>
-                  <p className="text-xs text-gray-400">
+                  <p className="text-xs text-muted-foreground">
                     Descarga la plantilla de Excel para ver el formato correcto
                   </p>
                 </div>
@@ -503,7 +503,7 @@ const UsersScreen = () => {
 
             {/* Selector de archivo */}
             <div className="space-y-2">
-              <label className="text-sm font-medium text-gray-300">
+              <label className="text-sm font-medium text-muted-foreground">
                 Seleccionar archivo
               </label>
               <Input
@@ -511,7 +511,7 @@ const UsersScreen = () => {
                 type="file"
                 accept=".xlsx,.xls,.csv"
                 onChange={handleFileSelect}
-                className="bg-gray-800 border-gray-600 text-white file:bg-gray-700 file:text-white file:border-0 file:mr-4 file:py-2 file:px-4 file:rounded-md file:text-sm"
+                className="bg-muted border-border text-foreground file:bg-muted file:text-foreground file:border-0 file:mr-4 file:py-2 file:px-4 file:rounded-md file:text-sm"
               />
               {selectedFile && (
                 <div className="flex items-center gap-2 text-sm text-green-400">
@@ -522,11 +522,11 @@ const UsersScreen = () => {
             </div>
 
             {/* Información sobre el formato */}
-            <div className="bg-gray-800/50 border border-gray-700 rounded-lg p-3">
-              <h4 className="text-sm font-medium text-gray-300 mb-2">
+            <div className="bg-muted/50 border border-border rounded-lg p-3">
+              <h4 className="text-sm font-medium text-muted-foreground mb-2">
                 Formato requerido:
               </h4>
-              <ul className="text-xs text-gray-400 space-y-1">
+              <ul className="text-xs text-muted-foreground space-y-1">
                 <li>• firstName: Nombre del usuario</li>
                 <li>• lastName: Apellido del usuario</li>
                 <li>• email: Email único del usuario</li>
@@ -541,7 +541,7 @@ const UsersScreen = () => {
               variant="outline"
               onClick={handleCancelImport}
               disabled={isImporting}
-              className="border-gray-600 text-gray-300 hover:bg-gray-800"
+              className="border-border text-muted-foreground hover:bg-muted"
             >
               Cancelar
             </Button>

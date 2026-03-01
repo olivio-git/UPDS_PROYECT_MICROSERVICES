@@ -105,13 +105,13 @@ const ResetPasswordScreen = () => {
       <div className="min-h-screen flex items-center justify-center p-4 epilogue-uniquifier">
         <Card className="w-full max-w-md bg-transparent shadow-none">
           <CardHeader className="space-y-1 text-center">
-            <div className="flex items-center border border-line justify-center w-12 h-12 bg-gray-100 rounded-full mx-auto mb-4">
-              <KeyRound className="h-6 w-6 text-gray-800" />
+            <div className="flex items-center border border-border justify-center w-12 h-12 bg-muted rounded-full mx-auto mb-4">
+              <KeyRound className="h-6 w-6 text-foreground" />
             </div>
             <CardTitle className="text-3xl font-medium text-card-foreground">
               Nueva Contraseña
             </CardTitle>
-            <CardDescription className="text-gray-400">
+            <CardDescription className="text-muted-foreground">
               Ingresa tu nueva contraseña para restablecer tu cuenta
             </CardDescription>
           </CardHeader>
@@ -150,7 +150,7 @@ const ResetPasswordScreen = () => {
                     disabled={isLoading}
                     required
                     autoFocus={true}
-                    className="input-no-bg epilogue-uniquifier block w-full px-0 py-2 border-0 border-b border-gray-300
+                    className="input-no-bg epilogue-uniquifier block w-full px-0 py-2 border-0 border-b border-border
                     focus:outline-none focus:border-b-blue-500 pl-2 focus:ring-0 rounded-none font-medium text-card-foreground"
                   />
                 </div>
@@ -171,7 +171,7 @@ const ResetPasswordScreen = () => {
                     placeholder="Confirma tu nueva contraseña"
                     disabled={isLoading}
                     required
-                    className="input-no-bg epilogue-uniquifier block w-full px-0 py-2 border-0 border-b border-gray-300
+                    className="input-no-bg epilogue-uniquifier block w-full px-0 py-2 border-0 border-b border-border
                     focus:outline-none focus:border-b-blue-500 pl-2 focus:ring-0 rounded-none font-medium text-card-foreground"
                   />
                 </div>

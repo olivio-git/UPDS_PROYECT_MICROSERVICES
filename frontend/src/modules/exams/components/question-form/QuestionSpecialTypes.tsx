@@ -47,8 +47,8 @@ const QuestionSpecialTypes: React.FC<Props> = ({
         <div className="space-y-4">
           <div className="space-y-2">
             <Label className="text-base font-medium">Plantilla con espacios en blanco</Label>
-            <p className="text-sm text-gray-400">
-              Usa <code className="bg-gray-700 px-1 rounded">___</code> para marcar los espacios en blanco
+            <p className="text-sm text-muted-foreground">
+              Usa <code className="bg-muted px-1 rounded">___</code> para marcar los espacios en blanco
             </p>
             <Textarea
               rows={3}
@@ -61,7 +61,7 @@ const QuestionSpecialTypes: React.FC<Props> = ({
 
           <div className="space-y-2">
             <Label>Respuestas correctas (opcional)</Label>
-            <p className="text-sm text-gray-400">
+            <p className="text-sm text-muted-foreground">
               Define respuestas específicas para cada espacio. Si no se definen, se evaluará como texto libre.
             </p>
             <Input
@@ -93,9 +93,9 @@ const QuestionSpecialTypes: React.FC<Props> = ({
             {formData.content?.items?.map((item, index) => (
               <div
                 key={item.id}
-                className="flex items-center gap-2 p-3 bg-gray-800/40 border border-gray-700 rounded-lg"
+                className="flex items-center gap-2 p-3 bg-muted/40 border border-border rounded-lg"
               >
-                <span className="text-sm text-gray-400 w-8">
+                <span className="text-sm text-muted-foreground w-8">
                   {index + 1}.
                 </span>
                 <Input
@@ -150,7 +150,7 @@ const QuestionSpecialTypes: React.FC<Props> = ({
                     const newItems = formData.content?.items?.filter((_, i) => i !== index) || [];
                     updateContent('items', newItems);
                   }}
-                  className="p-2 border-gray-700 hover:bg-gray-800"
+                  className="p-2 border-border hover:bg-muted"
                   title="Eliminar elemento"
                 >
                   <Trash2 className="w-4 h-4 text-red-500" />
@@ -199,7 +199,7 @@ const QuestionSpecialTypes: React.FC<Props> = ({
               <SelectTrigger className={baseInputClass}>
                 <SelectValue placeholder="Selecciona el tipo" />
               </SelectTrigger>
-              <SelectContent className="bg-gray-900 border border-line">
+              <SelectContent className="bg-card border border-line">
                 <SelectItem value="word">Palabra</SelectItem>
                 <SelectItem value="sentence">Oración</SelectItem>
                 <SelectItem value="paragraph">Párrafo</SelectItem>
@@ -209,7 +209,7 @@ const QuestionSpecialTypes: React.FC<Props> = ({
 
           <div className="space-y-2">
             <Label>Palabras clave esperadas (opcional)</Label>
-            <p className="text-sm text-gray-400">
+            <p className="text-sm text-muted-foreground">
               Define palabras clave que deberían aparecer en la respuesta del estudiante
             </p>
             <Input

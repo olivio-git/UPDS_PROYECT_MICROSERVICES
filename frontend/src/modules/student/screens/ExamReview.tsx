@@ -169,7 +169,7 @@ const ExamReview = () => {
         if (question.response?.selectedOptions) {
           return (
             <div className="space-y-2">
-              <p className="text-sm text-gray-400">Tu respuesta:</p>
+              <p className="text-sm text-muted-foreground">Tu respuesta:</p>
               <div className="flex flex-wrap gap-2">
                 {question.response.selectedOptions.map((optionId: string, index: number) => (
                   <Badge
@@ -192,7 +192,7 @@ const ExamReview = () => {
       case 'true_false':
         return (
           <div className="space-y-2">
-            <p className="text-sm text-gray-400">Tu respuesta:</p>
+            <p className="text-sm text-muted-foreground">Tu respuesta:</p>
             <Badge
               className={`${
                 question.isCorrect
@@ -208,9 +208,9 @@ const ExamReview = () => {
       case 'fill_blank':
         return (
           <div className="space-y-2">
-            <p className="text-sm text-gray-400">Tu respuesta:</p>
-            <div className="bg-gray-800 p-3 rounded-lg">
-              <p className="text-white">"{question.response?.text || 'Sin respuesta'}"</p>
+            <p className="text-sm text-muted-foreground">Tu respuesta:</p>
+            <div className="bg-muted p-3 rounded-lg">
+              <p className="text-foreground">"{question.response?.text || 'Sin respuesta'}"</p>
             </div>
           </div>
         );
@@ -222,7 +222,7 @@ const ExamReview = () => {
         const audioUrl = rawAudioUrl.replace(/^https?:\/\/minio(:\d+)?/, 'http://localhost:9000');
         return (
           <div className="space-y-3">
-            <p className="text-sm text-gray-400">Tu respuesta:</p>
+            <p className="text-sm text-muted-foreground">Tu respuesta:</p>
             {audioUrl ? (
               <div className="space-y-2">
                 <audio
@@ -233,15 +233,15 @@ const ExamReview = () => {
                   Tu navegador no soporta reproducción de audio.
                 </audio>
                 {question.response.transcription && (
-                  <div className="bg-gray-800 p-3 rounded-lg">
-                    <p className="text-xs text-gray-500 mb-1">Transcripción:</p>
-                    <p className="text-gray-300 text-sm italic">"{question.response.transcription}"</p>
+                  <div className="bg-muted p-3 rounded-lg">
+                    <p className="text-xs text-muted-foreground mb-1">Transcripción:</p>
+                    <p className="text-foreground/80 text-sm italic">"{question.response.transcription}"</p>
                   </div>
                 )}
               </div>
             ) : (
-              <div className="bg-gray-800 p-4 rounded-lg">
-                <p className="text-white whitespace-pre-wrap">
+              <div className="bg-muted p-4 rounded-lg">
+                <p className="text-foreground whitespace-pre-wrap">
                   {question.response?.text || question.response?.transcription || 'Sin respuesta'}
                 </p>
               </div>
@@ -254,9 +254,9 @@ const ExamReview = () => {
       case 'open_text':
         return (
           <div className="space-y-2">
-            <p className="text-sm text-gray-400">Tu respuesta:</p>
-            <div className="bg-gray-800 p-4 rounded-lg">
-              <p className="text-white whitespace-pre-wrap">
+            <p className="text-sm text-muted-foreground">Tu respuesta:</p>
+            <div className="bg-muted p-4 rounded-lg">
+              <p className="text-foreground whitespace-pre-wrap">
                 {question.response?.text || question.response?.answer || 'Sin respuesta'}
               </p>
             </div>
@@ -266,9 +266,9 @@ const ExamReview = () => {
       default:
         return (
           <div className="space-y-2">
-            <p className="text-sm text-gray-400">Respuesta registrada</p>
-            <div className="bg-gray-800 p-3 rounded-lg">
-              <p className="text-white">
+            <p className="text-sm text-muted-foreground">Respuesta registrada</p>
+            <div className="bg-muted p-3 rounded-lg">
+              <p className="text-foreground">
                 {JSON.stringify(question.response) || 'Sin respuesta'}
               </p>
             </div>
@@ -284,8 +284,8 @@ const ExamReview = () => {
       <MainLayout gradientVariant="primary">
         <div className="max-w-6xl mx-auto flex items-center justify-center min-h-96">
           <div className="text-center">
-            <Loader2 className="h-8 w-8 animate-spin text-gray-400 mx-auto mb-4" />
-            <p className="text-gray-300">Cargando revisión del examen...</p>
+            <Loader2 className="h-8 w-8 animate-spin text-muted-foreground mx-auto mb-4" />
+            <p className="text-foreground/80">Cargando revisión del examen...</p>
           </div>
         </div>
       </MainLayout>
@@ -313,8 +313,8 @@ const ExamReview = () => {
       <MainLayout gradientVariant="primary">
         <div className="max-w-6xl mx-auto flex items-center justify-center min-h-96">
           <div className="text-center">
-            <FileText className="h-8 w-8 text-gray-400 mx-auto mb-4" />
-            <p className="text-gray-300 mb-4">Examen no encontrado</p>
+            <FileText className="h-8 w-8 text-muted-foreground mx-auto mb-4" />
+            <p className="text-foreground/80 mb-4">Examen no encontrado</p>
             <Button onClick={() => navigate('/student/results')} variant="outline">
               Volver a Resultados
             </Button>
@@ -334,10 +334,10 @@ const ExamReview = () => {
         >
           <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
             <div>
-              <h1 className="text-3xl font-bold text-white">
+              <h1 className="text-3xl font-bold text-foreground">
                 Revisión del Examen
               </h1>
-              <p className="text-gray-300 mt-2">
+              <p className="text-foreground/80 mt-2">
                 {examResult.examName} - {formatDate(examResult.evaluatedAt)}
               </p>
             </div>
@@ -347,7 +347,7 @@ const ExamReview = () => {
                 Descargar PDF
               </Button>
               <Button variant="outline" onClick={() => navigate(`/student/results/${resultId}`)}
-                className="text-gray-300 hover:bg-gray-800 bg-box border-line">
+                className="text-foreground/80 hover:bg-muted bg-box border-line">
                 <ArrowLeft className="h-4 w-4 mr-2" />
                 Volver a Resultado
               </Button>
@@ -358,13 +358,13 @@ const ExamReview = () => {
         {/* Placement: Nivel Recomendado Banner */}
         {examResult.recommendedLevel && (
           <div className="bg-gradient-to-r from-blue-600/20 to-purple-600/20 border border-blue-500/30 rounded-xl p-6 text-center space-y-2">
-            <p className="text-gray-400 text-sm uppercase tracking-widest">Resultado del Examen de Nivelación</p>
-            <p className="text-4xl font-bold text-white">
+            <p className="text-muted-foreground text-sm uppercase tracking-widest">Resultado del Examen de Nivelación</p>
+            <p className="text-4xl font-bold text-foreground">
               NIVEL RECOMENDADO →{' '}
               <span className="text-blue-400">{examResult.recommendedLevel}</span>
             </p>
             {examResult.placementMode && (
-              <p className="text-gray-400 text-sm">
+              <p className="text-muted-foreground text-sm">
                 Modo: {examResult.placementMode === 'adaptive' ? 'Adaptativo (CAT)' : 'Estático'}
               </p>
             )}
@@ -373,24 +373,24 @@ const ExamReview = () => {
 
         {/* Placement: Desempeño por Nivel MCER */}
         {examResult.levelScores && examResult.levelScores.length > 0 && (
-          <Card className="bg-[#0B1422] backdrop-blur-sm border border-line">
+          <Card className="bg-card backdrop-blur-sm border border-line">
             <CardHeader>
-              <CardTitle className="text-white">Desempeño por Nivel MCER</CardTitle>
+              <CardTitle className="text-foreground">Desempeño por Nivel MCER</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               {['A1', 'A2', 'B1', 'B2', 'C1', 'C2'].map(level => {
                 const ls = examResult.levelScores!.find(s => s.level === level);
                 const isRecommended = level === examResult.recommendedLevel;
                 return (
-                  <div key={level} className={`space-y-1 p-3 rounded-lg ${isRecommended ? 'bg-blue-500/10 border border-blue-500/30' : 'bg-gray-800/20'}`}>
+                  <div key={level} className={`space-y-1 p-3 rounded-lg ${isRecommended ? 'bg-blue-500/10 border border-blue-500/30' : 'bg-muted/30'}`}>
                     <div className="flex items-center justify-between text-sm">
-                      <span className={`font-medium ${isRecommended ? 'text-blue-400' : 'text-gray-300'}`}>
+                      <span className={`font-medium ${isRecommended ? 'text-blue-400' : 'text-foreground/80'}`}>
                         {level} {isRecommended && '★ Recomendado'}
                       </span>
                       {ls ? (
-                        <span className="text-gray-400">{ls.totalScore}/{ls.maxScore} — {ls.percentage}%</span>
+                        <span className="text-muted-foreground">{ls.totalScore}/{ls.maxScore} — {ls.percentage}%</span>
                       ) : (
-                        <span className="text-gray-600">Sin datos</span>
+                        <span className="text-muted-foreground">Sin datos</span>
                       )}
                     </div>
                     <Progress
@@ -405,9 +405,9 @@ const ExamReview = () => {
         )}
 
         {/* Resumen del examen */}
-        <Card className="bg-[#0B1422] backdrop-blur-sm border border-line">
+        <Card className="bg-card backdrop-blur-sm border border-line">
           <CardHeader>
-            <CardTitle className="text-white">Resumen General</CardTitle>
+            <CardTitle className="text-foreground">Resumen General</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
@@ -415,25 +415,25 @@ const ExamReview = () => {
                 <div className="text-2xl font-bold text-blue-400 mb-2">
                   {examResult.percentage}%
                 </div>
-                <p className="text-gray-300 text-sm">Puntuación Total</p>
+                <p className="text-foreground/80 text-sm">Puntuación Total</p>
               </div>
               <div className="text-center">
                 <div className="text-2xl font-bold text-purple-400 mb-2">
                   {examResult.questionResults.length}
                 </div>
-                <p className="text-gray-300 text-sm">Total Preguntas</p>
+                <p className="text-foreground/80 text-sm">Total Preguntas</p>
               </div>
               <div className="text-center">
                 <div className="text-2xl font-bold text-green-400 mb-2">
                   {examResult.questionResults.filter(q => q.isCorrect).length}
                 </div>
-                <p className="text-gray-300 text-sm">Correctas</p>
+                <p className="text-foreground/80 text-sm">Correctas</p>
               </div>
               <div className="text-center">
                 <div className="text-2xl font-bold text-yellow-400 mb-2">
                   {Math.round(examResult.examDuration / 60)}
                 </div>
-                <p className="text-gray-300 text-sm">Minutos</p>
+                <p className="text-foreground/80 text-sm">Minutos</p>
               </div>
             </div>
           </CardContent>
@@ -442,12 +442,12 @@ const ExamReview = () => {
         {/* Lista de preguntas */}
         <div className="space-y-6">
           {examResult.questionResults.map((question, index) => (
-            <Card key={question.questionId} className="bg-[#0B1422] backdrop-blur-sm border border-line">
+            <Card key={question.questionId} className="bg-card backdrop-blur-sm border border-line">
               <CardHeader>
                 <div className="flex items-start justify-between">
                   <div className="flex-1">
-                    <CardTitle className="text-white text-lg flex items-center gap-3">
-                      <span className="bg-gray-700 text-white px-3 py-1 rounded-full text-sm">
+                    <CardTitle className="text-foreground text-lg flex items-center gap-3">
+                      <span className="bg-muted text-foreground px-3 py-1 rounded-full text-sm">
                         {index + 1}
                       </span>
                       {getQuestionTypeName(question.questionType)}
@@ -459,7 +459,7 @@ const ExamReview = () => {
                         )
                       )}
                     </CardTitle>
-                    <CardDescription className="text-gray-400 mt-2">
+                    <CardDescription className="text-muted-foreground mt-2">
                       {getCompetencyName(question.competency)} •
                       Puntuación: {question.score}/{question.maxScore} puntos •
                       Evaluación: {question.evaluationMethod === 'automatic' ? 'Automática' :
@@ -490,7 +490,7 @@ const ExamReview = () => {
                 {/* Feedback */}
                 {question.feedback && (
                   <div className="space-y-2">
-                    <p className="text-sm text-gray-400">Retroalimentación:</p>
+                    <p className="text-sm text-muted-foreground">Retroalimentación:</p>
                     <div className="bg-blue-900/20 border border-blue-700/30 p-3 rounded-lg">
                       <p className="text-blue-200">{question.feedback}</p>
                     </div>
@@ -500,7 +500,7 @@ const ExamReview = () => {
                 {/* AI Analysis */}
                 {question.aiAnalysis && (
                   <div className="space-y-2">
-                    <p className="text-sm text-gray-400">Análisis de IA:</p>
+                    <p className="text-sm text-muted-foreground">Análisis de IA:</p>
                     <div className="bg-purple-900/20 border border-purple-700/30 p-3 rounded-lg space-y-2">
                       {question.aiAnalysis.feedback && (
                         <p className="text-purple-200">{question.aiAnalysis.feedback}</p>
@@ -521,7 +521,7 @@ const ExamReview = () => {
 
                 {/* Tiempo de evaluación */}
                 {question.evaluatedAt && (
-                  <div className="flex items-center gap-2 text-xs text-gray-500">
+                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
                     <Clock className="h-3 w-3" />
                     Evaluado el {formatDate(question.evaluatedAt)}
                   </div>

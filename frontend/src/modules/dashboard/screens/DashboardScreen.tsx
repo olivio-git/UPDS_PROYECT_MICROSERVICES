@@ -24,15 +24,15 @@ const DashboardScreen = () => {
   const getRoleBadgeColor = (role: string) => {
     switch (role) {
       case "admin":
-        return "bg-gray-800 text-white shadow-md";
+        return "bg-muted text-foreground shadow-md";
       case "teacher":
-        return "bg-gray-800 text-white shadow-md";
+        return "bg-muted text-foreground shadow-md";
       case "proctor":
-        return "bg-green-500/20 text-green-300 border border-green-500/30";
+        return "bg-green-500/20 text-green-600 dark:text-green-300 border border-green-500/30";
       case "student":
-        return "bg-gray-800 text-white shadow-md";
+        return "bg-muted text-foreground shadow-md";
       default:
-        return "bg-gray-500/20 text-gray-300 border border-gray-500/30";
+        return "bg-muted/50 text-muted-foreground border border-border";
     }
   };
 
@@ -64,13 +64,13 @@ const DashboardScreen = () => {
         > 
             <div className="text-center space-y-6">
               <div className="space-y-2">
-                <h1 className="mb-4 text-3xl font-extrabold text-gray-900 dark:text-white md:text-5xl lg:text-6xl">
+                <h1 className="mb-4 text-3xl font-extrabold text-foreground md:text-5xl lg:text-6xl">
                   ¡Bienvenido,{" "}
                   <span className="text-transparent bg-clip-text bg-gradient-to-r to-emerald-600 from-sky-400">
                     {user?.firstName}!
                   </span>
                 </h1>
-                <p className="text-sm text-gray-300 max-w-2xl mx-auto font-portfolio">
+                <p className="text-sm text-muted-foreground max-w-2xl mx-auto font-portfolio">
                   Todo lo que necesitas para gestionar tu cuenta y acceder a tus
                   recursos académicos en un solo lugar.
                 </p> 
@@ -82,7 +82,7 @@ const DashboardScreen = () => {
                       navigate(`/${user?.role}/dashboard`);
                     }
                   }}
-                  className="mt-2 text-white bg-[#20A6FF] hover:bg-[#1A8CD4] focus:ring-4 focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center inline-flex items-center dark:focus:ring-blue-900"
+                  className="mt-2 text-white bg-blue-500 hover:bg-blue-600 focus:ring-4 focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center inline-flex items-center dark:focus:ring-blue-900"
                   >
                   <span className="flex items-center gap-2">
                     Ir a mi Pannel

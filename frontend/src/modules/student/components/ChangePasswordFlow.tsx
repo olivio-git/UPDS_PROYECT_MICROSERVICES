@@ -137,12 +137,12 @@ export const ChangePasswordFlow: React.FC<ChangePasswordFlowProps> = ({
 
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
-      <Card className="w-full max-w-md bg-[#0B1422] border border-gray-700/50 shadow-xl">
+      <Card className="w-full max-w-md bg-card border border-border shadow-xl">
         <CardHeader>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Shield className="h-5 w-5 text-blue-400" />
-              <CardTitle className="text-white">
+              <CardTitle className="text-foreground">
                 {step === 'initial' && 'Cambiar Contraseña'}
                 {step === 'otp_verification' && 'Verificación OTP'}
                 {step === 'success' && 'Contraseña Actualizada'}
@@ -152,12 +152,12 @@ export const ChangePasswordFlow: React.FC<ChangePasswordFlowProps> = ({
               variant="ghost"
               size="sm"
               onClick={handleClose}
-              className="text-gray-400 hover:text-white"
+              className="text-muted-foreground hover:text-foreground"
             >
               <X className="h-4 w-4" />
             </Button>
           </div>
-          <CardDescription className="text-gray-400">
+          <CardDescription className="text-muted-foreground">
             {step === 'initial' && 'Ingresa tu contraseña actual y define una nueva'}
             {step === 'otp_verification' && 'Revisa tu email e ingresa el código de 6 dígitos'}
             {step === 'success' && 'Tu contraseña ha sido actualizada correctamente'}
@@ -168,7 +168,7 @@ export const ChangePasswordFlow: React.FC<ChangePasswordFlowProps> = ({
           {step === 'initial' && (
             <>
               <div className="space-y-2">
-                <label className="text-sm font-medium text-gray-300">
+                <label className="text-sm font-medium text-foreground/80">
                   Contraseña Actual
                 </label>
                 <div className="relative">
@@ -176,14 +176,14 @@ export const ChangePasswordFlow: React.FC<ChangePasswordFlowProps> = ({
                     type={showCurrentPassword ? "text" : "password"}
                     value={formData.currentPassword}
                     onChange={(e) => updateFormData('currentPassword', e.target.value)}
-                    className="bg-gray-800 border-gray-600 text-white pr-10"
+                    className="bg-muted border-border text-foreground pr-10"
                     placeholder="Ingresa tu contraseña actual"
                   />
                   <Button
                     type="button"
                     variant="ghost"
                     size="sm"
-                    className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white"
+                    className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
                     onClick={() => setShowCurrentPassword(!showCurrentPassword)}
                   >
                     {showCurrentPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
@@ -195,7 +195,7 @@ export const ChangePasswordFlow: React.FC<ChangePasswordFlowProps> = ({
               </div>
 
               <div className="space-y-2">
-                <label className="text-sm font-medium text-gray-300">
+                <label className="text-sm font-medium text-foreground/80">
                   Nueva Contraseña
                 </label>
                 <div className="relative">
@@ -203,14 +203,14 @@ export const ChangePasswordFlow: React.FC<ChangePasswordFlowProps> = ({
                     type={showNewPassword ? "text" : "password"}
                     value={formData.newPassword}
                     onChange={(e) => updateFormData('newPassword', e.target.value)}
-                    className="bg-gray-800 border-gray-600 text-white pr-10"
+                    className="bg-muted border-border text-foreground pr-10"
                     placeholder="Mínimo 8 caracteres"
                   />
                   <Button
                     type="button"
                     variant="ghost"
                     size="sm"
-                    className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white"
+                    className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
                     onClick={() => setShowNewPassword(!showNewPassword)}
                   >
                     {showNewPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
@@ -222,14 +222,14 @@ export const ChangePasswordFlow: React.FC<ChangePasswordFlowProps> = ({
               </div>
 
               <div className="space-y-2">
-                <label className="text-sm font-medium text-gray-300">
+                <label className="text-sm font-medium text-foreground/80">
                   Confirmar Nueva Contraseña
                 </label>
                 <Input
                   type="password"
                   value={formData.confirmPassword}
                   onChange={(e) => updateFormData('confirmPassword', e.target.value)}
-                  className="bg-gray-800 border-gray-600 text-white"
+                  className="bg-muted border-border text-foreground"
                   placeholder="Repite tu nueva contraseña"
                 />
                 {errors.confirmPassword && (
@@ -241,7 +241,7 @@ export const ChangePasswordFlow: React.FC<ChangePasswordFlowProps> = ({
                 <Button
                   variant="outline"
                   size={"sm"}
-                  className="flex-1 bg-[#0F1A29] hover:bg-gray-800 border border-line text-gray-300"
+                  className="flex-1 bg-card hover:bg-muted border border-line text-foreground/80"
                   onClick={handleClose}
                 >
                   Cancelar
@@ -275,22 +275,22 @@ export const ChangePasswordFlow: React.FC<ChangePasswordFlowProps> = ({
                   <Mail className="h-8 w-8 text-blue-400" />
                 </div>
                 <div>
-                  <p className="text-white font-medium">Código enviado</p>
-                  <p className="text-gray-400 text-sm">
+                  <p className="text-foreground font-medium">Código enviado</p>
+                  <p className="text-muted-foreground text-sm">
                     Hemos enviado un código de 6 dígitos a tu email registrado
                   </p>
                 </div>
               </div>
 
               <div className="space-y-2">
-                <label className="text-sm font-medium text-gray-300">
+                <label className="text-sm font-medium text-foreground/80">
                   Código de Verificación
                 </label>
                 <Input
                   type="text"
                   value={formData.otpCode}
                   onChange={(e) => updateFormData('otpCode', e.target.value.replace(/\D/g, '').slice(0, 6))}
-                  className="bg-gray-800 border-gray-600 text-white text-center text-xl tracking-widest"
+                  className="bg-muted border-border text-foreground text-center text-xl tracking-widest"
                   placeholder="000000"
                   maxLength={6}
                 />
@@ -303,7 +303,7 @@ export const ChangePasswordFlow: React.FC<ChangePasswordFlowProps> = ({
                 <Button
                   variant="outline"
                   size={"sm"}
-                  className="flex-1 bg-[#0F1A29] hover:bg-gray-800 border border-line text-gray-300"
+                  className="flex-1 bg-card hover:bg-muted border border-line text-foreground/80"
                   onClick={() => setStep('initial')}
                 >
                   Volver
@@ -336,8 +336,8 @@ export const ChangePasswordFlow: React.FC<ChangePasswordFlowProps> = ({
                 <Shield className="h-8 w-8 text-green-400" />
               </div>
               <div>
-                <p className="text-white font-medium">¡Contraseña actualizada!</p>
-                <p className="text-gray-400 text-sm">
+                <p className="text-foreground font-medium">¡Contraseña actualizada!</p>
+                <p className="text-muted-foreground text-sm">
                   Tu contraseña ha sido cambiada exitosamente
                 </p>
               </div>

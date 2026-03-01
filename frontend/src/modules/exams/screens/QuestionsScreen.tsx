@@ -168,18 +168,18 @@ const QuestionsScreen = () => {
   const getQuestionTypeIcon = (type: QuestionType) => {
     switch (type) {
       case 'audio_response':
-        return <Volume2 className="w-4 h-4 text-white" />;
+        return <Volume2 className="w-4 h-4 text-foreground" />;
       case 'file_upload':
-        return <Upload className="w-4 h-4 text-white" />;
+        return <Upload className="w-4 h-4 text-foreground" />;
       case 'multiple_choice':
       case 'true_false':
-        return <ClipboardList className="w-4 h-4 text-white" />;
+        return <ClipboardList className="w-4 h-4 text-foreground" />;
       case 'speaking':
-        return <Mic className="w-4 h-4 text-white" />;
+        return <Mic className="w-4 h-4 text-foreground" />;
       case 'writing':
-        return <PenTool className="w-4 h-4 text-white" />;
+        return <PenTool className="w-4 h-4 text-foreground" />;
       default:
-        return <FileText className="w-4 h-4 text-white" />;
+        return <FileText className="w-4 h-4 text-foreground" />;
     }
   };
 
@@ -244,7 +244,7 @@ const QuestionsScreen = () => {
               className="text-left w-full group"
               title="Ver pregunta completa"
             >
-              <div className="text-sm text-gray-200 line-clamp-2 max-w-md group-hover:underline">
+              <div className="text-sm text-foreground line-clamp-2 max-w-md group-hover:underline">
                 {text}
               </div>
             </button>
@@ -261,7 +261,7 @@ const QuestionsScreen = () => {
         cell: ({ row }) => (
           <div className="flex items-center gap-2">
             {getQuestionTypeIcon(row.original.type)}
-            <span className="text-sm text-gray-300">
+            <span className="text-sm text-muted-foreground">
               {getQuestionTypeLabel(row.original.type)}
             </span>
           </div>
@@ -275,7 +275,7 @@ const QuestionsScreen = () => {
         size: 140,
         accessorKey: 'competency',
         cell: ({ getValue }) => (
-          <span className="text-sm text-gray-300 capitalize">
+          <span className="text-sm text-muted-foreground capitalize">
             {String(getValue() ?? '')}
           </span>
         ),
@@ -324,7 +324,7 @@ const QuestionsScreen = () => {
           const { mediaUrl, mediaType } = row.original.content;
 
           if (!mediaUrl) {
-            return <div className="text-gray-500 text-sm">Sin media</div>;
+            return <div className="text-muted-foreground/60 text-sm">Sin media</div>;
           }
 
           // Detectar tipo automáticamente si no está definido
@@ -367,7 +367,7 @@ const QuestionsScreen = () => {
                 </div>
               )}
               {!detectedType && (
-                <div className="text-gray-500 text-sm">Tipo desconocido</div>
+                <div className="text-muted-foreground/60 text-sm">Tipo desconocido</div>
               )}
             </div>
           );
@@ -387,7 +387,7 @@ const QuestionsScreen = () => {
               className={`px-2.5 py-1 text-xs font-medium border rounded-lg ${
                 active
                   ? 'bg-green-900/20 text-green-400 border-green-800/30'
-                  : 'bg-gray-900/20 text-gray-400 border-gray-800/30'
+                  : 'bg-muted/20 text-muted-foreground border-border/30'
               }`}
             >
               {active ? 'Activa' : 'Inactiva'}
@@ -408,20 +408,20 @@ const QuestionsScreen = () => {
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <button className="p-2 hover:bg-dark-light rounded-lg transition-colors">
-                    <MoreVertical className="w-4 h-4 text-gray-400" />
+                    <MoreVertical className="w-4 h-4 text-muted-foreground" />
                   </button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="bg-box border-line">
                   <DropdownMenuItem
                     onClick={() => handleViewDetails(q)}
-                    className="text-gray-200 hover:bg-dark-light cursor-pointer"
+                    className="text-foreground hover:bg-dark-light cursor-pointer"
                   >
                     <FileText className="w-4 h-4 mr-2" />
                     Ver detalles
                   </DropdownMenuItem>
                   <DropdownMenuItem
                     onClick={() => handleEdit(q)}
-                    className="text-gray-200 hover:bg-dark-light cursor-pointer"
+                    className="text-foreground hover:bg-dark-light cursor-pointer"
                   >
                     <Edit className="w-4 h-4 mr-2" />
                     Editar
@@ -470,12 +470,12 @@ const QuestionsScreen = () => {
       return (
         <div className="bg-box border border-line rounded-xl p-6">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-semibold text-gray-100">
+            <h2 className="text-lg font-semibold text-foreground">
               {viewMode === 'edit' ? 'Editar Pregunta' : 'Nueva Pregunta'}
             </h2>
             <button
               onClick={handleBackToTable}
-              className="px-3 py-2 bg-dark-light border border-line rounded-lg text-gray-300 hover:bg-dark-light/80 flex items-center gap-2"
+              className="px-3 py-2 bg-dark-light border border-line rounded-lg text-muted-foreground hover:bg-dark-light/80 flex items-center gap-2"
             >
               <X className="w-4 h-4" /> Volver
             </button>
@@ -497,12 +497,12 @@ const QuestionsScreen = () => {
       return (
         <div className="bg-box border border-line rounded-xl p-6">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-semibold text-gray-100">
+            <h2 className="text-lg font-semibold text-foreground">
               Importar preguntas
             </h2>
             <button
               onClick={handleBackToTable}
-              className="px-3 py-2 bg-dark-light border border-line rounded-lg text-gray-300 hover:bg-dark-light/80 flex items-center gap-2"
+              className="px-3 py-2 bg-dark-light border border-line rounded-lg text-muted-foreground hover:bg-dark-light/80 flex items-center gap-2"
             >
               <X className="w-4 h-4" /> Volver
             </button>
@@ -518,7 +518,7 @@ const QuestionsScreen = () => {
       );
     }
     const baseInputClass =
-      'bg-gray-800/50 border-gray-600 text-white placeholder-gray-400 border-[0.5px] focus:border-blue-500 focus:ring-0 rounded-lg';
+      'bg-muted/50 border-border text-foreground placeholder:text-muted-foreground border-[0.5px] focus:border-blue-500 focus:ring-0 rounded-lg';
 
     // Tabla
     return (
@@ -526,7 +526,7 @@ const QuestionsScreen = () => {
         {/* Header con búsqueda y acciones */}
         <div className="bg-box border border-line rounded-xl p-6">
           <div className="flex-1">
-            <h2 className="text-2xl font-bold text-gray-200">
+            <h2 className="text-2xl font-bold text-foreground">
               Gestión de Preguntas
             </h2>
           </div>
@@ -535,12 +535,12 @@ const QuestionsScreen = () => {
             <div className="flex-1 max-w-xl">
               <div className="relative">
                 {/* <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5" /> */}
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4 focus:outline-none " />
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4 focus:outline-none " />
                 <Input
                   placeholder="Buscar preguntas..."
                   value={searchTerm || ''}
                   onChange={e => setSearchTerm(e.target.value)}
-                  className="pl-10 pr-3 w-full bg-gray-800/50 border-gray-600 text-white placeholder-gray-400"
+                  className="pl-10 pr-3 w-full bg-muted/50 border-border text-foreground placeholder:text-muted-foreground"
                 />
               </div>
             </div>
@@ -549,7 +549,7 @@ const QuestionsScreen = () => {
             <div className="flex items-center gap-3">
               <button
                 onClick={() => setShowFilters(!showFilters)}
-                className="px-4 py-2.5 bg-dark-light border border-line rounded-lg hover:bg-dark-light/80 text-gray-300 flex items-center gap-2 transition-all"
+                className="px-4 py-2.5 bg-dark-light border border-line rounded-lg hover:bg-dark-light/80 text-muted-foreground flex items-center gap-2 transition-all"
               >
                 <Filter className="w-4 h-4" />
                 Filtros
@@ -582,7 +582,7 @@ const QuestionsScreen = () => {
             <div className="mt-6 pt-6 border-t border-line">
               <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-400 mb-2">
+                  <label className="block text-sm font-medium text-muted-foreground mb-2">
                     Tipo
                   </label>
                   {/* <select
@@ -608,50 +608,50 @@ const QuestionsScreen = () => {
                     <SelectTrigger className={baseInputClass}>
                       <SelectValue placeholder="Selecciona el tipo" />
                     </SelectTrigger>
-                    <SelectContent className="bg-gray-900 border border-line">
-                      <SelectItem className="hover:bg-gray-800" value="all">
+                    <SelectContent className="bg-popover border border-line">
+                      <SelectItem className="hover:bg-muted" value="all">
                         Todos
                       </SelectItem>
                       <SelectItem
-                        className="hover:bg-gray-800"
+                        className="hover:bg-muted"
                         value="multiple_choice"
                       >
                         Opción Múltiple
                       </SelectItem>
-                      <SelectItem className="hover:bg-gray-800" value="true_false">
+                      <SelectItem className="hover:bg-muted" value="true_false">
                         Verdadero/Falso
                       </SelectItem>
-                      <SelectItem className="hover:bg-gray-800" value="open_text">
+                      <SelectItem className="hover:bg-muted" value="open_text">
                         Texto Abierto
                       </SelectItem>
-                      <SelectItem className="hover:bg-gray-800" value="essay">
+                      <SelectItem className="hover:bg-muted" value="essay">
                         Ensayo
                       </SelectItem>
-                      <SelectItem className="hover:bg-gray-800" value="fill_blanks">
+                      <SelectItem className="hover:bg-muted" value="fill_blanks">
                         Completar Espacios
                       </SelectItem>
-                      <SelectItem className="hover:bg-gray-800" value="drag_drop">
+                      <SelectItem className="hover:bg-muted" value="drag_drop">
                         Arrastrar y Soltar
                       </SelectItem>
-                      <SelectItem className="hover:bg-gray-800" value="matching">
+                      <SelectItem className="hover:bg-muted" value="matching">
                         Emparejar
                       </SelectItem>
-                      <SelectItem className="hover:bg-gray-800" value="ordering">
+                      <SelectItem className="hover:bg-muted" value="ordering">
                         Ordenar
                       </SelectItem>
                       <SelectItem
-                        className="hover:bg-gray-800"
+                        className="hover:bg-muted"
                         value="audio_response"
                       >
                         Respuesta de Audio
                       </SelectItem>
-                      <SelectItem className="hover:bg-gray-800" value="file_upload">
+                      <SelectItem className="hover:bg-muted" value="file_upload">
                         Subir Archivo
                       </SelectItem>
-                      <SelectItem className="hover:bg-gray-800" value="speaking">
+                      <SelectItem className="hover:bg-muted" value="speaking">
                         Expresión Oral (Speaking)
                       </SelectItem>
-                      <SelectItem className="hover:bg-gray-800" value="writing">
+                      <SelectItem className="hover:bg-muted" value="writing">
                         Expresión Escrita (Writing)
                       </SelectItem>
                     </SelectContent>
@@ -659,7 +659,7 @@ const QuestionsScreen = () => {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-400 mb-2">
+                  <label className="block text-sm font-medium text-muted-foreground mb-2">
                     Competencia
                   </label>
                   <Select
@@ -671,26 +671,26 @@ const QuestionsScreen = () => {
                     <SelectTrigger className={baseInputClass}>
                       <SelectValue placeholder="Selecciona la competencia" />
                     </SelectTrigger>
-                    <SelectContent className="bg-gray-900 border border-line">
-                      <SelectItem className="hover:bg-gray-800" value="all">
+                    <SelectContent className="bg-popover border border-line">
+                      <SelectItem className="hover:bg-muted" value="all">
                         Todas
                       </SelectItem>
-                      <SelectItem className="hover:bg-gray-800" value="reading">
+                      <SelectItem className="hover:bg-muted" value="reading">
                         Comprensión Lectora
                       </SelectItem>
-                      <SelectItem className="hover:bg-gray-800" value="writing">
+                      <SelectItem className="hover:bg-muted" value="writing">
                         Expresión Escrita
                       </SelectItem>
-                      <SelectItem className="hover:bg-gray-800" value="listening">
+                      <SelectItem className="hover:bg-muted" value="listening">
                         Comprensión Auditiva
                       </SelectItem>
-                      <SelectItem className="hover:bg-gray-800" value="speaking">
+                      <SelectItem className="hover:bg-muted" value="speaking">
                         Expresión Oral
                       </SelectItem>
-                      <SelectItem className="hover:bg-gray-800" value="grammar">
+                      <SelectItem className="hover:bg-muted" value="grammar">
                         Gramática
                       </SelectItem>
-                      <SelectItem className="hover:bg-gray-800" value="vocabulary">
+                      <SelectItem className="hover:bg-muted" value="vocabulary">
                         Vocabulario
                       </SelectItem>
                     </SelectContent>
@@ -698,7 +698,7 @@ const QuestionsScreen = () => {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-400 mb-2">
+                  <label className="block text-sm font-medium text-muted-foreground mb-2">
                     Nivel
                   </label>
                   <Select
@@ -710,26 +710,26 @@ const QuestionsScreen = () => {
                     <SelectTrigger className={baseInputClass}>
                       <SelectValue placeholder="Todos los niveles" />
                     </SelectTrigger>
-                    <SelectContent className="bg-gray-900 border border-line">
-                      <SelectItem className="hover:bg-gray-800" value="all">
+                    <SelectContent className="bg-popover border border-line">
+                      <SelectItem className="hover:bg-muted" value="all">
                         Todos
                       </SelectItem>
-                      <SelectItem className="hover:bg-gray-800" value="A1">
+                      <SelectItem className="hover:bg-muted" value="A1">
                         A1
                       </SelectItem>
-                      <SelectItem className="hover:bg-gray-800" value="A2">
+                      <SelectItem className="hover:bg-muted" value="A2">
                         A2
                       </SelectItem>
-                      <SelectItem className="hover:bg-gray-800" value="B1">
+                      <SelectItem className="hover:bg-muted" value="B1">
                         B1
                       </SelectItem>
-                      <SelectItem className="hover:bg-gray-800" value="B2">
+                      <SelectItem className="hover:bg-muted" value="B2">
                         B2
                       </SelectItem>
-                      <SelectItem className="hover:bg-gray-800" value="C1">
+                      <SelectItem className="hover:bg-muted" value="C1">
                         C1
                       </SelectItem>
-                      <SelectItem className="hover:bg-gray-800" value="C2">
+                      <SelectItem className="hover:bg-muted" value="C2">
                         C2
                       </SelectItem>
                     </SelectContent>
@@ -737,7 +737,7 @@ const QuestionsScreen = () => {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-400 mb-2">
+                  <label className="block text-sm font-medium text-muted-foreground mb-2">
                     Dificultad
                   </label>
                   <Select
@@ -749,23 +749,23 @@ const QuestionsScreen = () => {
                     <SelectTrigger className={baseInputClass}>
                       <SelectValue placeholder="Todas las dificultades" />
                     </SelectTrigger>
-                    <SelectContent className="bg-gray-900 border border-line">
-                      <SelectItem className="hover:bg-gray-800" value="0">
+                    <SelectContent className="bg-popover border border-line">
+                      <SelectItem className="hover:bg-muted" value="0">
                         Todas
                       </SelectItem>
-                      <SelectItem className="hover:bg-gray-800" value="1">
+                      <SelectItem className="hover:bg-muted" value="1">
                         Muy Fácil
                       </SelectItem>
-                      <SelectItem className="hover:bg-gray-800" value="2">
+                      <SelectItem className="hover:bg-muted" value="2">
                         Fácil
                       </SelectItem>
-                      <SelectItem className="hover:bg-gray-800" value="3">
+                      <SelectItem className="hover:bg-muted" value="3">
                         Medio
                       </SelectItem>
-                      <SelectItem className="hover:bg-gray-800" value="4">
+                      <SelectItem className="hover:bg-muted" value="4">
                         Difícil
                       </SelectItem>
-                      <SelectItem className="hover:bg-gray-800" value="5">
+                      <SelectItem className="hover:bg-muted" value="5">
                         Muy Difícil
                       </SelectItem>
                     </SelectContent>
@@ -781,7 +781,7 @@ const QuestionsScreen = () => {
                   </button>
                   <button
                     onClick={handleClearFilters}
-                    className="px-4 py-2 bg-dark-light border border-line rounded-lg hover:bg-dark-light/80 text-gray-300 transition-all"
+                    className="px-4 py-2 bg-dark-light border border-line rounded-lg hover:bg-dark-light/80 text-muted-foreground transition-all"
                   >
                     Limpiar
                   </button>
@@ -796,7 +796,7 @@ const QuestionsScreen = () => {
           {loading ? (
             <div className="p-12 text-center">
               <div className="inline-block animate-spin rounded-full h-10 w-10 border-b-2 border-blue-500"></div>
-              <p className="mt-4 text-gray-400">Cargando preguntas...</p>
+              <p className="mt-4 text-muted-foreground">Cargando preguntas...</p>
             </div>
           ) : error ? (
             <div className="p-12 text-center">
@@ -810,8 +810,8 @@ const QuestionsScreen = () => {
             </div>
           ) : questions.length === 0 ? (
             <div className="p-12 text-center">
-              <ClipboardList className="w-12 h-12 text-gray-600 mx-auto mb-4" />
-              <p className="text-gray-400 mb-4">No se encontraron preguntas</p>
+              <ClipboardList className="w-12 h-12 text-muted-foreground/50 mx-auto mb-4" />
+              <p className="text-muted-foreground mb-4">No se encontraron preguntas</p>
               <button
                 onClick={handleCreate}
                 className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-all"
@@ -835,7 +835,7 @@ const QuestionsScreen = () => {
 
                   {/* Paginación externa: la mantenemos igual */}
                   <div className="px-6 py-4 border-t border-line flex flex-col sm:flex-row items-center justify-between gap-4">
-                    <div className="text-sm text-gray-400">
+                    <div className="text-sm text-muted-foreground">
                       Mostrando {(currentPage - 1) * 10 + 1} a{' '}
                       {Math.min(currentPage * 10, totalItems)} de {totalItems}{' '}
                       preguntas
@@ -850,7 +850,7 @@ const QuestionsScreen = () => {
                         disabled={currentPage === 1}
                         className="p-2 bg-dark-light border border-line rounded-lg hover:bg-dark-light/80 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
                       >
-                        <ChevronLeft className="w-4 h-4 text-gray-400" />
+                        <ChevronLeft className="w-4 h-4 text-muted-foreground" />
                       </button>
 
                       <div className="flex gap-1">
@@ -875,7 +875,7 @@ const QuestionsScreen = () => {
                                 className={`px-3 py-1 rounded-lg transition-all ${
                                   page === currentPage
                                     ? 'bg-blue-600 text-white'
-                                    : 'bg-dark-light border border-line text-gray-400 hover:bg-dark-light/80'
+                                    : 'bg-dark-light border border-line text-muted-foreground hover:bg-dark-light/80'
                                 }`}
                               >
                                 {page}
@@ -892,7 +892,7 @@ const QuestionsScreen = () => {
                         disabled={currentPage === totalPages}
                         className="p-2 bg-dark-light border border-line rounded-lg hover:bg-dark-light/80 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
                       >
-                        <ChevronRight className="w-4 h-4 text-gray-400" />
+                        <ChevronRight className="w-4 h-4 text-muted-foreground" />
                       </button>
                     </div>
                   </div>
@@ -922,7 +922,7 @@ const QuestionsScreen = () => {
                           className={`px-3 py-1 rounded-lg transition-all ${
                             page === currentPage
                               ? "bg-blue-600 text-white"
-                              : "bg-dark-light border border-line text-gray-400 hover:bg-dark-light/80"
+                              : "bg-dark-light border border-line text-muted-foreground hover:bg-dark-light/80"
                           }`}
                         >
                           {page}
@@ -952,7 +952,7 @@ const QuestionsScreen = () => {
           >
             <div className="w-full max-w-2xl bg-box border border-line rounded-lg shadow-xl">
               <div className="flex items-center justify-between px-4 py-3 border-b border-line">
-                <h3 id="preview-title" className="text-white font-semibold">
+                <h3 id="preview-title" className="text-foreground font-semibold">
                   Pregunta completa
                 </h3>
                 <button
@@ -960,12 +960,12 @@ const QuestionsScreen = () => {
                   className="p-2 rounded hover:bg-dark-light"
                   aria-label="Cerrar"
                 >
-                  <X className="w-4 h-4 text-gray-300" />
+                  <X className="w-4 h-4 text-muted-foreground" />
                 </button>
               </div>
 
               <div className="p-4 max-h-[70vh] overflow-y-auto">
-                <p className="whitespace-pre-wrap text-gray-200">
+                <p className="whitespace-pre-wrap text-foreground">
                   {previewContent}
                 </p>
               </div>
@@ -978,7 +978,7 @@ const QuestionsScreen = () => {
                       .catch(() => {});
                     toast.success('Copiado al portapapeles');
                   }}
-                  className="px-3 py-2 bg-dark-light border border-line rounded-lg text-gray-300 hover:bg-dark-light/80"
+                  className="px-3 py-2 bg-dark-light border border-line rounded-lg text-muted-foreground hover:bg-dark-light/80"
                 >
                   Copiar
                 </button>

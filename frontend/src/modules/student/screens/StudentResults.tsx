@@ -219,22 +219,22 @@ const StudentResults = () => {
     const questionContent = (
       <div className="space-y-3">
         {questionData && (
-          <div className="bg-gray-900/50 p-3 rounded-lg border border-gray-700">
-            <h4 className="font-medium text-white mb-2">Pregunta:</h4>
-            <p className="text-gray-300 text-sm">{questionData.questionText}</p>
+          <div className="bg-card/60 p-3 rounded-lg border border-border">
+            <h4 className="font-medium text-foreground mb-2">Pregunta:</h4>
+            <p className="text-foreground/80 text-sm">{questionData.questionText}</p>
             {questionData.instructions && (
-              <p className="text-gray-400 text-xs mt-2 italic">{questionData.instructions}</p>
+              <p className="text-muted-foreground text-xs mt-2 italic">{questionData.instructions}</p>
             )}
             {questionData.context && (
-              <div className="mt-2 p-2 bg-gray-800/50 rounded">
-                <p className="text-gray-300 text-xs">{questionData.context}</p>
+              <div className="mt-2 p-2 bg-muted/50 rounded">
+                <p className="text-foreground/80 text-xs">{questionData.context}</p>
               </div>
             )}
           </div>
         )}
 
         <div className="space-y-2">
-          <p className="text-xs text-gray-500">Tu respuesta:</p>
+          <p className="text-xs text-muted-foreground">Tu respuesta:</p>
           {renderAnswerContent()}
         </div>
       </div>
@@ -259,7 +259,7 @@ const StudentResults = () => {
                           ? 'bg-red-900/30 border-red-700 text-red-300'
                           : isCorrect
                           ? 'bg-blue-900/30 border-blue-700 text-blue-300'
-                          : 'bg-gray-800/30 border-gray-700 text-gray-400'
+                          : 'bg-muted/30 border-border text-muted-foreground'
                       }`}
                     >
                       <span className="font-medium mr-2">
@@ -303,8 +303,8 @@ const StudentResults = () => {
         case 'open_text':
           return (
             <div className="space-y-2">
-              <div className="bg-gray-800 p-2 rounded text-sm">
-                <p className="text-white">"{question.response?.text || 'Sin respuesta'}"</p>
+              <div className="bg-muted p-2 rounded text-sm">
+                <p className="text-foreground">"{question.response?.text || 'Sin respuesta'}"</p>
               </div>
               {questionData?.correctAnswer && (
                 <p className="text-xs text-blue-300">
@@ -326,12 +326,12 @@ const StudentResults = () => {
                     Tu navegador no soporta audio.
                   </audio>
                   {question.response?.transcription && (
-                    <p className="text-xs text-gray-400 italic">"{question.response.transcription}"</p>
+                    <p className="text-xs text-muted-foreground italic">"{question.response.transcription}"</p>
                   )}
                 </div>
               ) : (
-                <div className="bg-gray-800 p-3 rounded text-sm">
-                  <p className="text-gray-400 italic">Sin respuesta de audio</p>
+                <div className="bg-muted p-3 rounded text-sm">
+                  <p className="text-muted-foreground italic">Sin respuesta de audio</p>
                 </div>
               )}
             </div>
@@ -341,15 +341,15 @@ const StudentResults = () => {
         case 'essay':
           return (
             <div className="space-y-2">
-              <div className="bg-gray-800 p-3 rounded text-sm max-h-32 overflow-y-auto">
-                <p className="text-white whitespace-pre-wrap">
+              <div className="bg-muted p-3 rounded text-sm max-h-32 overflow-y-auto">
+                <p className="text-foreground whitespace-pre-wrap">
                   {question.response?.text || question.response?.answer || 'Sin respuesta'}
                 </p>
               </div>
               {questionData?.sampleAnswer && (
                 <details className="text-xs">
                   <summary className="text-blue-300 cursor-pointer">Ver respuesta de ejemplo</summary>
-                  <p className="text-gray-400 mt-1 p-2 bg-gray-800/50 rounded">
+                  <p className="text-muted-foreground mt-1 p-2 bg-muted/50 rounded">
                     {questionData.sampleAnswer}
                   </p>
                 </details>
@@ -360,8 +360,8 @@ const StudentResults = () => {
         default:
           return (
             <div className="space-y-2">
-              <div className="bg-gray-800 p-2 rounded text-sm">
-                <p className="text-gray-300">Respuesta registrada</p>
+              <div className="bg-muted p-2 rounded text-sm">
+                <p className="text-foreground/80">Respuesta registrada</p>
               </div>
             </div>
           );
@@ -450,10 +450,10 @@ const StudentResults = () => {
         header: 'Examen',
         cell: ({ row }) => (
           <div className="min-w-0">
-            <p className="font-medium text-gray-200 truncate leading-tight">
+            <p className="font-medium text-foreground truncate leading-tight">
               {row.original.examName}
             </p>
-            <p className="text-xs text-gray-500 mt-0.5 truncate leading-tight">
+            <p className="text-xs text-muted-foreground mt-0.5 truncate leading-tight">
               {getTypeBadge(row.original.examType)}
             </p>
           </div>
@@ -467,7 +467,7 @@ const StudentResults = () => {
         size: 120,
         header: 'Fecha',
         cell: ({ getValue }) => (
-          <span className="text-sm text-gray-300">
+          <span className="text-sm text-foreground/80">
             {new Date(getValue()).toLocaleDateString('es-ES', {
               day: '2-digit',
               month: '2-digit',
@@ -541,7 +541,7 @@ const StudentResults = () => {
           <Button
             size="sm"
             variant="outline"
-            className="text-white bg-gray-800 hover:bg-gray-700 border-line h-7 px-2 text-xs"
+            className="text-foreground bg-muted hover:bg-muted/80 border-line h-7 px-2 text-xs"
             onClick={() => handleViewDetails(row.original)}
             aria-label={`Ver detalle de ${row.original.examName}`}
           >
@@ -581,8 +581,8 @@ const StudentResults = () => {
         <MainLayout gradientVariant="primary">
           <div className="max-w-6xl mx-auto flex items-center justify-center min-h-96">
             <div className="text-center">
-              <Loader2 className="h-8 w-8 animate-spin text-gray-400 mx-auto mb-4" />
-              <p className="text-gray-300">Cargando resultado...</p>
+              <Loader2 className="h-8 w-8 animate-spin text-muted-foreground mx-auto mb-4" />
+              <p className="text-muted-foreground">Cargando resultado...</p>
             </div>
           </div>
         </MainLayout>
@@ -610,8 +610,8 @@ const StudentResults = () => {
         <MainLayout gradientVariant="primary">
           <div className="max-w-6xl mx-auto flex items-center justify-center min-h-96">
             <div className="text-center">
-              <FileText className="h-8 w-8 text-gray-400 mx-auto mb-4" />
-              <p className="text-gray-300 mb-4">Resultado no encontrado</p>
+              <FileText className="h-8 w-8 text-muted-foreground mx-auto mb-4" />
+              <p className="text-muted-foreground mb-4">Resultado no encontrado</p>
               <Button onClick={handleBackToResults} variant="outline">
                 Volver a Resultados
               </Button>
@@ -625,23 +625,23 @@ const StudentResults = () => {
     return (
       <MainLayout gradientVariant="primary">
         <div id="exam-result-content" className="max-w-5xl mx-auto space-y-4 mt-6 px-4 pb-10">
-          <Card className="bg-[#0B1422] backdrop-blur-sm border border-line">
+          <Card className="bg-card backdrop-blur-sm border border-line">
             <CardContent className="p-5">
               <div className="flex items-start justify-between gap-4">
                 <div className="min-w-0">
                   <div className="flex items-center gap-2 mb-0.5">
                     <button
                       onClick={handleBackToResults}
-                      className="flex items-center gap-1 text-xs text-gray-500 hover:text-gray-300 transition-colors"
+                      className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
                     >
                       <ArrowLeft className="h-3 w-3" />
                       Resultados
                     </button>
                   </div>
-                  <h2 className="text-base font-semibold text-white leading-snug truncate">
+                  <h2 className="text-base font-semibold text-foreground leading-snug truncate">
                     {currentResult.examName}
                   </h2>
-                  <p className="text-xs text-gray-500 mt-0.5">
+                  <p className="text-xs text-muted-foreground mt-0.5">
                     {formatDate(currentResult.date)} · {currentResult.duration} min
                   </p>
                 </div>
@@ -658,11 +658,11 @@ const StudentResults = () => {
                   Nivel {currentResult.level}
                 </span>
                 {currentResult.nextLevel && (
-                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium border border-gray-700 text-gray-400 bg-transparent">
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium border border-border text-muted-foreground bg-transparent">
                     Siguiente: {currentResult.nextLevel}
                   </span>
                 )}
-                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium border border-gray-700 text-gray-400">
+                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium border border-border text-muted-foreground">
                   <Clock className="h-3 w-3" />
                   {currentResult.duration} min
                 </span>
@@ -672,9 +672,9 @@ const StudentResults = () => {
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
             <div className="lg:col-span-2 space-y-4">
-              <Card className="bg-[#0B1422] backdrop-blur-sm border border-line">
+              <Card className="bg-card backdrop-blur-sm border border-line">
                 <CardHeader className="pb-3">
-                  <CardTitle className="text-white flex items-center gap-2 text-sm">
+                  <CardTitle className="text-foreground flex items-center gap-2 text-sm">
                     <BarChart3 className="h-4 w-4 text-blue-400" />
                     Desglose por Competencias
                   </CardTitle>
@@ -689,7 +689,7 @@ const StudentResults = () => {
                       return (
                         <div key={skill} className="space-y-1.5">
                           <div className="flex items-center justify-between">
-                            <h4 className="text-sm font-medium text-gray-200">
+                            <h4 className="text-sm font-medium text-foreground">
                               {getCompetencyName(skill)}
                             </h4>
                             <span className={`text-sm font-semibold ${getScoreColor(score)}`}>
@@ -697,7 +697,7 @@ const StudentResults = () => {
                             </span>
                           </div>
                           <Progress value={score} className="h-1.5 w-full" />
-                          {feedback && <p className="text-xs text-gray-500">{feedback}</p>}
+                          {feedback && <p className="text-xs text-muted-foreground">{feedback}</p>}
                         </div>
                       );
                     }
@@ -705,21 +705,21 @@ const StudentResults = () => {
                 </CardContent>
               </Card>
 
-              <Card className="bg-[#0B1422] backdrop-blur-sm border border-line">
+              <Card className="bg-card backdrop-blur-sm border border-line">
                 <CardHeader className="pb-3">
-                  <CardTitle className="text-white flex items-center gap-2 text-sm">
+                  <CardTitle className="text-foreground flex items-center gap-2 text-sm">
                     <FileText className="h-4 w-4 text-green-400" />
                     Retroalimentación General
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="pt-0">
-                  <p className="text-sm text-gray-300 mb-3 leading-relaxed">{currentResult.feedback}</p>
+                  <p className="text-sm text-foreground/80 mb-3 leading-relaxed">{currentResult.feedback}</p>
                   {currentResult.recommendations?.length > 0 && (
                     <div>
-                      <p className="text-xs font-medium text-gray-400 mb-2">Recomendaciones:</p>
+                      <p className="text-xs font-medium text-muted-foreground mb-2">Recomendaciones:</p>
                       <ul className="space-y-1.5">
                         {currentResult.recommendations.map((rec, index) => (
-                          <li key={index} className="flex items-start gap-2 text-xs text-gray-400">
+                          <li key={index} className="flex items-start gap-2 text-xs text-muted-foreground">
                             <Target className="h-3.5 w-3.5 text-yellow-400 mt-0.5 flex-shrink-0" />
                             {rec}
                           </li>
@@ -732,9 +732,9 @@ const StudentResults = () => {
 
               {/* Detalle de preguntas del examen */}
               {examDetailData?.questionResults && (
-                <Card className="bg-[#0B1422] backdrop-blur-sm border border-line">
+                <Card className="bg-card backdrop-blur-sm border border-line">
                   <CardHeader className="pb-3">
-                    <CardTitle className="text-white flex items-center gap-2 text-sm">
+                    <CardTitle className="text-foreground flex items-center gap-2 text-sm">
                       <Eye className="h-4 w-4 text-purple-400" />
                       Preguntas del Examen
                     </CardTitle>
@@ -762,9 +762,9 @@ const StudentResults = () => {
                           {/* Separador entre preguntas */}
                           {index > 0 && (
                             <div className="flex items-center gap-3 px-6">
-                              <div className="flex-1 h-px bg-gray-700/60" />
-                              <span className="text-xs text-gray-600 font-medium">#{index + 1}</span>
-                              <div className="flex-1 h-px bg-gray-700/60" />
+                              <div className="flex-1 h-px bg-border/60" />
+                              <span className="text-xs text-muted-foreground/60 font-medium">#{index + 1}</span>
+                              <div className="flex-1 h-px bg-border/60" />
                             </div>
                           )}
 
@@ -772,12 +772,12 @@ const StudentResults = () => {
                             {/* Header */}
                             <div className="flex items-center justify-between gap-3">
                               <div className="flex items-center gap-2.5 flex-wrap">
-                                <span className="w-7 h-7 rounded-full bg-gray-700 flex items-center justify-center text-xs font-semibold text-white flex-shrink-0">
+                                <span className="w-7 h-7 rounded-full bg-muted flex items-center justify-center text-xs font-semibold text-foreground flex-shrink-0">
                                   {index + 1}
                                 </span>
-                                <span className="text-sm text-gray-300">{getQuestionTypeName(question.questionType)}</span>
-                                <span className="text-gray-600">·</span>
-                                <span className="text-xs text-gray-400">{getCompetencyName(question.competency)}</span>
+                                <span className="text-sm text-foreground/80">{getQuestionTypeName(question.questionType)}</span>
+                                <span className="text-muted-foreground/40">·</span>
+                                <span className="text-xs text-muted-foreground">{getCompetencyName(question.competency)}</span>
                                 {question.isCorrect !== undefined && (
                                   question.isCorrect
                                     ? <CheckCircle className="h-4 w-4 text-green-400" />
@@ -834,7 +834,7 @@ const StudentResults = () => {
             </div>
 
             <div className="space-y-3">
-              <Card className="bg-[#0B1422] backdrop-blur-sm border border-line">
+              <Card className="bg-card backdrop-blur-sm border border-line">
                 <CardContent className="p-4 space-y-2">
                   <Button
                     size="sm"
@@ -847,7 +847,7 @@ const StudentResults = () => {
                   <Button
                     variant="outline"
                     size="sm"
-                    className="w-full border-line text-gray-300 hover:bg-gray-800 bg-transparent"
+                    className="w-full border-line text-muted-foreground hover:bg-muted bg-transparent"
                     onClick={handleBackToResults}
                   >
                     <ArrowLeft className="h-4 w-4 mr-2" />
@@ -876,24 +876,24 @@ const StudentResults = () => {
 
         {/* Encabezado */}
         <div>
-          <h1 className="text-2xl font-bold text-white">Mis Resultados</h1>
-          <p className="text-sm text-gray-400 mt-1">Historial completo de tus evaluaciones</p>
+          <h1 className="text-2xl font-bold text-foreground">Mis Resultados</h1>
+          <p className="text-sm text-muted-foreground mt-1">Historial completo de tus evaluaciones</p>
         </div>
 
         {/* Estado: cargando */}
         {loading && (
           <div className="flex items-center justify-center py-16">
-            <Loader2 className="h-7 w-7 animate-spin text-gray-400 mr-3" />
-            <span className="text-gray-300">Cargando resultados...</span>
+            <Loader2 className="h-7 w-7 animate-spin text-muted-foreground mr-3" />
+            <span className="text-muted-foreground">Cargando resultados...</span>
           </div>
         )}
 
         {/* Estado: error */}
         {error && !loading && (
-          <Card className="bg-[#0B1422] border border-red-700/50">
+          <Card className="bg-card border border-red-700/50">
             <CardContent className="p-8 text-center">
               <AlertCircle className="h-10 w-10 text-red-400 mx-auto mb-3" />
-              <h3 className="text-base font-semibold text-white mb-1">Error al cargar resultados</h3>
+              <h3 className="text-base font-semibold text-foreground mb-1">Error al cargar resultados</h3>
               <p className="text-red-300 text-sm mb-4">{error}</p>
               <Button onClick={loadStudentResults} variant="outline" size="sm">Reintentar</Button>
             </CardContent>
@@ -904,11 +904,11 @@ const StudentResults = () => {
           <>
             {/* Stats row */}
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-              <Card className="bg-[#0B1422] border border-line">
+              <Card className="bg-card border border-line">
                 <CardContent className="p-4">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-xs text-gray-400">Promedio</p>
+                      <p className="text-xs text-muted-foreground">Promedio</p>
                       <p className={`text-xl font-semibold ${getScoreColor(resultsData.averageScore)}`}>
                         {resultsData.averageScore}%
                       </p>
@@ -918,11 +918,11 @@ const StudentResults = () => {
                 </CardContent>
               </Card>
 
-              <Card className="bg-[#0B1422] border border-line">
+              <Card className="bg-card border border-line">
                 <CardContent className="p-4">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-xs text-gray-400">Progreso</p>
+                      <p className="text-xs text-muted-foreground">Progreso</p>
                       <div className="flex items-center gap-1">
                         <p className={`text-xl font-semibold ${resultsData.progressTrend >= 0 ? 'text-green-400' : 'text-red-400'}`}>
                           {resultsData.progressTrend >= 0 ? '+' : ''}{resultsData.progressTrend}%
@@ -937,11 +937,11 @@ const StudentResults = () => {
                 </CardContent>
               </Card>
 
-              <Card className="bg-[#0B1422] border border-line">
+              <Card className="bg-card border border-line">
                 <CardContent className="p-4">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-xs text-gray-400">Total exámenes</p>
+                      <p className="text-xs text-muted-foreground">Total exámenes</p>
                       <p className="text-xl font-semibold text-purple-400">{resultsData.totalResults}</p>
                     </div>
                     <FileText className="h-7 w-7 text-purple-400 opacity-70" />
@@ -949,11 +949,11 @@ const StudentResults = () => {
                 </CardContent>
               </Card>
 
-              <Card className="bg-[#0B1422] border border-line">
+              <Card className="bg-card border border-line">
                 <CardContent className="p-4">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-xs text-gray-400">Completados</p>
+                      <p className="text-xs text-muted-foreground">Completados</p>
                       <p className="text-xl font-semibold text-green-400">
                         {resultsData.results.filter(r => r.status === 'completed').length}
                       </p>
@@ -966,19 +966,19 @@ const StudentResults = () => {
 
             {/* Tabla con filtros integrados */}
             <GradientWrapper position="top-right" variant="cosmic" intensity="low" size="lg" animate={false}>
-              <Card className="bg-[#0B1422] border border-line">
+              <Card className="bg-card border border-line">
                 {/* Header con filtros inline */}
                 <CardHeader className="border-b border-line pb-4">
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                     <div>
-                      <CardTitle className="text-white text-base">Historial de Evaluaciones</CardTitle>
-                      <CardDescription className="text-gray-400 text-xs mt-0.5">
+                      <CardTitle className="text-foreground text-base">Historial de Evaluaciones</CardTitle>
+                      <CardDescription className="text-muted-foreground text-xs mt-0.5">
                         {totalRows > 0 ? `${totalRows} resultado${totalRows !== 1 ? 's' : ''}` : 'Sin resultados'}
                       </CardDescription>
                     </div>
                     <div className="flex flex-wrap items-center gap-2">
                       <Select value={selectedPeriod} onValueChange={setSelectedPeriod}>
-                        <SelectTrigger className="h-8 text-xs w-36 bg-gray-800/60 border-line text-gray-200">
+                        <SelectTrigger className="h-8 text-xs w-36 bg-muted/60 border-line text-foreground">
                           <SelectValue placeholder="Período" />
                         </SelectTrigger>
                         <SelectContent>
@@ -987,7 +987,7 @@ const StudentResults = () => {
                         </SelectContent>
                       </Select>
                       <Select value={selectedLevel} onValueChange={setSelectedLevel}>
-                        <SelectTrigger className="h-8 text-xs w-28 bg-gray-800/60 border-line text-gray-200">
+                        <SelectTrigger className="h-8 text-xs w-28 bg-muted/60 border-line text-foreground">
                           <SelectValue placeholder="Nivel" />
                         </SelectTrigger>
                         <SelectContent>
@@ -1024,15 +1024,15 @@ const StudentResults = () => {
                 {/* Paginación */}
                 {totalRows > 0 && (
                   <div className="flex items-center justify-between px-4 py-3 border-t border-line">
-                    <p className="text-xs text-gray-400">
-                      Mostrando <span className="text-gray-200 font-medium">{firstRow}–{lastRow}</span> de{' '}
-                      <span className="text-gray-200 font-medium">{totalRows}</span> resultados
+                    <p className="text-xs text-muted-foreground">
+                      Mostrando <span className="text-foreground font-medium">{firstRow}–{lastRow}</span> de{' '}
+                      <span className="text-foreground font-medium">{totalRows}</span> resultados
                     </p>
                     <div className="flex items-center gap-1">
                       <Button
                         variant="outline"
                         size="sm"
-                        className="h-7 w-7 p-0 border-line bg-transparent text-gray-300 hover:bg-gray-800 disabled:opacity-30"
+                        className="h-7 w-7 p-0 border-line bg-transparent text-muted-foreground hover:bg-muted disabled:opacity-30"
                         onClick={() => resultsTable.previousPage()}
                         disabled={!resultsTable.getCanPreviousPage()}
                       >
@@ -1046,7 +1046,7 @@ const StudentResults = () => {
                           className={`h-7 w-7 p-0 text-xs border-line ${
                             i === pageIndex
                               ? 'bg-blue-600/30 text-blue-300 border-blue-500/50'
-                              : 'bg-transparent text-gray-400 hover:bg-gray-800'
+                              : 'bg-transparent text-muted-foreground hover:bg-muted'
                           }`}
                           onClick={() => resultsTable.setPageIndex(i)}
                         >
@@ -1056,7 +1056,7 @@ const StudentResults = () => {
                       <Button
                         variant="outline"
                         size="sm"
-                        className="h-7 w-7 p-0 border-line bg-transparent text-gray-300 hover:bg-gray-800 disabled:opacity-30"
+                        className="h-7 w-7 p-0 border-line bg-transparent text-muted-foreground hover:bg-muted disabled:opacity-30"
                         onClick={() => resultsTable.nextPage()}
                         disabled={!resultsTable.getCanNextPage()}
                       >

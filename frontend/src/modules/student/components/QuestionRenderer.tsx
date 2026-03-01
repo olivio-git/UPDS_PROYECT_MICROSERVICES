@@ -168,13 +168,13 @@ const SortableListItem: React.FC<{ id: string; index: number; children: React.Re
       className={`flex items-center gap-3 p-3 rounded-lg border transition-colors select-none ${
         isDragging
           ? 'bg-blue-600/20 border-blue-400 shadow-lg'
-          : 'bg-gray-700 border-gray-600 hover:bg-gray-600/80'
+          : 'bg-muted border-border hover:bg-muted/80'
       }`}
     >
       <div {...attributes} {...listeners} className="cursor-grab active:cursor-grabbing touch-none flex-shrink-0">
-        <GripVertical className="w-4 h-4 text-gray-400" />
+        <GripVertical className="w-4 h-4 text-muted-foreground" />
       </div>
-      <span className="text-xs text-gray-500 w-4 flex-shrink-0 font-mono">{index + 1}</span>
+      <span className="text-xs text-muted-foreground w-4 flex-shrink-0 font-mono">{index + 1}</span>
       {children}
     </div>
   );
@@ -199,7 +199,7 @@ const SortableGridCard: React.FC<{ id: string; index: number; children: React.Re
       className={`relative p-3 pt-5 rounded-xl border-2 cursor-grab active:cursor-grabbing touch-none transition-all select-none ${
         isDragging
           ? 'border-blue-400 shadow-xl bg-blue-600/20'
-          : 'border-gray-600 bg-gray-700/60 hover:border-blue-500/60 hover:bg-gray-700'
+          : 'border-border bg-muted/50 hover:border-blue-500/60 hover:bg-muted'
       }`}
     >
       {/* Position badge */}
@@ -705,7 +705,7 @@ const QuestionRenderer: React.FC<Props> = ({
   }, [dragDropOrder, id, onChange, content]);
 
   return (
-    <div className={`bg-gray-800/20 rounded-lg p-4 border border-gray-700/30 ${className}`}>
+    <div className={`bg-muted/30 rounded-lg p-4 border border-border/30 ${className}`}>
       <div className="mb-3">
         {showQuestionNumber && questionNumber && (
           <div className="flex items-center justify-between mb-2">
@@ -714,7 +714,7 @@ const QuestionRenderer: React.FC<Props> = ({
                 {questionNumber}
               </span>
               {sectionInfo && (
-                <span className="text-xs text-gray-400">
+                <span className="text-xs text-muted-foreground">
                   de {totalQuestions || '?'}
                 </span>
               )}
@@ -724,7 +724,7 @@ const QuestionRenderer: React.FC<Props> = ({
                 <span className="text-xs text-blue-400 bg-blue-500/20 px-2 py-1 rounded">
                   {sectionInfo.competency}
                 </span>
-                <span className="text-xs text-gray-400">
+                <span className="text-xs text-muted-foreground">
                   Pregunta {sectionInfo.questionIndex + 1} de {sectionInfo.totalQuestionsInSection} en {sectionInfo.name}
                 </span>
               </div>
@@ -748,21 +748,21 @@ const QuestionRenderer: React.FC<Props> = ({
 
         {/* Contexto de la pregunta — oculto para listening (es la transcripción del audio) */}
         {contextText && question.competency !== 'listening' && (
-          <div className="mb-4 rounded-lg border border-gray-700 bg-gray-800/40">
+          <div className="mb-4 rounded-lg border border-border bg-muted/30">
             <div className="px-4 pt-3">
-              <div className="text-[11px] font-medium text-slate-400 uppercase tracking-wide">
+              <div className="text-[11px] font-medium text-muted-foreground uppercase tracking-wide">
                 Contexto:
               </div>
             </div>
-            <div className="px-4 pb-4 pt-2 text-sm text-white leading-relaxed whitespace-pre-wrap">
+            <div className="px-4 pb-4 pt-2 text-sm text-foreground leading-relaxed whitespace-pre-wrap">
               {contextText}
             </div>
           </div>
         )}
 
         <div className="space-y-1 px-4 pt-3">
-          <div className="text-[11px] font-medium text-slate-400 uppercase tracking-wide">Pregunta:</div>
-          <div className="text-base md:text-lg text-white font-semibold leading-snug">{titleText}</div>
+          <div className="text-[11px] font-medium text-muted-foreground uppercase tracking-wide">Pregunta:</div>
+          <div className="text-base md:text-lg text-foreground font-semibold leading-snug">{titleText}</div>
         </div>
       </div>
 
@@ -822,8 +822,8 @@ const QuestionRenderer: React.FC<Props> = ({
                   key={optId}
                   onClick={() => onChange(id, { selectedOptions: [optId] })}
                   className={isSelected
-                    ? "flex items-center gap-3 p-3 rounded-lg border-2 cursor-pointer bg-blue-600 bg-opacity-30 border-blue-400 text-white"
-                    : "flex items-center gap-3 p-3 rounded-lg border-2 cursor-pointer bg-gray-800 border-gray-600 text-gray-200 hover:bg-gray-700 hover:border-gray-500"
+                    ? "flex items-center gap-3 p-3 rounded-lg border-2 cursor-pointer bg-blue-600 bg-opacity-30 border-blue-400 text-foreground"
+                    : "flex items-center gap-3 p-3 rounded-lg border-2 cursor-pointer bg-muted border-border text-foreground/80 hover:bg-muted/80 hover:border-border"
                   }
                 >
                   <div className={isSelected
@@ -843,8 +843,8 @@ const QuestionRenderer: React.FC<Props> = ({
                 key={optId}
                 onClick={() => handleOption(optId)}
                 className={isSelected
-                  ? "flex items-center gap-3 p-3 rounded-lg border-2 cursor-pointer bg-green-600 bg-opacity-30 border-green-400 text-white"
-                  : "flex items-center gap-3 p-3 rounded-lg border-2 cursor-pointer bg-gray-800 border-gray-600 text-gray-200 hover:bg-gray-700 hover:border-gray-500"
+                  ? "flex items-center gap-3 p-3 rounded-lg border-2 cursor-pointer bg-green-600 bg-opacity-30 border-green-400 text-foreground"
+                  : "flex items-center gap-3 p-3 rounded-lg border-2 cursor-pointer bg-muted border-border text-foreground/80 hover:bg-muted/80 hover:border-border"
                 }
               >
                 <div className={isSelected
@@ -890,8 +890,8 @@ const QuestionRenderer: React.FC<Props> = ({
             }}
             className={`flex items-center gap-3 p-4 rounded-lg border-2 cursor-pointer ${
               (answer?.answer === true || answer?.answer === 'true')
-                ? "bg-green-600 bg-opacity-30 border-green-400 text-white"
-                : "bg-gray-800 border-gray-600 text-gray-200 hover:bg-gray-700 hover:border-gray-500"
+                ? "bg-green-600 bg-opacity-30 border-green-400 text-foreground"
+                : "bg-muted border-border text-foreground/80 hover:bg-muted/80 hover:border-border"
             }`}
             style={{
               backgroundColor: (answer?.answer === true || answer?.answer === 'true') ? 'rgba(34, 197, 94, 0.3)' : 'rgb(31, 41, 55)',
@@ -924,8 +924,8 @@ const QuestionRenderer: React.FC<Props> = ({
             }}
             className={`flex items-center gap-3 p-4 rounded-lg border-2 cursor-pointer ${
               (answer?.answer === false || answer?.answer === 'false')
-                ? "bg-red-600 bg-opacity-30 border-red-400 text-white"
-                : "bg-gray-800 border-gray-600 text-gray-200 hover:bg-gray-700 hover:border-gray-500"
+                ? "bg-red-600 bg-opacity-30 border-red-400 text-foreground"
+                : "bg-muted border-border text-foreground/80 hover:bg-muted/80 hover:border-border"
             }`}
             style={{
               backgroundColor: (answer?.answer === false || answer?.answer === 'false') ? 'rgba(220, 38, 38, 0.3)' : 'rgb(31, 41, 55)',
@@ -956,7 +956,7 @@ const QuestionRenderer: React.FC<Props> = ({
       {(effectiveType === 'open_text' || effectiveType === 'essay' || type === 'open_text' || type === 'essay') && (
         <div>
           <textarea
-            className="w-full bg-transparent border border-gray-600 rounded p-2 text-sm text-white"
+            className="w-full bg-transparent border border-border rounded p-2 text-sm text-foreground"
             rows={effectiveType === 'essay' || type === 'essay' ? 8 : 4}
             value={answer?.text || ''}
             onChange={handleText}
@@ -972,7 +972,7 @@ const QuestionRenderer: React.FC<Props> = ({
             <div className="space-y-2">
               <div className="flex items-center gap-2">
                 <Volume2 className="w-4 h-4 text-blue-400" />
-                <span className="text-sm text-gray-300">Escucha la pregunta:</span>
+                <span className="text-sm text-foreground/80">Escucha la pregunta:</span>
               </div>
               <AudioPlayer
                 src={content.promptAudioUrl || mediaUrl}
@@ -983,8 +983,8 @@ const QuestionRenderer: React.FC<Props> = ({
           )}
 
           {/* Instrucción para el tipo de respuesta */}
-          <div className="text-sm text-gray-400">
-            Tipo de respuesta esperada: <span className="text-white font-medium">
+          <div className="text-sm text-muted-foreground">
+            Tipo de respuesta esperada: <span className="text-foreground font-medium">
               {content.expectedResponseType === 'word' && 'Palabra'}
               {content.expectedResponseType === 'sentence' && 'Oración'}
               {content.expectedResponseType === 'paragraph' && 'Párrafo'}
@@ -994,7 +994,7 @@ const QuestionRenderer: React.FC<Props> = ({
 
           {/* Grabador de respuesta */}
           <div className="space-y-2">
-            <p className="text-sm text-gray-300">Graba tu respuesta:</p>
+            <p className="text-sm text-foreground/80">Graba tu respuesta:</p>
             <AudioRecorder
               variant="compact"
               maxDuration={content.expectedResponseType === 'word' ? 10 : content.expectedResponseType === 'sentence' ? 30 : 120}
@@ -1032,7 +1032,7 @@ const QuestionRenderer: React.FC<Props> = ({
             {/* Preview local o URL permanente */}
             {(answer?.previewUrl || answer?.audioUrl) && (
               <div className="mt-2">
-                <p className="text-xs text-gray-400 mb-1">Tu respuesta grabada:</p>
+                <p className="text-xs text-muted-foreground mb-1">Tu respuesta grabada:</p>
                 <AudioPlayer
                   src={answer.previewUrl || answer.audioUrl}
                   variant="compact"
@@ -1046,11 +1046,11 @@ const QuestionRenderer: React.FC<Props> = ({
 
       {(effectiveType === 'file_upload' || type === 'file_upload') && (
         <div className="space-y-2">
-          <p className="text-xs text-gray-400">Adjunta el archivo requerido.</p>
-          <input 
-            type="file" 
+          <p className="text-xs text-muted-foreground">Adjunta el archivo requerido.</p>
+          <input
+            type="file"
             onChange={handleFile}
-            className="w-full p-2 bg-gray-700 border border-gray-600 rounded text-white file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:font-medium file:bg-blue-600 file:text-white hover:file:bg-blue-700"
+            className="w-full p-2 bg-muted border border-border rounded text-foreground file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:font-medium file:bg-blue-600 file:text-white hover:file:bg-blue-700"
           />
           {answer?.file && (
             <p className="text-xs text-green-400">Archivo seleccionado: {answer.file.name}</p>
@@ -1066,7 +1066,7 @@ const QuestionRenderer: React.FC<Props> = ({
         return (
           <div className="space-y-5">
             {/* ── Sentence with inline Duolingo-style blanks ── */}
-            <div className="leading-[3] text-base text-gray-100 flex flex-wrap items-end">
+            <div className="leading-[3] text-base text-foreground flex flex-wrap items-end">
               {parts.map((part, index) => {
                 const blankData = blanksData[index];
                 const maxLen = Math.max(
@@ -1093,12 +1093,12 @@ const QuestionRenderer: React.FC<Props> = ({
                           onChange={(e) => handleFillBlanks(index, e.target.value)}
                           style={{ width: `${widthPx}px` }}
                           className={`
-                            border-0 border-b-2 bg-transparent text-center text-white text-sm pb-0.5
-                            focus:outline-none caret-white transition-colors duration-150
-                            placeholder-gray-600
+                            border-0 border-b-2 bg-transparent text-center text-foreground text-sm pb-0.5
+                            focus:outline-none caret-foreground transition-colors duration-150
+                            placeholder-muted-foreground
                             ${currentVal
                               ? 'border-blue-400 focus:border-blue-300'
-                              : 'border-gray-500 focus:border-blue-400'
+                              : 'border-border focus:border-blue-400'
                             }
                           `}
                           placeholder={'· · ·'}
@@ -1121,11 +1121,11 @@ const QuestionRenderer: React.FC<Props> = ({
                       className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium border transition-all ${
                         filled
                           ? 'bg-blue-900/40 border-blue-500/50 text-blue-200'
-                          : 'bg-gray-800/60 border-gray-700 text-gray-500'
+                          : 'bg-muted/50 border-border text-muted-foreground'
                       }`}
                     >
                       <span className={`w-4 h-4 rounded-full flex items-center justify-center text-[10px] font-bold flex-shrink-0 ${
-                        filled ? 'bg-blue-500 text-white' : 'bg-gray-700 text-gray-400'
+                        filled ? 'bg-blue-500 text-white' : 'bg-muted text-muted-foreground'
                       }`}>
                         {i + 1}
                       </span>
@@ -1195,7 +1195,7 @@ const QuestionRenderer: React.FC<Props> = ({
                       relative group p-4 border-2 rounded-lg cursor-pointer transition-all duration-200
                       ${isPaired ? `${colorClass} border-2` : 
                         isSelected ? 'bg-yellow-500/20 border-yellow-500 border-2' : 
-                        'bg-slate-800/50 border-slate-600 hover:border-slate-500 hover:bg-slate-700/50'
+                        'bg-muted/50 border-border hover:border-border hover:bg-muted/70'
                       }
                       ${isSelected ? 'ring-2 ring-yellow-400/50 shadow-lg' : ''}
                     `}
@@ -1216,7 +1216,7 @@ const QuestionRenderer: React.FC<Props> = ({
                     
                     {/* Contenido del item */}
                     <div className="space-y-2">
-                      <div className="font-medium text-white">
+                      <div className="font-medium text-foreground">
                         {item.content}
                       </div>
                       
@@ -1242,8 +1242,8 @@ const QuestionRenderer: React.FC<Props> = ({
                           </>
                         ) : (
                           <>
-                            <div className="w-2 h-2 bg-gray-500 rounded-full"></div>
-                            <span className="text-gray-400">Sin emparejar</span>
+                            <div className="w-2 h-2 bg-muted-foreground rounded-full"></div>
+                            <span className="text-muted-foreground">Sin emparejar</span>
                           </>
                         )}
                       </div>
@@ -1271,21 +1271,21 @@ const QuestionRenderer: React.FC<Props> = ({
                     className={`
                       relative p-4 border-2 rounded-lg transition-all duration-200
                       ${isUsed ? `${colorClass} border-2` :
-                        canSelect ? 'bg-slate-800/50 border-slate-600 hover:border-green-500 hover:bg-green-900/20 cursor-pointer' :
-                        'bg-slate-900/50 border-slate-700 opacity-60 cursor-not-allowed'
+                        canSelect ? 'bg-muted/50 border-border hover:border-green-500 hover:bg-green-900/20 cursor-pointer' :
+                        'bg-card/50 border-border opacity-60 cursor-not-allowed'
                       }
                       ${canSelect ? 'hover:shadow-lg' : ''}
                     `}
                   >
                     <div className="space-y-2">
-                      <div className="font-medium text-white">{pairValue}</div>
+                      <div className="font-medium text-foreground">{pairValue}</div>
                       <div className="flex items-center gap-2 text-xs">
                         {isUsed ? (
                           <><div className="w-2 h-2 bg-green-400 rounded-full" /><span className="text-green-300">Usado</span></>
                         ) : canSelect ? (
                           <><div className="w-2 h-2 bg-blue-400 rounded-full" /><span className="text-blue-300">Disponible</span></>
                         ) : (
-                          <><div className="w-2 h-2 bg-gray-500 rounded-full" /><span className="text-gray-400">No disponible</span></>
+                          <><div className="w-2 h-2 bg-muted-foreground rounded-full" /><span className="text-muted-foreground">No disponible</span></>
                         )}
                       </div>
                     </div>
@@ -1296,12 +1296,12 @@ const QuestionRenderer: React.FC<Props> = ({
           </div>
 
           {/* Progreso */}
-          <div className="bg-slate-800/50 border border-slate-600 rounded-lg p-3">
-            <div className="flex justify-between items-center text-sm text-slate-300">
+          <div className="bg-muted/50 border border-border rounded-lg p-3">
+            <div className="flex justify-between items-center text-sm text-foreground/80">
               <span>Progreso del emparejamiento:</span>
               <span>{Object.keys(matchingPairs).length} de {(content.items || []).length} elementos emparejados</span>
             </div>
-            <div className="w-full bg-slate-700 rounded-full h-2 mt-2">
+            <div className="w-full bg-muted rounded-full h-2 mt-2">
               <div 
                 className="bg-green-500 h-2 rounded-full transition-all duration-300"
                 style={{ 
@@ -1316,7 +1316,7 @@ const QuestionRenderer: React.FC<Props> = ({
       {effectiveType === 'ordering' && (
         <div className="space-y-4">
           <div className="flex items-center justify-between">
-            <p className="text-xs text-gray-400">Arrastra los elementos para ordenarlos correctamente:</p>
+            <p className="text-xs text-muted-foreground">Arrastra los elementos para ordenarlos correctamente:</p>
             <div className="flex gap-2">
               <Button onClick={shuffleOrdering} size="sm" variant="outline" className="flex items-center gap-1 text-xs">
                 <Shuffle className="w-3 h-3" /> Mezclar
@@ -1342,11 +1342,11 @@ const QuestionRenderer: React.FC<Props> = ({
                   return (
                     <SortableListItem key={itemId} id={itemId} index={index}>
                       {item.mediaUrl && (
-                        <div className="flex-shrink-0 w-12 h-10 bg-gray-800/50 border border-gray-600 rounded flex items-center justify-center">
+                        <div className="flex-shrink-0 w-12 h-10 bg-muted/50 border border-border rounded flex items-center justify-center">
                           <ItemMediaPreview url={item.mediaUrl} explicitType={detectMediaType(item.mediaUrl)} />
                         </div>
                       )}
-                      <span className="text-white flex-1 text-sm">{item.content}</span>
+                      <span className="text-foreground flex-1 text-sm">{item.content}</span>
                     </SortableListItem>
                   );
                 })}
@@ -1370,7 +1370,7 @@ const QuestionRenderer: React.FC<Props> = ({
 
       {effectiveType === 'drag_drop' && (
         <div className="space-y-4">
-          <p className="text-xs text-gray-400">
+          <p className="text-xs text-muted-foreground">
             Arrastra las tarjetas para asignarlas a la posición correcta. El número indica la posición actual.
           </p>
 
@@ -1391,12 +1391,12 @@ const QuestionRenderer: React.FC<Props> = ({
                       <div className="text-center space-y-1">
                         {item.mediaUrl && (
                           <div className="flex justify-center mb-2">
-                            <div className="w-14 h-10 bg-gray-800/60 rounded flex items-center justify-center">
+                            <div className="w-14 h-10 bg-muted/50 rounded flex items-center justify-center">
                               <ItemMediaPreview url={item.mediaUrl} explicitType={detectMediaType(item.mediaUrl)} />
                             </div>
                           </div>
                         )}
-                        <span className="text-white font-medium text-sm block leading-tight">{item.content}</span>
+                        <span className="text-foreground font-medium text-sm block leading-tight">{item.content}</span>
                       </div>
                     </SortableGridCard>
                   );
@@ -1410,7 +1410,7 @@ const QuestionRenderer: React.FC<Props> = ({
                 return item ? (
                   <div className="p-3 rounded-xl border-2 border-blue-400 bg-blue-600/40 shadow-2xl rotate-3">
                     <div className="text-center">
-                      <span className="text-white font-medium text-sm">{item.content}</span>
+                      <span className="text-foreground font-medium text-sm">{item.content}</span>
                     </div>
                   </div>
                 ) : null;

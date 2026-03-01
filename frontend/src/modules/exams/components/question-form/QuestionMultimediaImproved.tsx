@@ -195,7 +195,7 @@ const QuestionMultimedia: React.FC<Props> = ({
   return (
     <Card className="border border-line">
       <CardHeader>
-        <CardTitle className="text-white flex items-center gap-2">
+        <CardTitle className="text-foreground flex items-center gap-2">
           <Volume2 className="w-5 h-5 text-blue-400" />
           Multimedia
         </CardTitle>
@@ -220,7 +220,7 @@ const QuestionMultimedia: React.FC<Props> = ({
             {/* Mostrar reproductor de audio existente */}
             {formData.content?.mediaUrl && formData.content.mediaType === 'audio' && (
               <div className="mb-4">
-                <div className="text-sm text-gray-400 mb-3">Audio actual:</div>
+                <div className="text-sm text-muted-foreground mb-3">Audio actual:</div>
                 <AudioPlayer
                   src={formData.content.mediaUrl}
                   variant="compact"
@@ -239,8 +239,8 @@ const QuestionMultimedia: React.FC<Props> = ({
             {/* Mostrar audio seleccionado */}
             {(audioFile || recordedAudioUrl) && (
               <div className="mb-4">
-                <div className="text-sm text-gray-400 mb-3">
-                  Audio seleccionado: 
+                <div className="text-sm text-muted-foreground mb-3">
+                  Audio seleccionado:
                   {audioFile && (
                     <span className="ml-1 text-blue-400">
                       {audioFile.name} ({formatFileSize(audioFile.size)})
@@ -272,7 +272,7 @@ const QuestionMultimedia: React.FC<Props> = ({
             {/* Botón para subir nuevo audio */}
             <div className="flex items-center gap-3">
               <label
-                className={`flex items-center gap-2 px-4 py-2 rounded-lg cursor-pointer border transition-all hover:bg-gray-700/50 ${baseInputClass}`}
+                className={`flex items-center gap-2 px-4 py-2 rounded-lg cursor-pointer border transition-all hover:bg-muted/50 ${baseInputClass}`}
               >
                 <Volume2 className="w-4 h-4" />
                 <span>Seleccionar Audio</span>
@@ -303,8 +303,8 @@ const QuestionMultimedia: React.FC<Props> = ({
               </Label>
             </div>
 
-            <div className="bg-gray-800/30 rounded-lg p-4 border border-gray-700">
-              <p className="text-sm text-gray-400 mb-4">
+            <div className="bg-muted/30 rounded-lg p-4 border border-border">
+              <p className="text-sm text-muted-foreground mb-4">
                 Graba un audio con la pregunta o instrucciones que el estudiante escuchará antes de responder.
               </p>
 
@@ -320,7 +320,7 @@ const QuestionMultimedia: React.FC<Props> = ({
                   <SelectTrigger className={baseInputClass}>
                     <SelectValue placeholder="Selecciona el tipo" />
                   </SelectTrigger>
-                  <SelectContent className="bg-gray-900 border border-line">
+                  <SelectContent className="bg-card border border-line">
                     <SelectItem value="word">Palabra</SelectItem>
                     <SelectItem value="sentence">Oración</SelectItem>
                     <SelectItem value="paragraph">Párrafo</SelectItem>
@@ -331,7 +331,7 @@ const QuestionMultimedia: React.FC<Props> = ({
               {/* Mostrar reproductor si hay audio existente */}
               {formData.content?.mediaUrl && formData.content.mediaType === 'audio' && (
                 <div className="mb-4">
-                  <div className="text-sm text-gray-400 mb-2">Audio actual:</div>
+                  <div className="text-sm text-muted-foreground mb-2">Audio actual:</div>
                   <AudioPlayer
                     src={formData.content.mediaUrl}
                     variant="compact"
@@ -349,7 +349,7 @@ const QuestionMultimedia: React.FC<Props> = ({
 
               {/* Grabador de audio */}
               <div className="mb-4">
-                <div className="text-sm text-gray-400 mb-2">Grabar nuevo audio:</div>
+                <div className="text-sm text-muted-foreground mb-2">Grabar nuevo audio:</div>
                 <AudioRecorder
                   variant="compact"
                   maxDuration={180} // 3 minutos máximo
@@ -362,12 +362,12 @@ const QuestionMultimedia: React.FC<Props> = ({
               </div>
 
               {/* Opción alternativa para subir archivo */}
-              <div className="pt-4 border-t border-gray-700">
-                <div className="text-sm text-gray-400 mb-2">
+              <div className="pt-4 border-t border-border">
+                <div className="text-sm text-muted-foreground mb-2">
                   O sube un archivo de audio:
                 </div>
                 <label
-                  className={`inline-flex items-center gap-2 px-3 py-2 rounded-lg cursor-pointer border transition-all hover:bg-gray-700/50 ${baseInputClass}`}
+                  className={`inline-flex items-center gap-2 px-3 py-2 rounded-lg cursor-pointer border transition-all hover:bg-muted/50 ${baseInputClass}`}
                 >
                   <Volume2 className="w-4 h-4" />
                   <span>Seleccionar archivo</span>
@@ -392,12 +392,12 @@ const QuestionMultimedia: React.FC<Props> = ({
 
           {/* Mostrar imagen existente si hay */}
           {formData.content?.mediaUrl && formData.content.mediaType === 'image' && (
-            <div className="mb-4 p-3 bg-gray-800/30 border border-gray-600 rounded-lg">
-              <div className="text-sm text-gray-400 mb-2">Imagen actual:</div>
+            <div className="mb-4 p-3 bg-muted/30 border border-border rounded-lg">
+              <div className="text-sm text-muted-foreground mb-2">Imagen actual:</div>
               <img
                 src={formData.content.mediaUrl}
                 alt="Imagen actual"
-                className="h-32 w-auto rounded border border-gray-700 cursor-pointer hover:border-blue-500 transition-colors"
+                className="h-32 w-auto rounded border border-border cursor-pointer hover:border-blue-500 transition-colors"
                 onClick={() => {
                   const url = formData.content?.mediaUrl;
                   if (url) window.open(url, '_blank');
@@ -409,9 +409,9 @@ const QuestionMultimedia: React.FC<Props> = ({
 
           {/* Mostrar imagen seleccionada */}
           {imageFile && (
-            <div className="mb-4 p-3 bg-gray-800/30 border border-gray-600 rounded-lg">
-              <div className="text-sm text-gray-400 mb-2">
-                Imagen seleccionada: 
+            <div className="mb-4 p-3 bg-muted/30 border border-border rounded-lg">
+              <div className="text-sm text-muted-foreground mb-2">
+                Imagen seleccionada:
                 <span className="ml-1 text-blue-400">
                   {imageFile.name} ({formatFileSize(imageFile.size)})
                 </span>
@@ -419,7 +419,7 @@ const QuestionMultimedia: React.FC<Props> = ({
               <img
                 src={createManagedURL(imageFile)}
                 alt="Imagen seleccionada"
-                className="h-32 w-auto rounded border border-gray-700"
+                className="h-32 w-auto rounded border border-border"
               />
               <button
                 type="button"
@@ -433,7 +433,7 @@ const QuestionMultimedia: React.FC<Props> = ({
 
           <div className="flex items-center gap-3">
             <label
-              className={`flex items-center gap-2 px-4 py-2 rounded-lg cursor-pointer border transition-all hover:bg-gray-700/50 ${baseInputClass}`}
+              className={`flex items-center gap-2 px-4 py-2 rounded-lg cursor-pointer border transition-all hover:bg-muted/50 ${baseInputClass}`}
             >
               <ImageIcon className="w-4 h-4" />
               <span>Seleccionar Imagen</span>

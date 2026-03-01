@@ -40,10 +40,10 @@ const LevelTableHeader = ({
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
         {/* Título y contador */}
         <div className="space-y-1">
-          <h2 className="text-xl font-semibold text-gray-200">
+          <h2 className="text-xl font-semibold text-foreground">
             Niveles MCER
           </h2>
-          <p className="text-sm text-gray-400">
+          <p className="text-sm text-muted-foreground">
             {isLoading ? "Cargando..." : `${totalCount} nivel(es) configurado(s)`}
           </p>
         </div>
@@ -52,12 +52,12 @@ const LevelTableHeader = ({
         <div className="flex flex-col sm:flex-row gap-3">
           {/* Búsqueda */}
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
               placeholder="Buscar niveles..."
               value={searchTerm}
               onChange={(e) => onSearchChange(e.target.value)}
-              className="pl-10 bg-input border-line text-gray-300 w-full sm:w-64"
+              className="pl-10 bg-input border-line text-foreground w-full sm:w-64"
             />
           </div>
 
@@ -67,7 +67,7 @@ const LevelTableHeader = ({
               variant="outline"
               size="sm"
               onClick={handleExport}
-              className="bg-transparent border-line text-gray-300 hover:bg-line/50"
+              className="bg-transparent border-line text-muted-foreground hover:bg-line/50"
             >
               <Download className="h-4 w-4 mr-2" />
               Exportar
@@ -77,7 +77,7 @@ const LevelTableHeader = ({
               variant="outline"
               size="sm"
               onClick={handleImport}
-              className="bg-transparent border-line text-gray-300 hover:bg-line/50"
+              className="bg-transparent border-line text-muted-foreground hover:bg-line/50"
             >
               <Upload className="h-4 w-4 mr-2" />
               Importar
@@ -104,7 +104,7 @@ const LevelTableHeader = ({
           className={`text-xs ${
             currentFilter === 'all'
               ? 'bg-blue-500/20 border-blue-500/50 text-blue-300'
-              : 'bg-transparent border-line text-gray-400 hover:bg-line/50'
+              : 'bg-transparent border-line text-muted-foreground hover:bg-line/50'
           }`}
         >
           Todos {currentFilter === 'all' ? `(${totalCount})` : ''}
@@ -116,7 +116,7 @@ const LevelTableHeader = ({
           className={`text-xs ${
             currentFilter === 'active'
               ? 'bg-green-500/20 border-green-500/50 text-green-300'
-              : 'bg-transparent border-line text-gray-400 hover:bg-line/50'
+              : 'bg-transparent border-line text-muted-foreground hover:bg-line/50'
           }`}
         >
           Activos {currentFilter === 'active' ? `(${totalCount})` : ''}
@@ -128,7 +128,7 @@ const LevelTableHeader = ({
           className={`text-xs ${
             currentFilter === 'inactive'
               ? 'bg-orange-500/20 border-orange-500/50 text-orange-300'
-              : 'bg-transparent border-line text-gray-400 hover:bg-line/50'
+              : 'bg-transparent border-line text-muted-foreground hover:bg-line/50'
           }`}
         >
           Inactivos {currentFilter === 'inactive' ? `(${totalCount})` : ''}

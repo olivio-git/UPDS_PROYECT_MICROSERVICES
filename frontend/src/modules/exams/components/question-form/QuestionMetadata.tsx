@@ -90,7 +90,7 @@ const QuestionMetadata: React.FC<Props> = ({
   return (
     <Card className="border border-line">
       <CardHeader>
-        <CardTitle className="text-white">Metadatos</CardTitle>
+        <CardTitle className="text-foreground">Metadatos</CardTitle>
         <CardDescription>Configura tipo, competencia y nivel</CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -105,17 +105,17 @@ const QuestionMetadata: React.FC<Props> = ({
               <SelectTrigger className={baseInputClass}>
                 <SelectValue placeholder="Selecciona la competencia" />
               </SelectTrigger>
-              <SelectContent className="bg-gray-900 border border-line">
-                <SelectItem className="hover:bg-gray-800" value="reading">
+              <SelectContent className="bg-popover border border-line">
+                <SelectItem className="hover:bg-muted" value="reading">
                   Comprensión Lectora
                 </SelectItem>
-                <SelectItem className="hover:bg-gray-800" value="writing">
+                <SelectItem className="hover:bg-muted" value="writing">
                   Expresión Escrita
                 </SelectItem>
-                <SelectItem className="hover:bg-gray-800" value="listening">
+                <SelectItem className="hover:bg-muted" value="listening">
                   Comprensión Auditiva
                 </SelectItem>
-                <SelectItem className="hover:bg-gray-800" value="speaking">
+                <SelectItem className="hover:bg-muted" value="speaking">
                   Expresión Oral
                 </SelectItem>
               </SelectContent>
@@ -127,8 +127,8 @@ const QuestionMetadata: React.FC<Props> = ({
             <Label>Tipo de Pregunta</Label>
             {typeIsFixed ? (
               <div className={`${baseInputClass} flex items-center px-3 h-10 gap-2`}>
-                <span className="text-white text-sm">{TYPE_LABELS[availableTypes[0]]}</span>
-                <span className="ml-auto text-xs text-gray-500 italic">único disponible</span>
+                <span className="text-foreground text-sm">{TYPE_LABELS[availableTypes[0]]}</span>
+                <span className="ml-auto text-xs text-muted-foreground italic">único disponible</span>
               </div>
             ) : (
               <Select
@@ -138,9 +138,9 @@ const QuestionMetadata: React.FC<Props> = ({
                 <SelectTrigger className={baseInputClass}>
                   <SelectValue placeholder="Selecciona el tipo" />
                 </SelectTrigger>
-                <SelectContent className="bg-gray-900 border border-line">
+                <SelectContent className="bg-popover border border-line">
                   {availableTypes.map(type => (
-                    <SelectItem key={type} className="hover:bg-gray-800" value={type}>
+                    <SelectItem key={type} className="hover:bg-muted" value={type}>
                       {TYPE_LABELS[type]}
                     </SelectItem>
                   ))}
@@ -159,13 +159,13 @@ const QuestionMetadata: React.FC<Props> = ({
               <SelectTrigger className={baseInputClass}>
                 <SelectValue placeholder="Selecciona el nivel" />
               </SelectTrigger>
-              <SelectContent className="bg-gray-900 border border-line">
-                <SelectItem className="hover:bg-gray-800" value="A1">A1</SelectItem>
-                <SelectItem className="hover:bg-gray-800" value="A2">A2</SelectItem>
-                <SelectItem className="hover:bg-gray-800" value="B1">B1</SelectItem>
-                <SelectItem className="hover:bg-gray-800" value="B2">B2</SelectItem>
-                <SelectItem className="hover:bg-gray-800" value="C1">C1</SelectItem>
-                <SelectItem className="hover:bg-gray-800" value="C2">C2</SelectItem>
+              <SelectContent className="bg-popover border border-line">
+                <SelectItem className="hover:bg-muted" value="A1">A1</SelectItem>
+                <SelectItem className="hover:bg-muted" value="A2">A2</SelectItem>
+                <SelectItem className="hover:bg-muted" value="B1">B1</SelectItem>
+                <SelectItem className="hover:bg-muted" value="B2">B2</SelectItem>
+                <SelectItem className="hover:bg-muted" value="C1">C1</SelectItem>
+                <SelectItem className="hover:bg-muted" value="C2">C2</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -182,12 +182,12 @@ const QuestionMetadata: React.FC<Props> = ({
               <SelectTrigger className={baseInputClass}>
                 <SelectValue placeholder="Selecciona la dificultad" />
               </SelectTrigger>
-              <SelectContent className="bg-gray-900 border border-line">
-                <SelectItem className="hover:bg-gray-800" value="1">Muy Fácil</SelectItem>
-                <SelectItem className="hover:bg-gray-800" value="2">Fácil</SelectItem>
-                <SelectItem className="hover:bg-gray-800" value="3">Medio</SelectItem>
-                <SelectItem className="hover:bg-gray-800" value="4">Difícil</SelectItem>
-                <SelectItem className="hover:bg-gray-800" value="5">Muy Difícil</SelectItem>
+              <SelectContent className="bg-popover border border-line">
+                <SelectItem className="hover:bg-muted" value="1">Muy Fácil</SelectItem>
+                <SelectItem className="hover:bg-muted" value="2">Fácil</SelectItem>
+                <SelectItem className="hover:bg-muted" value="3">Medio</SelectItem>
+                <SelectItem className="hover:bg-muted" value="4">Difícil</SelectItem>
+                <SelectItem className="hover:bg-muted" value="5">Muy Difícil</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -212,9 +212,9 @@ const QuestionMetadata: React.FC<Props> = ({
               <SelectTrigger className={baseInputClass}>
                 <SelectValue placeholder="Selecciona el estado" />
               </SelectTrigger>
-              <SelectContent className="bg-gray-900 border border-line">
-                <SelectItem className="hover:bg-gray-800" value="true">Activa</SelectItem>
-                <SelectItem className="hover:bg-gray-800" value="false">Inactiva</SelectItem>
+              <SelectContent className="bg-popover border border-line">
+                <SelectItem className="hover:bg-muted" value="true">Activa</SelectItem>
+                <SelectItem className="hover:bg-muted" value="false">Inactiva</SelectItem>
               </SelectContent>
             </Select>
           </div>

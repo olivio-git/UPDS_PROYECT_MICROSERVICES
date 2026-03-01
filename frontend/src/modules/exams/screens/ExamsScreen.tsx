@@ -138,7 +138,7 @@ const ExamsScreen = () => {
       final: "text-red-400 bg-red-900/20 border-red-800/30",
       practice: "text-yellow-400 bg-yellow-900/20 border-yellow-800/30"
     };
-    return colors[type] || "text-gray-400 bg-gray-900/20 border-gray-800/30";
+    return colors[type] || "text-muted-foreground bg-muted/20 border-border";
   };
 
   const columns = useMemo<ColumnDef<Exam>[]>(() => [
@@ -151,11 +151,11 @@ const ExamsScreen = () => {
         const exam = row.original;
         return (
           <div className="space-y-1">
-            <div className="font-medium text-gray-200">
+            <div className="font-medium text-foreground">
               {exam.name}
             </div>
             {exam.description && (
-              <div className="text-sm text-gray-400 line-clamp-2">
+              <div className="text-sm text-muted-foreground line-clamp-2">
                 {exam.description}
               </div>
             )}
@@ -203,10 +203,10 @@ const ExamsScreen = () => {
         const structure = row.original.structure;
         return (
           <div className="space-y-1 text-sm">
-            <div className="text-gray-300">
+            <div className="text-foreground/80">
               {structure.sections?.length || 0} secciones
             </div>
-            <div className="text-gray-400">
+            <div className="text-muted-foreground">
               {structure.totalDuration || 0} min • {structure.passingScore || 0}% mín.
             </div>
           </div>
@@ -225,7 +225,7 @@ const ExamsScreen = () => {
           <span className="text-lg font-semibold text-blue-400">
             {Number(getValue())}
           </span>
-          <div className="text-xs text-gray-400">preguntas</div>
+          <div className="text-xs text-muted-foreground">preguntas</div>
         </div>
       ),
       enableSorting: true,
@@ -252,7 +252,7 @@ const ExamsScreen = () => {
             className={`px-2.5 py-1 text-xs font-medium border rounded-lg ${
               isActive
                 ? "bg-green-900/20 text-green-400 border-green-800/30"
-                : "bg-gray-900/20 text-gray-400 border-gray-800/30"
+                : "bg-muted/20 text-muted-foreground border-border"
             }`}
           >
             {isActive ? "Activo" : "Inactivo"}
@@ -273,27 +273,27 @@ const ExamsScreen = () => {
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <button className="p-2 hover:bg-dark-light rounded-lg transition-colors">
-                  <MoreVertical className="w-4 h-4 text-gray-400" />
+                  <MoreVertical className="w-4 h-4 text-muted-foreground" />
                 </button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="bg-box border-line">
                 <DropdownMenuItem
                   onClick={() => handleViewDetails(exam)}
-                  className="text-gray-200 hover:bg-dark-light cursor-pointer"
+                  className="text-foreground hover:bg-dark-light cursor-pointer"
                 >
                   <Eye className="w-4 h-4 mr-2" />
                   Ver detalles
                 </DropdownMenuItem>
                 <DropdownMenuItem
                   onClick={() => handleEdit(exam)}
-                  className="text-gray-200 hover:bg-dark-light cursor-pointer"
+                  className="text-foreground hover:bg-dark-light cursor-pointer"
                 >
                   <Edit className="w-4 h-4 mr-2" />
                   Editar
                 </DropdownMenuItem>
                 <DropdownMenuItem
                   onClick={() => handleClone(exam)}
-                  className="text-gray-200 hover:bg-dark-light cursor-pointer"
+                  className="text-foreground hover:bg-dark-light cursor-pointer"
                 >
                   <Copy className="w-4 h-4 mr-2" />
                   Clonar
@@ -340,12 +340,12 @@ const ExamsScreen = () => {
       return (
         <div className="bg-box border border-line rounded-xl p-6">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-semibold text-white">
+            <h2 className="text-lg font-semibold text-foreground">
               {viewMode === "edit" ? "Editar Examen" : "Nuevo Examen"}
             </h2>
             <button
               onClick={handleBackToTable}
-              className="px-3 py-2 bg-dark-light border border-line rounded-lg text-gray-300 hover:bg-dark-light/80 flex items-center gap-2"
+              className="px-3 py-2 bg-dark-light border border-line rounded-lg text-muted-foreground hover:bg-dark-light/80 flex items-center gap-2"
             >
               <X className="w-4 h-4" /> Volver
             </button>
@@ -364,7 +364,7 @@ const ExamsScreen = () => {
     }
 
     const baseInputClass =
-      "bg-gray-800/50 border-gray-600 text-white placeholder-gray-400 border-[0.5px] focus:border-blue-500 focus:ring-0 rounded-lg";
+      "bg-muted/50 border-border text-foreground placeholder:text-muted-foreground border-[0.5px] focus:border-blue-500 focus:ring-0 rounded-lg";
 
     // Tabla
     return (
@@ -372,7 +372,7 @@ const ExamsScreen = () => {
         {/* Header con búsqueda y acciones */}
         <div className="bg-box border border-line rounded-xl p-6">
           <div className="flex-1">
-            <h2 className="text-2xl font-bold text-gray-200">
+            <h2 className="text-2xl font-bold text-foreground">
               Gestión de Exámenes
             </h2> 
           </div>
@@ -380,12 +380,12 @@ const ExamsScreen = () => {
             {/* Búsqueda */}
             <div className="flex-1 max-w-xl">
               <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5" />
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground w-5 h-5" />
                 <Input
                   placeholder="Buscar exámenes..."
                   value={searchTerm || ''}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10 pr-3 w-full bg-gray-800/50 border-gray-600 text-white placeholder-gray-400"
+                  className="pl-10 pr-3 w-full bg-muted/50 border-border text-foreground placeholder:text-muted-foreground"
                 /> 
               </div>
             </div>
@@ -394,7 +394,7 @@ const ExamsScreen = () => {
             <div className="flex items-center gap-3">
               <button
                 onClick={() => setShowFilters(!showFilters)}
-                className="px-4 py-2.5 bg-dark-light border border-line rounded-lg hover:bg-dark-light/80 text-gray-300 flex items-center gap-2 transition-all"
+                className="px-4 py-2.5 bg-dark-light border border-line rounded-lg hover:bg-dark-light/80 text-muted-foreground flex items-center gap-2 transition-all"
               >
                 <Filter className="w-4 h-4" />
                 Filtros
@@ -417,7 +417,7 @@ const ExamsScreen = () => {
             <div className="mt-6 pt-6 border-t border-line">
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-400 mb-2">Tipo</label>
+                  <label className="block text-sm font-medium text-muted-foreground mb-2">Tipo</label>
                   <Select
                     value={localFilters.type}
                     onValueChange={(value) => setLocalFilters({ ...localFilters, type: value })}
@@ -425,18 +425,18 @@ const ExamsScreen = () => {
                     <SelectTrigger className={baseInputClass}>
                       <SelectValue placeholder="Selecciona el tipo" />
                     </SelectTrigger>
-                    <SelectContent className="bg-gray-900 border border-line">
-                      <SelectItem className="hover:bg-gray-800" value="all">Todos</SelectItem>
-                      <SelectItem className="hover:bg-gray-800" value="placement">Nivelación</SelectItem>
-                      <SelectItem className="hover:bg-gray-800" value="progress">Progreso</SelectItem>
-                      <SelectItem className="hover:bg-gray-800" value="final">Final</SelectItem>
-                      <SelectItem className="hover:bg-gray-800" value="practice">Práctica</SelectItem>
+                    <SelectContent className="bg-background border border-border">
+                      <SelectItem className="hover:bg-muted" value="all">Todos</SelectItem>
+                      <SelectItem className="hover:bg-muted" value="placement">Nivelación</SelectItem>
+                      <SelectItem className="hover:bg-muted" value="progress">Progreso</SelectItem>
+                      <SelectItem className="hover:bg-muted" value="final">Final</SelectItem>
+                      <SelectItem className="hover:bg-muted" value="practice">Práctica</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-400 mb-2">Nivel</label>
+                  <label className="block text-sm font-medium text-muted-foreground mb-2">Nivel</label>
                   <Select
                     value={localFilters.targetLevel}
                     onValueChange={(value) => setLocalFilters({ ...localFilters, targetLevel: value })}
@@ -444,20 +444,20 @@ const ExamsScreen = () => {
                     <SelectTrigger className={baseInputClass}>
                       <SelectValue placeholder="Selecciona el nivel" />
                     </SelectTrigger>
-                    <SelectContent className="bg-gray-900 border border-line">
-                      <SelectItem className="hover:bg-gray-800" value="all">Todos</SelectItem>
-                      <SelectItem className="hover:bg-gray-800" value="A1">A1</SelectItem>
-                      <SelectItem className="hover:bg-gray-800" value="A2">A2</SelectItem>
-                      <SelectItem className="hover:bg-gray-800" value="B1">B1</SelectItem>
-                      <SelectItem className="hover:bg-gray-800" value="B2">B2</SelectItem>
-                      <SelectItem className="hover:bg-gray-800" value="C1">C1</SelectItem>
-                      <SelectItem className="hover:bg-gray-800" value="C2">C2</SelectItem>
+                    <SelectContent className="bg-background border border-border">
+                      <SelectItem className="hover:bg-muted" value="all">Todos</SelectItem>
+                      <SelectItem className="hover:bg-muted" value="A1">A1</SelectItem>
+                      <SelectItem className="hover:bg-muted" value="A2">A2</SelectItem>
+                      <SelectItem className="hover:bg-muted" value="B1">B1</SelectItem>
+                      <SelectItem className="hover:bg-muted" value="B2">B2</SelectItem>
+                      <SelectItem className="hover:bg-muted" value="C1">C1</SelectItem>
+                      <SelectItem className="hover:bg-muted" value="C2">C2</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-400 mb-2">Estado</label>
+                  <label className="block text-sm font-medium text-muted-foreground mb-2">Estado</label>
                   <Select
                     value={localFilters.isActive.toString()}
                     onValueChange={(value) => setLocalFilters({ ...localFilters, isActive: value === "true" })}
@@ -465,9 +465,9 @@ const ExamsScreen = () => {
                     <SelectTrigger className={baseInputClass}>
                       <SelectValue />
                     </SelectTrigger>
-                    <SelectContent className="bg-gray-900 border border-line">
-                      <SelectItem className="hover:bg-gray-800" value="true">Activos</SelectItem>
-                      <SelectItem className="hover:bg-gray-800" value="false">Inactivos</SelectItem>
+                    <SelectContent className="bg-background border border-border">
+                      <SelectItem className="hover:bg-muted" value="true">Activos</SelectItem>
+                      <SelectItem className="hover:bg-muted" value="false">Inactivos</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -481,7 +481,7 @@ const ExamsScreen = () => {
                   </button>
                   <button
                     onClick={handleClearFilters}
-                    className="px-4 py-2 bg-dark-light border border-line rounded-lg hover:bg-dark-light/80 text-gray-300 transition-all"
+                    className="px-4 py-2 bg-dark-light border border-line rounded-lg hover:bg-dark-light/80 text-muted-foreground transition-all"
                   >
                     Limpiar
                   </button>
@@ -496,7 +496,7 @@ const ExamsScreen = () => {
           {loading ? (
             <div className="p-12 text-center">
               <div className="inline-block animate-spin rounded-full h-10 w-10 border-b-2 border-blue-500"></div>
-              <p className="mt-4 text-gray-400">Cargando exámenes...</p>
+              <p className="mt-4 text-muted-foreground">Cargando exámenes...</p>
             </div>
           ) : error ? (
             <div className="p-12 text-center">
@@ -510,8 +510,8 @@ const ExamsScreen = () => {
             </div>
           ) : exams.length === 0 ? (
             <div className="p-12 text-center">
-              <BookOpen className="w-12 h-12 text-gray-600 mx-auto mb-4" />
-              <p className="text-gray-400 mb-4">No se encontraron exámenes</p>
+              <BookOpen className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+              <p className="text-muted-foreground mb-4">No se encontraron exámenes</p>
               <button
                 onClick={handleCreate}
                 className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-all"
@@ -534,7 +534,7 @@ const ExamsScreen = () => {
                 
                 {/* Paginación */}
                 <div className="px-6 py-4 border-t border-line flex flex-col sm:flex-row items-center justify-between gap-4">
-                  <div className="text-sm text-gray-400">
+                  <div className="text-sm text-muted-foreground">
                     Mostrando {((currentPage - 1) * 10) + 1} a {Math.min(currentPage * 10, totalItems)} de {totalItems} exámenes
                   </div>
                   <div className="flex items-center gap-2">
@@ -543,7 +543,7 @@ const ExamsScreen = () => {
                       disabled={currentPage === 1}
                       className="p-2 bg-dark-light border border-line rounded-lg hover:bg-dark-light/80 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
                     >
-                      <ChevronLeft className="w-4 h-4 text-gray-400" />
+                      <ChevronLeft className="w-4 h-4 text-muted-foreground" />
                     </button>
 
                     <div className="flex gap-1">
@@ -556,7 +556,7 @@ const ExamsScreen = () => {
                             className={`px-3 py-1 rounded-lg transition-all ${
                               page === currentPage
                                 ? "bg-blue-600 text-white"
-                                : "bg-dark-light border border-line text-gray-400 hover:bg-dark-light/80"
+                                : "bg-dark-light border border-line text-muted-foreground hover:bg-dark-light/80"
                             }`}
                           >
                             {page}
@@ -570,7 +570,7 @@ const ExamsScreen = () => {
                       disabled={currentPage === totalPages}
                       className="p-2 bg-dark-light border border-line rounded-lg hover:bg-dark-light/80 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
                     >
-                      <ChevronRight className="w-4 h-4 text-gray-400" />
+                      <ChevronRight className="w-4 h-4 text-muted-foreground" />
                     </button>
                   </div>
                 </div>

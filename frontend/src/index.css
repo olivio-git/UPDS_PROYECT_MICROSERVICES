@@ -1,62 +1,121 @@
 @import "tailwindcss";
 
-/* Variables CSS personalizadas para el tema CBA */
+/* Tailwind v4: habilita el prefijo dark: cuando <html> tiene la clase .dark */
+@variant dark (&:is(.dark, .dark *));
+
+/* Variables CSS del sistema de temas CBA */
 @layer base {
   :root {
-    /* Colores base del modo oscuro */
+    /* Fuentes y constantes (no cambian entre temas) */
     --font-Onest: 'Onest Variable', Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
     --font-PressStart2P: 'Press Start 2P', 'Onest Variable', Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 212.7 26.8% 83.9%;
+    --color-brand-blue: #09f;
+    --radius: 0.75rem;
+
+    /* Gradientes (los mismos en ambos temas) */
+    --gradient-learning: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    --gradient-success: linear-gradient(135deg, #43cea2 0%, #185a9d 100%);
+    --gradient-primary: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+
+    /* === TEMA LIGHT (shadcn/ui defaults) === */
+    --background: 0 0% 100%;
+    --foreground: 222.2 84% 4.9%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 222.2 84% 4.9%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 222.2 84% 4.9%;
+
+    --primary: 221.2 83.2% 53.3%;
+    --primary-foreground: 210 40% 98%;
+
+    --secondary: 210 40% 96.1%;
+    --secondary-foreground: 222.2 47.4% 11.2%;
+
+    --muted: 210 40% 96.1%;
+    --muted-foreground: 215.4 16.3% 46.9%;
+
+    --accent: 210 40% 96.1%;
+    --accent-foreground: 222.2 47.4% 11.2%;
+
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 210 40% 98%;
+
+    --success: 142 71% 45%;
+    --success-foreground: 144 61% 20%;
+
+    --warning: 38 92% 50%;
+    --warning-foreground: 38 92% 15%;
+
+    --border: 214.3 31.8% 91.4%;
+    --input: 214.3 31.8% 91.4%;
+    --ring: 221.2 83.2% 53.3%;
+
+    /* Niveles MCER — modo light (saturación moderada) */
+    --level-a1: 196 65% 42%;
+    --level-a2: 196 65% 35%;
+    --level-b1: 142 50% 38%;
+    --level-b2: 142 50% 32%;
+    --level-c1: 38 85% 45%;
+    --level-c2: 0 72% 50%;
+
+    /* Competencias — modo light */
+    --listening: 262 72% 50%;
+    --reading: 215 80% 48%;
+    --writing: 142 60% 40%;
+    --speaking: 25 90% 50%;
+  }
+
+  .dark {
+    /* === TEMA DARK === */
     --background: 222.2 84% 4.9%;
     --foreground: 210 40% 98%;
 
-    /* Colores principales adaptados al modo oscuro */
+    --card: 222.2 84% 6.5%;
+    --card-foreground: 210 40% 98%;
+
+    --popover: 222.2 84% 4.9%;
+    --popover-foreground: 210 40% 98%;
+
     --primary: 217.2 91.2% 59.8%;
-    /* Azul más brillante en oscuro */
     --primary-foreground: 222.2 47.4% 11.2%;
+
     --secondary: 217.2 32.6% 17.5%;
     --secondary-foreground: 210 40% 98%;
 
-    /* Colores de estado para modo oscuro */
+    --muted: 217.2 32.6% 17.5%;
+    --muted-foreground: 215 20.2% 65.1%;
+
+    --accent: 217.2 32.6% 17.5%;
+    --accent-foreground: 210 40% 98%;
+
     --destructive: 0 62.8% 30.6%;
     --destructive-foreground: 210 40% 98%;
+
     --success: 142 76% 36%;
     --success-foreground: 210 40% 98%;
+
     --warning: 45 93% 47%;
     --warning-foreground: 210 40% 98%;
 
-    /* Colores de interfaz para modo oscuro */
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
-    --accent: 217.2 32.6% 17.5%;
-    --accent-foreground: 210 40% 98%;
-    --popover: 222.2 84% 4.9%;
-    --popover-foreground: 210 40% 98%;
-    --card: 222.2 84% 4.9%;
-    --card-foreground: 210 40% 98%;
+    --border: 217.2 32.6% 17.5%;
+    --input: 217.2 32.6% 17.5%;
+    --ring: 212.7 26.8% 83.9%;
 
-    /* Niveles MCER para modo oscuro (más vibrantes) */
+    /* Niveles MCER — modo dark (más vibrantes) */
     --level-a1: 196 75% 68%;
     --level-a2: 196 75% 58%;
     --level-b1: 142 43% 58%;
     --level-b2: 142 43% 48%;
     --level-c1: 45 86% 58%;
-    --card: 222.2 84% 6.5%;   
+    --level-c2: 0 72% 62%;
 
-    /* Competencias para modo oscuro */
+    /* Competencias — modo dark */
     --listening: 262 83% 58%;
     --reading: 215 89% 58%;
     --writing: 142 69% 58%;
     --speaking: 25 95% 58%;
-
-    /* Gradientes para modo oscuro */
-    --gradient-learning: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    --gradient-success: linear-gradient(135deg, #43cea2 0%, #185a9d 100%);
-    --gradient-primary: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    --color-brand-blue: #09f;
-    --radius: 0.75rem;
   }
 }
 

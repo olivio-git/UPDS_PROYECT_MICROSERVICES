@@ -67,7 +67,7 @@ const LevelTable = ({
         className={`${
           isActive 
             ? "bg-green-500/20 text-green-300 border-green-500/30" 
-            : "bg-gray-500/20 text-gray-300 border-gray-500/30"
+            : "bg-muted/50 text-muted-foreground border-border"
         }`}
       >
         {isActive ? "Activo" : "Inactivo"}
@@ -80,7 +80,7 @@ const LevelTable = ({
       <div className="bg-box/50 backdrop-blur-sm border border-line rounded-xl p-8">
         <div className="flex items-center justify-center space-x-2">
           <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-500"></div>
-          <span className="text-gray-400">Cargando niveles...</span>
+          <span className="text-muted-foreground">Cargando niveles...</span>
         </div>
       </div>
     );
@@ -91,7 +91,7 @@ const LevelTable = ({
       <div className="bg-box/50 backdrop-blur-sm border border-line rounded-xl p-8">
         <div className="text-center space-y-3">
           <div className="text-red-400">❌ Error al cargar los niveles</div>
-          <p className="text-gray-400 text-sm">{errorMessage}</p>
+          <p className="text-muted-foreground text-sm">{errorMessage}</p>
         </div>
       </div>
     );
@@ -101,10 +101,10 @@ const LevelTable = ({
     return (
       <div className="bg-box/50 backdrop-blur-sm border border-line rounded-xl p-8">
         <div className="text-center space-y-4">
-          <BookOpen className="h-12 w-12 text-gray-400 mx-auto" />
+          <BookOpen className="h-12 w-12 text-muted-foreground mx-auto" />
           <div className="space-y-2">
-            <h3 className="text-lg font-medium text-gray-200">No hay niveles configurados</h3>
-            <p className="text-gray-400 max-w-md mx-auto">
+            <h3 className="text-lg font-medium text-foreground">No hay niveles configurados</h3>
+            <p className="text-muted-foreground max-w-md mx-auto">
               Comienza creando tu primer nivel MCER para estructurar el sistema de evaluación.
             </p>
           </div>
@@ -118,13 +118,13 @@ const LevelTable = ({
       <Table>
         <TableHeader>
           <TableRow className="border-line hover:bg-line/30">
-            <TableHead className="text-gray-300 font-medium">Nivel</TableHead>
-            <TableHead className="text-gray-300 font-medium">Nombre</TableHead>
-            <TableHead className="text-gray-300 font-medium">Descripción</TableHead>
-            <TableHead className="text-gray-300 font-medium">Puntaje Mínimo</TableHead>
-            <TableHead className="text-gray-300 font-medium">Estado</TableHead>
-            <TableHead className="text-gray-300 font-medium">Creado</TableHead>
-            <TableHead className="text-gray-300 font-medium text-right">Acciones</TableHead>
+            <TableHead className="text-muted-foreground font-medium">Nivel</TableHead>
+            <TableHead className="text-muted-foreground font-medium">Nombre</TableHead>
+            <TableHead className="text-muted-foreground font-medium">Descripción</TableHead>
+            <TableHead className="text-muted-foreground font-medium">Puntaje Mínimo</TableHead>
+            <TableHead className="text-muted-foreground font-medium">Estado</TableHead>
+            <TableHead className="text-muted-foreground font-medium">Creado</TableHead>
+            <TableHead className="text-muted-foreground font-medium text-right">Acciones</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -143,21 +143,21 @@ const LevelTable = ({
               
               <TableCell>
                 <div className="space-y-1">
-                  <div className="text-gray-200 font-medium">{level.name}</div>
-                  <div className="text-xs text-gray-400">Código: {level.code}</div>
+                  <div className="text-foreground font-medium">{level.name}</div>
+                  <div className="text-xs text-muted-foreground">Código: {level.code}</div>
                 </div>
               </TableCell>
               
               <TableCell>
                 <div className="max-w-xs">
-                  <p className="text-gray-300 text-sm truncate" title={level.description}>
+                  <p className="text-muted-foreground text-sm truncate" title={level.description}>
                     {level.description}
                   </p>
                 </div>
               </TableCell>
               
               <TableCell>
-                <div className="text-gray-300 font-mono text-sm">
+                <div className="text-foreground font-mono text-sm">
                   {level.overallMinScore}%
                 </div>
               </TableCell>
@@ -167,7 +167,7 @@ const LevelTable = ({
               </TableCell>
               
               <TableCell>
-                <div className="flex items-center space-x-1 text-gray-400 text-sm">
+                <div className="flex items-center space-x-1 text-muted-foreground text-sm">
                   <Clock className="h-3 w-3" />
                   <span>{formatDate(level.createdAt)}</span>
                 </div>
@@ -181,7 +181,7 @@ const LevelTable = ({
                       size="sm"
                       className="h-8 w-8 p-0 hover:bg-line/50"
                     >
-                      <MoreHorizontal className="h-4 w-4 text-gray-400" />
+                      <MoreHorizontal className="h-4 w-4 text-muted-foreground" />
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent 
@@ -190,7 +190,7 @@ const LevelTable = ({
                   >
                     <DropdownMenuItem 
                       onClick={() => onViewLevel(level)}
-                      className="text-gray-300 hover:bg-line/50 focus:bg-line/50"
+                      className="text-foreground hover:bg-line/50 focus:bg-line/50"
                     >
                       <Eye className="h-4 w-4 mr-2" />
                       Ver detalles
@@ -198,7 +198,7 @@ const LevelTable = ({
                     
                     <DropdownMenuItem 
                       onClick={() => onEditLevel(level)}
-                      className="text-gray-300 hover:bg-line/50 focus:bg-line/50"
+                      className="text-foreground hover:bg-line/50 focus:bg-line/50"
                     >
                       <Edit className="h-4 w-4 mr-2" />
                       Editar

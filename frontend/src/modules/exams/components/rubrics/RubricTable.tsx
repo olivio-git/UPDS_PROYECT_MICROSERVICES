@@ -80,7 +80,7 @@ const RubricTable = ({
         className={`${
           isActive 
             ? "bg-green-500/20 text-green-300 border-green-500/30" 
-            : "bg-gray-500/20 text-gray-300 border-gray-500/30"
+            : "bg-muted/50 text-muted-foreground border-border"
         }`}
       >
         {isActive ? "Activa" : "Inactiva"}
@@ -101,7 +101,7 @@ const RubricTable = ({
     return (
       <Badge
         variant="outline"
-        className={colors[competency as keyof typeof colors] || "bg-gray-500/20 text-gray-300 border-gray-500/30"}
+        className={colors[competency as keyof typeof colors] || "bg-muted/50 text-muted-foreground border-border"}
       >
         {COMPETENCY_LABELS[competency as keyof typeof COMPETENCY_LABELS]}
       </Badge>
@@ -131,7 +131,7 @@ const RubricTable = ({
       <div className="bg-box/50 backdrop-blur-sm border border-line rounded-xl p-8">
         <div className="flex items-center justify-center space-x-2">
           <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-green-500"></div>
-          <span className="text-gray-400">Cargando rúbricas...</span>
+          <span className="text-muted-foreground">Cargando rúbricas...</span>
         </div>
       </div>
     );
@@ -142,7 +142,7 @@ const RubricTable = ({
       <div className="bg-box/50 backdrop-blur-sm border border-line rounded-xl p-8">
         <div className="text-center space-y-3">
           <div className="text-red-400">❌ Error al cargar las rúbricas</div>
-          <p className="text-gray-400 text-sm">{errorMessage}</p>
+          <p className="text-muted-foreground text-sm">{errorMessage}</p>
         </div>
       </div>
     );
@@ -152,10 +152,10 @@ const RubricTable = ({
     return (
       <div className="bg-box/50 backdrop-blur-sm border border-line rounded-xl p-8">
         <div className="text-center space-y-4">
-          <Award className="h-12 w-12 text-gray-400 mx-auto" />
+          <Award className="h-12 w-12 text-muted-foreground mx-auto" />
           <div className="space-y-2">
-            <h3 className="text-lg font-medium text-gray-200">No hay rúbricas disponibles</h3>
-            <p className="text-gray-400 max-w-md mx-auto">
+            <h3 className="text-lg font-medium text-foreground">No hay rúbricas disponibles</h3>
+            <p className="text-muted-foreground max-w-md mx-auto">
               Comienza creando tu primera rúbrica de evaluación para estructurar el proceso de calificación.
             </p>
           </div>
@@ -175,18 +175,18 @@ const RubricTable = ({
                   if (el) el.indeterminate = isIndeterminate;
                 }}
                 onCheckedChange={onSelectAllRubrics}
-                className="border-gray-500 data-[state=checked]:bg-green-600 data-[state=checked]:border-green-600"
+                className="border-border data-[state=checked]:bg-green-600 data-[state=checked]:border-green-600"
               />
             </TableHead>
-            <TableHead className="text-gray-300 font-medium">Nombre</TableHead>
-            <TableHead className="text-gray-300 font-medium">Competencia</TableHead>
-            <TableHead className="text-gray-300 font-medium">Nivel</TableHead>
-            <TableHead className="text-gray-300 font-medium">Tipo</TableHead>
-            <TableHead className="text-gray-300 font-medium">Criterios</TableHead>
-            <TableHead className="text-gray-300 font-medium">Puntaje Máx.</TableHead>
-            <TableHead className="text-gray-300 font-medium">Estado</TableHead>
-            <TableHead className="text-gray-300 font-medium">Creada</TableHead>
-            <TableHead className="text-gray-300 font-medium text-right">Acciones</TableHead>
+            <TableHead className="text-muted-foreground font-medium">Nombre</TableHead>
+            <TableHead className="text-muted-foreground font-medium">Competencia</TableHead>
+            <TableHead className="text-muted-foreground font-medium">Nivel</TableHead>
+            <TableHead className="text-muted-foreground font-medium">Tipo</TableHead>
+            <TableHead className="text-muted-foreground font-medium">Criterios</TableHead>
+            <TableHead className="text-muted-foreground font-medium">Puntaje Máx.</TableHead>
+            <TableHead className="text-muted-foreground font-medium">Estado</TableHead>
+            <TableHead className="text-muted-foreground font-medium">Creada</TableHead>
+            <TableHead className="text-muted-foreground font-medium text-right">Acciones</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -199,14 +199,14 @@ const RubricTable = ({
                 <Checkbox
                   checked={selectedRubrics.includes(rubric._id!)}
                   onCheckedChange={(checked) => onSelectRubric(rubric._id!, checked as boolean)}
-                  className="border-gray-500 data-[state=checked]:bg-green-600 data-[state=checked]:border-green-600"
+                  className="border-border data-[state=checked]:bg-green-600 data-[state=checked]:border-green-600"
                 />
               </TableCell>
               
               <TableCell>
                 <div className="space-y-1">
-                  <div className="text-gray-200 font-medium">{rubric.name}</div>
-                  <div className="text-xs text-gray-400 max-w-48 truncate">
+                  <div className="text-foreground font-medium">{rubric.name}</div>
+                  <div className="text-xs text-muted-foreground max-w-48 truncate">
                     {rubric.criteria.length} criterio(s) definido(s)
                   </div>
                 </div>
@@ -229,14 +229,14 @@ const RubricTable = ({
               </TableCell>
               
               <TableCell>
-                <div className="flex items-center space-x-1 text-gray-300">
+                <div className="flex items-center space-x-1 text-muted-foreground">
                   <Target className="h-3 w-3" />
                   <span className="text-sm">{rubric.criteria.length}</span>
                 </div>
               </TableCell>
               
               <TableCell>
-                <div className="flex items-center space-x-1 text-gray-300">
+                <div className="flex items-center space-x-1 text-muted-foreground">
                   <BarChart3 className="h-3 w-3" />
                   <span className="font-mono text-sm">{rubric.maxScore}</span>
                 </div>
@@ -247,7 +247,7 @@ const RubricTable = ({
               </TableCell>
               
               <TableCell>
-                <div className="flex items-center space-x-1 text-gray-400 text-sm">
+                <div className="flex items-center space-x-1 text-muted-foreground text-sm">
                   <Clock className="h-3 w-3" />
                   <span>{formatDate(rubric.createdAt)}</span>
                 </div>
@@ -261,7 +261,7 @@ const RubricTable = ({
                       size="sm"
                       className="h-8 w-8 p-0 hover:bg-line/50"
                     >
-                      <MoreHorizontal className="h-4 w-4 text-gray-400" />
+                      <MoreHorizontal className="h-4 w-4 text-muted-foreground" />
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent 
@@ -270,7 +270,7 @@ const RubricTable = ({
                   >
                     <DropdownMenuItem 
                       onClick={() => onViewRubric(rubric)}
-                      className="text-gray-300 hover:bg-line/50 focus:bg-line/50"
+                      className="text-foreground hover:bg-line/50 focus:bg-line/50"
                     >
                       <Eye className="h-4 w-4 mr-2" />
                       Ver detalles
@@ -278,7 +278,7 @@ const RubricTable = ({
                     
                     <DropdownMenuItem 
                       onClick={() => onEditRubric(rubric)}
-                      className="text-gray-300 hover:bg-line/50 focus:bg-line/50"
+                      className="text-foreground hover:bg-line/50 focus:bg-line/50"
                     >
                       <Edit className="h-4 w-4 mr-2" />
                       Editar

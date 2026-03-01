@@ -23,7 +23,7 @@ const QuestionActions: React.FC<Props> = ({
         variant="outline"
         onClick={onCancel}
         disabled={isLoading}
-        className="gap-1 text-white bg-transparent border border-line hover:bg-gray-800 disabled:opacity-50"
+        className="gap-1 text-foreground bg-transparent border border-line hover:bg-muted disabled:opacity-50"
       >
         Cancelar
       </Button>
@@ -35,7 +35,7 @@ const QuestionActions: React.FC<Props> = ({
       >
         {isLoading ? (
           <>
-            <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+            <div className="w-4 h-4 border-2 border-foreground/30 border-t-white rounded-full animate-spin" />
             Guardando...
           </>
         ) : (

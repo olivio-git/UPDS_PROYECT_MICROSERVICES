@@ -51,8 +51,8 @@ const QuestionDetailModal: React.FC<QuestionDetailModalProps> = ({
               <FileText className="w-5 h-5 text-blue-400" />
             </div>
             <div>
-              <h2 className="text-xl font-semibold text-white">Detalles de la Pregunta</h2>
-              <p className="text-sm text-gray-400">ID: {question._id}</p>
+              <h2 className="text-xl font-semibold text-foreground">Detalles de la Pregunta</h2>
+              <p className="text-sm text-muted-foreground">ID: {question._id}</p>
             </div>
           </div>
           <div className="flex items-center gap-2">
@@ -66,7 +66,7 @@ const QuestionDetailModal: React.FC<QuestionDetailModalProps> = ({
               onClick={onClose}
               className="p-2 hover:bg-dark-light rounded-lg transition-colors"
             >
-              <X className="w-5 h-5 text-gray-400" />
+              <X className="w-5 h-5 text-muted-foreground" />
             </button>
           </div>
         </div>
@@ -77,21 +77,21 @@ const QuestionDetailModal: React.FC<QuestionDetailModalProps> = ({
             {/* Metadatos principales */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               <div className="bg-dark-light border border-line rounded-lg p-4">
-                <div className="text-sm text-gray-400 mb-1">Tipo</div>
-                <div className="text-white font-medium">{getQuestionTypeLabel(question.type)}</div>
+                <div className="text-sm text-muted-foreground mb-1">Tipo</div>
+                <div className="text-foreground font-medium">{getQuestionTypeLabel(question.type)}</div>
               </div>
               <div className="bg-dark-light border border-line rounded-lg p-4">
-                <div className="text-sm text-gray-400 mb-1">Competencia</div>
-                <div className="text-white font-medium capitalize">{question.competency}</div>
+                <div className="text-sm text-muted-foreground mb-1">Competencia</div>
+                <div className="text-foreground font-medium capitalize">{question.competency}</div>
               </div>
               <div className="bg-dark-light border border-line rounded-lg p-4">
-                <div className="text-sm text-gray-400 mb-1">Nivel</div>
+                <div className="text-sm text-muted-foreground mb-1">Nivel</div>
                 <span className="px-2 py-1 text-xs font-medium bg-blue-900/20 text-blue-400 border border-blue-800/30 rounded">
                   {question.level}
                 </span>
               </div>
               <div className="bg-dark-light border border-line rounded-lg p-4">
-                <div className="text-sm text-gray-400 mb-1">Dificultad</div>
+                <div className="text-sm text-muted-foreground mb-1">Dificultad</div>
                 <span className={`px-2 py-1 text-xs font-medium border rounded ${getDifficultyColor(question.difficulty)}`}>
                   {getDifficultyLabel(question.difficulty)}
                 </span>
@@ -100,20 +100,20 @@ const QuestionDetailModal: React.FC<QuestionDetailModalProps> = ({
 
             {/* Contenido de la pregunta */}
             <div className="bg-dark-light border border-line rounded-lg p-6">
-              <h3 className="text-lg font-semibold text-white mb-4">Contenido</h3>
-              
+              <h3 className="text-lg font-semibold text-foreground mb-4">Contenido</h3>
+
               <div className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-400 mb-2">Pregunta</label>
-                  <div className="bg-gray-800/50 border border-gray-600 rounded-lg p-4 text-gray-200">
+                  <label className="block text-sm font-medium text-muted-foreground mb-2">Pregunta</label>
+                  <div className="bg-muted/50 border border-border rounded-lg p-4 text-foreground/80">
                     {question.content.question}
                   </div>
                 </div>
 
                 {question.content.instructions && (
                   <div>
-                    <label className="block text-sm font-medium text-gray-400 mb-2">Instrucciones</label>
-                    <div className="bg-gray-800/50 border border-gray-600 rounded-lg p-4 text-gray-200">
+                    <label className="block text-sm font-medium text-muted-foreground mb-2">Instrucciones</label>
+                    <div className="bg-muted/50 border border-border rounded-lg p-4 text-foreground/80">
                       {question.content.instructions}
                     </div>
                   </div>
@@ -121,8 +121,8 @@ const QuestionDetailModal: React.FC<QuestionDetailModalProps> = ({
 
                 {question.content.context && (
                   <div>
-                    <label className="block text-sm font-medium text-gray-400 mb-2">Contexto</label>
-                    <div className="bg-gray-800/50 border border-gray-600 rounded-lg p-4 text-gray-200">
+                    <label className="block text-sm font-medium text-muted-foreground mb-2">Contexto</label>
+                    <div className="bg-muted/50 border border-border rounded-lg p-4 text-foreground/80">
                       {question.content.context}
                     </div>
                   </div>
@@ -133,21 +133,21 @@ const QuestionDetailModal: React.FC<QuestionDetailModalProps> = ({
             {/* Opciones (si las tiene) */}
             {question.content.options && question.content.options.length > 0 && (
               <div className="bg-dark-light border border-line rounded-lg p-6">
-                <h3 className="text-lg font-semibold text-white mb-4">Opciones de Respuesta</h3>
+                <h3 className="text-lg font-semibold text-foreground mb-4">Opciones de Respuesta</h3>
                 <div className="space-y-2">
                   {question.content.options.map((option, index) => (
                     <div 
                       key={option.id} 
                       className={`flex items-center gap-3 p-3 rounded-lg border ${
-                        option.isCorrect 
-                          ? 'bg-green-900/20 border-green-800/30 text-green-300' 
-                          : 'bg-gray-800/50 border-gray-600 text-gray-200'
+                        option.isCorrect
+                          ? 'bg-green-900/20 border-green-800/30 text-green-300'
+                          : 'bg-muted/50 border-border text-foreground/80'
                       }`}
                     >
                       <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center text-xs font-bold ${
-                        option.isCorrect 
-                          ? 'border-green-400 bg-green-400/20 text-green-400' 
-                          : 'border-gray-500 text-gray-500'
+                        option.isCorrect
+                          ? 'border-green-400 bg-green-400/20 text-green-400'
+                          : 'border-muted-foreground text-muted-foreground'
                       }`}>
                         {String.fromCharCode(65 + index)}
                       </div>
@@ -166,7 +166,7 @@ const QuestionDetailModal: React.FC<QuestionDetailModalProps> = ({
             {/* Multimedia */}
             {question.content.mediaUrl && (
               <div className="bg-dark-light border border-line rounded-lg p-6">
-                <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+                <h3 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
                   {question.content.mediaType === 'audio' && <Volume2 className="w-5 h-5" />}
                   {question.content.mediaType === 'image' && <ImageIcon className="w-5 h-5" />}
                   Multimedia
@@ -178,7 +178,7 @@ const QuestionDetailModal: React.FC<QuestionDetailModalProps> = ({
                       <source src={question.content.mediaUrl} type="audio/mpeg" />
                       Tu navegador no soporta la reproducción de audio.
                     </audio>
-                    <div className="text-sm text-gray-400">
+                    <div className="text-sm text-muted-foreground">
                       Archivo de audio: {question.content.mediaUrl.split('/').pop()}
                     </div>
                   </div>
@@ -186,12 +186,12 @@ const QuestionDetailModal: React.FC<QuestionDetailModalProps> = ({
 
                 {question.content.mediaType === 'image' && (
                   <div className="space-y-3">
-                    <img 
-                      src={question.content.mediaUrl} 
-                      alt="Imagen de la pregunta" 
-                      className="max-w-full h-auto rounded-lg border border-gray-600"
+                    <img
+                      src={question.content.mediaUrl}
+                      alt="Imagen de la pregunta"
+                      className="max-w-full h-auto rounded-lg border border-border"
                     />
-                    <div className="text-sm text-gray-400">
+                    <div className="text-sm text-muted-foreground">
                       Imagen: {question.content.mediaUrl.split('/').pop()}
                     </div>
                   </div>
@@ -201,18 +201,18 @@ const QuestionDetailModal: React.FC<QuestionDetailModalProps> = ({
 
             {/* Metadatos adicionales */}
             <div className="bg-dark-light border border-line rounded-lg p-6">
-              <h3 className="text-lg font-semibold text-white mb-4">Información Adicional</h3>
-              
+              <h3 className="text-lg font-semibold text-foreground mb-4">Información Adicional</h3>
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-400 mb-1">Puntos</label>
-                  <div className="text-white">{question.points || 1}</div>
+                  <label className="block text-sm font-medium text-muted-foreground mb-1">Puntos</label>
+                  <div className="text-foreground">{question.points || 1}</div>
                 </div>
 
                 {question.metadata?.estimatedTime && (
                   <div>
-                    <label className="block text-sm font-medium text-gray-400 mb-1">Tiempo estimado</label>
-                    <div className="text-white flex items-center gap-1">
+                    <label className="block text-sm font-medium text-muted-foreground mb-1">Tiempo estimado</label>
+                    <div className="text-foreground flex items-center gap-1">
                       <Clock className="w-4 h-4" />
                       {question.metadata.estimatedTime} minutos
                     </div>
@@ -221,15 +221,15 @@ const QuestionDetailModal: React.FC<QuestionDetailModalProps> = ({
 
                 {question.metadata?.topic && (
                   <div>
-                    <label className="block text-sm font-medium text-gray-400 mb-1">Tema</label>
-                    <div className="text-white">{question.metadata.topic}</div>
+                    <label className="block text-sm font-medium text-muted-foreground mb-1">Tema</label>
+                    <div className="text-foreground">{question.metadata.topic}</div>
                   </div>
                 )}
 
                 {question.metadata?.subtopic && (
                   <div>
-                    <label className="block text-sm font-medium text-gray-400 mb-1">Subtema</label>
-                    <div className="text-white">{question.metadata.subtopic}</div>
+                    <label className="block text-sm font-medium text-muted-foreground mb-1">Subtema</label>
+                    <div className="text-foreground">{question.metadata.subtopic}</div>
                   </div>
                 )}
               </div>
@@ -237,12 +237,12 @@ const QuestionDetailModal: React.FC<QuestionDetailModalProps> = ({
               {/* Tags */}
               {question.metadata?.tags && question.metadata.tags.length > 0 && (
                 <div className="mt-4">
-                  <label className="block text-sm font-medium text-gray-400 mb-2">Etiquetas</label>
+                  <label className="block text-sm font-medium text-muted-foreground mb-2">Etiquetas</label>
                   <div className="flex flex-wrap gap-2">
                     {question.metadata.tags.map((tag, index) => (
                       <span
                         key={index}
-                        className="px-3 py-1 bg-gray-700 text-gray-300 rounded-full text-sm flex items-center gap-1"
+                        className="px-3 py-1 bg-muted text-foreground/80 rounded-full text-sm flex items-center gap-1"
                       >
                         <Hash className="w-3 h-3" />
                         {tag}
@@ -254,11 +254,11 @@ const QuestionDetailModal: React.FC<QuestionDetailModalProps> = ({
 
               {/* Estado */}
               <div className="mt-4">
-                <label className="block text-sm font-medium text-gray-400 mb-1">Estado</label>
+                <label className="block text-sm font-medium text-muted-foreground mb-1">Estado</label>
                 <span className={`px-3 py-1 text-xs font-medium border rounded-lg ${
                   question.isActive
                     ? "bg-green-900/20 text-green-400 border-green-800/30"
-                    : "bg-gray-900/20 text-gray-400 border-gray-800/30"
+                    : "bg-muted/50 text-muted-foreground border-border"
                 }`}>
                   {question.isActive ? 'Activa' : 'Inactiva'}
                 </span>
@@ -268,19 +268,19 @@ const QuestionDetailModal: React.FC<QuestionDetailModalProps> = ({
             {/* Estadísticas (si existen) */}
             {question.statistics && (
               <div className="bg-dark-light border border-line rounded-lg p-6">
-                <h3 className="text-lg font-semibold text-white mb-4">Estadísticas de Uso</h3>
+                <h3 className="text-lg font-semibold text-foreground mb-4">Estadísticas de Uso</h3>
                 <div className="grid grid-cols-3 gap-4">
                   <div className="text-center">
                     <div className="text-2xl font-bold text-blue-400">{question.statistics.timesUsed || 0}</div>
-                    <div className="text-sm text-gray-400">Veces usada</div>
+                    <div className="text-sm text-muted-foreground">Veces usada</div>
                   </div>
                   <div className="text-center">
                     <div className="text-2xl font-bold text-green-400">{question.statistics.averageScore || 0}%</div>
-                    <div className="text-sm text-gray-400">Promedio de aciertos</div>
+                    <div className="text-sm text-muted-foreground">Promedio de aciertos</div>
                   </div>
                   <div className="text-center">
                     <div className="text-2xl font-bold text-yellow-400">{question.statistics.averageTime || 0}s</div>
-                    <div className="text-sm text-gray-400">Tiempo promedio</div>
+                    <div className="text-sm text-muted-foreground">Tiempo promedio</div>
                   </div>
                 </div>
               </div>

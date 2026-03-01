@@ -92,19 +92,19 @@ const CandidateAssignmentView: React.FC<Props> = ({ session, onBack, onSuccess }
     }
   };
 
-  const baseInput = "bg-gray-800/50 border-gray-600 text-white placeholder-gray-400 border-[0.5px] focus:border-blue-500 focus:ring-0 rounded-lg";
+  const baseInput = "bg-muted/50 border-border text-foreground placeholder:text-muted-foreground border-[0.5px] focus:border-blue-500 focus:ring-0 rounded-lg";
 
   return (
     <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <Button onClick={onBack} variant="outline" size="sm" className="border-gray-600 text-gray-300 hover:bg-gray-700">
+          <Button onClick={onBack} variant="outline" size="sm" className="border-border text-muted-foreground hover:bg-muted">
             <ArrowLeft className="w-4 h-4" />
           </Button>
           <div>
-            <h3 className="text-lg font-semibold text-gray-100">Gestionar Candidatos</h3>
-            <p className="text-sm text-gray-400">Sesión: {session.sessionName}</p>
+            <h3 className="text-lg font-semibold text-foreground">Gestionar Candidatos</h3>
+            <p className="text-sm text-muted-foreground">Sesión: {session.sessionName}</p>
           </div>
         </div>
       </div>
@@ -129,12 +129,12 @@ const CandidateAssignmentView: React.FC<Props> = ({ session, onBack, onSuccess }
             </div>
           </div>
         </div>
-        <div className="bg-gray-900/20 border border-gray-700 rounded-lg p-4">
+        <div className="bg-muted/20 border border-border rounded-lg p-4">
           <div className="flex items-center">
-            <Users className="h-8 w-8 text-gray-300" />
+            <Users className="h-8 w-8 text-muted-foreground" />
             <div className="ml-3">
-              <p className="text-sm font-medium text-gray-300">Capacidad</p>
-              <p className="text-2xl font-bold text-gray-100">{session.participants.maxCandidates}</p>
+              <p className="text-sm font-medium text-muted-foreground">Capacidad</p>
+              <p className="text-2xl font-bold text-foreground">{session.participants.maxCandidates}</p>
             </div>
           </div>
         </div>
@@ -144,27 +144,27 @@ const CandidateAssignmentView: React.FC<Props> = ({ session, onBack, onSuccess }
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Asignados */}
         <div>
-          <h4 className="text-md font-medium text-gray-200 mb-4">
+          <h4 className="text-md font-medium text-foreground mb-4">
             Candidatos Asignados ({currentCandidates.length})
           </h4>
 
           {currentCandidates.length === 0 ? (
-            <div className="text-center py-8 bg-gray-900/20 rounded-lg border border-gray-700">
-              <Users className="mx-auto h-12 w-12 text-gray-500" />
-              <h3 className="mt-2 text-sm font-medium text-gray-200">No hay candidatos asignados</h3>
-              <p className="mt-1 text-sm text-gray-400">Selecciona candidatos de la lista disponible.</p>
+            <div className="text-center py-8 bg-muted/20 rounded-lg border border-border">
+              <Users className="mx-auto h-12 w-12 text-muted-foreground" />
+              <h3 className="mt-2 text-sm font-medium text-foreground">No hay candidatos asignados</h3>
+              <p className="mt-1 text-sm text-muted-foreground">Selecciona candidatos de la lista disponible.</p>
             </div>
           ) : (
             <div className="space-y-2 max-h-96 overflow-y-auto">
               {currentCandidates.map((c) => (
-                <div key={c._id} className="flex items-center justify-between p-3 bg-gray-900/30 rounded-lg border border-gray-700">
+                <div key={c._id} className="flex items-center justify-between p-3 bg-muted/30 rounded-lg border border-border">
                   <div className="flex items-center">
                     <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center text-white text-sm font-medium">
                       {c.firstName[0]}{c.lastName[0]}
                     </div>
                     <div className="ml-3">
-                      <p className="text-sm font-medium text-gray-200">{c.firstName} {c.lastName}</p>
-                      <p className="text-xs text-gray-400">{c.email}</p>
+                      <p className="text-sm font-medium text-foreground">{c.firstName} {c.lastName}</p>
+                      <p className="text-xs text-muted-foreground">{c.email}</p>
                     </div>
                   </div>
                   <div className="flex items-center">
@@ -186,7 +186,7 @@ const CandidateAssignmentView: React.FC<Props> = ({ session, onBack, onSuccess }
         {/* Disponibles */}
         <div>
           <div className="flex items-center justify-between mb-4">
-            <h4 className="text-md font-medium text-gray-200">
+            <h4 className="text-md font-medium text-foreground">
               Candidatos Disponibles ({availableCandidates.length})
             </h4>
             {filteredCandidates.length > 0 && (
@@ -199,7 +199,7 @@ const CandidateAssignmentView: React.FC<Props> = ({ session, onBack, onSuccess }
           {/* Búsqueda */}
           <div className="mb-4">
             <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
                 type="text"
                 placeholder="Buscar candidatos..."
@@ -212,10 +212,10 @@ const CandidateAssignmentView: React.FC<Props> = ({ session, onBack, onSuccess }
 
           {/* Lista disponibles */}
           {filteredCandidates.length === 0 ? (
-            <div className="text-center py-8 bg-gray-900/20 rounded-lg border border-gray-700">
-              <Search className="mx-auto h-12 w-12 text-gray-500" />
-              <h3 className="mt-2 text-sm font-medium text-gray-200">No se encontraron candidatos</h3>
-              <p className="mt-1 text-sm text-gray-400">Intenta con diferentes términos de búsqueda.</p>
+            <div className="text-center py-8 bg-muted/20 rounded-lg border border-border">
+              <Search className="mx-auto h-12 w-12 text-muted-foreground" />
+              <h3 className="mt-2 text-sm font-medium text-foreground">No se encontraron candidatos</h3>
+              <p className="mt-1 text-sm text-muted-foreground">Intenta con diferentes términos de búsqueda.</p>
             </div>
           ) : (
             <div className="space-y-2 max-h-96 overflow-y-auto">
@@ -225,7 +225,7 @@ const CandidateAssignmentView: React.FC<Props> = ({ session, onBack, onSuccess }
                   <div
                     key={c._id}
                     className={`flex items-center justify-between p-3 border rounded-lg cursor-pointer transition-colors ${
-                      selected ? "bg-blue-900/20 border-blue-800/30" : "bg-transparent border-gray-700 hover:bg-gray-900/40"
+                      selected ? "bg-blue-900/20 border-blue-800/30" : "bg-transparent border-border hover:bg-muted/40"
                     }`}
                     onClick={() => handleCandidateSelect(c._id)}
                   >
@@ -234,14 +234,14 @@ const CandidateAssignmentView: React.FC<Props> = ({ session, onBack, onSuccess }
                         type="checkbox"
                         checked={selected}
                         onChange={() => handleCandidateSelect(c._id)}
-                        className="h-4 w-4 mr-3 rounded border-gray-600"
+                        className="h-4 w-4 mr-3 rounded border-border"
                       />
                       <div className="w-8 h-8 bg-green-600 rounded-full flex items-center justify-center text-white text-sm font-medium">
                         {c.firstName[0]}{c.lastName[0]}
                       </div>
                       <div className="ml-3">
-                        <p className="text-sm font-medium text-gray-200">{c.firstName} {c.lastName}</p>
-                        <p className="text-xs text-gray-400">{c.email}</p>
+                        <p className="text-sm font-medium text-foreground">{c.firstName} {c.lastName}</p>
+                        <p className="text-xs text-muted-foreground">{c.email}</p>
                       </div>
                     </div>
                     <div className="flex items-center">
@@ -295,7 +295,7 @@ const CandidateAssignmentView: React.FC<Props> = ({ session, onBack, onSuccess }
       )}
 
       <div className="flex justify-end gap-3 pt-4 border-t border-line">
-        <Button variant="outline" onClick={onBack} className="border-line text-gray-300 bg-transparent">Cancelar</Button>
+        <Button variant="outline" onClick={onBack} className="border-line text-muted-foreground bg-transparent">Cancelar</Button>
         <Button
           onClick={handleAssignCandidates}
           disabled={

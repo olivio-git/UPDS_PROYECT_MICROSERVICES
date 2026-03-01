@@ -66,7 +66,7 @@ const QuestionTags: React.FC<Props> = ({
   return (
     <Card className="border border-line">
       <CardHeader>
-        <CardTitle className="text-white">Etiquetas</CardTitle>
+        <CardTitle className="text-foreground">Etiquetas</CardTitle>
         <CardDescription>
           Palabras clave para búsqueda y categorización
         </CardDescription>
@@ -94,20 +94,20 @@ const QuestionTags: React.FC<Props> = ({
         {/* Lista de etiquetas */}
         {formData.metadata?.tags && formData.metadata.tags.length > 0 && (
           <div>
-            <Label className="text-sm text-gray-400 mb-2 block">
+            <Label className="text-sm text-muted-foreground mb-2 block">
               Etiquetas actuales:
             </Label>
             <div className="flex flex-wrap gap-2">
               {formData.metadata.tags.map((tag: string, index: number) => (
                 <span
                   key={`${tag}-${index}`}
-                  className="px-3 py-1 bg-gray-800/50 border border-gray-700 text-gray-200 rounded-full text-sm flex items-center gap-2 group"
+                  className="px-3 py-1 bg-muted/50 border border-border text-foreground rounded-full text-sm flex items-center gap-2 group"
                 >
                   <span>{tag}</span>
                   <button
                     type="button"
                     onClick={() => removeTag(index)}
-                    className="hover:text-red-400 transition-colors ml-1 text-gray-400 group-hover:text-red-400"
+                    className="hover:text-red-400 transition-colors ml-1 text-muted-foreground group-hover:text-red-400"
                     title="Quitar etiqueta"
                   >
                     ×
@@ -120,7 +120,7 @@ const QuestionTags: React.FC<Props> = ({
 
         {/* Sugerencias de etiquetas comunes */}
         <div className="pt-2">
-          <Label className="text-sm text-gray-400 mb-2 block">
+          <Label className="text-sm text-muted-foreground mb-2 block">
             Etiquetas sugeridas (click para agregar):
           </Label>
           <div className="flex flex-wrap gap-2">
@@ -134,7 +134,7 @@ const QuestionTags: React.FC<Props> = ({
                     updateMetadata('tags', [...currentTags, suggestedTag]);
                   }
                 }}
-                className="px-2 py-1 bg-gray-700/50 border border-gray-600 text-gray-300 rounded text-xs hover:bg-gray-600/50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                className="px-2 py-1 bg-muted/50 border border-border text-muted-foreground rounded text-xs hover:bg-muted transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 disabled={formData.metadata?.tags?.includes(suggestedTag)}
               >
                 {suggestedTag}

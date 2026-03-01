@@ -152,12 +152,12 @@ const competencyBarColor: Record<string, string> = {
 
 function getCompetencyColor(competency: string): string {
   const key = competency.toLowerCase();
-  return competencyColor[key] ?? "bg-gray-800 text-gray-300 border-gray-600";
+  return competencyColor[key] ?? "bg-muted text-muted-foreground border-border";
 }
 
 function getCompetencyBarColor(competency: string): string {
   const key = competency.toLowerCase();
-  return competencyBarColor[key] ?? "bg-gray-500";
+  return competencyBarColor[key] ?? "bg-muted-foreground";
 }
 
 function renderMedia(questionData?: QuestionResult["questionData"]): React.ReactNode {
@@ -170,8 +170,8 @@ function renderMedia(questionData?: QuestionResult["questionData"]): React.React
 
   if (type === "audio") {
     return (
-      <div className="bg-gray-800/40 border border-line rounded-lg p-2">
-        <p className="text-xs text-gray-500 mb-1.5 flex items-center gap-1">
+      <div className="bg-muted/40 border border-line rounded-lg p-2">
+        <p className="text-xs text-muted-foreground mb-1.5 flex items-center gap-1">
           <span>🔊</span> Audio
         </p>
         <audio controls className="w-full h-8" style={{ colorScheme: "dark" }}>
@@ -182,8 +182,8 @@ function renderMedia(questionData?: QuestionResult["questionData"]): React.React
   }
   if (type === "video") {
     return (
-      <div className="bg-gray-800/40 border border-line rounded-lg p-2">
-        <p className="text-xs text-gray-500 mb-1.5">🎬 Video</p>
+      <div className="bg-muted/40 border border-line rounded-lg p-2">
+        <p className="text-xs text-muted-foreground mb-1.5">🎬 Video</p>
         <video controls className="w-full rounded max-h-48">
           <source src={url} />
         </video>
@@ -191,7 +191,7 @@ function renderMedia(questionData?: QuestionResult["questionData"]): React.React
     );
   }
   return (
-    <div className="bg-gray-800/40 border border-line rounded-lg p-2">
+    <div className="bg-muted/40 border border-line rounded-lg p-2">
       <img src={url} alt="Imagen de la pregunta" className="max-h-40 rounded object-contain" />
     </div>
   );
@@ -202,7 +202,7 @@ function renderResponse(qr: QuestionResult): React.ReactNode {
   const options = questionData?.options ?? [];
 
   if (!response) {
-    return <p className="text-xs text-gray-500 italic">Sin respuesta registrada</p>;
+    return <p className="text-xs text-muted-foreground italic">Sin respuesta registrada</p>;
   }
 
   switch (questionType) {
@@ -214,13 +214,13 @@ function renderResponse(qr: QuestionResult): React.ReactNode {
             {options.map((opt) => {
               const isSelected = selected.includes(String(opt.id));
               const isCorrect = !!opt.isCorrect;
-              let cls = "border border-line bg-gray-800/40 text-gray-400";
+              let cls = "border border-line bg-muted/40 text-muted-foreground";
               if (isSelected && isCorrect) cls = "border border-emerald-600/50 bg-emerald-900/20 text-emerald-300";
               else if (isSelected && !isCorrect) cls = "border border-red-600/50 bg-red-900/20 text-red-300";
               else if (!isSelected && isCorrect) cls = "border border-emerald-600/30 bg-emerald-900/10 text-emerald-400/60";
               return (
                 <div key={opt.id} className={`flex items-center gap-2 px-3 py-2 rounded-lg text-xs ${cls}`}>
-                  <span className={`w-4 h-4 rounded-full flex items-center justify-center shrink-0 text-xs font-bold ${isSelected ? "bg-current/20" : "bg-gray-700"}`}>
+                  <span className={`w-4 h-4 rounded-full flex items-center justify-center shrink-0 text-xs font-bold ${isSelected ? "bg-current/20" : "bg-muted"}`}>
                     {isSelected ? "●" : "○"}
                   </span>
                   <span>{opt.text}</span>
@@ -232,7 +232,7 @@ function renderResponse(qr: QuestionResult): React.ReactNode {
         );
       }
       const selected2: string[] = response?.selectedOptions ?? [];
-      return <p className="text-xs text-gray-300 bg-gray-800/40 px-3 py-2 rounded-lg">Opción(es): {selected2.join(", ") || "—"}</p>;
+      return <p className="text-xs text-foreground/80 bg-muted/40 px-3 py-2 rounded-lg">Opción(es): {selected2.join(", ") || "—"}</p>;
     }
 
     case "true_false": {
@@ -247,7 +247,7 @@ function renderResponse(qr: QuestionResult): React.ReactNode {
             const isThisTrue = label === "Verdadero";
             const isSelected = isThisTrue ? userTrue : userFalse;
             const isCorrect = isThisTrue ? correctIsTrue : !correctIsTrue;
-            let cls = "border border-line bg-gray-800/40 text-gray-400";
+            let cls = "border border-line bg-muted/40 text-muted-foreground";
             if (isSelected && isCorrect) cls = "border border-emerald-600/50 bg-emerald-900/20 text-emerald-300 font-semibold";
             else if (isSelected && !isCorrect) cls = "border border-red-600/50 bg-red-900/20 text-red-300 font-semibold";
             else if (!isSelected && isCorrect) cls = "border border-emerald-600/30 bg-emerald-900/10 text-emerald-400/60";
@@ -263,7 +263,7 @@ function renderResponse(qr: QuestionResult): React.ReactNode {
 
     case "fill_blanks": {
       const blanks: string[] = response?.blanks ?? [];
-      if (blanks.length === 0) return <p className="text-xs text-gray-500 italic">Sin respuesta</p>;
+      if (blanks.length === 0) return <p className="text-xs text-muted-foreground italic">Sin respuesta</p>;
       const correctBlanks = questionData?.blanks ?? [];
       return (
         <div className="flex flex-wrap gap-2">
@@ -276,10 +276,10 @@ function renderResponse(qr: QuestionResult): React.ReactNode {
               ? "bg-emerald-900/20 border-emerald-600/40 text-emerald-300"
               : isOk === false
               ? "bg-red-900/20 border-red-600/40 text-red-300"
-              : "bg-gray-800/40 border-line text-gray-300";
+              : "bg-muted/40 border-line text-foreground/80";
             return (
               <span key={i} className={`inline-flex items-center gap-1 px-2.5 py-1 rounded border text-xs ${cls}`}>
-                <span className="text-gray-500">[{i+1}]</span>
+                <span className="text-muted-foreground">[{i+1}]</span>
                 <span className="font-medium">{b || "—"}</span>
                 {isOk === false && correctAnswers.length > 0 && (
                   <span className="text-emerald-400/70 ml-1">✓ {correctAnswers[0]}</span>
@@ -294,7 +294,7 @@ function renderResponse(qr: QuestionResult): React.ReactNode {
     case "matching": {
       const pairs: Record<string, string> = response?.pairs ?? {};
       const items = questionData?.items ?? [];
-      if (Object.keys(pairs).length === 0) return <p className="text-xs text-gray-500 italic">Sin respuesta</p>;
+      if (Object.keys(pairs).length === 0) return <p className="text-xs text-muted-foreground italic">Sin respuesta</p>;
       return (
         <div className="space-y-1">
           {Object.entries(pairs).map(([k, v]) => {
@@ -303,7 +303,7 @@ function renderResponse(qr: QuestionResult): React.ReactNode {
             return (
               <div key={k} className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs border ${isOk ? "border-emerald-600/40 bg-emerald-900/10 text-emerald-300" : "border-red-600/40 bg-red-900/10 text-red-300"}`}>
                 <span className="font-medium">{item?.content ?? k}</span>
-                <span className="text-gray-500">→</span>
+                <span className="text-muted-foreground">→</span>
                 <span>{v}</span>
                 {!isOk && item?.matchingPair && <span className="ml-auto text-emerald-400/60">✓ {item.matchingPair}</span>}
               </div>
@@ -316,7 +316,7 @@ function renderResponse(qr: QuestionResult): React.ReactNode {
     case "ordering": {
       const order: string[] = response?.order ?? [];
       const items = questionData?.items ?? [];
-      if (order.length === 0) return <p className="text-xs text-gray-500 italic">Sin respuesta</p>;
+      if (order.length === 0) return <p className="text-xs text-muted-foreground italic">Sin respuesta</p>;
       return (
         <div className="space-y-1">
           {order.map((id, idx) => {
@@ -324,8 +324,8 @@ function renderResponse(qr: QuestionResult): React.ReactNode {
             const correctPos = item?.correctPosition;
             const isOk = correctPos !== undefined ? correctPos === idx : null;
             return (
-              <div key={id} className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs border ${isOk === true ? "border-emerald-600/40 bg-emerald-900/10 text-emerald-300" : isOk === false ? "border-red-600/40 bg-red-900/10 text-red-300" : "border-line bg-gray-800/40 text-gray-300"}`}>
-                <span className="text-gray-500 font-mono">#{idx+1}</span>
+              <div key={id} className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs border ${isOk === true ? "border-emerald-600/40 bg-emerald-900/10 text-emerald-300" : isOk === false ? "border-red-600/40 bg-red-900/10 text-red-300" : "border-line bg-muted/40 text-foreground/80"}`}>
+                <span className="text-muted-foreground font-mono">#{idx+1}</span>
                 <span>{item?.content ?? id}</span>
                 {isOk === false && correctPos !== undefined && <span className="ml-auto text-emerald-400/60 text-xs">✓ pos {correctPos+1}</span>}
               </div>
@@ -340,7 +340,7 @@ function renderResponse(qr: QuestionResult): React.ReactNode {
       const positions: Record<string, number> = response?.positions ?? {};
       const items = questionData?.items ?? [];
       if (Object.keys(positions).length === 0)
-        return <p className="text-xs text-gray-500 italic">Sin respuesta</p>;
+        return <p className="text-xs text-muted-foreground italic">Sin respuesta</p>;
 
       // Sort entries by zone index assigned by user
       const sorted = Object.entries(positions).sort(([, a], [, b]) => a - b);
@@ -357,13 +357,13 @@ function renderResponse(qr: QuestionResult): React.ReactNode {
                 ? "border-emerald-600/40 bg-emerald-900/10 text-emerald-300"
                 : isOk === false
                 ? "border-red-600/40 bg-red-900/10 text-red-300"
-                : "border-line bg-gray-800/40 text-gray-300";
+                : "border-line bg-muted/40 text-foreground/80";
             return (
               <div
                 key={itemId}
                 className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs border ${cls}`}
               >
-                <span className="text-gray-500 font-mono shrink-0">
+                <span className="text-muted-foreground font-mono shrink-0">
                   Zona {zoneIdx + 1}
                 </span>
                 <span className="flex-1">{item?.content ?? `Item ${itemId}`}</span>
@@ -389,12 +389,12 @@ function renderResponse(qr: QuestionResult): React.ReactNode {
       const transcription: string | undefined =
         response?.transcription ?? response?.text;
       if (!audioUrl && !transcription)
-        return <p className="text-xs text-gray-500 italic">Sin audio registrado</p>;
+        return <p className="text-xs text-muted-foreground italic">Sin audio registrado</p>;
       return (
         <div className="space-y-2">
           {audioUrl && (
-            <div className="bg-gray-800/40 border border-line rounded-lg p-2.5">
-              <p className="text-xs text-gray-500 mb-1.5 flex items-center gap-1">
+            <div className="bg-muted/40 border border-line rounded-lg p-2.5">
+              <p className="text-xs text-muted-foreground mb-1.5 flex items-center gap-1">
                 🔊 Audio del candidato
               </p>
               <audio controls className="w-full" style={{ colorScheme: "dark" }}>
@@ -404,9 +404,9 @@ function renderResponse(qr: QuestionResult): React.ReactNode {
             </div>
           )}
           {transcription && (
-            <div className="bg-gray-800/40 border border-line rounded-lg px-3 py-2">
-              <p className="text-xs text-gray-500 mb-1">Transcripción</p>
-              <p className="text-xs text-gray-200 whitespace-pre-wrap leading-relaxed">{transcription}</p>
+            <div className="bg-muted/40 border border-line rounded-lg px-3 py-2">
+              <p className="text-xs text-muted-foreground mb-1">Transcripción</p>
+              <p className="text-xs text-foreground/80 whitespace-pre-wrap leading-relaxed">{transcription}</p>
             </div>
           )}
         </div>
@@ -416,7 +416,7 @@ function renderResponse(qr: QuestionResult): React.ReactNode {
     case "file_upload": {
       const fileUrl: string | undefined = response?.fileUrl ?? response?.url;
       if (!fileUrl)
-        return <p className="text-xs text-gray-500 italic">Sin archivo</p>;
+        return <p className="text-xs text-muted-foreground italic">Sin archivo</p>;
       return (
         <a
           href={fileUrl}
@@ -433,8 +433,8 @@ function renderResponse(qr: QuestionResult): React.ReactNode {
     case "open_text": {
       const text = typeof response === "string" ? response : response?.text ?? response?.answer ?? response?.essay ?? "";
       return (
-        <div className="bg-gray-800/40 border border-line rounded-lg px-3 py-2.5">
-          <p className="text-xs text-gray-200 whitespace-pre-wrap leading-relaxed">{String(text) || "Sin texto"}</p>
+        <div className="bg-muted/40 border border-line rounded-lg px-3 py-2.5">
+          <p className="text-xs text-foreground/80 whitespace-pre-wrap leading-relaxed">{String(text) || "Sin texto"}</p>
         </div>
       );
     }
@@ -442,8 +442,8 @@ function renderResponse(qr: QuestionResult): React.ReactNode {
     default: {
       const str = typeof response === "string" ? response : JSON.stringify(response);
       return (
-        <div className="bg-gray-800/40 border border-line rounded-lg px-3 py-2">
-          <p className="text-xs text-gray-400 font-mono">{str.length > 200 ? str.slice(0, 200) + "…" : str}</p>
+        <div className="bg-muted/40 border border-line rounded-lg px-3 py-2">
+          <p className="text-xs text-muted-foreground font-mono">{str.length > 200 ? str.slice(0, 200) + "…" : str}</p>
         </div>
       );
     }
@@ -509,8 +509,8 @@ const SessionDetailView: React.FC<Props> = ({
         text: "En Progreso",
       },
       completed: {
-        color: "bg-gray-900/20 text-gray-300 border-gray-700",
-        dot: "bg-gray-400",
+        color: "bg-muted/20 text-muted-foreground border-border",
+        dot: "bg-muted-foreground",
         icon: CheckCircle,
         text: "Completada",
       },
@@ -565,8 +565,8 @@ const SessionDetailView: React.FC<Props> = ({
   };
 
   const levelBadge: Record<string, string> = {
-    A1: "bg-gray-800 text-gray-300 border-gray-600",
-    A2: "bg-gray-800 text-gray-300 border-gray-600",
+    A1: "bg-muted text-muted-foreground border-border",
+    A2: "bg-muted text-muted-foreground border-border",
     B1: "bg-blue-900/30 text-blue-300 border-blue-700/40",
     B2: "bg-blue-900/30 text-blue-300 border-blue-700/40",
     C1: "bg-purple-900/30 text-purple-300 border-purple-700/40",
@@ -709,7 +709,7 @@ const SessionDetailView: React.FC<Props> = ({
             onClick={onBack}
             variant="outline"
             size="sm"
-            className="mt-0.5 shrink-0 border-line text-gray-400 hover:text-gray-200 hover:bg-gray-800"
+            className="mt-0.5 shrink-0 border-line text-muted-foreground hover:text-foreground hover:bg-muted"
             aria-label="Volver atrás"
           >
             <ArrowLeft className="w-4 h-4" />
@@ -717,7 +717,7 @@ const SessionDetailView: React.FC<Props> = ({
 
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2">
-              <h1 className="text-xl font-bold text-gray-100 leading-tight">
+              <h1 className="text-xl font-bold text-foreground leading-tight">
                 {session.sessionName}
               </h1>
               <span
@@ -728,7 +728,7 @@ const SessionDetailView: React.FC<Props> = ({
               </span>
             </div>
             {session.exam?.name && (
-              <p className="text-sm text-gray-400 mt-0.5 flex items-center gap-1">
+              <p className="text-sm text-muted-foreground mt-0.5 flex items-center gap-1">
                 <BookOpen className="w-3.5 h-3.5 shrink-0" />
                 {session.exam.name}
               </p>
@@ -768,10 +768,10 @@ const SessionDetailView: React.FC<Props> = ({
             <Users className="w-4 h-4 text-blue-400" />
           </div>
           <div className="min-w-0">
-            <p className="text-xl font-bold text-gray-100 leading-none">
+            <p className="text-xl font-bold text-foreground leading-none">
               {maxCandidates}
             </p>
-            <p className="text-xs text-gray-400 mt-0.5">Capacidad</p>
+            <p className="text-xs text-muted-foreground mt-0.5">Capacidad</p>
           </div>
         </div>
 
@@ -781,10 +781,10 @@ const SessionDetailView: React.FC<Props> = ({
             <UserPlus className="w-4 h-4 text-emerald-400" />
           </div>
           <div className="min-w-0">
-            <p className="text-xl font-bold text-gray-100 leading-none">
+            <p className="text-xl font-bold text-foreground leading-none">
               {registeredCount}
             </p>
-            <p className="text-xs text-gray-400 mt-0.5">Registrados</p>
+            <p className="text-xs text-muted-foreground mt-0.5">Registrados</p>
           </div>
         </div>
 
@@ -794,10 +794,10 @@ const SessionDetailView: React.FC<Props> = ({
             <Clock className="w-4 h-4 text-orange-400" />
           </div>
           <div className="min-w-0">
-            <p className="text-base font-bold text-gray-100 leading-none">
+            <p className="text-base font-bold text-foreground leading-none">
               {calculateDuration()}
             </p>
-            <p className="text-xs text-gray-400 mt-0.5">Duración sesión</p>
+            <p className="text-xs text-muted-foreground mt-0.5">Duración sesión</p>
           </div>
         </div>
 
@@ -807,12 +807,12 @@ const SessionDetailView: React.FC<Props> = ({
             <BarChart3 className="w-4 h-4 text-purple-400" />
           </div>
           <div className="min-w-0">
-            <p className="text-xl font-bold text-gray-100 leading-none">
+            <p className="text-xl font-bold text-foreground leading-none">
               {session.stats?.averageScore != null
                 ? `${session.stats.averageScore.toFixed(1)}%`
                 : "—"}
             </p>
-            <p className="text-xs text-gray-400 mt-0.5">Promedio</p>
+            <p className="text-xs text-muted-foreground mt-0.5">Promedio</p>
           </div>
         </div>
       </div>
@@ -826,7 +826,7 @@ const SessionDetailView: React.FC<Props> = ({
 
             {/* Programación */}
             <div className="space-y-3">
-              <h2 className="text-xs font-semibold text-gray-300 flex items-center gap-1.5">
+              <h2 className="text-xs font-semibold text-muted-foreground flex items-center gap-1.5">
                 <Calendar className="w-3.5 h-3.5 text-blue-400" />
                 Programación
               </h2>
@@ -841,10 +841,10 @@ const SessionDetailView: React.FC<Props> = ({
                   ] as [string, string][]
                 ).map(([label, value]) => (
                   <div key={label} className="flex items-start justify-between gap-2">
-                    <span className="text-xs text-gray-500 uppercase tracking-wide shrink-0 mt-0.5">
+                    <span className="text-xs text-muted-foreground uppercase tracking-wide shrink-0 mt-0.5">
                       {label}
                     </span>
-                    <span className="text-xs text-gray-200 text-right font-medium">
+                    <span className="text-xs text-foreground/80 text-right font-medium">
                       {value}
                     </span>
                   </div>
@@ -854,13 +854,13 @@ const SessionDetailView: React.FC<Props> = ({
               {/* Barra de ocupación */}
               <div className="pt-2 border-t border-line space-y-1.5">
                 <div className="flex items-center justify-between text-xs">
-                  <span className="text-gray-400">Ocupación</span>
+                  <span className="text-muted-foreground">Ocupación</span>
                   <span className={`font-semibold ${occupancyColor.text}`}>
                     {registeredCount}/{maxCandidates} ({occupancyPct}%)
                   </span>
                 </div>
                 <div
-                  className="h-1.5 rounded-full bg-gray-700 overflow-hidden"
+                  className="h-1.5 rounded-full bg-muted overflow-hidden"
                   role="progressbar"
                   aria-valuenow={occupancyPct}
                   aria-valuemin={0}
@@ -883,23 +883,23 @@ const SessionDetailView: React.FC<Props> = ({
 
             {/* Configuración */}
             <div className="sm:pl-4 space-y-3">
-              <h2 className="text-xs font-semibold text-gray-300 flex items-center gap-1.5">
-                <Settings className="w-3.5 h-3.5 text-gray-400" />
+              <h2 className="text-xs font-semibold text-muted-foreground flex items-center gap-1.5">
+                <Settings className="w-3.5 h-3.5 text-muted-foreground" />
                 Configuración
               </h2>
 
               <div className="grid grid-cols-2 gap-2">
                 {/* Proctor */}
-                <div className="flex items-center gap-1.5 bg-gray-800/40 border border-line rounded-lg px-2.5 py-2">
+                <div className="flex items-center gap-1.5 bg-muted/40 border border-line rounded-lg px-2.5 py-2">
                   <Shield
                     className={`w-3.5 h-3.5 shrink-0 ${
                       session.settings.requireProctor
                         ? "text-emerald-400"
-                        : "text-gray-600"
+                        : "text-muted-foreground/40"
                     }`}
                   />
                   <div className="min-w-0">
-                    <p className="text-xs text-gray-400 leading-none">Proctor</p>
+                    <p className="text-xs text-muted-foreground leading-none">Proctor</p>
                     <span
                       className={`text-xs font-medium px-1 py-0.5 rounded ${
                         session.settings.requireProctor
@@ -913,16 +913,16 @@ const SessionDetailView: React.FC<Props> = ({
                 </div>
 
                 {/* Entrada tardía */}
-                <div className="flex items-center gap-1.5 bg-gray-800/40 border border-line rounded-lg px-2.5 py-2">
+                <div className="flex items-center gap-1.5 bg-muted/40 border border-line rounded-lg px-2.5 py-2">
                   <DoorOpen
                     className={`w-3.5 h-3.5 shrink-0 ${
                       session.settings.allowLateEntry
                         ? "text-emerald-400"
-                        : "text-gray-600"
+                        : "text-muted-foreground/40"
                     }`}
                   />
                   <div className="min-w-0">
-                    <p className="text-xs text-gray-400 leading-none">
+                    <p className="text-xs text-muted-foreground leading-none">
                       Tardía
                     </p>
                     {session.settings.allowLateEntry ? (
@@ -936,16 +936,16 @@ const SessionDetailView: React.FC<Props> = ({
                 </div>
 
                 {/* Auto-inicio */}
-                <div className="flex items-center gap-1.5 bg-gray-800/40 border border-line rounded-lg px-2.5 py-2">
+                <div className="flex items-center gap-1.5 bg-muted/40 border border-line rounded-lg px-2.5 py-2">
                   <Zap
                     className={`w-3.5 h-3.5 shrink-0 ${
                       session.settings.autoStart
                         ? "text-emerald-400"
-                        : "text-gray-600"
+                        : "text-muted-foreground/40"
                     }`}
                   />
                   <div className="min-w-0">
-                    <p className="text-xs text-gray-400 leading-none">
+                    <p className="text-xs text-muted-foreground leading-none">
                       Auto-inicio
                     </p>
                     <span
@@ -961,16 +961,16 @@ const SessionDetailView: React.FC<Props> = ({
                 </div>
 
                 {/* Bloqueo */}
-                <div className="flex items-center gap-1.5 bg-gray-800/40 border border-line rounded-lg px-2.5 py-2">
+                <div className="flex items-center gap-1.5 bg-muted/40 border border-line rounded-lg px-2.5 py-2">
                   <Lock
                     className={`w-3.5 h-3.5 shrink-0 ${
                       session.settings.browserLockdown
                         ? "text-emerald-400"
-                        : "text-gray-600"
+                        : "text-muted-foreground/40"
                     }`}
                   />
                   <div className="min-w-0">
-                    <p className="text-xs text-gray-400 leading-none">
+                    <p className="text-xs text-muted-foreground leading-none">
                       Bloqueo
                     </p>
                     <span
@@ -994,14 +994,14 @@ const SessionDetailView: React.FC<Props> = ({
 
           {/* Examen vinculado */}
           <div className="space-y-2.5">
-            <h2 className="text-xs font-semibold text-gray-300 flex items-center gap-1.5">
+            <h2 className="text-xs font-semibold text-muted-foreground flex items-center gap-1.5">
               <BookOpen className="w-3.5 h-3.5 text-purple-400" />
               Examen vinculado
             </h2>
 
             {session.exam ? (
               <div className="space-y-2">
-                <p className="text-sm font-semibold text-gray-100 leading-snug">
+                <p className="text-sm font-semibold text-foreground leading-snug">
                   {session.exam.name}
                 </p>
 
@@ -1010,7 +1010,7 @@ const SessionDetailView: React.FC<Props> = ({
                     <span
                       className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border ${
                         examTypeBadge[session.exam.type] ??
-                        "bg-gray-800 text-gray-300 border-gray-600"
+                        "bg-muted text-muted-foreground border-border"
                       }`}
                     >
                       {session.exam.type.charAt(0).toUpperCase() +
@@ -1021,7 +1021,7 @@ const SessionDetailView: React.FC<Props> = ({
                     <span
                       className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border ${
                         levelBadge[session.exam.targetLevel] ??
-                        "bg-gray-800 text-gray-300 border-gray-600"
+                        "bg-muted text-muted-foreground border-border"
                       }`}
                     >
                       Nivel {session.exam.targetLevel}
@@ -1032,20 +1032,20 @@ const SessionDetailView: React.FC<Props> = ({
                 {session.exam.structure && (
                   <div className="grid grid-cols-2 gap-2 pt-1 border-t border-line">
                     <div className="text-xs">
-                      <span className="text-gray-500 flex items-center gap-1">
+                      <span className="text-muted-foreground flex items-center gap-1">
                         <Clock className="w-3 h-3" />
                         Duración
                       </span>
-                      <span className="text-gray-200 font-medium">
+                      <span className="text-foreground/80 font-medium">
                         {session.exam.structure.totalDuration} min
                       </span>
                     </div>
                     <div className="text-xs">
-                      <span className="text-gray-500 flex items-center gap-1">
+                      <span className="text-muted-foreground flex items-center gap-1">
                         <TrendingUp className="w-3 h-3" />
                         Preguntas
                       </span>
-                      <span className="text-gray-200 font-medium">
+                      <span className="text-foreground/80 font-medium">
                         {session.exam.structure.totalQuestions}
                       </span>
                     </div>
@@ -1053,14 +1053,14 @@ const SessionDetailView: React.FC<Props> = ({
                 )}
               </div>
             ) : (
-              <p className="text-xs text-gray-500">Información no disponible</p>
+              <p className="text-xs text-muted-foreground">Información no disponible</p>
             )}
           </div>
 
           {/* Stats — solo si existen */}
           {session.stats && (
             <div className="space-y-2 pt-3 border-t border-line">
-              <h2 className="text-xs font-semibold text-gray-300 flex items-center gap-1.5">
+              <h2 className="text-xs font-semibold text-muted-foreground flex items-center gap-1.5">
                 <BarChart3 className="w-3.5 h-3.5 text-blue-400" />
                 Estadísticas
               </h2>
@@ -1156,11 +1156,11 @@ const SessionDetailView: React.FC<Props> = ({
         <div className="flex items-center justify-between px-4 py-3 border-b border-line">
           <div className="flex items-center gap-2">
             <BarChart3 className="w-4 h-4 text-blue-400" />
-            <h2 className="text-sm font-semibold text-gray-300">
+            <h2 className="text-sm font-semibold text-muted-foreground">
               Resultados de candidatos
             </h2>
             {session.status === "completed" && !resultsLoading && (
-              <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-gray-800 text-gray-400 border border-line">
+              <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-muted text-muted-foreground border border-line">
                 {results.length}
               </span>
             )}
@@ -1177,10 +1177,10 @@ const SessionDetailView: React.FC<Props> = ({
                 <RotateCcw className={`w-3.5 h-3.5 ${regrading ? "animate-spin" : ""}`} />
                 {regrading ? "Recalculando..." : "Recalcular"}
               </button>
-              <span className="text-gray-700">|</span>
+              <span className="text-border">|</span>
               <button
                 onClick={fetchResults}
-                className="text-xs text-gray-500 hover:text-gray-300 flex items-center gap-1 transition-colors"
+                className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1 transition-colors"
                 aria-label="Recargar resultados"
               >
                 <RefreshCw className="w-3.5 h-3.5" />
@@ -1194,10 +1194,10 @@ const SessionDetailView: React.FC<Props> = ({
         {session.status !== "completed" ? (
           /* Estado: sesión no completada */
           <div className="flex flex-col items-center justify-center py-12 px-4 gap-3">
-            <div className="w-10 h-10 rounded-full bg-gray-800 flex items-center justify-center">
-              <BarChart3 className="w-5 h-5 text-gray-600" />
+            <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center">
+              <BarChart3 className="w-5 h-5 text-muted-foreground" />
             </div>
-            <p className="text-sm text-gray-500 text-center">
+            <p className="text-sm text-muted-foreground text-center">
               Disponible cuando la sesión esté completada
             </p>
           </div>
@@ -1205,7 +1205,7 @@ const SessionDetailView: React.FC<Props> = ({
           /* Estado: cargando */
           <div className="flex items-center justify-center py-12 gap-2">
             <Loader2 className="w-5 h-5 text-blue-400 animate-spin" />
-            <span className="text-sm text-gray-400">Cargando resultados...</span>
+            <span className="text-sm text-muted-foreground">Cargando resultados...</span>
           </div>
         ) : resultsError ? (
           /* Estado: error */
@@ -1214,7 +1214,7 @@ const SessionDetailView: React.FC<Props> = ({
             <p className="text-sm text-red-400 text-center">{resultsError}</p>
             <button
               onClick={fetchResults}
-              className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg bg-gray-800 hover:bg-gray-700 text-gray-300 border border-line transition-colors"
+              className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg bg-muted hover:bg-muted/80 text-foreground/80 border border-line transition-colors"
             >
               <RefreshCw className="w-3.5 h-3.5" />
               Reintentar
@@ -1223,8 +1223,8 @@ const SessionDetailView: React.FC<Props> = ({
         ) : results.length === 0 ? (
           /* Estado: sin resultados */
           <div className="flex flex-col items-center justify-center py-12 px-4 gap-3">
-            <User2 className="w-8 h-8 text-gray-600" />
-            <p className="text-sm text-gray-500">
+            <User2 className="w-8 h-8 text-muted-foreground" />
+            <p className="text-sm text-muted-foreground">
               No hay resultados registrados aun
             </p>
           </div>
@@ -1236,26 +1236,26 @@ const SessionDetailView: React.FC<Props> = ({
                 <tr className="border-b border-line">
                   {/* Chevron column */}
                   <th className="px-2 py-2.5 w-6" aria-label="Expandir" />
-                  <th className="px-3 py-2.5 text-left text-gray-500 font-medium w-8">#</th>
-                  <th className="px-3 py-2.5 text-left text-gray-500 font-medium">
+                  <th className="px-3 py-2.5 text-left text-muted-foreground font-medium w-8">#</th>
+                  <th className="px-3 py-2.5 text-left text-muted-foreground font-medium">
                     Candidato
                   </th>
-                  <th className="px-3 py-2.5 text-left text-gray-500 font-medium w-24">
+                  <th className="px-3 py-2.5 text-left text-muted-foreground font-medium w-24">
                     %
                   </th>
-                  <th className="px-3 py-2.5 text-left text-gray-500 font-medium">
+                  <th className="px-3 py-2.5 text-left text-muted-foreground font-medium">
                     Puntaje
                   </th>
-                  <th className="px-3 py-2.5 text-left text-gray-500 font-medium">
+                  <th className="px-3 py-2.5 text-left text-muted-foreground font-medium">
                     Estado
                   </th>
-                  <th className="px-3 py-2.5 text-left text-gray-500 font-medium">
+                  <th className="px-3 py-2.5 text-left text-muted-foreground font-medium">
                     Competencias
                   </th>
-                  <th className="px-3 py-2.5 text-left text-gray-500 font-medium">
+                  <th className="px-3 py-2.5 text-left text-muted-foreground font-medium">
                     Tiempo
                   </th>
-                  <th className="px-3 py-2.5 text-left text-gray-500 font-medium">
+                  <th className="px-3 py-2.5 text-left text-muted-foreground font-medium">
                     Nivel rec.
                   </th>
                 </tr>
@@ -1280,13 +1280,13 @@ const SessionDetailView: React.FC<Props> = ({
                     <React.Fragment key={result.id}>
                       <tr
                         onClick={() => handleSelectResult(result)}
-                        className={`border-b border-line/60 hover:bg-gray-800/30 transition-colors cursor-pointer${
+                        className={`border-b border-line/60 hover:bg-muted/30 transition-colors cursor-pointer${
                           isExpanded ? " bg-blue-900/10" : ""
                         }`}
                         aria-expanded={isExpanded}
                       >
                         {/* Chevron */}
-                        <td className="px-2 py-2.5 text-gray-500">
+                        <td className="px-2 py-2.5 text-muted-foreground">
                           {isExpanded ? (
                             <ChevronDown className="w-3.5 h-3.5 text-blue-400" />
                           ) : (
@@ -1295,16 +1295,16 @@ const SessionDetailView: React.FC<Props> = ({
                         </td>
 
                         {/* # */}
-                        <td className="px-3 py-2.5 text-gray-500">{idx + 1}</td>
+                        <td className="px-3 py-2.5 text-muted-foreground">{idx + 1}</td>
 
                         {/* Candidato */}
                         <td className="px-3 py-2.5">
                           {candidateNames[result.candidateId] ? (
-                            <span className="text-gray-200 font-medium">
+                            <span className="text-foreground/80 font-medium">
                               {candidateNames[result.candidateId]}
                             </span>
                           ) : (
-                            <span className="font-mono text-gray-500 text-xs">
+                            <span className="font-mono text-muted-foreground text-xs">
                               ...{result.candidateId.slice(-8)}
                             </span>
                           )}
@@ -1318,7 +1318,7 @@ const SessionDetailView: React.FC<Props> = ({
                             >
                               {result.percentage.toFixed(1)}%
                             </span>
-                            <div className="h-1 w-16 rounded-full bg-gray-700 overflow-hidden">
+                            <div className="h-1 w-16 rounded-full bg-muted overflow-hidden">
                               <div
                                 className={`h-full rounded-full ${getScoreBarColor(result.percentage)}`}
                                 style={{
@@ -1330,7 +1330,7 @@ const SessionDetailView: React.FC<Props> = ({
                         </td>
 
                         {/* Puntaje */}
-                        <td className="px-3 py-2.5 text-gray-300">
+                        <td className="px-3 py-2.5 text-foreground/80">
                           {result.totalScore}/{result.maxScore}
                         </td>
 
@@ -1349,13 +1349,13 @@ const SessionDetailView: React.FC<Props> = ({
                             {topCompetencies.map((c) => (
                               <span
                                 key={c.competency}
-                                className="inline-flex items-center px-1.5 py-0.5 rounded text-xs bg-gray-800 text-gray-300 border border-line"
+                                className="inline-flex items-center px-1.5 py-0.5 rounded text-xs bg-muted text-muted-foreground border border-line"
                               >
                                 {c.competency} {c.percentage.toFixed(0)}%
                               </span>
                             ))}
                             {remaining > 0 && (
-                              <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs bg-gray-800 text-gray-500 border border-line">
+                              <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs bg-muted text-muted-foreground border border-line">
                                 +{remaining}
                               </span>
                             )}
@@ -1365,7 +1365,7 @@ const SessionDetailView: React.FC<Props> = ({
                         {/* Tiempo */}
                         <td className="px-3 py-2.5">
                           <span
-                            className={`font-medium ${timeOverUsed ? "text-orange-400" : "text-gray-300"}`}
+                            className={`font-medium ${timeOverUsed ? "text-orange-400" : "text-foreground/80"}`}
                           >
                             {durationMin}min
                           </span>
@@ -1374,11 +1374,11 @@ const SessionDetailView: React.FC<Props> = ({
                         {/* Nivel recomendado */}
                         <td className="px-3 py-2.5">
                           {result.recommendedLevel ? (
-                            <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-xs font-medium bg-gray-800 text-gray-300 border border-line">
+                            <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-xs font-medium bg-muted text-muted-foreground border border-line">
                               {result.recommendedLevel}
                             </span>
                           ) : (
-                            <span className="text-gray-600">—</span>
+                            <span className="text-muted-foreground/50">—</span>
                           )}
                         </td>
                       </tr>
@@ -1386,14 +1386,14 @@ const SessionDetailView: React.FC<Props> = ({
                       {/* ── Panel de detalle expandible ─────────────────── */}
                       {isExpanded && (
                         <tr key={`detail-${result.id}`}>
-                          <td colSpan={9} className="px-0 py-0 bg-gray-900/50 border-b border-line">
+                          <td colSpan={9} className="px-0 py-0 bg-card border-b border-line">
                             <div className="p-4 space-y-4">
 
                               {/* Estado: cargando detalle */}
                               {detailLoading && (
                                 <div className="flex items-center gap-2 py-6">
                                   <Loader2 className="w-4 h-4 text-blue-400 animate-spin" />
-                                  <span className="text-sm text-gray-400">
+                                  <span className="text-sm text-muted-foreground">
                                     Cargando detalle del examen...
                                   </span>
                                 </div>
@@ -1413,17 +1413,17 @@ const SessionDetailView: React.FC<Props> = ({
                                   {/* Sección 1: Barras de competencias */}
                                   {detailData.competencyScores.length > 0 && (
                                     <div>
-                                      <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">
+                                      <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">
                                         Competencias
                                       </p>
                                       <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
                                         {detailData.competencyScores.map((cs) => (
                                           <div
                                             key={cs.competency}
-                                            className="bg-gray-800/50 border border-line rounded-lg px-3 py-2 space-y-1"
+                                            className="bg-muted/50 border border-line rounded-lg px-3 py-2 space-y-1"
                                           >
                                             <div className="flex items-center justify-between gap-2">
-                                              <span className="text-xs text-gray-300 capitalize truncate">
+                                              <span className="text-xs text-foreground/80 capitalize truncate">
                                                 {cs.competency}
                                               </span>
                                               <span
@@ -1433,7 +1433,7 @@ const SessionDetailView: React.FC<Props> = ({
                                               </span>
                                             </div>
                                             <div
-                                              className="h-1 w-full rounded-full bg-gray-700 overflow-hidden"
+                                              className="h-1 w-full rounded-full bg-muted overflow-hidden"
                                               role="progressbar"
                                               aria-valuenow={cs.percentage}
                                               aria-valuemin={0}
@@ -1447,7 +1447,7 @@ const SessionDetailView: React.FC<Props> = ({
                                                 }}
                                               />
                                             </div>
-                                            <div className="flex items-center gap-2 text-xs text-gray-500">
+                                            <div className="flex items-center gap-2 text-xs text-muted-foreground">
                                               <span>{cs.totalScore}/{cs.maxScore} pts</span>
                                               {cs.pendingEvaluationCount > 0 && (
                                                 <span className="text-yellow-500">
@@ -1463,11 +1463,11 @@ const SessionDetailView: React.FC<Props> = ({
 
                                   {/* Sección 2: Feedback general */}
                                   {detailData.overallFeedback && (
-                                    <div className="bg-gray-800/40 border border-line rounded-lg px-3 py-2.5">
-                                      <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1">
+                                    <div className="bg-muted/40 border border-line rounded-lg px-3 py-2.5">
+                                      <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1">
                                         Retroalimentación general
                                       </p>
-                                      <p className="text-xs text-gray-300 italic leading-relaxed">
+                                      <p className="text-xs text-foreground/80 italic leading-relaxed">
                                         {detailData.overallFeedback}
                                       </p>
                                     </div>
@@ -1477,10 +1477,10 @@ const SessionDetailView: React.FC<Props> = ({
                                   {detailData.questionResults.length > 0 && (
                                     <div className="space-y-3">
                                       <div className="flex items-center gap-2">
-                                        <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide">
+                                        <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
                                           Preguntas
                                         </p>
-                                        <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-xs font-medium bg-gray-800 text-gray-400 border border-line">
+                                        <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-xs font-medium bg-muted text-muted-foreground border border-line">
                                           {detailData.questionResults.length}
                                         </span>
                                       </div>
@@ -1489,7 +1489,7 @@ const SessionDetailView: React.FC<Props> = ({
                                         const qScorePct = qr.maxScore > 0 ? (qr.score / qr.maxScore) * 100 : 0;
                                         const methodLabel = qr.evaluationMethod === "automatic" ? "Automática" : qr.evaluationMethod === "ai_grading" ? "IA" : "Manual";
                                         const methodCls = qr.evaluationMethod === "automatic"
-                                          ? "bg-gray-700/60 text-gray-300 border-gray-600/40"
+                                          ? "bg-muted/60 text-muted-foreground border-border/40"
                                           : qr.evaluationMethod === "ai_grading"
                                           ? "bg-blue-900/40 text-blue-300 border-blue-700/40"
                                           : "bg-orange-900/40 text-orange-300 border-orange-700/40";
@@ -1500,14 +1500,14 @@ const SessionDetailView: React.FC<Props> = ({
                                           : "bg-blue-900/30 text-blue-300 border-blue-700/40";
 
                                         return (
-                                          <div key={qr.questionId} className="bg-gray-800/30 border border-line rounded-xl overflow-hidden">
+                                          <div key={qr.questionId} className="bg-muted/30 border border-line rounded-xl overflow-hidden">
                                             {/* Question header */}
                                             <div className="flex items-start justify-between gap-3 px-4 py-3 border-b border-line/50">
                                               <div className="flex items-center gap-2.5 flex-wrap min-w-0">
-                                                <span className="bg-gray-700 text-white px-2.5 py-0.5 rounded-full text-xs font-medium shrink-0">
+                                                <span className="bg-muted text-foreground px-2.5 py-0.5 rounded-full text-xs font-medium shrink-0">
                                                   #{qIdx + 1}
                                                 </span>
-                                                <span className="text-xs text-gray-300 font-medium">
+                                                <span className="text-xs text-foreground/80 font-medium">
                                                   {typeLabel[qr.questionType] ?? qr.questionType}
                                                 </span>
                                                 <span className={`inline-flex items-center px-2 py-0.5 rounded border text-xs ${getCompetencyColor(qr.competency)}`}>
@@ -1531,19 +1531,19 @@ const SessionDetailView: React.FC<Props> = ({
                                             <div className="px-4 py-3 space-y-3">
                                               {/* Context */}
                                               {qr.questionData?.context && (
-                                                <div className="bg-gray-900/50 border border-line rounded-lg px-3 py-2">
-                                                  <p className="text-xs text-gray-400 italic leading-relaxed">{qr.questionData.context}</p>
+                                                <div className="bg-card border border-line rounded-lg px-3 py-2">
+                                                  <p className="text-xs text-muted-foreground italic leading-relaxed">{qr.questionData.context}</p>
                                                 </div>
                                               )}
 
                                               {/* Instructions */}
                                               {qr.questionData?.instructions && (
-                                                <p className="text-xs text-gray-400">{qr.questionData.instructions}</p>
+                                                <p className="text-xs text-muted-foreground">{qr.questionData.instructions}</p>
                                               )}
 
                                               {/* Question text */}
                                               {qr.questionData?.questionText && (
-                                                <p className="text-sm text-gray-100 font-medium leading-snug">{qr.questionData.questionText}</p>
+                                                <p className="text-sm text-foreground font-medium leading-snug">{qr.questionData.questionText}</p>
                                               )}
 
                                               {/* Media */}
@@ -1551,12 +1551,12 @@ const SessionDetailView: React.FC<Props> = ({
 
                                               {/* Response */}
                                               <div>
-                                                <p className="text-xs text-gray-500 uppercase tracking-wide mb-1.5">Respuesta del candidato</p>
+                                                <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1.5">Respuesta del candidato</p>
                                                 {renderResponse(qr)}
                                               </div>
 
                                               {/* Progress bar for score */}
-                                              <div className="h-1 w-full rounded-full bg-gray-700 overflow-hidden">
+                                              <div className="h-1 w-full rounded-full bg-muted overflow-hidden">
                                                 <div
                                                   className={`h-full rounded-full transition-all ${qScorePct >= 70 ? "bg-emerald-500" : qScorePct >= 40 ? "bg-orange-500" : "bg-red-500"}`}
                                                   style={{ width: `${Math.min(qScorePct, 100)}%` }}
@@ -1617,19 +1617,19 @@ const SessionDetailView: React.FC<Props> = ({
       </div>
 
       {/* ══ Fila 5: Metadata footer ══════════════════════════════════════════ */}
-      <div className="flex flex-wrap gap-x-6 gap-y-1.5 text-xs text-gray-500 px-1">
+      <div className="flex flex-wrap gap-x-6 gap-y-1.5 text-xs text-muted-foreground px-1">
         {session._id && (
           <span className="flex items-center gap-1.5">
-            <span className="text-gray-600">ID</span>
-            <span className="font-mono text-gray-400 select-all">
+            <span className="text-muted-foreground/60">ID</span>
+            <span className="font-mono text-muted-foreground select-all">
               {session._id}
             </span>
           </span>
         )}
         {session.createdBy && (
           <span className="flex items-center gap-1.5">
-            <span className="text-gray-600">Creado por</span>
-            <span className="text-gray-400">
+            <span className="text-muted-foreground/60">Creado por</span>
+            <span className="text-muted-foreground">
               {typeof session.createdBy === 'object' && session.createdBy !== null
                 ? `${(session.createdBy as any).firstName ?? ''} ${(session.createdBy as any).lastName ?? ''}`.trim()
                 : session.createdBy}
