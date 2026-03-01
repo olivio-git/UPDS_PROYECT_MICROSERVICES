@@ -262,20 +262,20 @@ const SessionForm: React.FC<Props> = ({ session, onCancel, onSaved }) => {
       setLoading(false);
     }
   }; 
-  const baseInput = "bg-gray-800/50 border-gray-600 text-white placeholder-gray-400 border-[0.5px] focus:border-blue-500 focus:ring-0 rounded-lg";
+  const baseInput = "bg-muted/50 border-border text-foreground placeholder:text-muted-foreground border-[0.5px] focus:border-blue-500 focus:ring-0 rounded-lg";
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-8">
       {/* Información básica */}
       <div className="space-y-4">
-        <h4 className="text-md font-semibold text-gray-200 flex items-center gap-2">
-          <Calendar className="w-5 h-5 text-gray-2000" />
+        <h4 className="text-md font-semibold text-foreground flex items-center gap-2">
+          <Calendar className="w-5 h-5 text-muted-foreground" />
           Información Básica
         </h4>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <label className="block text-sm font-medium text-gray-400 mb-1">Nombre de la Sesión *</label>
+            <label className="block text-sm font-medium text-muted-foreground mb-1">Nombre de la Sesión *</label>
             <Input
               type="text"
               placeholder="Ej: Evaluación Nivel B1 - Enero 2025"
@@ -286,7 +286,7 @@ const SessionForm: React.FC<Props> = ({ session, onCancel, onSaved }) => {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-400 mb-1">Examen *</label>
+            <label className="block text-sm font-medium text-muted-foreground mb-1">Examen *</label>
             <select
               {...register("examId")}
               className={`w-full px-3 py-2 text-sm ${baseInput}`}
@@ -317,12 +317,12 @@ const SessionForm: React.FC<Props> = ({ session, onCancel, onSaved }) => {
 
       {/* NUEVO: Tipo de Sesión */}
       <div className="space-y-4">
-        <h4 className="text-md font-semibold text-gray-200 flex items-center gap-2">
-          <Settings className="w-5 h-5 text-gray-200" />
+        <h4 className="text-md font-semibold text-foreground flex items-center gap-2">
+          <Settings className="w-5 h-5 text-muted-foreground" />
           Tipo de Sesión
         </h4>
         
-        <div className="bg-gray-800/30 border border-gray-700 rounded-lg p-4">
+        <div className="bg-muted/30 border border-border rounded-lg p-4">
           <Controller
             name="sessionType"
             control={control}
@@ -330,14 +330,14 @@ const SessionForm: React.FC<Props> = ({ session, onCancel, onSaved }) => {
               <div className="flex items-center justify-between">
                 <div className="space-y-1">
                   <div className="flex items-center gap-2">
-                    <span className="text-sm font-medium text-gray-300">
+                    <span className="text-sm font-medium text-foreground/80">
                       {field.value === 'group_synchronized' ? 'Grupal Sincronizada' : 'Individual Flexible'}
                     </span>
                     {field.value === 'individual_flexible' && (
                       <AlertCircle className="w-4 h-4 text-amber-400" />
                     )}
                   </div>
-                  <p className="text-xs text-gray-500">
+                  <p className="text-xs text-muted-foreground">
                     {field.value === 'group_synchronized' 
                       ? 'Todos los estudiantes inician y terminan al mismo tiempo'
                       : 'Los estudiantes pueden entrar en horarios flexibles dentro de la ventana programada'
@@ -359,15 +359,15 @@ const SessionForm: React.FC<Props> = ({ session, onCancel, onSaved }) => {
 
       {/* Programación */}
       <div className="space-y-4">
-        <h4 className="text-md font-semibold text-gray-200 flex items-center gap-2">
-          <Calendar className="w-5 h-5s text-gray-200" />
+        <h4 className="text-md font-semibold text-foreground flex items-center gap-2">
+          <Calendar className="w-5 h-5 text-muted-foreground" />
           Programación
         </h4>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {/* Inicio: date + time separados */}
           <div>
-            <label className="block text-sm font-medium text-gray-400 mb-1">Fecha y Hora de Inicio *</label>
+            <label className="block text-sm font-medium text-muted-foreground mb-1">Fecha y Hora de Inicio *</label>
             {/* Hidden field keeps RHF validation working */}
             <input type="hidden" {...register("scheduling.startDate")} />
             <div className="flex gap-2">
@@ -391,7 +391,7 @@ const SessionForm: React.FC<Props> = ({ session, onCancel, onSaved }) => {
 
           {/* Fin: date + time separados */}
           <div>
-            <label className="block text-sm font-medium text-gray-400 mb-1">Fecha y Hora de Fin *</label>
+            <label className="block text-sm font-medium text-muted-foreground mb-1">Fecha y Hora de Fin *</label>
             <input type="hidden" {...register("scheduling.endDate")} />
             <div className="flex gap-2">
               <input
@@ -419,14 +419,14 @@ const SessionForm: React.FC<Props> = ({ session, onCancel, onSaved }) => {
 
       {/* Participantes */}
       <div className="space-y-4">
-        <h4 className="text-md font-semibold text-gray-200 flex items-center gap-2">
-          <Users className="w-5 h-5 text-green-400 text-white" />
+        <h4 className="text-md font-semibold text-foreground flex items-center gap-2">
+          <Users className="w-5 h-5 text-green-400" />
           Participantes
         </h4>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div>
-            <label className="block text-sm font-medium text-gray-400 mb-1">Máximo de Candidatos *</label>
+            <label className="block text-sm font-medium text-muted-foreground mb-1">Máximo de Candidatos *</label>
             <Input
               type="number"
               min={1}
@@ -566,8 +566,8 @@ const SessionForm: React.FC<Props> = ({ session, onCancel, onSaved }) => {
 
       {/* Configuración */}
       <div className="space-y-4">
-        <h4 className="text-md font-semibold text-gray-200 flex items-center gap-2">
-          <Settings className="w-5 h-5 text-gray-400" />
+        <h4 className="text-md font-semibold text-foreground flex items-center gap-2">
+          <Settings className="w-5 h-5 text-muted-foreground" />
           Configuración
         </h4>
 
@@ -578,10 +578,10 @@ const SessionForm: React.FC<Props> = ({ session, onCancel, onSaved }) => {
                 name="settings.autoStart"
                 control={control}
                 render={({ field }) => (
-                  <input type="checkbox" checked={field.value} onChange={field.onChange} className="h-4 w-4 rounded border-gray-600" />
+                  <input type="checkbox" checked={field.value} onChange={field.onChange} className="h-4 w-4 rounded border-border" />
                 )}
               />
-              <span className="text-sm text-gray-200">Habilitar Inicio Automático</span>
+              <span className="text-sm text-foreground">Habilitar Inicio Automático</span>
             </div>
             
             <div className="flex items-center gap-2">
@@ -589,10 +589,10 @@ const SessionForm: React.FC<Props> = ({ session, onCancel, onSaved }) => {
                 name="settings.requireProctor"
                 control={control}
                 render={({ field }) => (
-                  <input type="checkbox" checked={field.value} onChange={field.onChange} className="h-4 w-4 rounded border-gray-600" />
+                  <input type="checkbox" checked={field.value} onChange={field.onChange} className="h-4 w-4 rounded border-border" />
                 )}
               />
-              <span className="text-sm text-gray-200">Requiere Proctor</span>
+              <span className="text-sm text-foreground">Requiere Proctor</span>
             </div>
 
             <div className="flex items-center gap-2">
@@ -600,10 +600,10 @@ const SessionForm: React.FC<Props> = ({ session, onCancel, onSaved }) => {
                 name="settings.enableRecording"
                 control={control}
                 render={({ field }) => (
-                  <input type="checkbox" checked={field.value} onChange={field.onChange} className="h-4 w-4 rounded border-gray-600" />
+                  <input type="checkbox" checked={field.value} onChange={field.onChange} className="h-4 w-4 rounded border-border" />
                 )}
               />
-              <span className="text-sm text-gray-200">Habilitar Grabación</span>
+              <span className="text-sm text-foreground">Habilitar Grabación</span>
             </div>
 
             <div className="flex items-center gap-2">
@@ -611,10 +611,10 @@ const SessionForm: React.FC<Props> = ({ session, onCancel, onSaved }) => {
                 name="settings.enableLockdown"
                 control={control}
                 render={({ field }) => (
-                  <input type="checkbox" checked={field.value} onChange={field.onChange} className="h-4 w-4 rounded border-gray-600" />
+                  <input type="checkbox" checked={field.value} onChange={field.onChange} className="h-4 w-4 rounded border-border" />
                 )}
               />
-              <span className="text-sm text-gray-200">Modo Bloqueo de Navegador</span>
+              <span className="text-sm text-foreground">Modo Bloqueo de Navegador</span>
             </div> 
           </div>
 
@@ -624,15 +624,15 @@ const SessionForm: React.FC<Props> = ({ session, onCancel, onSaved }) => {
                 name="settings.allowLateEntry"
                 control={control}
                 render={({ field }) => (
-                  <input type="checkbox" checked={field.value} onChange={field.onChange} className="h-4 w-4 rounded border-gray-600" />
+                  <input type="checkbox" checked={field.value} onChange={field.onChange} className="h-4 w-4 rounded border-border" />
                 )}
               />
-              <span className="text-sm text-gray-200">Permitir Entrada Tardía</span>
+              <span className="text-sm text-foreground">Permitir Entrada Tardía</span>
             </div>
 
             {watchAllowLateEntry && (
               <div>
-                <label className="block text-sm font-medium text-gray-400 mb-1">Minutos de Tolerancia</label>
+                <label className="block text-sm font-medium text-muted-foreground mb-1">Minutos de Tolerancia</label>
                 <Input
                   type="number"
                   min={0}
@@ -648,7 +648,7 @@ const SessionForm: React.FC<Props> = ({ session, onCancel, onSaved }) => {
 
       {/* Botones */}
       <div className="flex justify-end gap-3 pt-4 border-t border-line">
-        <Button type="button" variant="outline" onClick={onCancel} className="border-line text-gray-300 bg-transparent">
+        <Button type="button" variant="outline" onClick={onCancel} className="border-line text-foreground/80 bg-transparent">
           Cancelar
         </Button>
         <Button type="submit" disabled={loading || !validateDateRange()} className="bg-blue-600 hover:bg-blue-700 text-white">

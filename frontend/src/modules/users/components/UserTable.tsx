@@ -108,7 +108,7 @@ const UserTable: React.FC<UserTableProps> = ({
     active:   "bg-green-900/20  text-green-400  border-green-800/30",
     pending:  "bg-yellow-900/20 text-yellow-400 border-yellow-800/30",
     suspended:"bg-orange-900/20 text-orange-400 border-orange-800/30",
-    inactive: "bg-gray-900/20  text-gray-400  border-gray-800/30",
+    inactive: "bg-muted/50  text-muted-foreground  border-border/50",
     blocked:  "bg-red-900/20   text-red-400   border-red-800/30",
   };
 
@@ -168,24 +168,24 @@ const UserTable: React.FC<UserTableProps> = ({
         
         return (
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
+            <div className="w-8 h-8 bg-blue-500/20 rounded-full flex items-center justify-center">
               {user.profile?.avatar ? (
-                <img 
-                  src={user.profile.avatar} 
+                <img
+                  src={user.profile.avatar}
                   alt={`${user.firstName} ${user.lastName}`}
                   className="w-8 h-8 rounded-full object-cover"
                 />
               ) : (
-                <span className="text-blue-600 text-sm font-medium">
+                <span className="text-blue-400 text-sm font-medium">
                   {initials}
                 </span>
               )}
             </div>
             <div>
-              <p className="font-medium text-gray-200">
+              <p className="font-medium text-foreground">
                 {user.firstName} {user.lastName}
               </p>
-              <p className="text-sm text-gray-500">
+              <p className="text-sm text-muted-foreground">
                 {user.email}
               </p>
             </div>
@@ -203,7 +203,7 @@ const UserTable: React.FC<UserTableProps> = ({
       header: 'Rol',
       cell: ({ getValue }) => {
         const role = String(getValue() ?? '').toLowerCase();
-        const cls = roleBadgeClasses[role] ?? "bg-gray-900/20 text-gray-300 border-gray-800/30";
+        const cls = roleBadgeClasses[role] ?? "bg-muted/50 text-muted-foreground border-border/50";
         const labelMap: Record<string, string> = {
           admin: 'Administrador',
           teacher: 'Profesor',
@@ -227,7 +227,7 @@ const UserTable: React.FC<UserTableProps> = ({
       header: 'Estado',
       cell: ({ getValue }) => {
         const status = String(getValue() ?? '').toLowerCase();
-        const cls = statusBadgeClasses[status] ?? "bg-gray-900/20 text-gray-400 border-gray-800/30";
+        const cls = statusBadgeClasses[status] ?? "bg-muted/50 text-muted-foreground border-border/50";
 
         // Si quieres usar etiquetas de USER_STATUSES:
         // const cfg = USER_STATUSES.find(s => s.value === status);
@@ -264,7 +264,7 @@ const UserTable: React.FC<UserTableProps> = ({
         
         return (
           <div className="text-sm">
-            <p className="text-gray-200">
+            <p className="text-foreground">
               Tel: {user.profile?.phone || 'No registrado'}
             </p>
             {/* <p className="text-gray-500">
@@ -285,10 +285,10 @@ const UserTable: React.FC<UserTableProps> = ({
         const date = new Date(getValue());
         return (
           <div className="text-sm">
-            <p className="text-gray-200">
+            <p className="text-foreground">
               {format(date, 'dd/MM/yyyy', { locale: es })}
             </p>
-            <p className="text-gray-500">
+            <p className="text-muted-foreground">
               {format(date, 'HH:mm', { locale: es })}
             </p>
           </div>
@@ -308,27 +308,27 @@ const UserTable: React.FC<UserTableProps> = ({
         
         return (
           <DropdownMenu>
-            <DropdownMenuTrigger asChild className='bg-box border border-line rounded-md p-1 hover:bg-gray-800'>
+            <DropdownMenuTrigger asChild className='bg-box border border-line rounded-md p-1 hover:bg-muted'>
               <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                <MoreVertical className="h-4 w-4 text-white" />
+                <MoreVertical className="h-4 w-4 text-foreground" />
                 <span className="sr-only">Abrir menú</span>
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-48 bg-box border-line text-gray-200">
+            <DropdownMenuContent align="end" className="w-48 bg-box border-line text-foreground">
               {/* Ver detalles */}
-              <DropdownMenuItem className='hover:bg-gray-800' onClick={() => onViewUser(user)}>
+              <DropdownMenuItem className='hover:bg-muted' onClick={() => onViewUser(user)}>
                 <Eye className="mr-2 h-4 w-4" />
                 Ver detalles
               </DropdownMenuItem>
-              
+
               {/* Editar */}
-              <DropdownMenuItem className='hover:bg-gray-800' onClick={() => onEditUser(user)}>
+              <DropdownMenuItem className='hover:bg-muted' onClick={() => onEditUser(user)}>
                 <Edit className="mr-2 h-4 w-4" />
                 Editar
               </DropdownMenuItem>
 
               {/* Enviar email */}
-              <DropdownMenuItem className='hover:bg-gray-800' onClick={() => onSendEmail(user)}>
+              <DropdownMenuItem className='hover:bg-muted' onClick={() => onSendEmail(user)}>
                 <Mail className="mr-2 h-4 w-4" />
                 Enviar email
               </DropdownMenuItem>
@@ -336,13 +336,13 @@ const UserTable: React.FC<UserTableProps> = ({
               <DropdownMenuSeparator />
 
               {/* Asignar rol */}
-              <DropdownMenuItem className='hover:bg-gray-800' onClick={() => onAssignRole(user)}>
+              <DropdownMenuItem className='hover:bg-muted' onClick={() => onAssignRole(user)}>
                 <Shield className="mr-2 h-4 w-4" />
                 Asignar rol
               </DropdownMenuItem>
 
               {/* Generar contraseña */}
-              <DropdownMenuItem className='hover:bg-gray-800' onClick={() => onGeneratePassword(user)}>
+              <DropdownMenuItem className='hover:bg-muted' onClick={() => onGeneratePassword(user)}>
                 <Key className="mr-2 h-4 w-4" />
                 Nueva contraseña
               </DropdownMenuItem>
@@ -351,17 +351,17 @@ const UserTable: React.FC<UserTableProps> = ({
 
               {/* Activar/Desactivar */}
               {user.status === 'active' ? (
-                <DropdownMenuItem 
+                <DropdownMenuItem
                   onClick={() => onDeactivateUser(user)}
-                  className="text-orange-600 hover:bg-gray-800"
+                  className="text-orange-600 hover:bg-muted"
                 >
                   <UserX className="mr-2 h-4 w-4" />
                   Desactivar
                 </DropdownMenuItem>
               ) : (
-                <DropdownMenuItem 
+                <DropdownMenuItem
                   onClick={() => onActivateUser(user)}
-                  className="text-green-600 hover:bg-gray-800"
+                  className="text-green-600 hover:bg-muted"
                 >
                   <UserCheck className="mr-2 h-4 w-4" />
                   Activar
@@ -371,9 +371,9 @@ const UserTable: React.FC<UserTableProps> = ({
               <DropdownMenuSeparator />
 
               {/* Eliminar */}
-              <DropdownMenuItem 
+              <DropdownMenuItem
                 onClick={() => onDeleteUser(user)}
-                className="text-red-600 hover:bg-gray-800"
+                className="text-red-600 hover:bg-muted"
               >
                 <Trash2 className="mr-2 h-4 w-4" />
                 Eliminar
@@ -422,7 +422,7 @@ const UserTable: React.FC<UserTableProps> = ({
       {/* Paginación - Debug: siempre mostrar si hay datos */}
       {totalItems > 0 && onPageChange && (
         <div className="px-6 py-4 border-t border-line flex flex-col sm:flex-row items-center justify-between gap-4">
-          <div className="text-sm text-gray-400">
+          <div className="text-sm text-muted-foreground">
             Mostrando {(currentPage - 1) * itemsPerPage + 1} a{' '}
             {Math.min(currentPage * itemsPerPage, totalItems)} de {totalItems}{' '}
             usuarios
@@ -433,7 +433,7 @@ const UserTable: React.FC<UserTableProps> = ({
               disabled={currentPage === 1}
               className="p-2 bg-dark-light border border-line rounded-lg hover:bg-dark-light/80 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
             >
-              <ChevronLeft className="w-4 h-4 text-gray-400" />
+              <ChevronLeft className="w-4 h-4 text-muted-foreground" />
             </button>
 
             <div className="flex gap-1">
@@ -446,7 +446,7 @@ const UserTable: React.FC<UserTableProps> = ({
                     className={`px-3 py-1 rounded-lg transition-all ${
                       page === currentPage
                         ? 'bg-blue-600 text-white'
-                        : 'bg-dark-light border border-line text-gray-400 hover:bg-dark-light/80'
+                        : 'bg-dark-light border border-line text-muted-foreground hover:bg-dark-light/80'
                     }`}
                   >
                     {page}
@@ -460,7 +460,7 @@ const UserTable: React.FC<UserTableProps> = ({
               disabled={currentPage === totalPages}
               className="p-2 bg-dark-light border border-line rounded-lg hover:bg-dark-light/80 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
             >
-              <ChevronRight className="w-4 h-4 text-gray-400" />
+              <ChevronRight className="w-4 h-4 text-muted-foreground" />
             </button>
           </div>
         </div>

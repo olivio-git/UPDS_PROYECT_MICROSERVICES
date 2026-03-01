@@ -129,7 +129,7 @@ const AdminDashboard: React.FC = () => {
       case 'healthy': return 'text-green-600 bg-green-100';
       case 'warning': return 'text-yellow-600 bg-yellow-100';
       case 'critical': return 'text-red-600 bg-red-100';
-      default: return 'text-gray-600 bg-gray-100';
+      default: return 'text-muted-foreground bg-muted';
     }
   };
 
@@ -148,7 +148,7 @@ const AdminDashboard: React.FC = () => {
       case 'success': return 'text-green-600';
       case 'warning': return 'text-yellow-600';
       case 'error': return 'text-red-600';
-      default: return 'text-gray-600';
+      default: return 'text-muted-foreground';
     }
   };
 
@@ -158,7 +158,7 @@ const AdminDashboard: React.FC = () => {
         <div className="min-h-screen flex items-center justify-center">
           <div className="text-center space-y-4">
             <Loader2 className="h-12 w-12 animate-spin mx-auto text-blue-600" />
-            <p className="text-gray-600">Cargando dashboard...</p>
+            <p className="text-muted-foreground">Cargando dashboard...</p>
           </div>
         </div>
       </MainLayout>
@@ -171,10 +171,10 @@ const AdminDashboard: React.FC = () => {
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">
+            <h1 className="text-3xl font-bold text-foreground">
               Panel de Administración
             </h1>
-            <p className="text-gray-600 dark:text-gray-400">
+            <p className="text-muted-foreground">
               Gestiona y monitorea el sistema de evaluación
             </p>
           </div>
@@ -191,10 +191,10 @@ const AdminDashboard: React.FC = () => {
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-gray-600 dark:text-gray-400">
+                  <p className="text-sm font-medium text-muted-foreground">
                     Total Usuarios
                   </p>
-                  <p className="text-3xl font-bold text-gray-900 dark:text-gray-100">
+                  <p className="text-3xl font-bold text-foreground">
                     {overview.totalUsers.toLocaleString()}
                   </p>
                   <p className="text-sm text-green-600">
@@ -210,10 +210,10 @@ const AdminDashboard: React.FC = () => {
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-gray-600 dark:text-gray-400">
+                  <p className="text-sm font-medium text-muted-foreground">
                     Exámenes
                   </p>
-                  <p className="text-3xl font-bold text-gray-900 dark:text-gray-100">
+                  <p className="text-3xl font-bold text-foreground">
                     {overview.totalExams}
                   </p>
                   <p className="text-sm text-blue-600">
@@ -229,13 +229,13 @@ const AdminDashboard: React.FC = () => {
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-gray-600 dark:text-gray-400">
+                  <p className="text-sm font-medium text-muted-foreground">
                     Sistema
                   </p>
-                  <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">
+                  <p className="text-2xl font-bold text-foreground">
                     {overview.uptime}
                   </p>
-                  <p className="text-sm text-gray-600">
+                  <p className="text-sm text-muted-foreground">
                     Tiempo activo
                   </p>
                 </div>
@@ -248,7 +248,7 @@ const AdminDashboard: React.FC = () => {
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-gray-600 dark:text-gray-400">
+                  <p className="text-sm font-medium text-muted-foreground">
                     Estado del Sistema
                   </p>
                   <div className="flex items-center space-x-2 mt-2">
@@ -286,7 +286,7 @@ const AdminDashboard: React.FC = () => {
               {systemLoading ? (
                 <div className="text-center py-4">
                   <Loader2 className="h-6 w-6 animate-spin mx-auto" />
-                  <p className="text-sm text-gray-600 mt-2">Cargando métricas...</p>
+                  <p className="text-sm text-muted-foreground mt-2">Cargando métricas...</p>
                 </div>
               ) : systemError ? (
                 <div className="text-center py-4 text-red-600">
@@ -349,15 +349,15 @@ const AdminDashboard: React.FC = () => {
             <CardContent>
               <div className="space-y-4">
                 {recentActivity.map((activity) => (
-                  <div key={activity.id} className="flex items-start space-x-3 p-3 rounded-lg bg-gray-50 dark:bg-gray-800">
+                  <div key={activity.id} className="flex items-start space-x-3 p-3 rounded-lg bg-muted">
                     <div className={`p-2 rounded-full ${getStatusColor(activity.status)} bg-current bg-opacity-10`}>
                       {getActivityIcon(activity.type)}
                     </div>
                     <div className="flex-1">
-                      <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                      <p className="text-sm font-medium text-foreground">
                         {activity.description}
                       </p>
-                      <p className="text-xs text-gray-500 dark:text-gray-400">
+                      <p className="text-xs text-muted-foreground">
                         {activity.timestamp.toLocaleTimeString('es-ES')}
                       </p>
                     </div>
@@ -386,7 +386,7 @@ const AdminDashboard: React.FC = () => {
                 <Users className="h-6 w-6" />
                 <div className="text-left">
                   <div className="font-semibold">Gestionar Usuarios</div>
-                  <div className="text-xs text-gray-500">Crear, editar y administrar usuarios</div>
+                  <div className="text-xs text-muted-foreground">Crear, editar y administrar usuarios</div>
                 </div>
               </Button>
 
@@ -398,7 +398,7 @@ const AdminDashboard: React.FC = () => {
                 <BookOpen className="h-6 w-6" />
                 <div className="text-left">
                   <div className="font-semibold">Gestionar Exámenes</div>
-                  <div className="text-xs text-gray-500">Crear y administrar evaluaciones</div>
+                  <div className="text-xs text-muted-foreground">Crear y administrar evaluaciones</div>
                 </div>
               </Button>
 
@@ -410,7 +410,7 @@ const AdminDashboard: React.FC = () => {
                 <Activity className="h-6 w-6" />
                 <div className="text-left">
                   <div className="font-semibold">Monitoreo del Sistema</div>
-                  <div className="text-xs text-gray-500">Ver métricas y rendimiento</div>
+                  <div className="text-xs text-muted-foreground">Ver métricas y rendimiento</div>
                 </div>
               </Button>
 
@@ -422,7 +422,7 @@ const AdminDashboard: React.FC = () => {
                 <FileText className="h-6 w-6" />
                 <div className="text-left">
                   <div className="font-semibold">Generar Reportes</div>
-                  <div className="text-xs text-gray-500">Reportes y análisis de datos</div>
+                  <div className="text-xs text-muted-foreground">Reportes y análisis de datos</div>
                 </div>
               </Button>
             </div>

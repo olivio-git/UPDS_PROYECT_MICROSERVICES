@@ -78,8 +78,8 @@ const STATUS_BADGE: Record<
   { border: string; text: string; bg: string }
 > = {
   pending: {
-    border: "border-gray-700",
-    text: "text-gray-500",
+    border: "border-border",
+    text: "text-muted-foreground",
     bg: "bg-transparent",
   },
   checking: {
@@ -507,7 +507,7 @@ const ExamPreparation = () => {
 
   const renderCheckAction = (check: TechnicalCheck) => {
     const btnBase =
-      "h-7 px-3 text-xs border border-gray-700 bg-transparent text-gray-300 hover:border-gray-500 hover:bg-gray-800 rounded-md flex items-center gap-1.5 transition-colors disabled:opacity-40 disabled:pointer-events-none";
+      "h-7 px-3 text-xs border border-border bg-transparent text-muted-foreground hover:border-border/80 hover:bg-muted rounded-md flex items-center gap-1.5 transition-colors disabled:opacity-40 disabled:pointer-events-none";
 
     if (check.name === "Conexión a Internet") {
       return (
@@ -566,7 +566,7 @@ const ExamPreparation = () => {
     return (
       <MainLayout>
         <div className="min-h-screen flex items-center justify-center">
-          <div className="flex flex-col items-center gap-3 text-gray-400">
+          <div className="flex flex-col items-center gap-3 text-muted-foreground">
             <Loader2 className="h-7 w-7 animate-spin text-blue-400" />
             <p className="text-sm">Inicializando verificación técnica...</p>
           </div>
@@ -586,7 +586,7 @@ const ExamPreparation = () => {
             </Alert>
             <button
               onClick={() => navigate(-1)}
-              className="flex items-center gap-1.5 text-sm text-gray-400 hover:text-gray-200 transition-colors"
+              className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
             >
               <ArrowLeft className="h-4 w-4" />
               Volver
@@ -606,7 +606,7 @@ const ExamPreparation = () => {
         {/* Back button */}
         <button
           onClick={() => navigate(-1)}
-          className="flex items-center gap-1.5 text-sm text-gray-400 hover:text-gray-200 mb-6 transition-colors"
+          className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground mb-6 transition-colors"
         >
           <ArrowLeft className="h-4 w-4" />
           Volver
@@ -614,33 +614,33 @@ const ExamPreparation = () => {
 
         {/* Exam info */}
         {examData && (
-          <div className="mb-5 rounded-xl border border-gray-800 bg-gray-900/60 p-5">
+          <div className="mb-5 rounded-xl border border-border bg-card/60 p-5">
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0">
-                <h1 className="text-base font-semibold text-white leading-snug">
+                <h1 className="text-base font-semibold text-foreground leading-snug">
                   {examData.name}
                 </h1>
                 <div className="flex flex-wrap gap-x-4 gap-y-1.5 mt-2.5">
                   {examData.date && (
-                    <span className="flex items-center gap-1.5 text-xs text-gray-400">
+                    <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
                       <Calendar className="h-3.5 w-3.5" />
                       {examData.date}
                     </span>
                   )}
                   {examData.time && (
-                    <span className="flex items-center gap-1.5 text-xs text-gray-400">
+                    <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
                       <Clock className="h-3.5 w-3.5" />
                       {examData.time}
                     </span>
                   )}
                   {examData.duration && (
-                    <span className="flex items-center gap-1.5 text-xs text-gray-400">
+                    <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
                       <Clock className="h-3.5 w-3.5 opacity-50" />
                       {examData.duration}
                     </span>
                   )}
                   {examData.level && (
-                    <span className="flex items-center gap-1.5 text-xs text-gray-400">
+                    <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
                       <GraduationCap className="h-3.5 w-3.5" />
                       Nivel {examData.level}
                     </span>
@@ -648,7 +648,7 @@ const ExamPreparation = () => {
                 </div>
               </div>
               {examData.createdBy && (
-                <div className="flex items-center gap-1.5 text-xs text-gray-600 flex-shrink-0 mt-0.5">
+                <div className="flex items-center gap-1.5 text-xs text-muted-foreground/60 flex-shrink-0 mt-0.5">
                   <User className="h-3.5 w-3.5" />
                   {examData.createdBy.firstName} {examData.createdBy.lastName}
                 </div>
@@ -658,15 +658,15 @@ const ExamPreparation = () => {
         )}
 
         {/* Verification card */}
-        <div className="mb-5 rounded-xl border border-gray-800 bg-gray-900/60 overflow-hidden">
+        <div className="mb-5 rounded-xl border border-border bg-card/60 overflow-hidden">
 
           {/* Header with progress */}
-          <div className="px-5 py-4 border-b border-gray-800">
+          <div className="px-5 py-4 border-b border-border">
             <div className="flex items-center justify-between mb-2.5">
-              <h2 className="text-sm font-semibold text-gray-200">
+              <h2 className="text-sm font-semibold text-foreground">
                 Verificación del sistema
               </h2>
-              <span className="text-xs text-gray-500 font-medium tabular-nums">
+              <span className="text-xs text-muted-foreground font-medium tabular-nums">
                 {verificationProgress}%
               </span>
             </div>
@@ -675,7 +675,7 @@ const ExamPreparation = () => {
 
           {/* Check rows */}
           {visibleChecks.length > 0 ? (
-            <ul className="divide-y divide-gray-800/50">
+            <ul className="divide-y divide-border/50">
               {visibleChecks.map((check) => {
                 const Icon = CHECK_ICONS[check.name] ?? Monitor;
                 const badge = STATUS_BADGE[check.status];
@@ -683,19 +683,19 @@ const ExamPreparation = () => {
                   <li key={check.name} className="px-5 py-3.5">
                     <div className="flex items-center gap-3">
                       {/* Type icon */}
-                      <div className="h-8 w-8 rounded-lg bg-gray-800/80 flex items-center justify-center flex-shrink-0">
-                        <Icon className="h-4 w-4 text-gray-400" />
+                      <div className="h-8 w-8 rounded-lg bg-muted/80 flex items-center justify-center flex-shrink-0">
+                        <Icon className="h-4 w-4 text-muted-foreground" />
                       </div>
 
                       {/* Name + message */}
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-gray-200 leading-tight">
+                        <p className="text-sm font-medium text-foreground leading-tight">
                           {check.name}
                         </p>
                         {check.message &&
                           check.status !== "pending" &&
                           check.status !== "checking" && (
-                            <p className="text-xs text-gray-500 mt-0.5 truncate">
+                            <p className="text-xs text-muted-foreground mt-0.5 truncate">
                               {check.message}
                             </p>
                           )}
@@ -726,7 +726,7 @@ const ExamPreparation = () => {
               })}
             </ul>
           ) : (
-            <div className="flex items-center justify-center py-12 text-gray-500 text-sm">
+            <div className="flex items-center justify-center py-12 text-muted-foreground text-sm">
               <Loader2 className="h-4 w-4 animate-spin mr-2" />
               Cargando verificaciones...
             </div>
@@ -748,7 +748,7 @@ const ExamPreparation = () => {
                 </button>
                 <button
                   onClick={() => confirmAudioTest(false)}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium text-gray-400 hover:text-gray-200 hover:bg-gray-800 border border-gray-700 transition-colors"
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-muted border border-border transition-colors"
                 >
                   <XCircle className="h-3.5 w-3.5" />
                   No escuché nada
@@ -759,15 +759,15 @@ const ExamPreparation = () => {
         </div>
 
         {/* Instructions collapsible */}
-        <details className="mb-5 group rounded-xl border border-gray-800 bg-gray-900/60 overflow-hidden">
+        <details className="mb-5 group rounded-xl border border-border bg-card/60 overflow-hidden">
           <summary className="flex items-center justify-between px-5 py-3.5 cursor-pointer list-none select-none">
-            <span className="flex items-center gap-2 text-sm font-medium text-gray-300">
+            <span className="flex items-center gap-2 text-sm font-medium text-foreground/80">
               <Info className="h-4 w-4 text-blue-400" />
               Instrucciones importantes
             </span>
-            <ChevronDown className="h-4 w-4 text-gray-600 transition-transform duration-200 group-open:rotate-180" />
+            <ChevronDown className="h-4 w-4 text-muted-foreground/60 transition-transform duration-200 group-open:rotate-180" />
           </summary>
-          <div className="px-5 pb-4 pt-3 border-t border-gray-800">
+          <div className="px-5 pb-4 pt-3 border-t border-border">
             <ul className="space-y-2.5">
               {[
                 "Asegúrate de estar en un lugar tranquilo y sin interrupciones.",
@@ -779,7 +779,7 @@ const ExamPreparation = () => {
               ].map((item, i) => (
                 <li
                   key={i}
-                  className="flex items-start gap-2.5 text-xs text-gray-400 leading-relaxed"
+                  className="flex items-start gap-2.5 text-xs text-muted-foreground leading-relaxed"
                 >
                   <CheckCircle2 className="h-3.5 w-3.5 text-blue-400/50 flex-shrink-0 mt-0.5" />
                   {item}
@@ -790,9 +790,9 @@ const ExamPreparation = () => {
         </details>
 
         {/* Start exam */}
-        <div className="rounded-xl border border-gray-800 bg-gray-900/60 p-5">
+        <div className="rounded-xl border border-border bg-card/60 p-5">
           {!canProceed && visibleChecks.length > 0 && (
-            <p className="text-xs text-gray-500 text-center mb-4">
+            <p className="text-xs text-muted-foreground text-center mb-4">
               Completa todas las verificaciones requeridas para continuar
             </p>
           )}

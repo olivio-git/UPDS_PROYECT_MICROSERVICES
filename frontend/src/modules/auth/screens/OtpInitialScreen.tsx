@@ -105,13 +105,13 @@ const OtpInitialScreen = () => {
       <div className="min-h-screen flex items-center justify-center p-4 epilogue-uniquifier">
         <Card className="w-full max-w-md bg-transparent shadow-none">
           <CardHeader className="space-y-1 text-center">
-            <div className="flex items-center border border-line justify-center w-12 h-12 bg-gray-100 rounded-full mx-auto mb-4">
-              <Mail className="h-6 w-6 text-gray-800" />
+            <div className="flex items-center border border-border justify-center w-12 h-12 bg-muted rounded-full mx-auto mb-4">
+              <Mail className="h-6 w-6 text-foreground" />
             </div>
             <CardTitle className="text-3xl font-medium text-card-foreground">
               {isResetMode ? 'Recuperar Contraseña' : 'Verificación OTP'}
             </CardTitle>
-            <CardDescription className="text-gray-400">
+            <CardDescription className="text-muted-foreground">
               {isResetMode
                 ? 'Ingresa tu email para recibir el código de recuperación'
                 : 'Ingresa tu email para recibir el código de verificación'
@@ -152,7 +152,7 @@ const OtpInitialScreen = () => {
                     disabled={isLoading}
                     required
                     autoFocus={true}
-                    className="input-no-bg epilogue-uniquifier block w-full px-0 py-2 border-0 border-b border-gray-300 
+                    className="input-no-bg epilogue-uniquifier block w-full px-0 py-2 border-0 border-b border-border
                     focus:outline-none focus:border-b-blue-500 pl-2 focus:ring-0 rounded-none font-medium text-card-foreground"
                   />
                 </div>

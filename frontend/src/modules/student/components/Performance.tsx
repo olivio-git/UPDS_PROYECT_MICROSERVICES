@@ -96,7 +96,7 @@ const Performance = ({ initiallyExpanded = false }: PropsPerformance) => {
             <Button
               variant="ghost"
               size="sm"
-              className="p-1 h-8 w-8 text-gray-400 hover:text-white transition-colors cursor-pointer"
+              className="p-1 h-8 w-8 text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
             >
               {isExpanded ? (
                 <ChevronUp className="h-4 w-4" />
@@ -110,7 +110,7 @@ const Performance = ({ initiallyExpanded = false }: PropsPerformance) => {
           {!isExpanded && !loading && stats && (
             <div className="flex items-center justify-center gap-4 pt-2">
               <div className="text-center">
-                <div className="text-lg font-extralight text-white">
+                <div className="text-lg font-extralight text-foreground">
                   {stats.averageScore}%
                 </div>
                 <div className="text-xs text-brand-gray">Promedio</div>
@@ -122,7 +122,7 @@ const Performance = ({ initiallyExpanded = false }: PropsPerformance) => {
                 <div className="text-xs text-brand-gray mt-1">Nivel</div>
               </div>
               <div className="text-center">
-                <div className="text-lg font-extralight text-white">
+                <div className="text-lg font-extralight text-foreground">
                   {stats.totalEvaluations}
                 </div>
                 <div className="text-xs text-brand-gray">Evaluaciones</div>
@@ -133,8 +133,8 @@ const Performance = ({ initiallyExpanded = false }: PropsPerformance) => {
           {/* Loading state */}
           {!isExpanded && loading && (
             <div className="flex items-center justify-center gap-2 pt-2">
-              <Loader2 className="h-4 w-4 animate-spin text-gray-400" />
-              <span className="text-xs text-gray-400">Cargando...</span>
+              <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+              <span className="text-xs text-muted-foreground">Cargando...</span>
             </div>
           )}
 
@@ -156,8 +156,8 @@ const Performance = ({ initiallyExpanded = false }: PropsPerformance) => {
           <CardContent className="space-y-4 pt-0">
             {loading && (
               <div className="flex items-center justify-center py-8">
-                <Loader2 className="h-6 w-6 animate-spin text-gray-400 mr-2" />
-                <span className="text-gray-400">Cargando estadísticas...</span>
+                <Loader2 className="h-6 w-6 animate-spin text-muted-foreground mr-2" />
+                <span className="text-muted-foreground">Cargando estadísticas...</span>
               </div>
             )}
 
@@ -169,7 +169,7 @@ const Performance = ({ initiallyExpanded = false }: PropsPerformance) => {
             )}
 
             {!loading && !error && stats && stats.totalEvaluations === 0 && (
-              <div className="text-center py-8 text-gray-400">
+              <div className="text-center py-8 text-muted-foreground">
                 <Crown className="h-12 w-12 mx-auto mb-2 opacity-50" />
                 <p>Aún no has completado evaluaciones</p>
                 <p className="text-sm">
@@ -181,11 +181,11 @@ const Performance = ({ initiallyExpanded = false }: PropsPerformance) => {
             {!loading && !error && stats && stats.totalEvaluations > 0 && (
               <>
                 {/* Promedio General */}
-                <div className="text-center border-b border-gray-700 pb-4">
-                  <div className="text-sm text-gray-400 mb-1">
+                <div className="text-center border-b border-border pb-4">
+                  <div className="text-sm text-muted-foreground mb-1">
                     Promedio General
                   </div>
-                  <div className="text-xl font-extralight text-white">
+                  <div className="text-xl font-extralight text-foreground">
                     {stats.averageScore}%
                   </div>
                   <div className="text-xs text-brand-gray mt-1">
@@ -197,17 +197,17 @@ const Performance = ({ initiallyExpanded = false }: PropsPerformance) => {
                 <div className="space-y-3">
                   {/* Evaluaciones Completadas */}
                   <div className="flex justify-between items-center">
-                    <span className="text-sm text-gray-400">
+                    <span className="text-sm text-muted-foreground">
                       Evaluaciones Tomadas
                     </span>
-                    <span className="text-white font-semibold">
+                    <span className="text-foreground font-semibold">
                       {stats.totalEvaluations}
                     </span>
                   </div>
 
                   {/* Tendencia de Mejora */}
                   <div className="flex justify-between items-center">
-                    <span className="text-sm text-gray-400">Tendencia</span>
+                    <span className="text-sm text-muted-foreground">Tendencia</span>
                     <div className="flex items-center gap-1">
                       <span
                         className={`text-sm font-semibold ${
@@ -215,7 +215,7 @@ const Performance = ({ initiallyExpanded = false }: PropsPerformance) => {
                             ? 'text-green-400'
                             : stats.improvementRate < 0
                             ? 'text-red-400'
-                            : 'text-gray-400'
+                            : 'text-muted-foreground'
                         }`}
                       >
                         {stats.improvementRate > 0 ? '+' : ''}
@@ -231,7 +231,7 @@ const Performance = ({ initiallyExpanded = false }: PropsPerformance) => {
 
                   {/* Nivel Actual Estimado */}
                   <div className="flex justify-between items-center">
-                    <span className="text-sm text-gray-400">
+                    <span className="text-sm text-muted-foreground">
                       Nivel Estimado
                     </span>
                     <Badge className="bg-blue-500/20 text-blue-300 border border-blue-500/30">
@@ -241,26 +241,26 @@ const Performance = ({ initiallyExpanded = false }: PropsPerformance) => {
 
                   {/* Frecuencia de Evaluación */}
                   <div className="flex justify-between items-center">
-                    <span className="text-sm text-gray-400">Frecuencia</span>
-                    <span className="text-white font-semibold">
+                    <span className="text-sm text-muted-foreground">Frecuencia</span>
+                    <span className="text-foreground font-semibold">
                       {stats.evaluationFrequency}/mes
                     </span>
                   </div>
 
                   {/* Tiempo Promedio */}
                   <div className="flex justify-between items-center">
-                    <span className="text-sm text-gray-400">
+                    <span className="text-sm text-muted-foreground">
                       Tiempo Promedio
                     </span>
-                    <span className="text-white font-semibold">
+                    <span className="text-foreground font-semibold">
                       {Math.round(stats.averageTimePerEvaluation / 60)}min
                     </span>
                   </div>
                 </div>
 
                 {/* Distribución por Competencias */}
-                <div className="pt-4 border-t border-gray-700">
-                  <div className="text-sm text-gray-400 mb-3">
+                <div className="pt-4 border-t border-border">
+                  <div className="text-sm text-muted-foreground mb-3">
                     Rendimiento por Área
                   </div>
                   {Object.keys(stats.competencyAverages).length > 0 && (
@@ -271,11 +271,11 @@ const Performance = ({ initiallyExpanded = false }: PropsPerformance) => {
                             key={skill}
                             className="flex justify-between items-center"
                           >
-                            <span className="text-xs text-gray-400">
+                            <span className="text-xs text-muted-foreground">
                               {getCompetencyName(skill)}
                             </span>
                             <div className="flex items-center gap-2">
-                              <div className="w-16 bg-gray-800 rounded-full h-2">
+                              <div className="w-16 bg-muted rounded-full h-2">
                                 <div
                                   className={`h-2 rounded-full transition-all duration-500 ${
                                     (score || 0) >= 80
@@ -312,7 +312,7 @@ const Performance = ({ initiallyExpanded = false }: PropsPerformance) => {
                 {/* Botón para ver análisis detallado */}
                 <Button
                   variant="outline"
-                  className="w-full mt-4 border-gray-600 text-gray-300 hover:border-yellow-300 bg-box transition-colors hover:cursor-pointer"
+                  className="w-full mt-4 border-border text-muted-foreground hover:border-yellow-500 bg-box transition-colors hover:cursor-pointer"
                   onClick={() => navigate('/student/analytics')}
                 >
                   <Trophy className="h-4 w-4 mr-2" />

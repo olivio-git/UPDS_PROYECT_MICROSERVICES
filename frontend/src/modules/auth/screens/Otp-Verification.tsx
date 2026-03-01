@@ -202,13 +202,13 @@ const OtpVerificator = ({
       <div className="min-h-screen flex items-center justify-center p-4 epilogue-uniquifier">
         <Card className="w-full max-w-md bg-transparent shadow-none">
           <CardHeader className="space-y-1 text-center">
-            <div className="flex items-center justify-center w-12 h-12 bg-gray-100 rounded-full mx-auto mb-4">
-              <KeyRound className="h-6 w-6 text-gray-800" />
+            <div className="flex items-center justify-center w-12 h-12 bg-muted rounded-full mx-auto mb-4">
+              <KeyRound className="h-6 w-6 text-foreground" />
             </div>
             <CardTitle className="text-3xl font-medium text-card-foreground">
               Verificar Código
             </CardTitle>
-            <CardDescription className="text-gray-400">
+            <CardDescription className="text-muted-foreground">
               Hemos enviado un código de 6 dígitos para {getPurposeText()} a
               <br />
               <span className="font-medium text-card-foreground">{email}</span>
@@ -271,7 +271,7 @@ const OtpVerificator = ({
                 onClick={handleVerify}
                 size={'sm'}
                 disabled={otpCode.length !== 6 || isLoading || otp.attemptsRemaining === 0}
-                className="w-full bg-brand-blue hover:bg-gray-100 text-white font-medium disabled:opacity-50"
+                className="w-full bg-brand-blue hover:bg-primary/90 text-white font-medium disabled:opacity-50"
               >
                 {isLoading ? "Verificando..." : 
                   purpose === "login" ? "Verificar y Continuar al Login" :
@@ -283,10 +283,10 @@ const OtpVerificator = ({
 
             {/* Sección de reenvío */}
             <div className="text-center space-y-4">
-              <p className="text-sm text-gray-400">¿No recibiste el código?</p>
+              <p className="text-sm text-muted-foreground">¿No recibiste el código?</p>
 
               {timeLeft > 0 ? (
-                <div className="flex items-center justify-center space-x-2 text-sm text-gray-400">
+                <div className="flex items-center justify-center space-x-2 text-sm text-muted-foreground">
                   <Clock className="h-4 w-4" />
                   <span>Reenviar en {formatTime(timeLeft)}</span>
                 </div>
@@ -295,7 +295,7 @@ const OtpVerificator = ({
                   variant="link"
                   onClick={handleResend}
                   disabled={isLoading}
-                  className="text-card-foreground hover:text-gray-300 p-0 h-auto font-normal"
+                  className="text-card-foreground hover:text-muted-foreground p-0 h-auto font-normal"
                 >
                   Reenviar código
                 </Button>
@@ -309,7 +309,7 @@ const OtpVerificator = ({
                   variant="link"
                   onClick={handleBack}
                   disabled={isLoading}
-                  className="text-gray-400 hover:text-card-foreground p-0 h-auto font-normal text-sm inline-flex items-center"
+                  className="text-muted-foreground hover:text-card-foreground p-0 h-auto font-normal text-sm inline-flex items-center"
                 >
                   <ArrowLeft className="h-4 w-4 mr-1" />
                   Volver

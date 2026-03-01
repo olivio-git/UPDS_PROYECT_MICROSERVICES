@@ -159,16 +159,16 @@ const QuestionPreviewCard: React.FC<{
 }> = ({ question, compact }) => (
   <div className={`space-y-3 ${compact ? 'text-sm' : ''}`}>
     <div>
-      <p className="text-xs text-gray-400 mb-1">Pregunta</p>
-      <p className="text-white leading-relaxed">{question.content.question}</p>
+      <p className="text-xs text-muted-foreground mb-1">Pregunta</p>
+      <p className="text-foreground leading-relaxed">{question.content.question}</p>
     </div>
 
     {question.content.context && (
       <div>
-        <p className="text-xs text-gray-400 mb-1">
+        <p className="text-xs text-muted-foreground mb-1">
           {question.competency === 'listening' ? 'Transcripción / Contexto' : 'Contexto'}
         </p>
-        <p className="text-gray-200 italic">{question.content.context}</p>
+        <p className="text-foreground/80 italic">{question.content.context}</p>
       </div>
     )}
 
@@ -180,10 +180,10 @@ const QuestionPreviewCard: React.FC<{
             className={`flex items-center gap-2 px-3 py-1.5 rounded border ${
               opt.isCorrect
                 ? 'border-green-600/40 bg-green-900/20 text-green-300'
-                : 'border-gray-600 bg-gray-700/20 text-gray-300'
+                : 'border-border bg-muted/20 text-foreground/80'
             }`}
           >
-            <span className="text-gray-500 text-xs w-4 flex-shrink-0">
+            <span className="text-muted-foreground text-xs w-4 flex-shrink-0">
               {String.fromCharCode(65 + i)}
             </span>
             <span>{opt.text}</span>
@@ -195,8 +195,8 @@ const QuestionPreviewCard: React.FC<{
 
     {question.content.template && (
       <div>
-        <p className="text-xs text-gray-400 mb-1">Plantilla</p>
-        <p className="font-mono text-gray-200 bg-gray-800 px-3 py-2 rounded">
+        <p className="text-xs text-muted-foreground mb-1">Plantilla</p>
+        <p className="font-mono text-foreground bg-muted px-3 py-2 rounded">
           {question.content.template}
         </p>
       </div>
@@ -204,13 +204,13 @@ const QuestionPreviewCard: React.FC<{
 
     {question.content.items && question.content.items.length > 0 && !compact && (
       <div className="space-y-1">
-        <p className="text-xs text-gray-400 mb-1">Elementos</p>
+        <p className="text-xs text-muted-foreground mb-1">Elementos</p>
         {question.content.items.map((item) => (
           <div
             key={item.id}
-            className="flex justify-between items-center px-3 py-1.5 bg-gray-700/30 rounded border border-gray-600 text-sm"
+            className="flex justify-between items-center px-3 py-1.5 bg-muted/30 rounded border border-border text-sm"
           >
-            <span className="text-gray-200">{item.content}</span>
+            <span className="text-foreground">{item.content}</span>
             {item.matchingPair && (
               <span className="text-blue-300 text-xs">↔ {item.matchingPair}</span>
             )}
@@ -226,8 +226,8 @@ const QuestionPreviewCard: React.FC<{
 
     {question.content.sampleAnswer && (
       <div>
-        <p className="text-xs text-gray-400 mb-1">Respuesta de referencia</p>
-        <p className="text-gray-300 italic bg-gray-800/50 px-3 py-2 rounded text-sm">
+        <p className="text-xs text-muted-foreground mb-1">Respuesta de referencia</p>
+        <p className="text-foreground/80 italic bg-muted/50 px-3 py-2 rounded text-sm">
           "{question.content.sampleAnswer}"
         </p>
       </div>
@@ -565,13 +565,13 @@ const AIQuestionGenerator: React.FC<AIQuestionGeneratorProps> = ({
   // ── Render ─────────────────────────────────────────────────────────────────
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
-      <DialogContent className="w-full max-w-[95vw] sm:max-w-2xl lg:max-w-4xl max-h-[90vh] overflow-y-auto bg-gray-900 border border-line text-white">
+      <DialogContent className="w-full max-w-[95vw] sm:max-w-2xl lg:max-w-4xl max-h-[90vh] overflow-y-auto bg-popover border border-line text-foreground">
         <DialogHeader>
-          <DialogTitle className="text-white flex items-center gap-2">
+          <DialogTitle className="text-foreground flex items-center gap-2">
             <Sparkles className="w-5 h-5 text-purple-400" />
             Generador de Preguntas con IA
           </DialogTitle>
-          <DialogDescription className="text-gray-300">
+          <DialogDescription className="text-muted-foreground">
             Genera una o varias preguntas únicas basadas en tus parámetros
           </DialogDescription>
         </DialogHeader>
@@ -580,10 +580,10 @@ const AIQuestionGenerator: React.FC<AIQuestionGeneratorProps> = ({
 
           {/* ── Config panel (always visible in config/generating) ── */}
           {(step === 'config' || step === 'generating') && (
-            <div className="bg-gray-800/50 border border-gray-700 rounded-lg p-3 sm:p-4 space-y-4">
+            <div className="bg-muted/50 border border-border rounded-lg p-3 sm:p-4 space-y-4">
               {/* Parameters badges */}
               <div>
-                <h3 className="text-sm font-medium text-gray-300 mb-3">Parámetros</h3>
+                <h3 className="text-sm font-medium text-muted-foreground mb-3">Parámetros</h3>
                 <div className="flex flex-wrap gap-1.5">
                   <Badge variant="outline" className="border-blue-500/30 text-blue-300 text-xs">
                     {getCompetencyLabel(formData.competency || '')}
@@ -598,7 +598,7 @@ const AIQuestionGenerator: React.FC<AIQuestionGeneratorProps> = ({
                     Dificultad {formData.difficulty || 3}/5
                   </Badge>
                   {formData.metadata?.topic && (
-                    <Badge variant="outline" className="border-gray-500/30 text-gray-300 text-xs">
+                    <Badge variant="outline" className="border-border text-muted-foreground text-xs">
                       {formData.metadata.topic}
                     </Badge>
                   )}
@@ -607,7 +607,7 @@ const AIQuestionGenerator: React.FC<AIQuestionGeneratorProps> = ({
 
               {/* Quantity selector */}
               <div>
-                <label className="text-sm font-medium text-gray-300 mb-2 block">
+                <label className="text-sm font-medium text-foreground/80 mb-2 block">
                   Cantidad de preguntas
                 </label>
                 <div className="flex items-center gap-3">
@@ -620,8 +620,8 @@ const AIQuestionGenerator: React.FC<AIQuestionGeneratorProps> = ({
                     disabled={isGenerating}
                     className="w-40 accent-purple-500"
                   />
-                  <span className="text-white font-bold text-lg w-6 text-center">{quantity}</span>
-                  <span className="text-gray-400 text-xs">
+                  <span className="text-foreground font-bold text-lg w-6 text-center">{quantity}</span>
+                  <span className="text-muted-foreground/70 text-xs">
                     {quantity === 1 ? 'pregunta' : `preguntas (~${quantity * 5}s)`}
                   </span>
                 </div>
@@ -636,17 +636,17 @@ const AIQuestionGenerator: React.FC<AIQuestionGeneratorProps> = ({
               {/* ── Listening: audio upload zone ── */}
               {isListening ? (
                 <div>
-                  <label className="text-sm font-medium text-gray-300 mb-2 block">
+                  <label className="text-sm font-medium text-foreground/80 mb-2 block">
                     Audio de referencia{' '}
-                    <span className="text-gray-500 font-normal">(la IA generará la pregunta desde la transcripción)</span>
+                    <span className="text-muted-foreground font-normal">(la IA generará la pregunta desde la transcripción)</span>
                   </label>
 
                   {!audioFile ? (
                     /* Drop zone */
-                    <label className={`flex flex-col items-center justify-center w-full h-24 border-2 border-dashed rounded-lg cursor-pointer transition-colors ${isGenerating ? 'border-gray-700 opacity-50 cursor-not-allowed' : 'border-gray-600 hover:border-purple-500/60 hover:bg-purple-900/10'}`}>
-                      <Upload className="w-6 h-6 text-gray-400 mb-1.5" />
-                      <span className="text-sm text-gray-300">Sube un archivo de audio</span>
-                      <span className="text-xs text-gray-500 mt-0.5">MP3, WAV, WebM, M4A — hasta ~10MB</span>
+                    <label className={`flex flex-col items-center justify-center w-full h-24 border-2 border-dashed rounded-lg cursor-pointer transition-colors ${isGenerating ? 'border-border opacity-50 cursor-not-allowed' : 'border-border hover:border-purple-500/60 hover:bg-purple-900/10'}`}>
+                      <Upload className="w-6 h-6 text-muted-foreground/70 mb-1.5" />
+                      <span className="text-sm text-muted-foreground">Sube un archivo de audio</span>
+                      <span className="text-xs text-muted-foreground/60 mt-0.5">MP3, WAV, WebM, M4A — hasta ~10MB</span>
                       <input
                         type="file"
                         accept="audio/*"
@@ -661,10 +661,10 @@ const AIQuestionGenerator: React.FC<AIQuestionGeneratorProps> = ({
                   ) : (
                     <div className="space-y-2">
                       {/* File info row */}
-                      <div className="flex items-center gap-2 bg-gray-700/50 border border-gray-600 rounded-lg px-3 py-2">
+                      <div className="flex items-center gap-2 bg-muted/50 border border-border rounded-lg px-3 py-2">
                         <Headphones className="w-4 h-4 text-purple-400 flex-shrink-0" />
-                        <span className="text-sm text-gray-200 flex-1 truncate min-w-0">{audioFile.name}</span>
-                        <label className={`text-xs flex-shrink-0 cursor-pointer underline-offset-2 hover:underline ${isGenerating || isTranscribing ? 'text-gray-600 pointer-events-none' : 'text-gray-400 hover:text-white'}`}>
+                        <span className="text-sm text-foreground/90 flex-1 truncate min-w-0">{audioFile.name}</span>
+                        <label className={`text-xs flex-shrink-0 cursor-pointer underline-offset-2 hover:underline ${isGenerating || isTranscribing ? 'text-muted-foreground pointer-events-none' : 'text-muted-foreground/70 hover:text-foreground'}`}>
                           Cambiar
                           <input
                             type="file"
@@ -697,10 +697,10 @@ const AIQuestionGenerator: React.FC<AIQuestionGeneratorProps> = ({
 
                       {/* Transcript block */}
                       {audioTranscript && !isTranscribing && (
-                        <div className="bg-gray-800/80 border border-gray-600 rounded-lg overflow-hidden">
+                        <div className="bg-popover border border-border rounded-lg overflow-hidden">
                           <button
                             onClick={() => setShowTranscript(!showTranscript)}
-                            className="w-full flex items-center justify-between px-3 py-2 text-xs text-gray-300 hover:bg-gray-700/50 transition-colors"
+                            className="w-full flex items-center justify-between px-3 py-2 text-xs text-muted-foreground hover:bg-muted/50 transition-colors"
                           >
                             <span className="flex items-center gap-1.5">
                               <Check className="w-3 h-3 text-green-400" />
@@ -716,10 +716,10 @@ const AIQuestionGenerator: React.FC<AIQuestionGeneratorProps> = ({
                               <Textarea
                                 value={audioTranscript}
                                 onChange={(e) => setAudioTranscript(e.target.value)}
-                                className="bg-gray-700/50 border border-gray-600 text-gray-200 text-xs min-h-[80px] focus:ring-0 focus-visible:ring-0 focus:border-purple-400/50"
+                                className="bg-muted/50 border border-border text-foreground/90 text-xs min-h-[80px] focus:ring-0 focus-visible:ring-0 focus:border-purple-400/50"
                                 disabled={isGenerating}
                               />
-                              <p className="text-xs text-gray-500 flex items-center gap-1">
+                              <p className="text-xs text-muted-foreground/60 flex items-center gap-1">
                                 <Pencil className="w-3 h-3" />
                                 Puedes corregir el transcript antes de generar
                               </p>
@@ -735,7 +735,7 @@ const AIQuestionGenerator: React.FC<AIQuestionGeneratorProps> = ({
                           size="sm"
                           variant="outline"
                           disabled={isGenerating}
-                          className="gap-1.5 text-xs border-gray-600 text-gray-400 hover:bg-gray-700/30 hover:text-white"
+                          className="gap-1.5 text-xs border-border text-muted-foreground/70 hover:bg-muted/30 hover:text-foreground"
                         >
                           <RefreshCw className="w-3 h-3" />
                           {audioTranscript ? 'Re-transcribir' : 'Transcribir'}
@@ -745,7 +745,7 @@ const AIQuestionGenerator: React.FC<AIQuestionGeneratorProps> = ({
                   )}
 
                   {audioTranscript && (
-                    <p className="text-xs text-gray-500 mt-2">
+                    <p className="text-xs text-muted-foreground/60 mt-2">
                       La pregunta se basará en este audio. Vincula el archivo al guardar la pregunta (campo mediaUrl).
                     </p>
                   )}
@@ -753,14 +753,14 @@ const AIQuestionGenerator: React.FC<AIQuestionGeneratorProps> = ({
               ) : (
                 /* ── Non-listening: thematic context textarea ── */
                 <div>
-                  <label className="text-sm font-medium text-gray-300 mb-2 block">
-                    Contexto Temático <span className="text-gray-500 font-normal">(Opcional)</span>
+                  <label className="text-sm font-medium text-foreground/80 mb-2 block">
+                    Contexto Temático <span className="text-muted-foreground font-normal">(Opcional)</span>
                   </label>
                   <Textarea
                     value={thematicContext}
                     onChange={(e) => setThematicContext(e.target.value)}
                     placeholder="Ej: 'Una familia planeando sus vacaciones de verano', 'El cambio climático', 'La vida universitaria'..."
-                    className="bg-gray-700/50 border border-gray-600 text-gray-200 placeholder-gray-400 min-h-[70px] text-sm focus:ring-0 focus-visible:ring-0 focus:border-purple-400/50"
+                    className="bg-muted/50 border border-border text-foreground/90 placeholder:text-muted-foreground min-h-[70px] text-sm focus:ring-0 focus-visible:ring-0 focus:border-purple-400/50"
                     disabled={isGenerating}
                   />
                 </div>
@@ -798,20 +798,20 @@ const AIQuestionGenerator: React.FC<AIQuestionGeneratorProps> = ({
             <div className="text-center py-8 space-y-4">
               <Loader2 className="w-12 h-12 animate-spin text-purple-400 mx-auto" />
               {quantity === 1 ? (
-                <p className="text-gray-300">Generando pregunta...</p>
+                <p className="text-muted-foreground">Generando pregunta...</p>
               ) : (
                 <>
-                  <p className="text-gray-300 font-medium">
+                  <p className="text-muted-foreground font-medium">
                     Generando pregunta {Math.min(bulkProgress + 1, quantity)} de {quantity}...
                   </p>
                   <div className="max-w-xs mx-auto">
-                    <div className="w-full bg-gray-700 rounded-full h-2">
+                    <div className="w-full bg-muted rounded-full h-2">
                       <div
                         className="bg-purple-500 h-2 rounded-full transition-all duration-500"
                         style={{ width: `${(bulkProgress / quantity) * 100}%` }}
                       />
                     </div>
-                    <p className="text-xs text-gray-500 mt-1">
+                    <p className="text-xs text-muted-foreground/60 mt-1">
                       {bulkProgress} / {quantity} completadas
                     </p>
                   </div>
@@ -820,7 +820,7 @@ const AIQuestionGenerator: React.FC<AIQuestionGeneratorProps> = ({
                       {bulkResults.map((r) => (
                         <div
                           key={r.index}
-                          className="flex items-start gap-2 text-xs text-gray-400 bg-gray-800/50 rounded px-3 py-2"
+                          className="flex items-start gap-2 text-xs text-muted-foreground/70 bg-muted/50 rounded px-3 py-2"
                         >
                           <Check className="w-3 h-3 text-green-400 mt-0.5 flex-shrink-0" />
                           <span className="line-clamp-1">{r.question.content.question}</span>
@@ -842,7 +842,7 @@ const AIQuestionGenerator: React.FC<AIQuestionGeneratorProps> = ({
           {step === 'preview' && generatedQuestion && (
             <div className="space-y-4">
               <div className="flex items-center justify-between">
-                <h3 className="text-base font-medium text-white flex items-center gap-2">
+                <h3 className="text-base font-medium text-foreground flex items-center gap-2">
                   <Eye className="w-4 h-4" />
                   Vista Previa
                 </h3>
@@ -858,7 +858,7 @@ const AIQuestionGenerator: React.FC<AIQuestionGeneratorProps> = ({
 
               {/* Audio preview in single-question step */}
               {isListening && audioBlobUrl && (
-                <div className="flex items-center gap-2 bg-gray-800/60 border border-purple-600/30 rounded-lg px-3 py-2">
+                <div className="flex items-center gap-2 bg-muted/60 border border-purple-600/30 rounded-lg px-3 py-2">
                   <Headphones className="w-4 h-4 text-purple-400 flex-shrink-0" />
                   <audio
                     src={audioBlobUrl}
@@ -869,16 +869,16 @@ const AIQuestionGenerator: React.FC<AIQuestionGeneratorProps> = ({
                 </div>
               )}
 
-              <div className="bg-gray-800/50 border border-gray-700 rounded-lg p-4 sm:p-5">
+              <div className="bg-muted/50 border border-border rounded-lg p-4 sm:p-5">
                 <QuestionPreviewCard question={generatedQuestion} />
               </div>
 
-              <div className="flex flex-col sm:flex-row justify-between gap-3 pt-2 border-t border-gray-700">
+              <div className="flex flex-col sm:flex-row justify-between gap-3 pt-2 border-t border-border">
                 <Button
                   onClick={() => { setGeneratedQuestion(null); setStep('config'); }}
                   variant="outline"
                   size="sm"
-                  className="gap-2 border-line bg-box text-white hover:bg-gray-700"
+                  className="gap-2 border-line bg-box text-foreground hover:bg-muted"
                   disabled={isGenerating || isSaving}
                 >
                   <RefreshCw className="w-4 h-4" />
@@ -889,7 +889,7 @@ const AIQuestionGenerator: React.FC<AIQuestionGeneratorProps> = ({
                     onClick={handleClose}
                     variant="outline"
                     size="sm"
-                    className="gap-2 text-white border-line bg-box hover:bg-gray-700"
+                    className="gap-2 text-foreground border-line bg-box hover:bg-muted"
                   >
                     <X className="w-4 h-4" />
                     Cancelar
@@ -936,9 +936,9 @@ const AIQuestionGenerator: React.FC<AIQuestionGeneratorProps> = ({
               )}
 
               <div className="flex items-center justify-between">
-                <h3 className="text-base font-medium text-white">
+                <h3 className="text-base font-medium text-foreground">
                   {bulkResults.length} {bulkPartial ? `de ${quantity} ` : ''}preguntas generadas
-                  <span className="text-gray-400 font-normal text-sm ml-2">
+                  <span className="text-muted-foreground/70 font-normal text-sm ml-2">
                     · {acceptedCount} aceptadas
                   </span>
                 </h3>
@@ -946,7 +946,7 @@ const AIQuestionGenerator: React.FC<AIQuestionGeneratorProps> = ({
                   onClick={() => { setBulkResults([]); setStep('config'); }}
                   variant="outline"
                   size="sm"
-                  className="gap-1.5 border-line bg-box text-white hover:bg-gray-700 text-xs"
+                  className="gap-1.5 border-line bg-box text-foreground hover:bg-muted text-xs"
                 >
                   <RefreshCw className="w-3 h-3" />
                   Regenerar lote
@@ -962,7 +962,7 @@ const AIQuestionGenerator: React.FC<AIQuestionGeneratorProps> = ({
                         ? result.savedId
                           ? 'border-blue-600/40 bg-blue-900/10'
                           : 'border-green-600/40 bg-green-900/10'
-                        : 'border-gray-600/40 bg-gray-800/30 opacity-60'
+                        : 'border-border/40 bg-muted/30 opacity-60'
                     }`}
                   >
                     <div className="flex items-center gap-3 px-4 py-3">
@@ -972,15 +972,15 @@ const AIQuestionGenerator: React.FC<AIQuestionGeneratorProps> = ({
                         className={`w-6 h-6 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-colors ${
                           result.accepted
                             ? 'border-green-500 bg-green-500/20 text-green-400'
-                            : 'border-gray-500 bg-transparent text-gray-600'
+                            : 'border-border bg-transparent text-muted-foreground'
                         } ${result.savedId ? 'cursor-not-allowed' : 'cursor-pointer hover:border-green-400'}`}
                         title={result.savedId ? 'Ya guardada' : result.accepted ? 'Rechazar' : 'Aceptar'}
                       >
                         {result.accepted && <Check className="w-3 h-3" />}
                       </button>
 
-                      <p className="flex-1 text-sm text-gray-200 line-clamp-1 min-w-0">
-                        <span className="text-gray-500 mr-1.5">#{result.index + 1}</span>
+                      <p className="flex-1 text-sm text-foreground/90 line-clamp-1 min-w-0">
+                        <span className="text-muted-foreground/60 mr-1.5">#{result.index + 1}</span>
                         {result.question.content.question}
                       </p>
 
@@ -1001,7 +1001,7 @@ const AIQuestionGenerator: React.FC<AIQuestionGeneratorProps> = ({
                         onClick={() =>
                           setExpandedIndex(expandedIndex === result.index ? null : result.index)
                         }
-                        className="text-gray-400 hover:text-white transition-colors ml-1 flex-shrink-0"
+                        className="text-muted-foreground/70 hover:text-foreground transition-colors ml-1 flex-shrink-0"
                       >
                         {expandedIndex === result.index ? (
                           <ChevronUp className="w-4 h-4" />
@@ -1012,7 +1012,7 @@ const AIQuestionGenerator: React.FC<AIQuestionGeneratorProps> = ({
                     </div>
 
                     {expandedIndex === result.index && (
-                      <div className="px-4 pb-4 border-t border-gray-700/50 pt-3">
+                      <div className="px-4 pb-4 border-t border-border/50 pt-3">
                         <QuestionPreviewCard question={result.question} compact />
                         {!result.savedId && (
                           <div className="mt-3 flex justify-end">
@@ -1039,22 +1039,22 @@ const AIQuestionGenerator: React.FC<AIQuestionGeneratorProps> = ({
                 ))}
               </div>
 
-              <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-3 border-t border-gray-700">
+              <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-3 border-t border-border">
                 <div className="flex items-center gap-2">
                   <button
                     onClick={() =>
                       setBulkResults((prev) => prev.map((r) => ({ ...r, accepted: !r.savedId ? true : r.accepted })))
                     }
-                    className="text-xs text-gray-400 hover:text-white underline-offset-2 hover:underline"
+                    className="text-xs text-muted-foreground hover:text-foreground underline-offset-2 hover:underline"
                   >
                     Seleccionar todas
                   </button>
-                  <span className="text-gray-600">·</span>
+                  <span className="text-muted-foreground">·</span>
                   <button
                     onClick={() =>
                       setBulkResults((prev) => prev.map((r) => ({ ...r, accepted: !!r.savedId })))
                     }
-                    className="text-xs text-gray-400 hover:text-white underline-offset-2 hover:underline"
+                    className="text-xs text-muted-foreground hover:text-foreground underline-offset-2 hover:underline"
                   >
                     Deseleccionar
                   </button>
@@ -1064,7 +1064,7 @@ const AIQuestionGenerator: React.FC<AIQuestionGeneratorProps> = ({
                     onClick={handleClose}
                     variant="outline"
                     size="sm"
-                    className="gap-2 text-white border-line bg-box hover:bg-gray-700"
+                    className="gap-2 text-foreground border-line bg-box hover:bg-muted"
                   >
                     <X className="w-4 h-4" />
                     Cerrar
@@ -1093,8 +1093,8 @@ const AIQuestionGenerator: React.FC<AIQuestionGeneratorProps> = ({
               <div className="w-14 h-14 bg-green-500/20 rounded-full flex items-center justify-center mx-auto">
                 <Check className="w-7 h-7 text-green-400" />
               </div>
-              <h3 className="text-base font-medium text-white">¡Pregunta Aplicada!</h3>
-              <p className="text-gray-400 text-sm">La pregunta generada se ha cargado en tu formulario</p>
+              <h3 className="text-base font-medium text-foreground">¡Pregunta Aplicada!</h3>
+              <p className="text-muted-foreground/70 text-sm">La pregunta generada se ha cargado en tu formulario</p>
             </div>
           )}
 

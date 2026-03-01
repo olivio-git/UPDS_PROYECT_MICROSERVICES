@@ -111,13 +111,13 @@ const ImportModal: React.FC<ImportModalProps> = ({ onClose, onImport }) => {
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg w-full max-w-2xl">
+      <div className="bg-card rounded-lg w-full max-w-2xl">
         {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b">
-          <h2 className="text-xl font-semibold">Importar Preguntas</h2>
+        <div className="flex items-center justify-between p-6 border-b border-border">
+          <h2 className="text-xl font-semibold text-foreground">Importar Preguntas</h2>
           <button
             onClick={onClose}
-            className="p-2 hover:bg-gray-100 rounded-lg"
+            className="p-2 hover:bg-muted rounded-lg"
           >
             <X className="w-5 h-5" />
           </button>
@@ -143,20 +143,20 @@ const ImportModal: React.FC<ImportModalProps> = ({ onClose, onImport }) => {
 
           {/* Download Templates */}
           <div>
-            <p className="text-sm font-medium text-gray-700 mb-3">
+            <p className="text-sm font-medium text-muted-foreground mb-3">
               1. Descarga la plantilla:
             </p>
             <div className="flex gap-3">
               <button
                 onClick={() => downloadTemplate('xlsx')}
-                className="flex items-center gap-2 px-4 py-2 border rounded-lg hover:bg-gray-50"
+                className="flex items-center gap-2 px-4 py-2 border border-border rounded-lg hover:bg-muted"
               >
                 <FileSpreadsheet className="w-4 h-4 text-green-600" />
                 Plantilla Excel (.xlsx)
               </button>
               <button
                 onClick={() => downloadTemplate('csv')}
-                className="flex items-center gap-2 px-4 py-2 border rounded-lg hover:bg-gray-50"
+                className="flex items-center gap-2 px-4 py-2 border border-border rounded-lg hover:bg-muted"
               >
                 <FileSpreadsheet className="w-4 h-4 text-blue-600" />
                 Plantilla CSV
@@ -166,12 +166,12 @@ const ImportModal: React.FC<ImportModalProps> = ({ onClose, onImport }) => {
 
           {/* Upload Area */}
           <div>
-            <p className="text-sm font-medium text-gray-700 mb-3">
+            <p className="text-sm font-medium text-muted-foreground mb-3">
               2. Sube tu archivo completado:
             </p>
             <div
               className={`border-2 border-dashed rounded-lg p-8 text-center ${
-                dragActive ? 'border-blue-500 bg-blue-50' : 'border-gray-300'
+                dragActive ? 'border-blue-500 bg-blue-500/10' : 'border-border'
               }`}
               onDragEnter={handleDrag}
               onDragLeave={handleDrag}
@@ -183,7 +183,7 @@ const ImportModal: React.FC<ImportModalProps> = ({ onClose, onImport }) => {
                   <FileSpreadsheet className="w-12 h-12 mx-auto text-green-600" />
                   <div>
                     <p className="font-medium">{file.name}</p>
-                    <p className="text-sm text-gray-500">
+                    <p className="text-sm text-muted-foreground">
                       {(file.size / 1024).toFixed(2)} KB
                     </p>
                   </div>
@@ -196,9 +196,9 @@ const ImportModal: React.FC<ImportModalProps> = ({ onClose, onImport }) => {
                 </div>
               ) : (
                 <div className="space-y-3">
-                  <Upload className="w-12 h-12 mx-auto text-gray-400" />
+                  <Upload className="w-12 h-12 mx-auto text-muted-foreground" />
                   <div>
-                    <p className="text-gray-600">
+                    <p className="text-muted-foreground">
                       Arrastra y suelta tu archivo aquí, o
                     </p>
                     <label className="text-blue-600 hover:underline cursor-pointer">
@@ -211,7 +211,7 @@ const ImportModal: React.FC<ImportModalProps> = ({ onClose, onImport }) => {
                       />
                     </label>
                   </div>
-                  <p className="text-xs text-gray-500">
+                  <p className="text-xs text-muted-foreground">
                     Formatos soportados: Excel (.xlsx, .xls) o CSV - Máximo 10MB
                   </p>
                 </div>
@@ -220,11 +220,11 @@ const ImportModal: React.FC<ImportModalProps> = ({ onClose, onImport }) => {
           </div>
 
           {/* Supported Fields */}
-          <div className="bg-gray-50 rounded-lg p-4">
-            <p className="text-sm font-medium text-gray-700 mb-2">
+          <div className="bg-muted rounded-lg p-4">
+            <p className="text-sm font-medium text-muted-foreground mb-2">
               Campos soportados:
             </p>
-            <div className="grid grid-cols-2 gap-2 text-xs text-gray-600">
+            <div className="grid grid-cols-2 gap-2 text-xs text-muted-foreground">
               <div>• Tipo de pregunta</div>
               <div>• Competencia</div>
               <div>• Nivel (A1-C2)</div>
@@ -240,10 +240,10 @@ const ImportModal: React.FC<ImportModalProps> = ({ onClose, onImport }) => {
         </div>
 
         {/* Footer */}
-        <div className="flex justify-end gap-3 p-6 border-t">
+        <div className="flex justify-end gap-3 p-6 border-t border-border">
           <button
             onClick={onClose}
-            className="px-4 py-2 border rounded-lg hover:bg-gray-50"
+            className="px-4 py-2 border border-border rounded-lg hover:bg-muted"
             disabled={loading}
           >
             Cancelar

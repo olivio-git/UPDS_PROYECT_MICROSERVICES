@@ -33,23 +33,23 @@ const TYPE_CONFIG: Record<
 > = {
   info: {
     icon: Info,
-    color: 'text-blue-400',
-    bg: 'bg-blue-400/10',
+    color: 'text-blue-500',
+    bg: 'bg-blue-500/10',
   },
   success: {
     icon: CheckCircle2,
-    color: 'text-green-400',
-    bg: 'bg-green-400/10',
+    color: 'text-green-500',
+    bg: 'bg-green-500/10',
   },
   warning: {
     icon: AlertTriangle,
-    color: 'text-yellow-400',
-    bg: 'bg-yellow-400/10',
+    color: 'text-amber-500',
+    bg: 'bg-amber-500/10',
   },
   exam: {
     icon: BookOpen,
-    color: 'text-purple-400',
-    bg: 'bg-purple-400/10',
+    color: 'text-purple-500',
+    bg: 'bg-purple-500/10',
   },
 };
 
@@ -80,13 +80,13 @@ const NotificationsSheet = ({
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent
         side="right"
-        className="sm:max-w-md p-0 bg-gray-900 border-l border-gray-700/60 flex flex-col"
+        className="sm:max-w-md p-0 bg-popover border-l border-border/60 flex flex-col"
       >
         {/* Header */}
         <SheetHeader className="px-5 pt-5 pb-0 flex-shrink-0">
           <div className="flex items-center justify-between pr-6">
             <div className="flex items-center gap-2.5">
-              <SheetTitle className="text-gray-100 text-base font-semibold">
+              <SheetTitle className="text-popover-foreground text-base font-semibold">
                 Notificaciones
               </SheetTitle>
               {unreadCount > 0 && (
@@ -107,7 +107,7 @@ const NotificationsSheet = ({
           </div>
 
           {/* Filter tabs */}
-          <div className="flex gap-1 mt-3 pb-4 border-b border-gray-700/60">
+          <div className="flex gap-1 mt-3 pb-4 border-b border-border/60">
             {(['all', 'unread'] as FilterType[]).map(f => (
               <button
                 key={f}
@@ -115,8 +115,8 @@ const NotificationsSheet = ({
                 className={cn(
                   'px-3 py-1.5 text-xs font-medium rounded-md transition-colors',
                   filter === f
-                    ? 'bg-gray-700/80 text-gray-100'
-                    : 'text-gray-400 hover:text-gray-200 hover:bg-gray-800/50'
+                    ? 'bg-muted text-foreground'
+                    : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
                 )}
               >
                 {f === 'all' ? 'Todas' : 'No leídas'}
@@ -132,14 +132,14 @@ const NotificationsSheet = ({
         <div className="flex-1 overflow-y-auto">
           {filtered.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-64 gap-3">
-              <div className="h-12 w-12 rounded-full bg-gray-800 flex items-center justify-center">
-                <Bell className="h-6 w-6 text-gray-500" />
+              <div className="h-12 w-12 rounded-full bg-muted flex items-center justify-center">
+                <Bell className="h-6 w-6 text-muted-foreground" />
               </div>
               <div className="text-center">
-                <p className="text-sm font-medium text-gray-300">
+                <p className="text-sm font-medium text-foreground">
                   Sin notificaciones
                 </p>
-                <p className="text-xs text-gray-500 mt-1">
+                <p className="text-xs text-muted-foreground mt-1">
                   {filter === 'unread'
                     ? 'No tienes notificaciones sin leer'
                     : 'Tu bandeja está vacía'}
@@ -157,7 +157,7 @@ const NotificationsSheet = ({
                   <li
                     key={notification.id}
                     className={cn(
-                      'flex items-start gap-3.5 px-5 py-4 border-b border-gray-800/60 group hover:bg-gray-800/30 transition-colors',
+                      'flex items-start gap-3.5 px-5 py-4 border-b border-border/60 group hover:bg-muted/30 transition-colors',
                       !notification.read && 'bg-blue-500/5'
                     )}
                   >
@@ -177,7 +177,7 @@ const NotificationsSheet = ({
                         <p
                           className={cn(
                             'text-sm font-medium leading-snug',
-                            notification.read ? 'text-gray-300' : 'text-white'
+                            notification.read ? 'text-muted-foreground' : 'text-popover-foreground'
                           )}
                         >
                           {notification.title}
@@ -188,7 +188,7 @@ const NotificationsSheet = ({
                           {!notification.read && (
                             <button
                               onClick={() => onMarkAsRead(notification.id)}
-                              className="p-1 rounded hover:bg-gray-700 transition-colors"
+                              className="p-1 rounded hover:bg-muted transition-colors"
                               title="Marcar como leída"
                             >
                               <Check className="h-3.5 w-3.5 text-green-400" />
@@ -196,7 +196,7 @@ const NotificationsSheet = ({
                           )}
                           <button
                             onClick={() => onDelete(notification.id)}
-                            className="p-1 rounded hover:bg-gray-700 transition-colors"
+                            className="p-1 rounded hover:bg-muted transition-colors"
                             title="Eliminar"
                           >
                             <Trash2 className="h-3.5 w-3.5 text-red-400" />
@@ -204,10 +204,10 @@ const NotificationsSheet = ({
                         </div>
                       </div>
 
-                      <p className="text-xs text-gray-400 mt-1 leading-relaxed">
+                      <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
                         {notification.message}
                       </p>
-                      <span className="text-xs text-gray-500 mt-2 block">
+                      <span className="text-xs text-muted-foreground/70 mt-2 block">
                         {notification.time}
                       </span>
                     </div>

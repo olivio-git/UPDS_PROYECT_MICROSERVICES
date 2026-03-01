@@ -13,15 +13,12 @@ import {
   Award,
   Book,
   Calendar,
-  ChevronDown,
-  ChevronUp,
   Clock,
   Loader2,
   Search,
   TrendingDown,
   TrendingUp,
   User,
-  Users,
   Target,
   BookOpen,
   CheckCircle,
@@ -119,7 +116,7 @@ const StudentHistoryScreen: React.FC = () => {
     switch (trend) {
       case 'improving': return <TrendingUp className="h-4 w-4 text-emerald-400" />;
       case 'declining': return <TrendingDown className="h-4 w-4 text-red-400" />;
-      default: return <Minus className="h-4 w-4 text-slate-400" />;
+      default: return <Minus className="h-4 w-4 text-muted-foreground" />;
     }
   };
 
@@ -127,7 +124,7 @@ const StudentHistoryScreen: React.FC = () => {
     switch (trend) {
       case 'improving': return 'text-emerald-400';
       case 'declining': return 'text-red-400';
-      default: return 'text-slate-400';
+      default: return 'text-muted-foreground';
     }
   };
 
@@ -151,10 +148,10 @@ const StudentHistoryScreen: React.FC = () => {
         >
           <div className="flex items-center justify-between p-4">
             <div>
-              <h1 className="text-2xl font-bold text-white">
+              <h1 className="text-2xl font-bold text-foreground">
                 Historial de Estudiante
               </h1>
-              <p className="text-slate-400 text-sm">
+              <p className="text-muted-foreground text-sm">
                 Análisis detallado del progreso académico individual
               </p>
             </div>
@@ -181,7 +178,7 @@ const StudentHistoryScreen: React.FC = () => {
                   placeholder="Ingrese ID del estudiante..."
                   value={searchStudentId}
                   onChange={(e) => setSearchStudentId(e.target.value)}
-                  className="bg-slate-800 border-line text-white"
+                  className="bg-muted border-line text-foreground"
                   onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
                 />
               </div>
@@ -205,7 +202,7 @@ const StudentHistoryScreen: React.FC = () => {
           <div className="flex items-center justify-center py-12">
             <div className="text-center space-y-3">
               <Loader2 className="h-8 w-8 animate-spin mx-auto text-blue-500" />
-              <p className="text-slate-400 text-sm">Cargando historial del estudiante...</p>
+              <p className="text-muted-foreground text-sm">Cargando historial del estudiante...</p>
             </div>
           </div>
         )}
@@ -221,19 +218,19 @@ const StudentHistoryScreen: React.FC = () => {
                     <User className="h-8 w-8 text-blue-400" />
                   </div>
                   <div className="flex-1">
-                    <h2 className="text-lg font-semibold text-white">
+                    <h2 className="text-lg font-semibold text-foreground">
                       {historyData.studentInfo.name}
                     </h2>
-                    <p className="text-sm text-slate-400">
+                    <p className="text-sm text-muted-foreground">
                       {historyData.studentInfo.email}
                     </p>
-                    <p className="text-xs text-slate-500">
+                    <p className="text-xs text-muted-foreground">
                       Registrado: {formatDate(historyData.studentInfo.registrationDate)}
                     </p>
                   </div>
                   <div className="text-right">
-                    <p className="text-xs text-slate-400">ID del Estudiante</p>
-                    <p className="text-sm font-mono text-slate-300">{historyData.studentId}</p>
+                    <p className="text-xs text-muted-foreground">ID del Estudiante</p>
+                    <p className="text-sm font-mono text-foreground/80">{historyData.studentId}</p>
                   </div>
                 </div>
               </CardContent>
@@ -245,10 +242,10 @@ const StudentHistoryScreen: React.FC = () => {
                 <CardContent className="p-4">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-xs font-medium text-slate-400">
+                      <p className="text-xs font-medium text-muted-foreground">
                         Total Exámenes
                       </p>
-                      <p className="text-2xl font-bold text-white">
+                      <p className="text-2xl font-bold text-foreground">
                         {historyData.summary.totalExams}
                       </p>
                       <p className="text-xs text-blue-400">
@@ -264,10 +261,10 @@ const StudentHistoryScreen: React.FC = () => {
                 <CardContent className="p-4">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-xs font-medium text-slate-400">
+                      <p className="text-xs font-medium text-muted-foreground">
                         Promedio General
                       </p>
-                      <p className="text-2xl font-bold text-white">
+                      <p className="text-2xl font-bold text-foreground">
                         {historyData.summary.averageScore.toFixed(1)}%
                       </p>
                       <p className="text-xs text-emerald-400">
@@ -283,10 +280,10 @@ const StudentHistoryScreen: React.FC = () => {
                 <CardContent className="p-4">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-xs font-medium text-slate-400">
+                      <p className="text-xs font-medium text-muted-foreground">
                         Mejor Puntuación
                       </p>
-                      <p className="text-2xl font-bold text-white">
+                      <p className="text-2xl font-bold text-foreground">
                         {historyData.summary.bestScore.toFixed(1)}%
                       </p>
                       <p className="text-xs text-amber-400">
@@ -302,10 +299,10 @@ const StudentHistoryScreen: React.FC = () => {
                 <CardContent className="p-4">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-xs font-medium text-slate-400">
+                      <p className="text-xs font-medium text-muted-foreground">
                         Tiempo Total
                       </p>
-                      <p className="text-2xl font-bold text-white">
+                      <p className="text-2xl font-bold text-foreground">
                         {formatDuration(historyData.summary.totalTimeSpent)}
                       </p>
                       <p className="text-xs text-purple-400">
@@ -321,17 +318,17 @@ const StudentHistoryScreen: React.FC = () => {
             {/* Competency Progress */}
             <Card className="bg-box border-line">
               <CardHeader className="pb-3">
-                <CardTitle className="flex items-center space-x-2 text-white text-base">
-                  <Target className="h-4 w-4 text-slate-400" />
+                <CardTitle className="flex items-center space-x-2 text-foreground text-base">
+                  <Target className="h-4 w-4 text-muted-foreground" />
                   <span>Progreso por Competencia</span>
                 </CardTitle>
               </CardHeader>
               <CardContent className="pt-0">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                   {Object.entries(historyData.competencyProgress).map(([competency, data]) => (
-                    <div key={competency} className="p-3 rounded-lg border border-line bg-slate-800/30">
+                    <div key={competency} className="p-3 rounded-lg border border-line bg-muted/30">
                       <div className="flex items-center justify-between mb-2">
-                        <h4 className="font-medium text-white text-sm capitalize">
+                        <h4 className="font-medium text-foreground text-sm capitalize">
                           {competency.replace('_', ' ')}
                         </h4>
                         <div className="flex items-center space-x-1">
@@ -344,20 +341,20 @@ const StudentHistoryScreen: React.FC = () => {
                       </div>
                       <div className="space-y-1.5">
                         <div className="flex justify-between">
-                          <span className="text-xs text-slate-400">Nivel Actual:</span>
-                          <span className="text-xs font-medium text-slate-300">
+                          <span className="text-xs text-muted-foreground">Nivel Actual:</span>
+                          <span className="text-xs font-medium text-foreground/80">
                             {data.currentLevel}
                           </span>
                         </div>
                         <div className="flex justify-between">
-                          <span className="text-xs text-slate-400">Promedio:</span>
+                          <span className="text-xs text-muted-foreground">Promedio:</span>
                           <span className={`text-xs font-medium ${getPerformanceColor(data.averageScore)}`}>
                             {data.averageScore.toFixed(1)}%
                           </span>
                         </div>
                         <div className="flex justify-between">
-                          <span className="text-xs text-slate-400">Exámenes:</span>
-                          <span className="text-xs font-medium text-slate-300">
+                          <span className="text-xs text-muted-foreground">Exámenes:</span>
+                          <span className="text-xs font-medium text-foreground/80">
                             {data.examsCount}
                           </span>
                         </div>
@@ -371,24 +368,24 @@ const StudentHistoryScreen: React.FC = () => {
             {/* Exam History */}
             <Card className="bg-box border-line">
               <CardHeader className="pb-3">
-                <CardTitle className="flex items-center space-x-2 text-white text-base">
-                  <Book className="h-4 w-4 text-slate-400" />
+                <CardTitle className="flex items-center space-x-2 text-foreground text-base">
+                  <Book className="h-4 w-4 text-muted-foreground" />
                   <span>Historial de Exámenes ({historyData.examHistory.length})</span>
                 </CardTitle>
               </CardHeader>
               <CardContent className="pt-0">
                 <div className="space-y-3">
                   {historyData.examHistory.map((exam, index) => (
-                    <div key={exam.examId + index} className="p-4 rounded-lg border border-line bg-slate-800/30">
+                    <div key={exam.examId + index} className="p-4 rounded-lg border border-line bg-muted/30">
                       <div className="flex items-start justify-between mb-3">
                         <div className="flex-1">
-                          <h3 className="font-medium text-white text-sm mb-1">
+                          <h3 className="font-medium text-foreground text-sm mb-1">
                             {exam.examTitle}
                           </h3>
-                          <p className="text-xs text-slate-400 mb-2">
+                          <p className="text-xs text-muted-foreground mb-2">
                             Sesión: {exam.sessionName}
                           </p>
-                          <div className="flex items-center space-x-4 text-xs text-slate-300">
+                          <div className="flex items-center space-x-4 text-xs text-foreground/80">
                             <div className="flex items-center space-x-1">
                               <Calendar className="h-3 w-3" />
                               <span>{formatDate(exam.completedAt)}</span>
@@ -407,7 +404,7 @@ const StudentHistoryScreen: React.FC = () => {
                           <div className={`px-3 py-1 rounded text-sm font-medium ${getPerformanceColor(exam.percentage)}`}>
                             {exam.percentage.toFixed(1)}%
                           </div>
-                          <p className="text-xs text-slate-400 mt-1">
+                          <p className="text-xs text-muted-foreground mt-1">
                             {exam.finalScore}/{exam.maxScore} puntos
                           </p>
                         </div>
@@ -416,14 +413,14 @@ const StudentHistoryScreen: React.FC = () => {
                       {/* Competency Scores */}
                       {exam.competencyScores.length > 0 && (
                         <div className="border-t border-line pt-3">
-                          <h4 className="text-xs font-medium text-slate-300 mb-2">Puntuaciones por Competencia:</h4>
+                          <h4 className="text-xs font-medium text-foreground/80 mb-2">Puntuaciones por Competencia:</h4>
                           <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
                             {exam.competencyScores.map((comp, compIndex) => (
-                              <div key={compIndex} className="text-center p-2 rounded bg-slate-700/50 border border-slate-600">
-                                <p className="text-xs text-slate-400 capitalize">
+                              <div key={compIndex} className="text-center p-2 rounded bg-muted/50 border border-border">
+                                <p className="text-xs text-muted-foreground capitalize">
                                   {comp.competency.replace('_', ' ')}
                                 </p>
-                                <p className="text-sm font-medium text-white">
+                                <p className="text-sm font-medium text-foreground">
                                   {comp.percentage.toFixed(0)}%
                                 </p>
                               </div>
@@ -435,8 +432,8 @@ const StudentHistoryScreen: React.FC = () => {
                       {/* Feedback */}
                       {exam.feedback && (
                         <div className="border-t border-line pt-3 mt-3">
-                          <h4 className="text-xs font-medium text-slate-300 mb-1">Retroalimentación:</h4>
-                          <p className="text-xs text-slate-400 italic">
+                          <h4 className="text-xs font-medium text-foreground/80 mb-1">Retroalimentación:</h4>
+                          <p className="text-xs text-muted-foreground italic">
                             {exam.feedback}
                           </p>
                         </div>
@@ -446,8 +443,8 @@ const StudentHistoryScreen: React.FC = () => {
 
                   {historyData.examHistory.length === 0 && (
                     <div className="text-center py-8">
-                      <BookOpen className="h-12 w-12 text-slate-500 mx-auto mb-3" />
-                      <p className="text-slate-400 text-sm">No hay exámenes registrados para este estudiante</p>
+                      <BookOpen className="h-12 w-12 text-muted-foreground mx-auto mb-3" />
+                      <p className="text-muted-foreground text-sm">No hay exámenes registrados para este estudiante</p>
                     </div>
                   )}
                 </div>
@@ -458,8 +455,8 @@ const StudentHistoryScreen: React.FC = () => {
             {historyData.recommendations.length > 0 && (
               <Card className="bg-box border-line">
                 <CardHeader className="pb-3">
-                  <CardTitle className="flex items-center space-x-2 text-white text-base">
-                    <CheckCircle className="h-4 w-4 text-slate-400" />
+                  <CardTitle className="flex items-center space-x-2 text-foreground text-base">
+                    <CheckCircle className="h-4 w-4 text-muted-foreground" />
                     <span>Recomendaciones</span>
                   </CardTitle>
                 </CardHeader>
@@ -468,7 +465,7 @@ const StudentHistoryScreen: React.FC = () => {
                     {historyData.recommendations.map((recommendation, index) => (
                       <div key={index} className="flex items-start space-x-2 p-3 rounded bg-blue-500/10 border border-blue-500/20">
                         <CheckCircle className="h-4 w-4 text-blue-400 mt-0.5 flex-shrink-0" />
-                        <span className="text-sm text-white">{recommendation}</span>
+                        <span className="text-sm text-foreground">{recommendation}</span>
                       </div>
                     ))}
                   </div>
@@ -482,7 +479,7 @@ const StudentHistoryScreen: React.FC = () => {
         {!loading && !historyData && searchStudentId && (
           <div className="text-center py-12">
             <AlertTriangle className="h-12 w-12 text-amber-500 mx-auto mb-3" />
-            <p className="text-slate-400 text-sm">
+            <p className="text-muted-foreground text-sm">
               No se encontró información para el estudiante ID: {searchStudentId}
             </p>
           </div>

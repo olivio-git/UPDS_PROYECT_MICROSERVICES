@@ -34,7 +34,7 @@ const QuestionContent: React.FC<Props> = ({
   return (
     <Card className="border border-line">
       <CardHeader>
-        <CardTitle className="text-white">Contenido</CardTitle>
+        <CardTitle className="text-foreground">Contenido</CardTitle>
         <CardDescription>Enunciado e instrucciones</CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">

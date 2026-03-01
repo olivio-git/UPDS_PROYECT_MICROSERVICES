@@ -23,12 +23,11 @@ import {
   AlertTriangle,
   CheckCircle,
   UserCheck,
-  MapPin,
   FileText,
   CalendarDays,
   Download
 } from 'lucide-react';
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { toast } from 'sonner';
 
 const UpcomingSessionsScreen: React.FC = () => {
@@ -148,10 +147,10 @@ const UpcomingSessionsScreen: React.FC = () => {
   if (loading) {
     return (
       <MainLayout>
-        <div className="min-h-screen flex items-center justify-center bg-slate-950">
+        <div className="min-h-screen flex items-center justify-center">
           <div className="text-center space-y-3">
             <Loader2 className="h-8 w-8 animate-spin mx-auto text-blue-500" />
-            <p className="text-slate-400 text-sm">Cargando próximas sesiones...</p>
+            <p className="text-muted-foreground text-sm">Cargando próximas sesiones...</p>
           </div>
         </div>
       </MainLayout>
@@ -171,10 +170,10 @@ const UpcomingSessionsScreen: React.FC = () => {
         >
           <div className="flex items-center justify-between p-4">
             <div>
-              <h1 className="text-2xl font-bold text-white">
+              <h1 className="text-2xl font-bold text-foreground">
                 Próximas Programaciones
               </h1>
-              <p className="text-slate-400 text-sm">
+              <p className="text-muted-foreground text-sm">
                 Gestión y seguimiento de sesiones de examen programadas
               </p>
             </div>
@@ -205,15 +204,15 @@ const UpcomingSessionsScreen: React.FC = () => {
         <Card className="bg-box border-line">
           <CardHeader className="pb-2">
             <div className="flex items-center justify-between">
-              <CardTitle className="flex items-center space-x-2 text-white text-base">
-                <Filter className="h-4 w-4 text-slate-400" />
+              <CardTitle className="flex items-center space-x-2 text-foreground text-base">
+                <Filter className="h-4 w-4 text-muted-foreground" />
                 <span>Filtros de Fecha</span>
               </CardTitle>
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={() => setFiltersExpanded(!filtersExpanded)}
-                className="text-slate-400 hover:text-white hover:bg-slate-800"
+                className="text-muted-foreground hover:text-foreground hover:bg-muted"
               >
                 {filtersExpanded ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
               </Button>
@@ -224,26 +223,26 @@ const UpcomingSessionsScreen: React.FC = () => {
             <CardContent className="space-y-3 pt-2">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 <div>
-                  <label className="text-xs font-medium text-slate-300 mb-1 block">
+                  <label className="text-xs font-medium text-foreground/80 mb-1 block">
                     Fecha Inicio
                   </label>
                   <Input
                     type="date"
                     value={filters.startDate || ''}
                     onChange={(e) => handleFilterChange('startDate', e.target.value)}
-                    className="bg-slate-800 border-line text-white text-sm h-8"
+                    className="bg-muted border-line text-foreground text-sm h-8"
                   />
                 </div>
 
                 <div>
-                  <label className="text-xs font-medium text-slate-300 mb-1 block">
+                  <label className="text-xs font-medium text-foreground/80 mb-1 block">
                     Fecha Fin
                   </label>
                   <Input
                     type="date"
                     value={filters.endDate || ''}
                     onChange={(e) => handleFilterChange('endDate', e.target.value)}
-                    className="bg-slate-800 border-line text-white text-sm h-8"
+                    className="bg-muted border-line text-foreground text-sm h-8"
                   />
                 </div>
               </div>
@@ -252,7 +251,7 @@ const UpcomingSessionsScreen: React.FC = () => {
                 <Button onClick={handleApplyFilters} size="sm" className="h-7 text-xs bg-blue-600 hover:bg-blue-700 text-white">
                   Aplicar Filtros
                 </Button>
-                <Button onClick={handleClearFilters} variant="outline" size="sm" className="h-7 text-xs border-line text-slate-300 bg-gray-800 hover:bg-gray-700">
+                <Button onClick={handleClearFilters} variant="outline" size="sm" className="h-7 text-xs border-line text-muted-foreground bg-muted hover:bg-muted/80">
                   Limpiar
                 </Button>
               </div>
@@ -267,10 +266,10 @@ const UpcomingSessionsScreen: React.FC = () => {
               <CardContent className="p-4">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-xs font-medium text-slate-400">
+                    <p className="text-xs font-medium text-muted-foreground">
                       Total Sesiones
                     </p>
-                    <p className="text-2xl font-bold text-white">
+                    <p className="text-2xl font-bold text-foreground">
                       {sessionsData.totalUpcomingSessions}
                     </p>
                     <p className="text-xs text-blue-400">
@@ -286,10 +285,10 @@ const UpcomingSessionsScreen: React.FC = () => {
               <CardContent className="p-4">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-xs font-medium text-slate-400">
+                    <p className="text-xs font-medium text-muted-foreground">
                       Esta Semana
                     </p>
-                    <p className="text-2xl font-bold text-white">
+                    <p className="text-2xl font-bold text-foreground">
                       {sessionsData.sessionsThisWeek}
                     </p>
                     <p className="text-xs text-emerald-400">
@@ -305,10 +304,10 @@ const UpcomingSessionsScreen: React.FC = () => {
               <CardContent className="p-4">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-xs font-medium text-slate-400">
+                    <p className="text-xs font-medium text-muted-foreground">
                       Candidatos Registrados
                     </p>
-                    <p className="text-2xl font-bold text-white">
+                    <p className="text-2xl font-bold text-foreground">
                       {sessionsData.summary.totalCandidatesRegistered}
                     </p>
                     <p className="text-xs text-blue-400">
@@ -324,10 +323,10 @@ const UpcomingSessionsScreen: React.FC = () => {
               <CardContent className="p-4">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-xs font-medium text-slate-400">
+                    <p className="text-xs font-medium text-muted-foreground">
                       Necesitan Proctors
                     </p>
-                    <p className="text-2xl font-bold text-white">
+                    <p className="text-2xl font-bold text-foreground">
                       {sessionsData.summary.sessionsNeedingProctors}
                     </p>
                     <p className="text-xs text-amber-400">
@@ -345,29 +344,29 @@ const UpcomingSessionsScreen: React.FC = () => {
         {sessionsData && (
           <Card className="bg-box border-line">
             <CardHeader className="pb-3">
-              <CardTitle className="flex items-center space-x-2 text-white text-base">
-                <FileText className="h-4 w-4 text-slate-400" />
+              <CardTitle className="flex items-center space-x-2 text-foreground text-base">
+                <FileText className="h-4 w-4 text-muted-foreground" />
                 <span>Próximas Sesiones ({sessionsData.upcomingSessions.length})</span>
               </CardTitle>
             </CardHeader>
             <CardContent className="pt-0">
               <div className="space-y-3">
                 {sessionsData.upcomingSessions.map((session) => (
-                  <div key={session.sessionId} className="p-4 rounded-lg border border-line bg-slate-800/30">
+                  <div key={session.sessionId} className="p-4 rounded-lg border border-line bg-muted/30">
                     <div className="flex items-start justify-between mb-3">
                       <div className="flex-1">
                         <div className="flex items-center space-x-2 mb-1">
-                          <h3 className="font-medium text-white text-sm">
+                          <h3 className="font-medium text-foreground text-sm">
                             {session.sessionName}
                           </h3>
                           <div className={`px-2 py-0.5 rounded text-xs font-medium ${getStatusColor(session.status)}`}>
                             {getStatusText(session.status)}
                           </div>
                         </div>
-                        <p className="text-xs text-slate-400 mb-2">
+                        <p className="text-xs text-muted-foreground mb-2">
                           {session.examTitle}
                         </p>
-                        <div className="flex items-center space-x-4 text-xs text-slate-300">
+                        <div className="flex items-center space-x-4 text-xs text-foreground/80">
                           <div className="flex items-center space-x-1">
                             <Calendar className="h-3 w-3" />
                             <span>{formatDate(session.startDate)}</span>
@@ -387,13 +386,13 @@ const UpcomingSessionsScreen: React.FC = () => {
                     {/* Time Slots */}
                     {session.timeSlots.length > 0 && (
                       <div className="border-t border-line pt-3">
-                        <h4 className="text-xs font-medium text-slate-300 mb-2">Horarios Disponibles:</h4>
+                        <h4 className="text-xs font-medium text-foreground/80 mb-2">Horarios Disponibles:</h4>
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
                           {session.timeSlots.map((slot, index) => (
-                            <div key={index} className="flex items-center justify-between p-2 rounded bg-slate-700/50 border border-slate-600">
+                            <div key={index} className="flex items-center justify-between p-2 rounded bg-muted/50 border border-border">
                               <div className="flex items-center space-x-2">
-                                <Clock className="h-3 w-3 text-slate-400" />
-                                <span className="text-xs text-slate-300">
+                                <Clock className="h-3 w-3 text-muted-foreground" />
+                                <span className="text-xs text-foreground/80">
                                   {formatTime(slot.startTime)} - {formatTime(slot.endTime)}
                                 </span>
                               </div>
@@ -420,16 +419,16 @@ const UpcomingSessionsScreen: React.FC = () => {
                       <div className="flex items-center space-x-4 text-xs">
                         <div className="flex items-center space-x-1">
                           <div className={`w-2 h-2 rounded-full ${
-                            session.settings.requireProctor ? 'bg-emerald-400' : 'bg-slate-400'
+                            session.settings.requireProctor ? 'bg-emerald-400' : 'bg-muted-foreground'
                           }`} />
-                          <span className="text-slate-300">
+                          <span className="text-foreground/80">
                             {session.settings.requireProctor ? 'Requiere proctor' : 'Sin proctor'}
                           </span>
                         </div>
                         {session.settings.allowLateEntry && (
                           <div className="flex items-center space-x-1">
                             <div className="w-2 h-2 rounded-full bg-amber-400" />
-                            <span className="text-slate-300">
+                            <span className="text-foreground/80">
                               Entrada tardía: {session.settings.lateEntryMinutes} min
                             </span>
                           </div>
@@ -441,8 +440,8 @@ const UpcomingSessionsScreen: React.FC = () => {
 
                 {sessionsData.upcomingSessions.length === 0 && (
                   <div className="text-center py-8">
-                    <Calendar className="h-12 w-12 text-slate-500 mx-auto mb-3" />
-                    <p className="text-slate-400 text-sm">No hay sesiones programadas próximamente</p>
+                    <Calendar className="h-12 w-12 text-muted-foreground mx-auto mb-3" />
+                    <p className="text-muted-foreground text-sm">No hay sesiones programadas próximamente</p>
                   </div>
                 )}
               </div>
@@ -454,30 +453,30 @@ const UpcomingSessionsScreen: React.FC = () => {
         {sessionsData && sessionsData.proctorWorkload.length > 0 && (
           <Card className="bg-box border-line">
             <CardHeader className="pb-3">
-              <CardTitle className="flex items-center space-x-2 text-white text-base">
-                <UserCheck className="h-4 w-4 text-slate-400" />
+              <CardTitle className="flex items-center space-x-2 text-foreground text-base">
+                <UserCheck className="h-4 w-4 text-muted-foreground" />
                 <span>Carga de Trabajo de Proctors</span>
               </CardTitle>
             </CardHeader>
             <CardContent className="pt-0">
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
                 {sessionsData.proctorWorkload.map((proctor) => (
-                  <div key={proctor.proctorId} className="p-3 rounded-lg border border-line bg-slate-800/30">
+                  <div key={proctor.proctorId} className="p-3 rounded-lg border border-line bg-muted/30">
                     <div className="flex items-center justify-between mb-2">
-                      <h4 className="font-medium text-white text-sm">
+                      <h4 className="font-medium text-foreground text-sm">
                         {proctor.proctorName}
                       </h4>
                     </div>
                     <div className="space-y-1">
                       <div className="flex justify-between text-xs">
-                        <span className="text-slate-400">Sesiones:</span>
-                        <span className="text-slate-300 font-medium">
+                        <span className="text-muted-foreground">Sesiones:</span>
+                        <span className="text-foreground/80 font-medium">
                           {proctor.assignedSessions}
                         </span>
                       </div>
                       <div className="flex justify-between text-xs">
-                        <span className="text-slate-400">Horas:</span>
-                        <span className="text-slate-300 font-medium">
+                        <span className="text-muted-foreground">Horas:</span>
+                        <span className="text-foreground/80 font-medium">
                           {proctor.upcomingHours.toFixed(1)}h
                         </span>
                       </div>

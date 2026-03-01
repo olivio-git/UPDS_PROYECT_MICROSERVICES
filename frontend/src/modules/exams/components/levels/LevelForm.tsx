@@ -165,16 +165,16 @@ const LevelForm = ({
             variant="ghost"
             size="sm"
             onClick={onCancel}
-            className="text-gray-400 hover:text-gray-200 hover:bg-line/50"
+            className="text-muted-foreground hover:text-foreground hover:bg-line/50"
           >
             <ArrowLeft className="h-4 w-4 mr-2" />
             Volver
           </Button>
           <div>
-            <h2 className="text-xl font-semibold text-gray-200">
+            <h2 className="text-xl font-semibold text-foreground">
               {isEditing ? 'Editar Nivel MCER' : 'Crear Nuevo Nivel MCER'}
             </h2>
-            <p className="text-sm text-gray-400">
+            <p className="text-sm text-muted-foreground">
               {isEditing ? 'Modifica la configuración del nivel existente' : 'Define un nuevo nivel del Marco Común Europeo de Referencia'}
             </p>
           </div>
@@ -185,12 +185,12 @@ const LevelForm = ({
         {/* Información Básica */}
         <Card className="bg-box/50 border-line">
           <CardHeader>
-            <CardTitle className="text-gray-200">Información Básica</CardTitle>
+            <CardTitle className="text-foreground">Información Básica</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="code" className="text-gray-300">
+                <Label htmlFor="code" className="text-muted-foreground">
                   Código de Nivel *
                 </Label>
                 <MCERLevelSelector
@@ -205,7 +205,7 @@ const LevelForm = ({
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="overallMinScore" className="text-gray-300">
+                <Label htmlFor="overallMinScore" className="text-muted-foreground">
                   Puntaje Mínimo General (%) *
                 </Label>
                 <Input
@@ -215,7 +215,7 @@ const LevelForm = ({
                   max="100"
                   value={formData.overallMinScore}
                   onChange={(e) => handleInputChange('overallMinScore', parseInt(e.target.value))}
-                  className="bg-input border-line text-gray-300"
+                  className="bg-input border-line text-foreground"
                 />
                 {errors.overallMinScore && (
                   <p className="text-red-400 text-sm">{errors.overallMinScore}</p>
@@ -224,7 +224,7 @@ const LevelForm = ({
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="name" className="text-gray-300">
+              <Label htmlFor="name" className="text-muted-foreground">
                 Nombre del Nivel *
               </Label>
               <Input
@@ -232,7 +232,7 @@ const LevelForm = ({
                 value={formData.name}
                 onChange={(e) => handleInputChange('name', e.target.value)}
                 placeholder="Ej: Usuario Básico - Acceso"
-                className="bg-input border-line text-gray-300"
+                className="bg-input border-line text-foreground"
               />
               {errors.name && (
                 <p className="text-red-400 text-sm">{errors.name}</p>
@@ -240,7 +240,7 @@ const LevelForm = ({
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="description" className="text-gray-300">
+              <Label htmlFor="description" className="text-muted-foreground">
                 Descripción del Nivel *
               </Label>
               <Textarea
@@ -248,7 +248,7 @@ const LevelForm = ({
                 value={formData.description}
                 onChange={(e) => handleInputChange('description', e.target.value)}
                 placeholder="Describe las características y objetivos de este nivel..."
-                className="bg-input border-line text-gray-300 min-h-20"
+                className="bg-input border-line text-foreground min-h-20"
               />
               {errors.description && (
                 <p className="text-red-400 text-sm">{errors.description}</p>
@@ -262,7 +262,7 @@ const LevelForm = ({
                 className="bg-input data-[state=checked]:bg-blue-600"
                 onCheckedChange={(checked) => handleInputChange('isActive', checked)}
               />
-              <Label htmlFor="isActive" className="text-gray-300">
+              <Label htmlFor="isActive" className="text-muted-foreground">
                 Nivel activo
               </Label>
             </div>
@@ -272,18 +272,18 @@ const LevelForm = ({
         {/* Requisitos por Competencia */}
         <Card className="bg-box/50 border-line">
           <CardHeader>
-            <CardTitle className="text-gray-200">Requisitos por Competencia</CardTitle>
+            <CardTitle className="text-foreground">Requisitos por Competencia</CardTitle>
           </CardHeader>
           <CardContent className="space-y-6">
             {COMPETENCIES.map((competency) => (
               <div key={competency} className="border border-line rounded-lg p-4 space-y-4">
-                <h4 className="text-lg font-medium text-gray-200">
+                <h4 className="text-lg font-medium text-foreground">
                   {COMPETENCY_LABELS[competency]}
                 </h4>
                 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label className="text-gray-300">
+                    <Label className="text-muted-foreground">
                       Puntaje Mínimo (%) *
                     </Label>
                     <Input
@@ -296,7 +296,7 @@ const LevelForm = ({
                         'minScore', 
                         parseInt(e.target.value)
                       )}
-                      className="bg-input border-line text-gray-300"
+                      className="bg-input border-line text-foreground"
                     />
                     {errors[`competency_${competency}_score`] && (
                       <p className="text-red-400 text-sm">{errors[`competency_${competency}_score`]}</p>
@@ -304,7 +304,7 @@ const LevelForm = ({
                   </div>
 
                   <div className="space-y-2">
-                    <Label className="text-gray-300">
+                    <Label className="text-muted-foreground">
                       Descripción *
                     </Label>
                     <Input
@@ -315,7 +315,7 @@ const LevelForm = ({
                         e.target.value
                       )}
                       placeholder={`Descripción para ${COMPETENCY_LABELS[competency]}`}
-                      className="bg-input border-line text-gray-300"
+                      className="bg-input border-line text-foreground"
                     />
                     {errors[`competency_${competency}_desc`] && (
                       <p className="text-red-400 text-sm">{errors[`competency_${competency}_desc`]}</p>
@@ -326,7 +326,7 @@ const LevelForm = ({
                 {/* Can-do Statements */}
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
-                    <Label className="text-gray-300">
+                    <Label className="text-muted-foreground">
                       Descriptores Can-Do
                     </Label>
                     <Button
@@ -334,7 +334,7 @@ const LevelForm = ({
                       variant="outline"
                       size="sm"
                       onClick={() => addCanDoStatement(competency)}
-                      className="bg-transparent border-line text-gray-300 hover:bg-line/50"
+                      className="bg-transparent border-line text-muted-foreground hover:bg-line/50"
                     >
                       <Plus className="h-3 w-3 mr-1" />
                       Agregar
@@ -347,7 +347,7 @@ const LevelForm = ({
                         value={statement}
                         onChange={(e) => updateCanDoStatement(competency, index, e.target.value)}
                         placeholder={`Descriptor ${index + 1} para ${COMPETENCY_LABELS[competency]}`}
-                        className="bg-input border-line text-gray-300 flex-1"
+                        className="bg-input border-line text-foreground flex-1"
                       />
                       {formData.competencyRequirements[competency]?.canDoStatements?.length > 1 && (
                         <Button
@@ -376,7 +376,7 @@ const LevelForm = ({
             onClick={onCancel}
             disabled={isLoading}
             size={'sm'}
-            className="bg-transparent border-line text-gray-300 hover:bg-line/50"
+            className="bg-transparent border-line text-muted-foreground hover:bg-line/50"
           >
             <X className="h-4 w-4 mr-2" />
             Cancelar

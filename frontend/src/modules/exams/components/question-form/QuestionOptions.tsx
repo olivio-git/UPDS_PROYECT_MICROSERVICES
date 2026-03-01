@@ -107,7 +107,7 @@ const QuestionOptions: React.FC<Props> = ({
         {formData.content?.options?.map((opt: QuestionOption) => (
           <div
             key={opt.id}
-            className="flex items-center gap-3 p-3 bg-gray-800/40 border border-gray-700 rounded-lg"
+            className="flex items-center gap-3 p-3 bg-muted/40 border border-border rounded-lg"
           >
             <input
               type="radio"
@@ -132,7 +132,7 @@ const QuestionOptions: React.FC<Props> = ({
                 placeholder="Texto de la opción"
               />
             ) : (
-              <span className="flex-1 text-gray-200">{opt.text}</span>
+              <span className="flex-1 text-foreground/80">{opt.text}</span>
             )}
             
             {formData.type === 'multiple_choice' && (
@@ -140,7 +140,7 @@ const QuestionOptions: React.FC<Props> = ({
                 type="button"
                 variant="outline"
                 onClick={() => removeOption(opt.id)}
-                className="p-2 border-gray-700 hover:bg-gray-800"
+                className="p-2 border-border hover:bg-muted"
                 title="Eliminar opción"
               >
                 <Trash2 className="w-4 h-4 text-red-500" />

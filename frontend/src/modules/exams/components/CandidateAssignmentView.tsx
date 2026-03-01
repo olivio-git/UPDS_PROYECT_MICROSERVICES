@@ -31,7 +31,7 @@ const CandidateAssignmentModal: React.FC<CandidateAssignmentModalProps> = ({
 
   // estilos coherentes con SessionForm
   const baseInput =
-    "bg-gray-800/50 border-gray-600 text-white placeholder-gray-400 border-[0.5px] focus:border-blue-500 focus:ring-0 rounded-lg";
+    "bg-muted/50 border-border text-foreground placeholder-muted-foreground border-[0.5px] focus:border-blue-500 focus:ring-0 rounded-lg";
 
   // Cargar candidatos desde el backend (misma lógica)
   useEffect(() => {
@@ -179,12 +179,12 @@ const CandidateAssignmentModal: React.FC<CandidateAssignmentModalProps> = ({
       {/* Encabezado estilo hermanos */}
       <div className="flex items-center justify-between">
         <div>
-          <h3 className="text-lg font-semibold text-gray-200">Gestionar Candidatos</h3>
-          <p className="text-sm text-gray-400">Sesión: {session.sessionName}</p>
+          <h3 className="text-lg font-semibold text-foreground/80">Gestionar Candidatos</h3>
+          <p className="text-sm text-muted-foreground">Sesión: {session.sessionName}</p>
         </div>
         {/* Botón cancelar para respetar onClose sin modal */}
         <div className="flex gap-2">
-          <Button type="button" variant="outline" onClick={onClose} className="border-line text-gray-300 bg-transparent">
+          <Button type="button" variant="outline" onClick={onClose} className="border-line text-muted-foreground bg-transparent">
             Cancelar
           </Button>
           <Button
@@ -208,32 +208,32 @@ const CandidateAssignmentModal: React.FC<CandidateAssignmentModalProps> = ({
 
       {/* Estadísticas */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div className="bg-gray-800/40 border border-gray-700 rounded-lg p-4">
+        <div className="bg-muted/40 border border-border rounded-lg p-4">
           <div className="flex items-center">
             <Users className="h-6 w-6 text-blue-400" />
             <div className="ml-3">
               <p className="text-sm font-medium text-blue-300">Asignados</p>
-              <p className="text-2xl font-bold text-gray-100">{currentCandidates.length}</p>
+              <p className="text-2xl font-bold text-foreground">{currentCandidates.length}</p>
             </div>
           </div>
         </div>
 
-        <div className="bg-gray-800/40 border border-gray-700 rounded-lg p-4">
+        <div className="bg-muted/40 border border-border rounded-lg p-4">
           <div className="flex items-center">
             <UserPlus className="h-6 w-6 text-green-400" />
             <div className="ml-3">
               <p className="text-sm font-medium text-green-300">Espacios libres</p>
-              <p className="text-2xl font-bold text-gray-100">{remainingSlots}</p>
+              <p className="text-2xl font-bold text-foreground">{remainingSlots}</p>
             </div>
           </div>
         </div>
 
-        <div className="bg-gray-800/40 border border-gray-700 rounded-lg p-4">
+        <div className="bg-muted/40 border border-border rounded-lg p-4">
           <div className="flex items-center">
-            <Users className="h-6 w-6 text-gray-300" />
+            <Users className="h-6 w-6 text-muted-foreground" />
             <div className="ml-3">
-              <p className="text-sm font-medium text-gray-300">Capacidad</p>
-              <p className="text-2xl font-bold text-gray-100">
+              <p className="text-sm font-medium text-muted-foreground">Capacidad</p>
+              <p className="text-2xl font-bold text-foreground">
                 {session.participants.maxCandidates}
               </p>
             </div>
@@ -251,24 +251,24 @@ const CandidateAssignmentModal: React.FC<CandidateAssignmentModalProps> = ({
 
       {/* Loader de candidatos */}
       {loadingCandidates ? (
-        <div className="flex items-center justify-center py-16 bg-gray-900/30 border border-gray-800 rounded-lg">
+        <div className="flex items-center justify-center py-16 bg-card/60 border border-border rounded-lg">
           <Loader2 className="h-6 w-6 animate-spin text-blue-400" />
-          <span className="ml-3 text-gray-300">Cargando candidatos...</span>
+          <span className="ml-3 text-muted-foreground">Cargando candidatos...</span>
         </div>
       ) : (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Candidatos Asignados */}
-          <div className="bg-gray-900/30 border border-gray-800 rounded-lg p-4">
-            <h4 className="text-md font-medium text-gray-200 mb-4">
+          <div className="bg-card/60 border border-border rounded-lg p-4">
+            <h4 className="text-md font-medium text-foreground/80 mb-4">
               Candidatos Asignados ({currentCandidates.length})
             </h4>
             {currentCandidates.length === 0 ? (
-              <div className="text-center py-10 bg-gray-800/30 rounded-lg border border-dashed border-gray-700">
-                <Users className="mx-auto h-10 w-10 text-gray-500" />
-                <h3 className="mt-2 text-sm font-medium text-gray-300">
+              <div className="text-center py-10 bg-muted/30 rounded-lg border border-dashed border-border">
+                <Users className="mx-auto h-10 w-10 text-muted-foreground" />
+                <h3 className="mt-2 text-sm font-medium text-muted-foreground">
                   No hay candidatos asignados
                 </h3>
-                <p className="mt-1 text-sm text-gray-400">
+                <p className="mt-1 text-sm text-muted-foreground">
                   Selecciona candidatos de la lista disponible.
                 </p>
               </div>
@@ -277,17 +277,17 @@ const CandidateAssignmentModal: React.FC<CandidateAssignmentModalProps> = ({
                 {currentCandidates.map(candidate => (
                   <div
                     key={candidate._id}
-                    className="flex items-center justify-between p-3 bg-gray-800/40 border border-gray-700 rounded-lg"
+                    className="flex items-center justify-between p-3 bg-muted/40 border border-border rounded-lg"
                   >
                     <div className="flex items-center">
-                      <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center text-white text-sm font-medium">
+                      <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center text-foreground text-sm font-medium">
                         {getInitials(candidate)}
                       </div>
                       <div className="ml-3">
-                        <p className="text-sm font-medium text-gray-100">
+                        <p className="text-sm font-medium text-foreground">
                           {getFullName(candidate)}
                         </p>
-                        <p className="text-xs text-gray-400">{candidate.personalInfo.email}</p>
+                        <p className="text-xs text-muted-foreground">{candidate.personalInfo.email}</p>
                       </div>
                     </div>
                     <div className="flex items-center">
@@ -311,9 +311,9 @@ const CandidateAssignmentModal: React.FC<CandidateAssignmentModalProps> = ({
           </div>
 
           {/* Candidatos Disponibles */}
-          <div className="bg-gray-900/30 border border-gray-800 rounded-lg p-4">
+          <div className="bg-card/60 border border-border rounded-lg p-4">
             <div className="flex items-center justify-between mb-4">
-              <h4 className="text-md font-medium text-gray-200">
+              <h4 className="text-md font-medium text-foreground/80">
                 Candidatos Disponibles ({availableCandidates.length})
               </h4>
               {filteredCandidates.length > 0 && (
@@ -329,7 +329,7 @@ const CandidateAssignmentModal: React.FC<CandidateAssignmentModalProps> = ({
             {/* Búsqueda */}
             <div className="mb-4">
               <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
                   type="text"
                   placeholder="Buscar candidatos..."
@@ -342,22 +342,22 @@ const CandidateAssignmentModal: React.FC<CandidateAssignmentModalProps> = ({
 
             {/* Lista */}
             {availableCandidates.length === 0 ? (
-              <div className="text-center py-10 bg-gray-800/30 rounded-lg border border-dashed border-gray-700">
-                <Users className="mx-auto h-10 w-10 text-gray-500" />
-                <h3 className="mt-2 text-sm font-medium text-gray-300">
+              <div className="text-center py-10 bg-muted/30 rounded-lg border border-dashed border-border">
+                <Users className="mx-auto h-10 w-10 text-muted-foreground" />
+                <h3 className="mt-2 text-sm font-medium text-muted-foreground">
                   No hay candidatos disponibles
                 </h3>
-                <p className="mt-1 text-sm text-gray-400">
+                <p className="mt-1 text-sm text-muted-foreground">
                   Todos los candidatos activos ya están asignados o no hay candidatos registrados.
                 </p>
               </div>
             ) : filteredCandidates.length === 0 ? (
-              <div className="text-center py-10 bg-gray-800/30 rounded-lg border border-dashed border-gray-700">
-                <Search className="mx-auto h-10 w-10 text-gray-500" />
-                <h3 className="mt-2 text-sm font-medium text-gray-300">
+              <div className="text-center py-10 bg-muted/30 rounded-lg border border-dashed border-border">
+                <Search className="mx-auto h-10 w-10 text-muted-foreground" />
+                <h3 className="mt-2 text-sm font-medium text-muted-foreground">
                   No se encontraron candidatos
                 </h3>
-                <p className="mt-1 text-sm text-gray-400">Intenta con otros términos.</p>
+                <p className="mt-1 text-sm text-muted-foreground">Intenta con otros términos.</p>
               </div>
             ) : (
               <div className="space-y-2 max-h-96 overflow-y-auto pr-1">
@@ -369,7 +369,7 @@ const CandidateAssignmentModal: React.FC<CandidateAssignmentModalProps> = ({
                       className={`flex items-center justify-between p-3 border rounded-lg cursor-pointer transition-colors ${
                         isSelected
                           ? 'bg-blue-900/20 border-blue-800'
-                          : 'bg-gray-800/40 border-gray-700 hover:bg-gray-800/60'
+                          : 'bg-muted/40 border-border hover:bg-muted/60'
                       }`}
                       onClick={() => handleCandidateSelect(candidate._id)}
                     >
@@ -380,19 +380,19 @@ const CandidateAssignmentModal: React.FC<CandidateAssignmentModalProps> = ({
                             checked={isSelected}
                             onChange={() => handleCandidateSelect(candidate._id)}
                             onClick={(e) => e.stopPropagation()}
-                            className="h-4 w-4 rounded border-gray-600 bg-gray-800 text-blue-500 focus:ring-0"
+                            className="h-4 w-4 rounded border-border bg-muted text-blue-500 focus:ring-0"
                           />
                         </div>
-                        <div className="w-8 h-8 bg-green-600 rounded-full flex items-center justify-center text-white text-sm font-medium">
+                        <div className="w-8 h-8 bg-green-600 rounded-full flex items-center justify-center text-foreground text-sm font-medium">
                           {getInitials(candidate)}
                         </div>
                         <div className="ml-3">
-                          <p className="text-sm font-medium text-gray-100">
+                          <p className="text-sm font-medium text-foreground">
                             {getFullName(candidate)}
                           </p>
-                          <p className="text-xs text-gray-400">{candidate.personalInfo.email}</p>
+                          <p className="text-xs text-muted-foreground">{candidate.personalInfo.email}</p>
                           {candidate.personalInfo.phone && (
-                            <p className="text-xs text-gray-500">{candidate.personalInfo.phone}</p>
+                            <p className="text-xs text-muted-foreground">{candidate.personalInfo.phone}</p>
                           )}
                         </div>
                       </div>

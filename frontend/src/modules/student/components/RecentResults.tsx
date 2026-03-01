@@ -93,11 +93,11 @@ const RecentResults = ({
     >
       <Card className="bg-box backdrop-blur-sm border border-line">
         <CardHeader className="pb-3">
-          <CardTitle className="text-white flex items-center gap-2">
-            <FileText className="h-5 w-5 text-gray-400" />
+          <CardTitle className="text-foreground flex items-center gap-2">
+            <FileText className="h-5 w-5 text-muted-foreground" />
             Resultados Recientes
           </CardTitle>
-          <CardDescription className="text-gray-300">
+          <CardDescription className="text-muted-foreground">
             Tus ultimas evaluaciones
           </CardDescription>
         </CardHeader>
@@ -105,23 +105,23 @@ const RecentResults = ({
         <CardContent className="space-y-1 pt-0">
           {loading && (
             <div className="flex items-center justify-center py-6">
-              <Loader2 className="h-5 w-5 animate-spin text-gray-400 mr-2" />
-              <span className="text-gray-400 text-sm">Cargando resultados...</span>
+              <Loader2 className="h-5 w-5 animate-spin text-muted-foreground mr-2" />
+              <span className="text-muted-foreground text-sm">Cargando resultados...</span>
             </div>
           )}
 
           {error && (
-            <div className="flex items-center justify-center py-6 text-red-400">
+            <div className="flex items-center justify-center py-6 text-red-500">
               <AlertCircle className="h-4 w-4 mr-2" />
               <span className="text-sm">Error: {error}</span>
             </div>
           )}
 
           {!loading && !error && recentResults.length === 0 && (
-            <div className="text-center py-6 text-gray-400">
+            <div className="text-center py-6 text-muted-foreground">
               <FileText className="h-10 w-10 mx-auto mb-2 opacity-40" />
               <p className="text-sm">No tienes resultados de examenes aun</p>
-              <p className="text-xs mt-1 text-gray-500">
+              <p className="text-xs mt-1 text-muted-foreground/70">
                 Completa un examen para ver tus resultados aqui
               </p>
             </div>
@@ -145,10 +145,10 @@ const RecentResults = ({
 
                 {/* Nombre y fecha */}
                 <div className="flex-1 min-w-0">
-                  <p className="font-medium text-white text-sm truncate leading-tight">
+                  <p className="font-medium text-foreground text-sm truncate leading-tight">
                     {result.examName}
                   </p>
-                  <p className="text-xs text-gray-500 leading-tight mt-0.5">
+                  <p className="text-xs text-muted-foreground leading-tight mt-0.5">
                     {formatShortDate(result.date)}
                   </p>
                 </div>
@@ -167,7 +167,7 @@ const RecentResults = ({
 
                 {/* Chevron */}
                 <ChevronRight
-                  className="flex-shrink-0 h-4 w-4 text-gray-600"
+                  className="flex-shrink-0 h-4 w-4 text-muted-foreground/50"
                   aria-hidden="true"
                 />
               </button>
@@ -176,7 +176,7 @@ const RecentResults = ({
           <div className="pt-2">
             <Button
               variant="outline"
-              className="w-full border-gray-600 text-gray-300 hover:border-yellow-300 bg-box transition-colors hover:cursor-pointer"
+              className="w-full border-border text-muted-foreground hover:border-yellow-500 bg-box transition-colors hover:cursor-pointer"
               onClick={() => navigate("/student/results")}
             >
               Ver Todos los Resultados

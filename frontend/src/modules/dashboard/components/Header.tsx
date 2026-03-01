@@ -25,6 +25,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import CommandPalette from './CommandPalette';
+import { ThemeToggle } from '@/components/theme/ThemeToggle';
 
 interface Notification {
   id: string;
@@ -310,13 +311,13 @@ const Header = () => {
   const getNotificationIcon = (type: string) => {
     switch (type) {
       case 'success':
-        return <CheckCircle2 className="h-4 w-4 text-green-400" />;
+        return <CheckCircle2 className="h-4 w-4 text-green-500" />;
       case 'warning':
-        return <AlertTriangle className="h-4 w-4 text-yellow-400" />;
+        return <AlertTriangle className="h-4 w-4 text-amber-500" />;
       case 'exam':
-        return <BookOpen className="h-4 w-4 text-purple-400" />;
+        return <BookOpen className="h-4 w-4 text-purple-500" />;
       default:
-        return <Info className="h-4 w-4 text-blue-400" />;
+        return <Info className="h-4 w-4 text-blue-500" />;
     }
   };
 
@@ -329,16 +330,16 @@ const Header = () => {
           <div className="hidden md:flex items-center">
             <div className="flex items-center gap-3">
               <div className="flex flex-col">
-                <span className="text-sm font-bold text-white leading-none">
+                <span className="text-sm font-bold text-foreground leading-none">
                   CBA
                 </span>
-                <span className="text-xs text-gray-400">Platform</span>
+                <span className="text-xs text-muted-foreground">Platform</span>
               </div>
             </div>
           </div>
 
           {/* Desktop Navigation */}
-          <nav className="hidden md:flex px-6 py-1 text-xs font-medium rounded-full bg-background/80 backdrop-blur-xl border border-gray-900/10 text-gray-200 justify-center items-center gap-4">
+          <nav className="hidden md:flex px-6 py-1 text-xs font-medium rounded-full bg-background/80 backdrop-blur-xl border border-border/40 text-foreground justify-center items-center gap-4">
             {filteredRoutes.map(route => {
               const IconComponent = route.icon;
               const isActive = location.pathname === route.path;
@@ -370,10 +371,10 @@ const Header = () => {
             <div className="hidden md:block">
               <button
                 onClick={openCommandPalette}
-                className="flex items-center px-2 py-1 text-sm text-gray-400 bg-gray-900 backdrop-blur-sm rounded-lg hover:border-gray-600 hover:bg-gray-800 hover:text-gray-200 transition-all duration-300"
+                className="flex items-center px-2 py-1 text-sm text-muted-foreground bg-muted backdrop-blur-sm rounded-lg hover:border-border hover:bg-muted/80 hover:text-foreground transition-all duration-300"
               >
                 <Search className="h-4 w-4" />
-                <kbd className="pointer-events-none hidden lg:inline-flex h-5 select-none items-center gap-1 rounded px-1.5 font-mono text-xs font-medium text-gray-400 opacity-100">
+                <kbd className="pointer-events-none hidden lg:inline-flex h-5 select-none items-center gap-1 rounded px-1.5 font-mono text-xs font-medium text-muted-foreground opacity-100">
                   Ctrl+K
                 </kbd>
               </button>
@@ -385,19 +386,19 @@ const Header = () => {
                 variant="outline"
                 size="icon"
                 onClick={() => setIsNotificationsOpen(!isNotificationsOpen)}
-                className="relative border border-gray-900/20 bg-background/80 backdrop-blur-sm hover:border-gray-600 hover:bg-gray-900 transition-all duration-300"
+                className="relative border border-border/40 bg-background/80 backdrop-blur-sm hover:border-border hover:bg-muted transition-all duration-300"
               >
-                <Bell className="h-4 w-4 text-white" />
+                <Bell className="h-4 w-4 text-foreground" />
                 {unreadCount > 0 && (
                   <span className="absolute -top-1 -right-1 h-5 w-5 bg-red-500 text-white text-xs rounded-full flex items-center justify-center font-medium animate-pulse">
                     {unreadCount}
                   </span>
                 )}
               </Button>
-
+                <ThemeToggle></ThemeToggle>
               {/* Notifications Dropdown con Gradiente Plateado */}
               {isNotificationsOpen && (
-                <div className="absolute right-0 mt-2 w-80 bg-gray-900/95 backdrop-blur-sm border border-line rounded-xl shadow-2xl overflow-hidden">
+                <div className="absolute right-0 mt-2 w-80 bg-popover/95 backdrop-blur-sm border border-border rounded-xl shadow-2xl overflow-hidden">
                   {/* Gradiente plateado para el modal de notificaciones */}
                   <div className="absolute inset-0 pointer-events-none">
                     {/* Gradiente central que se expande hacia los lados */}
@@ -408,8 +409,8 @@ const Header = () => {
                   </div>
 
                   {/* Header */}
-                  <div className="relative flex items-center justify-between p-4 border-b border-gray-700/60">
-                    <h3 className="text-sm font-semibold text-gray-200">
+                  <div className="relative flex items-center justify-between p-4 border-b border-border/60">
+                    <h3 className="text-sm font-semibold text-popover-foreground">
                       Notificaciones
                     </h3>
                     {unreadCount > 0 && (
@@ -425,7 +426,7 @@ const Header = () => {
                   {/* Notifications List */}
                   <div className="relative max-h-80 overflow-y-auto">
                     {notifications.length === 0 ? (
-                      <div className="p-6 text-center text-gray-400">
+                      <div className="p-6 text-center text-muted-foreground">
                         <Bell className="h-8 w-8 mx-auto mb-2 opacity-50" />
                         <p className="text-sm">No tienes notificaciones</p>
                       </div>
@@ -433,7 +434,7 @@ const Header = () => {
                       notifications.map(notification => (
                         <div
                           key={notification.id}
-                          className={`p-4 border-b hover:cursor-pointer border-gray-800/50 hover:bg-gray-800/30 transition-colors group ${
+                          className={`p-4 border-b hover:cursor-pointer border-border/50 hover:bg-muted/30 transition-colors group ${
                             !notification.read ? 'bg-blue-500/5' : ''
                           }`}
                         >
@@ -446,8 +447,8 @@ const Header = () => {
                                 <h4
                                   className={`text-sm font-medium ${
                                     !notification.read
-                                      ? 'text-white'
-                                      : 'text-gray-300'
+                                      ? 'text-popover-foreground'
+                                      : 'text-muted-foreground'
                                   }`}
                                 >
                                   {notification.title}
@@ -458,27 +459,27 @@ const Header = () => {
                                       onClick={() =>
                                         markAsRead(notification.id)
                                       }
-                                      className="p-1 hover:bg-gray-700 rounded"
+                                      className="p-1 hover:bg-muted rounded"
                                       title="Marcar como leída"
                                     >
-                                      <Check className="h-3 w-3 text-green-400" />
+                                      <Check className="h-3 w-3 text-green-500" />
                                     </button>
                                   )}
                                   <button
                                     onClick={() =>
                                       deleteNotification(notification.id)
                                     }
-                                    className="p-1 hover:bg-gray-700 rounded"
+                                    className="p-1 hover:bg-muted rounded"
                                     title="Eliminar"
                                   >
-                                    <Trash2 className="h-3 w-3 text-red-400" />
+                                    <Trash2 className="h-3 w-3 text-red-500" />
                                   </button>
                                 </div>
                               </div>
-                              <p className="text-xs text-gray-400 mt-1 line-clamp-2">
+                              <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
                                 {notification.message}
                               </p>
-                              <span className="text-xs text-gray-500 mt-1 block">
+                              <span className="text-xs text-muted-foreground/70 mt-1 block">
                                 {notification.time}
                               </span>
                             </div>
@@ -492,7 +493,7 @@ const Header = () => {
                   </div>
 
                   {/* Footer */}
-                  <div className="relative p-3 border-t border-gray-700/60">
+                  <div className="relative p-3 border-t border-border/60">
                     <button
                       onClick={() => {
                         setIsNotificationsOpen(false);
@@ -513,16 +514,16 @@ const Header = () => {
                 variant="outline"
                 size="icon"
                 onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
-                className="border border-gray-900/20 bg-background/80 backdrop-blur-sm hover:border-gray-600 hover:bg-gray-900 transition-all duration-300"
+                className="border border-border/40 bg-background/80 backdrop-blur-sm hover:border-border hover:bg-muted transition-all duration-300"
               >
-                <User className="h-4 w-4 text-white" />
+                <User className="h-4 w-4 text-foreground" />
               </Button>
 
               {/* User Dropdown */}
               {isUserMenuOpen && (
-                <div className="absolute right-0 mt-2 w-56 bg-gray-900/95 backdrop-blur-sm border border-gray-700 rounded-xl shadow-2xl overflow-hidden">
+                <div className="absolute right-0 mt-2 w-56 bg-popover/95 backdrop-blur-sm border border-border rounded-xl shadow-2xl overflow-hidden">
                   {/* User Info */}
-                  <div className="p-4 border-b border-gray-700">
+                  <div className="p-4 border-b border-border">
                     <div className="flex items-center gap-3">
                       <div className="w-8 h-8 bg-gradient-to-br from-blue-400 to-blue-600 rounded-full flex items-center justify-center">
                         <span className="text-white font-semibold text-sm">
@@ -532,7 +533,7 @@ const Header = () => {
                         </span>
                       </div>
                       <div>
-                        <p className="text-sm font-medium text-white">
+                        <p className="text-sm font-medium text-popover-foreground">
                           {user?.firstName && user?.lastName
                             ? `${user.firstName} ${user.lastName}`
                             : user?.name || 'Usuario'}
@@ -547,7 +548,7 @@ const Header = () => {
                   {/* Menu Items */}
                   <div className="py-2">
                     <button
-                      className="flex items-center gap-3 w-full px-4 py-3 text-sm text-gray-200 hover:bg-gray-800/50 transition-colors"
+                      className="flex items-center gap-3 w-full px-4 py-3 text-sm text-popover-foreground hover:bg-muted/50 transition-colors"
                       onClick={() => {
                         setIsUserMenuOpen(false);
                         navigate('/profile');
@@ -557,7 +558,7 @@ const Header = () => {
                       Mi Perfil
                     </button>
                     <button
-                      className="flex items-center gap-3 w-full px-4 py-3 text-sm text-gray-200 hover:bg-gray-800/50 transition-colors"
+                      className="flex items-center gap-3 w-full px-4 py-3 text-sm text-popover-foreground hover:bg-muted/50 transition-colors"
                       onClick={() => {
                         setIsUserMenuOpen(false);
                         navigate('/settings');
@@ -566,9 +567,9 @@ const Header = () => {
                       <Settings className="h-4 w-4" />
                       Configuración
                     </button>
-                    <hr className="my-2 border-gray-700" />
+                    <hr className="my-2 border-border" />
                     <button
-                      className="flex items-center gap-3 w-full px-4 py-3 text-sm text-red-400 hover:bg-red-500/10 transition-colors"
+                      className="flex items-center gap-3 w-full px-4 py-3 text-sm text-red-500 hover:bg-red-500/10 transition-colors"
                       onClick={handleLogout}
                     >
                       <LogOut className="h-4 w-4" />
@@ -585,9 +586,9 @@ const Header = () => {
                 variant="outline"
                 size="icon"
                 onClick={toggleMobileMenu}
-                className="md:hidden border border-gray-900/20 bg-background/80 backdrop-blur-sm hover:border-gray-600 hover:bg-gray-900 transition-all duration-300"
+                className="md:hidden border border-border/40 bg-background/80 backdrop-blur-sm hover:border-border hover:bg-muted transition-all duration-300"
               >
-                <Menu className="h-4 w-4 text-white" />
+                <Menu className="h-4 w-4 text-foreground" />
               </Button>
             )}
           </div>
@@ -603,44 +604,44 @@ const Header = () => {
           />
 
           {/* Mobile Menu Panel */}
-          <div className="fixed top-0 left-0 h-full w-64 bg-gray-900/95 backdrop-blur-sm border-r border-gray-700 shadow-xl transform transition-transform duration-300">
+          <div className="fixed top-0 left-0 h-full w-64 bg-popover/95 backdrop-blur-sm border-r border-border shadow-xl transform transition-transform duration-300">
             <div className="flex flex-col h-full">
               {/* Header */}
-              <div className="flex items-center justify-between p-4 border-b border-gray-700">
-                <h2 className="text-lg font-bold text-gray-200">
+              <div className="flex items-center justify-between p-4 border-b border-border">
+                <h2 className="text-lg font-bold text-popover-foreground">
                   CBA Platform
                 </h2>
                 <Button
                   variant="ghost"
                   size="icon"
                   onClick={toggleMobileMenu}
-                  className="text-gray-400 hover:text-gray-200"
+                  className="text-muted-foreground hover:text-foreground"
                 >
-                  <X className="h-4 w-4 text-white" />
+                  <X className="h-4 w-4" />
                 </Button>
               </div>
 
               {/* Search Button Mobile */}
-              <div className="p-4 border-b border-gray-700 flex gap-2">
+              <div className="p-4 border-b border-border flex gap-2">
                 <button
                   onClick={() => {
                     setIsMobileMenuOpen(false);
                     openCommandPalette();
                   }}
-                  className="flex items-center gap-3 flex-1 p-2 text-gray-300 bg-gray-800/50 hover:bg-gray-800 rounded-lg transition-all duration-200"
+                  className="flex items-center gap-3 flex-1 p-2 text-muted-foreground bg-muted/50 hover:bg-muted rounded-lg transition-all duration-200"
                 >
                   <Search className="h-5 w-5" />
                   <span className="text-xs">Buscar rutas...</span>
-                  <kbd className="ml-auto pointer-events-none inline-flex h-5 select-none items-center gap-1 rounded px-1.5 font-mono text-[10px] font-medium text-gray-400">
+                  <kbd className="ml-auto pointer-events-none inline-flex h-5 select-none items-center gap-1 rounded px-1.5 font-mono text-[10px] font-medium text-muted-foreground">
                     Ctrl+K
                   </kbd>
                 </button>
                 <Button
                   variant="outline"
                   size="icon"
-                  className="border border-gray-900/20 bg-background/80 backdrop-blur-sm hover:border-gray-600 hover:bg-gray-900 transition-all duration-300 relative"
+                  className="border border-border/40 bg-background/80 backdrop-blur-sm hover:border-border hover:bg-muted transition-all duration-300 relative"
                 >
-                  <Bell className="h-4 w-4 text-white" />
+                  <Bell className="h-4 w-4 text-foreground" />
                   {unreadCount > 0 && (
                     <span className="absolute -top-1 -right-1 h-4 w-4 bg-red-500 text-white text-xs rounded-full flex items-center justify-center font-medium">
                       {unreadCount}
@@ -665,7 +666,7 @@ const Header = () => {
                                                     ${
                                                       isActive
                                                         ? 'bg-blue-500/20 text-blue-400'
-                                                        : 'text-gray-300 hover:bg-gray-800 hover:text-blue-400'
+                                                        : 'text-foreground/70 hover:bg-muted hover:text-blue-400'
                                                     }
                                                 `}
                       >
@@ -678,10 +679,10 @@ const Header = () => {
               </nav>
 
               {/* User Actions */}
-              <div className="p-4 border-t border-gray-700">
+              <div className="p-4 border-t border-border">
                 <div className="space-y-2">
                   <button
-                    className="flex items-center gap-3 w-full p-3 text-gray-300 hover:bg-gray-800 hover:text-blue-400 rounded-lg transition-all duration-200"
+                    className="flex items-center gap-3 w-full p-3 text-foreground/70 hover:bg-muted hover:text-blue-400 rounded-lg transition-all duration-200"
                     onClick={() => {
                       setIsMobileMenuOpen(false);
                       navigate('/settings');
@@ -691,7 +692,7 @@ const Header = () => {
                     <span className="font-medium">Configuración</span>
                   </button>
                   <button
-                    className="flex items-center gap-3 w-full p-3 text-red-400 hover:bg-red-500/10 rounded-lg transition-all duration-200"
+                    className="flex items-center gap-3 w-full p-3 text-red-500 hover:bg-red-500/10 rounded-lg transition-all duration-200"
                     onClick={handleLogout}
                   >
                     <LogOut className="h-5 w-5" />

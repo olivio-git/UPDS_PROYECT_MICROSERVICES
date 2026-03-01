@@ -134,8 +134,8 @@ const AuthScreen = ({ onOTPRequired }: AuthScreenProps) => {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-white to-cyan-50 px-4">
-      <Card className="w-full max-w-md border-0 shadow-xl bg-white/90 backdrop-blur-sm">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-white to-cyan-50 dark:from-slate-950 dark:via-background dark:to-slate-900 px-4">
+      <Card className="w-full max-w-md border-0 shadow-xl bg-card/90 backdrop-blur-sm">
         <CardHeader className="space-y-1 text-center pb-6">
           <div className="flex items-center justify-center w-16 h-16 bg-gradient-to-r from-blue-600 to-cyan-600 rounded-full mx-auto mb-4">
             {isLogin ? (
@@ -147,9 +147,9 @@ const AuthScreen = ({ onOTPRequired }: AuthScreenProps) => {
           <CardTitle className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-cyan-600 bg-clip-text text-transparent">
             {isLogin ? "Iniciar Sesión" : "Crear Cuenta"}
           </CardTitle>
-          <CardDescription className="text-gray-600">
-            {isLogin 
-              ? "Accede a la plataforma CBA" 
+          <CardDescription className="text-muted-foreground">
+            {isLogin
+              ? "Accede a la plataforma CBA"
               : "Únete a la comunidad CBA"
             }
           </CardDescription>
@@ -164,9 +164,9 @@ const AuthScreen = ({ onOTPRequired }: AuthScreenProps) => {
           )}
 
           {registrationSuccess && (
-            <Alert className="mb-4 border-green-200 bg-green-50">
-              <CheckCircle className="h-4 w-4 text-green-600" />
-              <AlertDescription className="text-green-800">
+            <Alert className="mb-4 border-green-500/30 bg-green-500/10">
+              <CheckCircle className="h-4 w-4 text-green-500" />
+              <AlertDescription className="text-green-700 dark:text-green-300">
                 ¡Registro exitoso! Ya puedes iniciar sesión con tus credenciales. 
                 Redirigiendo al login...
               </AlertDescription>
@@ -174,9 +174,9 @@ const AuthScreen = ({ onOTPRequired }: AuthScreenProps) => {
           )}
 
           {!isLogin && !registrationSuccess && (
-            <Alert className="mb-4 border-blue-200 bg-blue-50">
-              <AlertCircle className="h-4 w-4 text-blue-600" />
-              <AlertDescription className="text-blue-800">
+            <Alert className="mb-4 border-blue-500/30 bg-blue-500/10">
+              <AlertCircle className="h-4 w-4 text-blue-500" />
+              <AlertDescription className="text-blue-700 dark:text-blue-300">
                 <strong>Registro como estudiante:</strong> Tu cuenta será creada con permisos de estudiante por defecto.
               </AlertDescription>
             </Alert>
@@ -185,16 +185,16 @@ const AuthScreen = ({ onOTPRequired }: AuthScreenProps) => {
           {isLogin ? (
             <form onSubmit={loginForm.handleSubmit(handleLogin)} className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="email" className="text-gray-700 font-medium">
+                <Label htmlFor="email" className="text-foreground font-medium">
                   Email
                 </Label>
                 <div className="relative">
-                  <Mail className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                  <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                   <Input
                     id="email"
                     type="email"
                     placeholder="tu@email.com"
-                    className="pl-10 border-gray-300 focus:border-blue-500 focus:ring-blue-500"
+                    className="pl-10 border-input focus:border-blue-500 focus:ring-blue-500"
                     {...loginForm.register("email")}
                   />
                 </div>
@@ -204,16 +204,16 @@ const AuthScreen = ({ onOTPRequired }: AuthScreenProps) => {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="password" className="text-gray-700 font-medium">
+                <Label htmlFor="password" className="text-foreground font-medium">
                   Contraseña
                 </Label>
                 <div className="relative">
-                  <Lock className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                  <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                   <Input
                     id="password"
                     type={showPassword ? "text" : "password"}
                     placeholder="••••••••"
-                    className="pl-10 pr-10 border-gray-300 focus:border-blue-500 focus:ring-blue-500"
+                    className="pl-10 pr-10 border-input focus:border-blue-500 focus:ring-blue-500"
                     {...loginForm.register("password")}
                   />
                   <Button
@@ -224,9 +224,9 @@ const AuthScreen = ({ onOTPRequired }: AuthScreenProps) => {
                     onClick={() => setShowPassword(!showPassword)}
                   >
                     {showPassword ? (
-                      <EyeOff className="h-4 w-4 text-gray-500" />
+                      <EyeOff className="h-4 w-4 text-muted-foreground" />
                     ) : (
-                      <Eye className="h-4 w-4 text-gray-500" />
+                      <Eye className="h-4 w-4 text-muted-foreground" />
                     )}
                   </Button>
                 </div>
@@ -247,13 +247,13 @@ const AuthScreen = ({ onOTPRequired }: AuthScreenProps) => {
             <form onSubmit={registerForm.handleSubmit(handleRegister)} className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="firstName" className="text-gray-700 font-medium">
+                  <Label htmlFor="firstName" className="text-foreground font-medium">
                     Nombre
                   </Label>
                   <Input
                     id="firstName"
                     placeholder="Juan"
-                    className="border-gray-300 focus:border-blue-500 focus:ring-blue-500"
+                    className="border-input focus:border-blue-500 focus:ring-blue-500"
                     disabled={isLoading || registrationSuccess}
                     {...registerForm.register("firstName")}
                   />
@@ -262,13 +262,13 @@ const AuthScreen = ({ onOTPRequired }: AuthScreenProps) => {
                   )}
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="lastName" className="text-gray-700 font-medium">
+                  <Label htmlFor="lastName" className="text-foreground font-medium">
                     Apellido
                   </Label>
                   <Input
                     id="lastName"
                     placeholder="Pérez"
-                    className="border-gray-300 focus:border-blue-500 focus:ring-blue-500"
+                    className="border-input focus:border-blue-500 focus:ring-blue-500"
                     disabled={isLoading || registrationSuccess}
                     {...registerForm.register("lastName")}
                   />
@@ -279,16 +279,16 @@ const AuthScreen = ({ onOTPRequired }: AuthScreenProps) => {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="reg-email" className="text-gray-700 font-medium">
+                <Label htmlFor="reg-email" className="text-foreground font-medium">
                   Email
                 </Label>
                 <div className="relative">
-                  <Mail className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                  <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                   <Input
                     id="reg-email"
                     type="email"
                     placeholder="tu@email.com"
-                    className="pl-10 border-gray-300 focus:border-blue-500 focus:ring-blue-500"
+                    className="pl-10 border-input focus:border-blue-500 focus:ring-blue-500"
                     disabled={isLoading || registrationSuccess}
                     {...registerForm.register("email")}
                   />
@@ -299,16 +299,16 @@ const AuthScreen = ({ onOTPRequired }: AuthScreenProps) => {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="reg-password" className="text-gray-700 font-medium">
+                <Label htmlFor="reg-password" className="text-foreground font-medium">
                   Contraseña
                 </Label>
                 <div className="relative">
-                  <Lock className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                  <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                   <Input
                     id="reg-password"
                     type={showPassword ? "text" : "password"}
                     placeholder="••••••••"
-                    className="pl-10 pr-10 border-gray-300 focus:border-blue-500 focus:ring-blue-500"
+                    className="pl-10 pr-10 border-input focus:border-blue-500 focus:ring-blue-500"
                     disabled={isLoading || registrationSuccess}
                     {...registerForm.register("password")}
                   />
@@ -320,9 +320,9 @@ const AuthScreen = ({ onOTPRequired }: AuthScreenProps) => {
                     onClick={() => setShowPassword(!showPassword)}
                   >
                     {showPassword ? (
-                      <EyeOff className="h-4 w-4 text-gray-500" />
+                      <EyeOff className="h-4 w-4 text-muted-foreground" />
                     ) : (
-                      <Eye className="h-4 w-4 text-gray-500" />
+                      <Eye className="h-4 w-4 text-muted-foreground" />
                     )}
                   </Button>
                 </div>
@@ -332,16 +332,16 @@ const AuthScreen = ({ onOTPRequired }: AuthScreenProps) => {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="confirmPassword" className="text-gray-700 font-medium">
+                <Label htmlFor="confirmPassword" className="text-foreground font-medium">
                   Confirmar Contraseña
                 </Label>
                 <div className="relative">
-                  <Lock className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                  <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                   <Input
                     id="confirmPassword"
                     type={showConfirmPassword ? "text" : "password"}
                     placeholder="••••••••"
-                    className="pl-10 pr-10 border-gray-300 focus:border-blue-500 focus:ring-blue-500"
+                    className="pl-10 pr-10 border-input focus:border-blue-500 focus:ring-blue-500"
                     disabled={isLoading || registrationSuccess}
                     {...registerForm.register("confirmPassword")}
                   />
@@ -353,9 +353,9 @@ const AuthScreen = ({ onOTPRequired }: AuthScreenProps) => {
                     onClick={() => setShowConfirmPassword(!showConfirmPassword)}
                   >
                     {showConfirmPassword ? (
-                      <EyeOff className="h-4 w-4 text-gray-500" />
+                      <EyeOff className="h-4 w-4 text-muted-foreground" />
                     ) : (
-                      <Eye className="h-4 w-4 text-gray-500" />
+                      <Eye className="h-4 w-4 text-muted-foreground" />
                     )}
                   </Button>
                 </div>
@@ -365,14 +365,14 @@ const AuthScreen = ({ onOTPRequired }: AuthScreenProps) => {
               </div>
 
               {/* Información sobre el tipo de usuario por defecto */}
-              <div className="bg-gray-50 p-3 rounded-lg border border-gray-200">
+              <div className="bg-muted p-3 rounded-lg border border-border">
                 <div className="flex items-center space-x-2">
-                  <User className="h-4 w-4 text-gray-500" />
-                  <span className="text-sm text-gray-600">
+                  <User className="h-4 w-4 text-muted-foreground" />
+                  <span className="text-sm text-foreground/80">
                     <strong>Tipo de cuenta:</strong> Estudiante (por defecto)
                   </span>
                 </div>
-                <p className="text-xs text-gray-500 mt-1">
+                <p className="text-xs text-muted-foreground mt-1">
                   Si necesitas otro tipo de cuenta, contacta al administrador después del registro.
                 </p>
               </div>
@@ -392,12 +392,12 @@ const AuthScreen = ({ onOTPRequired }: AuthScreenProps) => {
               <Separator className="w-full" />
             </div>
             <div className="relative flex justify-center text-xs uppercase">
-              <span className="bg-white px-2 text-gray-500">O continúa con</span>
+              <span className="bg-card px-2 text-muted-foreground">O continúa con</span>
             </div>
           </div>
 
           <div className="grid grid-cols-2 gap-4">
-            <Button variant="outline" className="border-gray-300 hover:bg-gray-50 bg-transparent">
+            <Button variant="outline" className="border-border hover:bg-muted bg-transparent">
               <svg className="mr-2 h-4 w-4" viewBox="0 0 24 24">
                 <path
                   d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
@@ -418,7 +418,7 @@ const AuthScreen = ({ onOTPRequired }: AuthScreenProps) => {
               </svg>
               Google
             </Button>
-            <Button variant="outline" className="border-gray-300 hover:bg-gray-50 bg-transparent">
+            <Button variant="outline" className="border-border hover:bg-muted bg-transparent">
               <svg className="mr-2 h-4 w-4" fill="currentColor" viewBox="0 0 24 24">
                 <path d="M24 4.557c-.883.392-1.832.656-2.828.775 1.017-.609 1.798-1.574 2.165-2.724-.951.564-2.005.974-3.127 1.195-.897-.957-2.178-1.555-3.594-1.555-3.179 0-5.515 2.966-4.797 6.045-4.091-.205-7.719-2.165-10.148-5.144-1.29 2.213-.669 5.108 1.523 6.574-.806-.026-1.566-.247-2.229-.616-.054 2.281 1.581 4.415 3.949 4.89-.693.188-1.452.232-2.224.084.626 1.956 2.444 3.379 4.6 3.419-2.07 1.623-4.678 2.348-7.29 2.04 2.179 1.397 4.768 2.212 7.548 2.212 9.142 0 14.307-7.721 13.995-14.646.962-.695 1.797-1.562 2.457-2.549z" />
               </svg>
@@ -441,7 +441,7 @@ const AuthScreen = ({ onOTPRequired }: AuthScreenProps) => {
             <div className="text-center">
               <Button 
                 variant="link" 
-                className="text-gray-500 hover:text-gray-700 p-0 h-auto font-normal text-sm"
+                className="text-muted-foreground hover:text-foreground p-0 h-auto font-normal text-sm"
                 onClick={handleForgotPassword}
                 disabled={isLoading}
               >

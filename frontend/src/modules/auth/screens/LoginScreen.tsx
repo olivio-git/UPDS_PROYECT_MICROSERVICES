@@ -113,8 +113,8 @@ const LoginScreen = () => {
             <CardTitle className="text-3xl font-medium text-card-foreground epilogue-uniquifier">
               Iniciar Sesión
             </CardTitle>
-            <p className="text-gray-400 text-sm">
-              Email verificado: <span className="font-medium text-white">{verifiedEmail}</span>
+            <p className="text-muted-foreground text-sm">
+              Email verificado: <span className="font-medium text-foreground">{verifiedEmail}</span>
             </p>
           </CardHeader>
           
@@ -142,7 +142,7 @@ const LoginScreen = () => {
                   placeholder="tu@email.com"
                   disabled={true}
                   required
-                  className="block w-full bg-transparent epilogue-uniquifier px-0 py-2 border-0 border-b border-gray-300 focus:outline-none focus:border-b-blue-500 focus:ring-0 rounded-none opacity-70"
+                  className="block w-full bg-transparent epilogue-uniquifier px-0 py-2 border-0 border-b border-border focus:outline-none focus:border-b-blue-500 focus:ring-0 rounded-none opacity-70"
                 />
               </div>
 
@@ -161,7 +161,7 @@ const LoginScreen = () => {
                     placeholder="••••••••"
                     disabled={isLoading}
                     required
-                    className="block w-full bg-transparent epilogue-uniquifier px-0 py-2 border-0 border-b border-gray-300 focus:outline-none focus:border-b-blue-500 focus:ring-0 rounded-none"
+                    className="block w-full bg-transparent epilogue-uniquifier px-0 py-2 border-0 border-b border-border focus:outline-none focus:border-b-blue-500 focus:ring-0 rounded-none"
                     autoFocus
                   />
                   <Button
@@ -203,7 +203,7 @@ const LoginScreen = () => {
 
               <Button 
                 variant="link" 
-                className="text-gray-500 hover:text-white p-0 h-auto font-normal inline-flex items-center"
+                className="text-muted-foreground hover:text-foreground p-0 h-auto font-normal inline-flex items-center"
                 onClick={handleBack}
                 disabled={isLoading}
               >

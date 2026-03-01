@@ -113,7 +113,7 @@ function getStatusConfig(status: string): { label: string; className: string } {
     default:
       return {
         label: "Sin empezar",
-        className: "bg-gray-800 text-gray-400 border border-gray-700",
+        className: "bg-muted text-muted-foreground border border-border",
       };
   }
 }
@@ -150,7 +150,7 @@ function getSessionStatusConfig(status: string): {
     default:
       return {
         label: status,
-        className: "bg-gray-800 text-gray-400 border border-gray-700",
+        className: "bg-muted text-muted-foreground border border-border",
       };
   }
 }
@@ -393,7 +393,7 @@ const SessionMonitorScreen = () => {
           <CheckCircle2 className="w-3 h-3 text-green-400" />
         )}
         {status === "not_started" && (
-          <Circle className="w-3 h-3 text-gray-500" />
+          <Circle className="w-3 h-3 text-muted-foreground/50" />
         )}
         {(status === "expired" || status === "cancelled") && (
           <AlertCircle className="w-3 h-3 text-red-400" />
@@ -408,10 +408,10 @@ const SessionMonitorScreen = () => {
   if (loading) {
     return (
       <MainLayout>
-        <div className="min-h-screen bg-gray-900 flex items-center justify-center">
+        <div className="min-h-screen bg-background flex items-center justify-center">
           <div className="flex flex-col items-center gap-4">
             <Loader2 className="w-10 h-10 text-blue-400 animate-spin" />
-            <p className="text-gray-400 text-sm">Cargando progreso de sesión...</p>
+            <p className="text-muted-foreground text-sm">Cargando progreso de sesión...</p>
           </div>
         </div>
       </MainLayout>
@@ -423,17 +423,17 @@ const SessionMonitorScreen = () => {
   if (error && !data) {
     return (
       <MainLayout>
-        <div className="min-h-screen bg-gray-900 flex items-center justify-center p-6">
-          <div className="bg-gray-800 border border-red-800/40 rounded-xl p-8 max-w-md w-full text-center">
+        <div className="min-h-screen bg-background flex items-center justify-center p-6">
+          <div className="bg-card border border-red-800/40 rounded-xl p-8 max-w-md w-full text-center">
             <AlertCircle className="w-12 h-12 text-red-400 mx-auto mb-4" />
-            <h2 className="text-lg font-semibold text-gray-100 mb-2">
+            <h2 className="text-lg font-semibold text-foreground mb-2">
               Error al cargar la sesión
             </h2>
-            <p className="text-sm text-gray-400 mb-6">{error}</p>
+            <p className="text-sm text-muted-foreground mb-6">{error}</p>
             <div className="flex gap-3 justify-center">
               <button
                 onClick={() => navigate(-1)}
-                className="px-4 py-2 rounded-lg border border-gray-600 text-gray-300 hover:bg-gray-700 text-sm transition-colors"
+                className="px-4 py-2 rounded-lg border border-border text-muted-foreground hover:bg-muted text-sm transition-colors"
               >
                 Volver
               </button>
@@ -459,7 +459,7 @@ const SessionMonitorScreen = () => {
 
   return (
     <MainLayout>
-      <div className="min-h-screen bg-gray-900 pb-12">
+      <div className="min-h-screen bg-background pb-12">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
 
           {/* ── Header ── */}
@@ -470,14 +470,14 @@ const SessionMonitorScreen = () => {
                 <button
                   onClick={() => navigate(-1)}
                   aria-label="Volver atrás"
-                  className="flex-shrink-0 p-2 rounded-lg border border-gray-700 text-gray-300 hover:bg-gray-800 hover:text-gray-100 transition-colors"
+                  className="flex-shrink-0 p-2 rounded-lg border border-border text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
                 >
                   <ArrowLeft className="w-4 h-4" />
                 </button>
 
                 <div className="min-w-0">
                   <div className="flex items-center gap-2 flex-wrap">
-                    <h1 className="text-lg font-semibold text-gray-100 truncate">
+                    <h1 className="text-lg font-semibold text-foreground truncate">
                       {data?.sessionName ?? "Monitor de Sesión"}
                     </h1>
                     {sessionStatusConfig && (
@@ -488,7 +488,7 @@ const SessionMonitorScreen = () => {
                       </span>
                     )}
                   </div>
-                  <p className="text-xs text-gray-500 mt-0.5 flex items-center gap-1">
+                  <p className="text-xs text-muted-foreground mt-0.5 flex items-center gap-1">
                     <Activity className="w-3 h-3" />
                     Monitoreo en tiempo real
                   </p>
@@ -498,7 +498,7 @@ const SessionMonitorScreen = () => {
               {/* Right: timestamp + actions */}
               <div className="flex items-center gap-3 flex-shrink-0">
                 {lastUpdated && (
-                  <span className="text-xs text-gray-500 hidden sm:block">
+                  <span className="text-xs text-muted-foreground hidden sm:block">
                     Actualizado: {lastUpdated.toLocaleTimeString("es-BO")}
                   </span>
                 )}
@@ -538,7 +538,7 @@ const SessionMonitorScreen = () => {
                   onClick={handleManualRefresh}
                   disabled={refreshing}
                   aria-label="Actualizar manualmente"
-                  className="flex items-center gap-2 px-3 py-2 rounded-lg border border-gray-700 text-gray-300 hover:bg-gray-800 hover:text-gray-100 transition-colors text-sm disabled:opacity-60 disabled:cursor-not-allowed"
+                  className="flex items-center gap-2 px-3 py-2 rounded-lg border border-border text-muted-foreground hover:bg-muted hover:text-foreground transition-colors text-sm disabled:opacity-60 disabled:cursor-not-allowed"
                 >
                   <RefreshCw
                     className={`w-4 h-4 ${refreshing ? "animate-spin" : ""}`}
@@ -552,7 +552,7 @@ const SessionMonitorScreen = () => {
 
             {/* Countdown progress bar */}
             <div
-              className="mt-3 h-0.5 w-full bg-gray-800 rounded-full overflow-hidden"
+              className="mt-3 h-0.5 w-full bg-muted rounded-full overflow-hidden"
               aria-label={`Próxima actualización en ${countdown} segundos`}
               title={`Próxima actualización en ${countdown}s`}
             >
@@ -561,7 +561,7 @@ const SessionMonitorScreen = () => {
                 style={{ width: `${countdownPercent}%` }}
               />
             </div>
-            <p className="text-xs text-gray-600 mt-1 text-right">
+            <p className="text-xs text-muted-foreground/60 mt-1 text-right">
               Próxima actualización en {countdown}s
             </p>
           </div>
@@ -569,24 +569,24 @@ const SessionMonitorScreen = () => {
           {/* ── Stat cards ── */}
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
             {/* Total inscritos */}
-            <div className="bg-gray-800 border border-gray-700 rounded-xl p-4">
+            <div className="bg-card border border-border rounded-xl p-4">
               <div className="flex items-start justify-between">
                 <div>
-                  <p className="text-xs font-medium text-gray-400 uppercase tracking-wide">
+                  <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
                     Total inscritos
                   </p>
-                  <p className="text-3xl font-bold text-gray-100 mt-1">
+                  <p className="text-3xl font-bold text-foreground mt-1">
                     {data?.totalEnrolled ?? 0}
                   </p>
                 </div>
-                <div className="p-2 rounded-lg bg-gray-700/50">
-                  <Users className="w-5 h-5 text-gray-400" />
+                <div className="p-2 rounded-lg bg-muted/50">
+                  <Users className="w-5 h-5 text-muted-foreground" />
                 </div>
               </div>
             </div>
 
             {/* En progreso */}
-            <div className="bg-gray-800 border border-blue-800/40 rounded-xl p-4">
+            <div className="bg-card border border-blue-800/40 rounded-xl p-4">
               <div className="flex items-start justify-between">
                 <div>
                   <p className="text-xs font-medium text-blue-400 uppercase tracking-wide">
@@ -606,7 +606,7 @@ const SessionMonitorScreen = () => {
             </div>
 
             {/* Completados */}
-            <div className="bg-gray-800 border border-green-800/40 rounded-xl p-4">
+            <div className="bg-card border border-green-800/40 rounded-xl p-4">
               <div className="flex items-start justify-between">
                 <div>
                   <p className="text-xs font-medium text-green-400 uppercase tracking-wide">
@@ -623,34 +623,34 @@ const SessionMonitorScreen = () => {
             </div>
 
             {/* Sin empezar */}
-            <div className="bg-gray-800 border border-gray-700 rounded-xl p-4">
+            <div className="bg-card border border-border rounded-xl p-4">
               <div className="flex items-start justify-between">
                 <div>
-                  <p className="text-xs font-medium text-gray-400 uppercase tracking-wide">
+                  <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
                     Sin empezar
                   </p>
-                  <p className="text-3xl font-bold text-gray-300 mt-1">
+                  <p className="text-3xl font-bold text-foreground mt-1">
                     {data?.notStarted ?? 0}
                   </p>
                 </div>
-                <div className="p-2 rounded-lg bg-gray-700/50">
-                  <Circle className="w-5 h-5 text-gray-500" />
+                <div className="p-2 rounded-lg bg-muted/50">
+                  <Circle className="w-5 h-5 text-muted-foreground/60" />
                 </div>
               </div>
             </div>
           </div>
 
           {/* ── Candidates section ── */}
-          <div className="bg-gray-800 border border-gray-700 rounded-xl overflow-hidden">
+          <div className="bg-card border border-border rounded-xl overflow-hidden">
             {/* Section header */}
-            <div className="px-6 py-4 border-b border-gray-700 flex items-center justify-between">
+            <div className="px-6 py-4 border-b border-border flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <BookOpen className="w-4 h-4 text-gray-400" />
-                <h2 className="text-sm font-semibold text-gray-200">
+                <BookOpen className="w-4 h-4 text-muted-foreground" />
+                <h2 className="text-sm font-semibold text-foreground">
                   Candidatos
                 </h2>
                 {data && (
-                  <span className="text-xs text-gray-500 ml-1">
+                  <span className="text-xs text-muted-foreground ml-1">
                     ({sortedCandidates.length})
                   </span>
                 )}
@@ -666,13 +666,13 @@ const SessionMonitorScreen = () => {
             {/* Empty state */}
             {sortedCandidates.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-16 px-6 text-center">
-                <div className="w-14 h-14 rounded-full bg-gray-700/60 flex items-center justify-center mb-4">
-                  <Users className="w-7 h-7 text-gray-500" />
+                <div className="w-14 h-14 rounded-full bg-muted/60 flex items-center justify-center mb-4">
+                  <Users className="w-7 h-7 text-muted-foreground/60" />
                 </div>
-                <h3 className="text-sm font-medium text-gray-300 mb-1">
+                <h3 className="text-sm font-medium text-foreground mb-1">
                   Sin candidatos inscritos
                 </h3>
-                <p className="text-xs text-gray-500 max-w-xs">
+                <p className="text-xs text-muted-foreground max-w-xs">
                   Todavía no hay candidatos registrados en esta sesión o aún no
                   han iniciado el examen.
                 </p>
@@ -680,7 +680,7 @@ const SessionMonitorScreen = () => {
             ) : (
               <>
                 {/* Table header — hidden on mobile, shown on md+ */}
-                <div className="hidden md:grid md:grid-cols-[2fr_1fr_1.5fr_1fr_1fr] gap-4 px-6 py-3 bg-gray-900/40 border-b border-gray-700/60 text-xs font-medium text-gray-400 uppercase tracking-wide">
+                <div className="hidden md:grid md:grid-cols-[2fr_1fr_1.5fr_1fr_1fr] gap-4 px-6 py-3 bg-muted/40 border-b border-border/60 text-xs font-medium text-muted-foreground uppercase tracking-wide">
                   <span>Nombre</span>
                   <span>Estado</span>
                   <span>Progreso</span>
@@ -689,7 +689,7 @@ const SessionMonitorScreen = () => {
                 </div>
 
                 {/* Candidate rows */}
-                <div className="divide-y divide-gray-700/50">
+                <div className="divide-y divide-border/50">
                   {sortedCandidates.map((candidate) => {
                     const progressPct =
                       candidate.totalQuestions > 0
@@ -703,14 +703,14 @@ const SessionMonitorScreen = () => {
                     return (
                       <div
                         key={candidate.candidateId}
-                        className="px-6 py-4 hover:bg-gray-700/20 transition-colors"
+                        className="px-6 py-4 hover:bg-muted/20 transition-colors"
                       >
                         {/* Mobile layout */}
                         <div className="md:hidden space-y-3">
                           <div className="flex items-start justify-between gap-2">
                             <div className="flex items-center gap-2 min-w-0">
                               {/* Avatar initials */}
-                              <div className="w-8 h-8 rounded-full bg-gray-700 flex items-center justify-center text-xs font-semibold text-gray-300 flex-shrink-0">
+                              <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center text-xs font-semibold text-foreground flex-shrink-0">
                                 {candidate.name
                                   .split(" ")
                                   .slice(0, 2)
@@ -718,7 +718,7 @@ const SessionMonitorScreen = () => {
                                   .join("")
                                   .toUpperCase()}
                               </div>
-                              <span className="text-sm font-medium text-gray-200 truncate">
+                              <span className="text-sm font-medium text-foreground truncate">
                                 {candidate.name}
                               </span>
                             </div>
@@ -727,28 +727,28 @@ const SessionMonitorScreen = () => {
 
                           {/* Progress bar */}
                           <div>
-                            <div className="flex items-center justify-between text-xs text-gray-400 mb-1">
+                            <div className="flex items-center justify-between text-xs text-muted-foreground mb-1">
                               <span>
                                 {candidate.answeredCount} /{" "}
                                 {candidate.totalQuestions} preguntas
                               </span>
                               <span>{progressPct}%</span>
                             </div>
-                            <div className="h-1.5 w-full bg-gray-700 rounded-full overflow-hidden">
+                            <div className="h-1.5 w-full bg-muted rounded-full overflow-hidden">
                               <div
                                 className={`h-full rounded-full transition-all duration-500 ${
                                   progressPct === 100
                                     ? "bg-green-500"
                                     : candidate.status === "in_progress"
                                     ? "bg-blue-500"
-                                    : "bg-gray-500"
+                                    : "bg-muted-foreground/40"
                                 }`}
                                 style={{ width: `${progressPct}%` }}
                               />
                             </div>
                           </div>
 
-                          <div className="flex items-center gap-4 text-xs text-gray-400">
+                          <div className="flex items-center gap-4 text-xs text-muted-foreground">
                             <span className="flex items-center gap-1">
                               <Clock className="w-3 h-3" />
                               {candidate.startedAt
@@ -783,23 +783,23 @@ const SessionMonitorScreen = () => {
 
                           {/* Progress */}
                           <div>
-                            <div className="flex items-center justify-between text-xs text-gray-400 mb-1.5">
+                            <div className="flex items-center justify-between text-xs text-muted-foreground mb-1.5">
                               <span>
                                 {candidate.answeredCount} /{" "}
                                 {candidate.totalQuestions} preguntas
                               </span>
-                              <span className="text-gray-500">
+                              <span className="text-muted-foreground/70">
                                 {progressPct}%
                               </span>
                             </div>
-                            <div className="h-1.5 w-full bg-gray-700 rounded-full overflow-hidden">
+                            <div className="h-1.5 w-full bg-muted rounded-full overflow-hidden">
                               <div
                                 className={`h-full rounded-full transition-all duration-500 ${
                                   progressPct === 100
                                     ? "bg-green-500"
                                     : candidate.status === "in_progress"
                                     ? "bg-blue-500"
-                                    : "bg-gray-500"
+                                    : "bg-muted-foreground/40"
                                 }`}
                                 style={{ width: `${progressPct}%` }}
                               />
@@ -807,8 +807,8 @@ const SessionMonitorScreen = () => {
                           </div>
 
                           {/* Active time */}
-                          <div className="flex items-center gap-1.5 text-sm text-gray-300">
-                            <Clock className="w-3.5 h-3.5 text-gray-500 flex-shrink-0" />
+                          <div className="flex items-center gap-1.5 text-sm text-foreground">
+                            <Clock className="w-3.5 h-3.5 text-muted-foreground/60 flex-shrink-0" />
                             <span>
                               {candidate.startedAt
                                 ? formatDuration(candidate.activeSeconds)
@@ -817,7 +817,7 @@ const SessionMonitorScreen = () => {
                           </div>
 
                           {/* Last activity */}
-                          <div className="text-sm text-gray-400">
+                          <div className="text-sm text-muted-foreground">
                             {formatRelativeTime(candidate.lastActivity)}
                           </div>
 
@@ -829,7 +829,7 @@ const SessionMonitorScreen = () => {
                                 disabled={kickingCandidate === candidate.candidateId}
                                 title="Expulsar candidato"
                                 aria-label="Expulsar candidato"
-                                className="p-1.5 rounded-lg text-gray-500 hover:text-red-400 hover:bg-red-900/20 transition-colors disabled:opacity-50"
+                                className="p-1.5 rounded-lg text-muted-foreground/60 hover:text-red-400 hover:bg-red-900/20 transition-colors disabled:opacity-50"
                               >
                                 <UserX className="w-4 h-4" />
                               </button>

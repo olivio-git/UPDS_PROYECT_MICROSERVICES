@@ -503,7 +503,7 @@ const QuestionForm: React.FC<Props> = ({ question, onCancel, onSaved }) => {
   };
 
   const baseInputClass =
-    'bg-gray-800/50 border-gray-600 text-white placeholder-gray-400 border-[0.5px] focus:border-blue-500 focus:ring-0 rounded-lg';
+    'bg-muted/50 border-border text-foreground placeholder-muted-foreground border-[0.5px] focus:border-blue-500 focus:ring-0 rounded-lg';
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
@@ -512,7 +512,7 @@ const QuestionForm: React.FC<Props> = ({ question, onCancel, onSaved }) => {
         <CardHeader className="pb-3">
           <div className="flex items-center justify-between">
             <div>
-              <CardTitle className="text-white text-lg">Metadatos</CardTitle>
+              <CardTitle className="text-foreground text-lg">Metadatos</CardTitle>
               <CardDescription className="text-sm">Configura tipo, competencia y nivel</CardDescription>
             </div>
             {/* Botón AI integrado en el header */}
@@ -536,8 +536,8 @@ const QuestionForm: React.FC<Props> = ({ question, onCancel, onSaved }) => {
               <Label>Tipo de Pregunta</Label>
               {typeIsFixed ? (
                 <div className={`${baseInputClass} flex items-center px-3 h-10 gap-2`}>
-                  <span className="text-white text-sm">{TYPE_LABELS[availableTypes[0]]}</span>
-                  <span className="ml-auto text-xs text-gray-500 italic">único disponible</span>
+                  <span className="text-foreground text-sm">{TYPE_LABELS[availableTypes[0]]}</span>
+                  <span className="ml-auto text-xs text-muted-foreground italic">único disponible</span>
                 </div>
               ) : (
                 <Select
@@ -549,9 +549,9 @@ const QuestionForm: React.FC<Props> = ({ question, onCancel, onSaved }) => {
                   <SelectTrigger className={baseInputClass}>
                     <SelectValue placeholder="Selecciona el tipo" />
                   </SelectTrigger>
-                  <SelectContent className="bg-gray-900 border border-line">
+                  <SelectContent className="bg-card border border-line">
                     {availableTypes.map(type => (
-                      <SelectItem key={type} className="hover:bg-gray-800" value={type}>
+                      <SelectItem key={type} className="hover:bg-muted" value={type}>
                         {TYPE_LABELS[type]}
                       </SelectItem>
                     ))}
@@ -577,17 +577,17 @@ const QuestionForm: React.FC<Props> = ({ question, onCancel, onSaved }) => {
                 <SelectTrigger className={baseInputClass}>
                   <SelectValue placeholder="Selecciona la competencia" />
                 </SelectTrigger>
-                <SelectContent className="bg-gray-900 border border-line">
-                  <SelectItem className="hover:bg-gray-800" value="reading">
+                <SelectContent className="bg-card border border-line">
+                  <SelectItem className="hover:bg-muted" value="reading">
                     Comprensión Lectora
                   </SelectItem>
-                  <SelectItem className="hover:bg-gray-800" value="writing">
+                  <SelectItem className="hover:bg-muted" value="writing">
                     Expresión Escrita
                   </SelectItem>
-                  <SelectItem className="hover:bg-gray-800" value="listening">
+                  <SelectItem className="hover:bg-muted" value="listening">
                     Comprensión Auditiva
                   </SelectItem>
-                  <SelectItem className="hover:bg-gray-800" value="speaking">
+                  <SelectItem className="hover:bg-muted" value="speaking">
                     Expresión Oral
                   </SelectItem>
                 </SelectContent>
@@ -607,18 +607,18 @@ const QuestionForm: React.FC<Props> = ({ question, onCancel, onSaved }) => {
                 <SelectTrigger className={baseInputClass}>
                   <SelectValue placeholder={isLoadingLevels ? "Cargando niveles..." : "Selecciona el nivel"} />
                 </SelectTrigger>
-                <SelectContent className="bg-gray-900 border border-line">
+                <SelectContent className="bg-card border border-line">
                   {levels
                     .filter(level => level.isActive)
                     .map((level) => (
                       <SelectItem
                         key={level._id}
-                        className="hover:bg-gray-800"
+                        className="hover:bg-muted"
                         value={level.code}
                       >
                         <div className="flex items-center space-x-2">
                           <span className="font-medium">{level.code}</span>
-                          <span className="text-sm text-gray-400">- {level.name}</span>
+                          <span className="text-sm text-muted-foreground">- {level.name}</span>
                         </div>
                       </SelectItem>
                     ))}
@@ -656,16 +656,16 @@ const QuestionForm: React.FC<Props> = ({ question, onCancel, onSaved }) => {
                       }
                     />
                   </SelectTrigger>
-                  <SelectContent className="bg-gray-900 border border-line">
+                  <SelectContent className="bg-card border border-line">
                     {availableRubrics.map((rubric: Rubric) => (
                       <SelectItem
                         key={rubric._id}
-                        className="hover:bg-gray-800"
+                        className="hover:bg-muted"
                         value={rubric._id!}
                       >
                         <div className="flex flex-col">
                           <span className="font-medium">{rubric.name}</span>
-                          <span className="text-xs text-gray-400">
+                          <span className="text-xs text-muted-foreground">
                             {rubric.scoringType === 'holistic' ? 'Holística' : 'Analítica'} •
                             {rubric.criteria.length} criterio(s) • Max: {rubric.maxScore}
                           </span>
@@ -704,20 +704,20 @@ const QuestionForm: React.FC<Props> = ({ question, onCancel, onSaved }) => {
                 <SelectTrigger className={baseInputClass}>
                   <SelectValue placeholder="Selecciona la dificultad" />
                 </SelectTrigger>
-                <SelectContent className="bg-gray-900 border border-line">
-                  <SelectItem className="hover:bg-gray-800" value="1">
+                <SelectContent className="bg-card border border-line">
+                  <SelectItem className="hover:bg-muted" value="1">
                     Muy Fácil
                   </SelectItem>
-                  <SelectItem className="hover:bg-gray-800" value="2">
+                  <SelectItem className="hover:bg-muted" value="2">
                     Fácil
                   </SelectItem>
-                  <SelectItem className="hover:bg-gray-800" value="3">
+                  <SelectItem className="hover:bg-muted" value="3">
                     Medio
                   </SelectItem>
-                  <SelectItem className="hover:bg-gray-800" value="4">
+                  <SelectItem className="hover:bg-muted" value="4">
                     Difícil
                   </SelectItem>
-                  <SelectItem className="hover:bg-gray-800" value="5">
+                  <SelectItem className="hover:bg-muted" value="5">
                     Muy Difícil
                   </SelectItem>
                 </SelectContent>
@@ -754,11 +754,11 @@ const QuestionForm: React.FC<Props> = ({ question, onCancel, onSaved }) => {
                 <SelectTrigger className={baseInputClass}>
                   <SelectValue placeholder="Selecciona el estado" />
                 </SelectTrigger>
-                <SelectContent className="bg-gray-900 border border-line">
-                  <SelectItem className="hover:bg-gray-800" value="true">
+                <SelectContent className="bg-card border border-line">
+                  <SelectItem className="hover:bg-muted" value="true">
                     Activa
                   </SelectItem>
-                  <SelectItem className="hover:bg-gray-800" value="false">
+                  <SelectItem className="hover:bg-muted" value="false">
                     Inactiva
                   </SelectItem>
                 </SelectContent>
@@ -771,7 +771,7 @@ const QuestionForm: React.FC<Props> = ({ question, onCancel, onSaved }) => {
       {/* Contenido */}
       <Card className="border border-line">
         <CardHeader className="pb-3">
-          <CardTitle className="text-white text-lg">Contenido</CardTitle>
+          <CardTitle className="text-foreground text-lg">Contenido</CardTitle>
           <CardDescription className="text-sm">Enunciado e instrucciones</CardDescription>
         </CardHeader>
         <CardContent className="space-y-3">
@@ -816,7 +816,7 @@ const QuestionForm: React.FC<Props> = ({ question, onCancel, onSaved }) => {
                       ✓ Generado por IA
                     </span>
                   )} */}
-                  <span className="text-xs text-gray-400">
+                  <span className="text-xs text-muted-foreground">
                     - Texto que los estudiantes usarán para responder
                   </span>
                 </Label>
@@ -845,7 +845,7 @@ const QuestionForm: React.FC<Props> = ({ question, onCancel, onSaved }) => {
                   } transition-colors focus:outline-none focus-visible:outline-none focus:ring-0 focus-visible:ring-0 focus:ring-offset-0 focus-visible:ring-offset-0 focus:border-purpple-400/50 shadow-none focus:shadow-none`}
                 />
                 {formData.content?.context && (
-                  <p className="text-xs text-gray-400 mt-1">
+                  <p className="text-xs text-muted-foreground mt-1">
                   {formData.content.context.trim().split(/\s+/).filter(Boolean).length} palabras
                   </p>
                 )}
@@ -880,7 +880,7 @@ const QuestionForm: React.FC<Props> = ({ question, onCancel, onSaved }) => {
                 {formData.content?.options?.map((opt: QuestionOption) => (
                   <div
                     key={opt.id}
-                    className="flex items-center gap-2 p-2 bg-gray-800/40 border border-gray-700 rounded-lg"
+                    className="flex items-center gap-2 p-2 bg-muted/40 border border-border rounded-lg"
                   >
                     <input
                       type="radio"
@@ -889,12 +889,12 @@ const QuestionForm: React.FC<Props> = ({ question, onCancel, onSaved }) => {
                       onChange={() => setCorrectOption(opt.id)}
                       className="w-4 h-4"
                     />
-                    <span className="flex-1 text-gray-200">{opt.text}</span>
+                    <span className="flex-1 text-foreground/90">{opt.text}</span>
                     <Button
                       type="button"
                       variant="outline"
                       onClick={() => removeOption(opt.id)}
-                      className="p-2 border-gray-700 hover:bg-gray-800"
+                      className="p-2 border-border hover:bg-muted"
                       title="Eliminar opción"
                     >
                       <Trash2 className="w-4 h-4 text-red-500" />
@@ -910,8 +910,8 @@ const QuestionForm: React.FC<Props> = ({ question, onCancel, onSaved }) => {
             <div className="space-y-4">
               <div className="space-y-2">
                 <Label>Plantilla con espacios en blanco</Label>
-                <p className="text-sm text-gray-400">
-                  Usa <code className="bg-gray-700 px-1 rounded">___</code> para
+                <p className="text-sm text-muted-foreground">
+                  Usa <code className="bg-muted px-1 rounded">___</code> para
                   marcar los espacios en blanco
                 </p>
                 <Textarea
@@ -930,7 +930,7 @@ const QuestionForm: React.FC<Props> = ({ question, onCancel, onSaved }) => {
 
               <div className="space-y-2">
                 <Label>Respuestas correctas (opcional)</Label>
-                <p className="text-sm text-gray-400">
+                <p className="text-sm text-muted-foreground">
                   Define respuestas específicas para cada espacio. Si no se
                   definen, se evaluará como texto libre.
                 </p>
@@ -970,11 +970,11 @@ const QuestionForm: React.FC<Props> = ({ question, onCancel, onSaved }) => {
                 {formData.content?.items?.map((item, index) => (
                   <div
                     key={item.id}
-                    className="flex flex-col gap-3 p-4 bg-gray-800/40 border border-gray-700 rounded-lg"
+                    className="flex flex-col gap-3 p-4 bg-muted/40 border border-border rounded-lg"
                   >
                     {/* Encabezado del elemento */}
                     <div className="flex items-center justify-between">
-                      <span className="text-sm text-gray-300 font-medium">
+                      <span className="text-sm text-foreground/80 font-medium">
                         Elemento {index + 1}
                       </span>
                       <Button
@@ -991,7 +991,7 @@ const QuestionForm: React.FC<Props> = ({ question, onCancel, onSaved }) => {
                             content: { ...p.content!, items: newItems },
                           }));
                         }}
-                        className="h-8 w-8 p-0 border-gray-700 hover:bg-gray-800"
+                        className="h-8 w-8 p-0 border-border hover:bg-muted"
                         title="Eliminar elemento"
                       >
                         <Trash2 className="w-4 h-4 text-red-500" />
@@ -1067,7 +1067,7 @@ const QuestionForm: React.FC<Props> = ({ question, onCancel, onSaved }) => {
                     </div>
 
                     {/* Multimedia para el elemento */}
-                    <div className="space-y-3 pt-3 border-t border-gray-600">
+                    <div className="space-y-3 pt-3 border-t border-border">
                       <Label className="text-sm text-blue-300 flex items-center gap-2">
                         <Volume2 className="w-4 h-4" />
                         Multimedia para elemento {index + 1} (opcional)
@@ -1084,8 +1084,8 @@ const QuestionForm: React.FC<Props> = ({ question, onCancel, onSaved }) => {
 
                         if (hasSelectedAudio || (mediaUrl && audioRx.test(mediaUrl))) {
                           return (
-                            <div className="p-3 bg-gray-700/30 border border-gray-600 rounded-lg">
-                              <div className="text-sm text-gray-400 mb-2">Archivo actual:</div>
+                            <div className="p-3 bg-muted/30 border border-border rounded-lg">
+                              <div className="text-sm text-muted-foreground mb-2">Archivo actual:</div>
                               <AudioPlayer
                                 src={mediaUrl ?? ''}
                                 variant="compact"
@@ -1098,12 +1098,12 @@ const QuestionForm: React.FC<Props> = ({ question, onCancel, onSaved }) => {
 
                         if (hasSelectedImage || (mediaUrl && imageRx.test(mediaUrl))) {
                           return (
-                            <div className="p-3 bg-gray-700/30 border border-gray-600 rounded-lg">
-                              <div className="text-sm text-gray-400 mb-2">Archivo actual:</div>
+                            <div className="p-3 bg-muted/30 border border-border rounded-lg">
+                              <div className="text-sm text-muted-foreground mb-2">Archivo actual:</div>
                               <img
                                 src={mediaUrl}
                                 alt={`Imagen elemento ${index + 1}`}
-                                className="h-20 w-auto rounded border border-gray-700"
+                                className="h-20 w-auto rounded border border-border"
                                 onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
                               />
                             </div>
@@ -1118,7 +1118,7 @@ const QuestionForm: React.FC<Props> = ({ question, onCancel, onSaved }) => {
                         {!(itemMediaFiles[index] && (itemMediaFiles[index].audio || itemMediaFiles[index].image)) ? (
                           <>
                             <label
-                              className={`flex items-center gap-2 px-3 py-2 rounded-lg cursor-pointer border border-gray-600 hover:bg-gray-700/50 transition-all text-sm ${baseInputClass}`}
+                              className={`flex items-center gap-2 px-3 py-2 rounded-lg cursor-pointer border border-border hover:bg-muted/50 transition-all text-sm ${baseInputClass}`}
                             >
                               <Volume2 className="w-4 h-4" />
                               <span>Audio</span>
@@ -1150,7 +1150,7 @@ const QuestionForm: React.FC<Props> = ({ question, onCancel, onSaved }) => {
                             </label>
 
                             <label
-                              className={`flex items-center gap-2 px-3 py-2 rounded-lg cursor-pointer border border-gray-600 hover:bg-gray-700/50 transition-all text-sm ${baseInputClass}`}
+                              className={`flex items-center gap-2 px-3 py-2 rounded-lg cursor-pointer border border-border hover:bg-muted/50 transition-all text-sm ${baseInputClass}`}
                             >
                               <ImageIcon className="w-4 h-4" />
                               <span>Imagen</span>
@@ -1184,7 +1184,7 @@ const QuestionForm: React.FC<Props> = ({ question, onCancel, onSaved }) => {
                         ) : (
                           // Mostrar nombre del archivo seleccionado y botón para quitar
                           <div className="flex items-center gap-2">
-                            <div className="text-sm text-gray-200">
+                            <div className="text-sm text-foreground/90">
                               {itemMediaFiles[index]?.audio?.name || itemMediaFiles[index]?.image?.name}
                             </div>
                             <Button
@@ -1274,7 +1274,7 @@ const QuestionForm: React.FC<Props> = ({ question, onCancel, onSaved }) => {
       {showMultimedia && (
         <Card className="border border-line">
           <CardHeader className="pb-3">
-            <CardTitle className="text-white text-lg flex items-center gap-2">
+            <CardTitle className="text-foreground text-lg flex items-center gap-2">
               <Volume2 className="w-5 h-5 text-blue-400" />
               Multimedia
             </CardTitle>
@@ -1304,7 +1304,7 @@ const QuestionForm: React.FC<Props> = ({ question, onCancel, onSaved }) => {
                     {formData.content?.mediaUrl &&
                       formData.content.mediaType === 'audio' && (
                         <div className="mb-4">
-                          <div className="text-sm text-gray-400 mb-3">Audio actual:</div>
+                          <div className="text-sm text-muted-foreground mb-3">Audio actual:</div>
                           {formData.content.mediaUrl.startsWith('blob:') ? (
                             <div className="text-sm text-amber-400 bg-amber-900/20 border border-amber-700/50 rounded-lg p-3 flex items-start gap-2">
                               <span className="text-lg leading-none">🎵</span>
@@ -1330,7 +1330,7 @@ const QuestionForm: React.FC<Props> = ({ question, onCancel, onSaved }) => {
                     {/* Botón para subir nuevo audio */}
                     <div className="flex items-center gap-3">
                       <label
-                        className={`flex items-center gap-2 px-4 py-2 rounded-lg cursor-pointer border transition-all hover:bg-gray-700/50 ${baseInputClass}`}
+                        className={`flex items-center gap-2 px-4 py-2 rounded-lg cursor-pointer border transition-all hover:bg-muted/50 ${baseInputClass}`}
                       >
                         <Volume2 className="w-4 h-4" />
                         <span>
@@ -1371,8 +1371,8 @@ const QuestionForm: React.FC<Props> = ({ question, onCancel, onSaved }) => {
                   </Label>
                 </div>
 
-                <div className="bg-gray-800/30 rounded-lg p-4 border border-gray-700">
-                  <p className="text-sm text-gray-400 mb-4">
+                <div className="bg-muted/30 rounded-lg p-4 border border-border">
+                  <p className="text-sm text-muted-foreground mb-4">
                     Graba un audio con la pregunta o instrucciones que el
                     estudiante escuchará antes de responder.
                   </p>
@@ -1399,7 +1399,7 @@ const QuestionForm: React.FC<Props> = ({ question, onCancel, onSaved }) => {
                       <SelectTrigger className={baseInputClass}>
                         <SelectValue placeholder="Selecciona el tipo" />
                       </SelectTrigger>
-                      <SelectContent className="bg-gray-900 border border-line">
+                      <SelectContent className="bg-card border border-line">
                         <SelectItem value="word">Palabra</SelectItem>
                         <SelectItem value="sentence">Oración</SelectItem>
                         <SelectItem value="paragraph">Párrafo</SelectItem>
@@ -1411,7 +1411,7 @@ const QuestionForm: React.FC<Props> = ({ question, onCancel, onSaved }) => {
                   {formData.content?.mediaUrl &&
                     formData.content.mediaType === 'audio' && (
                       <div className="mb-4">
-                        <div className="text-sm text-gray-400 mb-2">
+                        <div className="text-sm text-muted-foreground mb-2">
                           Audio actual:
                         </div>
                         <AudioPlayer
@@ -1443,12 +1443,12 @@ const QuestionForm: React.FC<Props> = ({ question, onCancel, onSaved }) => {
                   />
 
                   {/* Opción alternativa para subir archivo */}
-                  <div className="pt-4 border-t border-gray-700">
-                    <div className="text-sm text-gray-400 mb-2">
+                  <div className="pt-4 border-t border-border">
+                    <div className="text-sm text-muted-foreground mb-2">
                       O sube un archivo de audio:
                     </div>
                     <label
-                      className={`inline-flex items-center gap-2 px-3 py-2 rounded-lg cursor-pointer border transition-all hover:bg-gray-700/50 ${baseInputClass}`}
+                      className={`inline-flex items-center gap-2 px-3 py-2 rounded-lg cursor-pointer border transition-all hover:bg-muted/50 ${baseInputClass}`}
                     >
                       <Volume2 className="w-4 h-4" />
                       <span>Seleccionar archivo</span>
@@ -1481,14 +1481,14 @@ const QuestionForm: React.FC<Props> = ({ question, onCancel, onSaved }) => {
               {/* Mostrar imagen existente si hay */}
               {formData.content?.mediaUrl &&
                 formData.content.mediaType === 'image' && (
-                  <div className="mb-4 p-3 bg-gray-800/30 border border-gray-600 rounded-lg">
-                    <div className="text-sm text-gray-400 mb-2">
+                  <div className="mb-4 p-3 bg-muted/30 border border-border rounded-lg">
+                    <div className="text-sm text-muted-foreground mb-2">
                       Imagen actual:
                     </div>
                     <img
                       src={formData.content.mediaUrl}
                       alt="Imagen actual"
-                      className="h-32 w-auto rounded border border-gray-700 cursor-pointer hover:border-blue-500 transition-colors"
+                      className="h-32 w-auto rounded border border-border cursor-pointer hover:border-blue-500 transition-colors"
                       onClick={() => {
                         const url = formData.content?.mediaUrl;
                         if (url) window.open(url, '_blank');
@@ -1500,7 +1500,7 @@ const QuestionForm: React.FC<Props> = ({ question, onCancel, onSaved }) => {
 
               <div className="flex items-center gap-3">
                 <label
-                  className={`flex items-center gap-2 px-4 py-2 rounded-lg cursor-pointer border transition-all hover:bg-gray-700/50 ${baseInputClass}`}
+                  className={`flex items-center gap-2 px-4 py-2 rounded-lg cursor-pointer border transition-all hover:bg-muted/50 ${baseInputClass}`}
                 >
                   <ImageIcon className="w-4 h-4" />
                   <span>
@@ -1530,7 +1530,7 @@ const QuestionForm: React.FC<Props> = ({ question, onCancel, onSaved }) => {
       {/* Metadatos adicionales y Etiquetas combinados */}
       <Card className="border border-line">
         <CardHeader className="pb-3">
-          <CardTitle className="text-white text-lg">Información adicional</CardTitle>
+          <CardTitle className="text-foreground text-lg">Información adicional</CardTitle>
           <CardDescription className="text-sm">
             Tema, subtema y etiquetas para organización
           </CardDescription>
@@ -1593,7 +1593,7 @@ const QuestionForm: React.FC<Props> = ({ question, onCancel, onSaved }) => {
                 {formData.metadata.tags.map((tag: string, i: number) => (
                   <span
                     key={`${tag}-${i}`}
-                    className="px-2 py-1 bg-gray-800/50 border border-gray-700 text-gray-200 rounded-full text-xs flex items-center gap-1.5"
+                    className="px-2 py-1 bg-muted/50 border border-border text-foreground/90 rounded-full text-xs flex items-center gap-1.5"
                   >
                     {tag}
                     <button
@@ -1618,7 +1618,7 @@ const QuestionForm: React.FC<Props> = ({ question, onCancel, onSaved }) => {
           type="button"
           variant="outline"
           onClick={onCancel}
-          className="text-white bg-transparent border border-line hover:bg-gray-800"
+          className="text-foreground bg-transparent border border-line hover:bg-muted"
         >
           Cancelar
         </Button>

@@ -364,14 +364,14 @@ const ExamForm: React.FC<ExamFormProps> = ({ exam, onCancel, onSaved }) => {
     }
   };
 
-  const baseInputClass = "bg-gray-800/50 border-gray-600 text-white placeholder-gray-400";
+  const baseInputClass = "bg-muted/50 border-border text-foreground placeholder-muted-foreground";
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-8">
       {/* Información básica */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div className="space-y-2">
-          <label className="block text-sm font-medium text-gray-300">
+          <label className="block text-sm font-medium text-muted-foreground">
             Nombre del Examen *
           </label>
           <Controller
@@ -391,7 +391,7 @@ const ExamForm: React.FC<ExamFormProps> = ({ exam, onCancel, onSaved }) => {
         </div>
 
         <div className="space-y-2">
-          <label className="block text-sm font-medium text-gray-300">
+          <label className="block text-sm font-medium text-muted-foreground">
             Tipo de Examen *
           </label>
           <Controller
@@ -402,11 +402,11 @@ const ExamForm: React.FC<ExamFormProps> = ({ exam, onCancel, onSaved }) => {
                 <SelectTrigger className={baseInputClass}>
                   <SelectValue placeholder="Selecciona el tipo" />
                 </SelectTrigger>
-                <SelectContent className="bg-gray-900 border border-gray-700">
-                  <SelectItem className='hover:bg-gray-700 focus:bg-gray-700' value="placement">Colocación</SelectItem>
-                  <SelectItem className='hover:bg-gray-700 focus:bg-gray-700' value="progress">Progreso</SelectItem>
-                  <SelectItem className='hover:bg-gray-700 focus:bg-gray-700' value="final">Final</SelectItem>
-                  <SelectItem className='hover:bg-gray-700 focus:bg-gray-700' value="practice">Práctica</SelectItem>
+                <SelectContent className="bg-popover border border-border">
+                  <SelectItem className='hover:bg-muted focus:bg-muted' value="placement">Colocación</SelectItem>
+                  <SelectItem className='hover:bg-muted focus:bg-muted' value="progress">Progreso</SelectItem>
+                  <SelectItem className='hover:bg-muted focus:bg-muted' value="final">Final</SelectItem>
+                  <SelectItem className='hover:bg-muted focus:bg-muted' value="practice">Práctica</SelectItem>
                 </SelectContent>
               </Select>
             )}
@@ -417,7 +417,7 @@ const ExamForm: React.FC<ExamFormProps> = ({ exam, onCancel, onSaved }) => {
         </div>
 
         <div className="space-y-2">
-          <label className="block text-sm font-medium text-gray-300">
+          <label className="block text-sm font-medium text-muted-foreground">
             Nivel Objetivo *
           </label>
           <Controller
@@ -428,18 +428,18 @@ const ExamForm: React.FC<ExamFormProps> = ({ exam, onCancel, onSaved }) => {
                 <SelectTrigger className={baseInputClass}>
                   <SelectValue placeholder={isLoadingLevels ? "Cargando niveles..." : "Selecciona el nivel"} />
                 </SelectTrigger>
-                <SelectContent className="bg-gray-900 border border-gray-700">
+                <SelectContent className="bg-popover border border-border">
                   {levels
                     .filter(level => level.isActive)
                     .map((level) => (
                       <SelectItem
                         key={level._id}
-                        className="hover:bg-gray-700 focus:bg-gray-700"
+                        className="hover:bg-muted focus:bg-muted"
                         value={level.code}
                       >
                         <div className="flex items-center space-x-2">
                           <span className="font-medium">{level.code}</span>
-                          <span className="text-sm text-gray-400">- {level.name}</span>
+                          <span className="text-sm text-muted-foreground">- {level.name}</span>
                         </div>
                       </SelectItem>
                     ))}
@@ -453,7 +453,7 @@ const ExamForm: React.FC<ExamFormProps> = ({ exam, onCancel, onSaved }) => {
         </div>
 
         <div className="space-y-2">
-          <label className="block text-sm font-medium text-gray-300">
+          <label className="block text-sm font-medium text-muted-foreground">
             Puntaje Mínimo (%) *
           </label>
           <Controller
@@ -478,7 +478,7 @@ const ExamForm: React.FC<ExamFormProps> = ({ exam, onCancel, onSaved }) => {
 
       {/* Descripción */}
       <div className="space-y-2">
-        <label className="block text-sm font-medium text-gray-300">
+        <label className="block text-sm font-medium text-foreground/80">
           Descripción
         </label>
         <Controller
@@ -502,7 +502,7 @@ const ExamForm: React.FC<ExamFormProps> = ({ exam, onCancel, onSaved }) => {
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
             <div className="space-y-2">
-              <label className="block text-sm font-medium text-gray-300">Modo</label>
+              <label className="block text-sm font-medium text-muted-foreground">Modo</label>
               <Select
                 value={placementConfig.mode}
                 onValueChange={(v) => {
@@ -535,15 +535,15 @@ const ExamForm: React.FC<ExamFormProps> = ({ exam, onCancel, onSaved }) => {
                 <SelectTrigger className={baseInputClass}>
                   <SelectValue />
                 </SelectTrigger>
-                <SelectContent className="bg-gray-900 border border-gray-700">
-                  <SelectItem className="hover:bg-gray-700 focus:bg-gray-700" value="static">Estático (secciones fijas)</SelectItem>
-                  <SelectItem className="hover:bg-gray-700 focus:bg-gray-700" value="adaptive">Adaptativo (CAT)</SelectItem>
+                <SelectContent className="bg-popover border border-border">
+                  <SelectItem className="hover:bg-muted focus:bg-muted" value="static">Estático (secciones fijas)</SelectItem>
+                  <SelectItem className="hover:bg-muted focus:bg-muted" value="adaptive">Adaptativo (CAT)</SelectItem>
                 </SelectContent>
               </Select>
             </div>
 
             <div className="space-y-2">
-              <label className="block text-sm font-medium text-gray-300">
+              <label className="block text-sm font-medium text-muted-foreground">
                 % mínimo por nivel para aprobar
               </label>
               <Input
@@ -559,7 +559,7 @@ const ExamForm: React.FC<ExamFormProps> = ({ exam, onCancel, onSaved }) => {
             {placementConfig.mode === 'adaptive' && (
               <>
                 <div className="space-y-2">
-                  <label className="block text-sm font-medium text-gray-300">Nivel de inicio</label>
+                  <label className="block text-sm font-medium text-muted-foreground">Nivel de inicio</label>
                   <Select
                     value={placementConfig.startingLevel}
                     onValueChange={(v) => setPlacementConfig(p => ({ ...p, startingLevel: v }))}
@@ -567,16 +567,16 @@ const ExamForm: React.FC<ExamFormProps> = ({ exam, onCancel, onSaved }) => {
                     <SelectTrigger className={baseInputClass}>
                       <SelectValue />
                     </SelectTrigger>
-                    <SelectContent className="bg-gray-900 border border-gray-700">
+                    <SelectContent className="bg-popover border border-border">
                       {PLACEMENT_LEVELS.map(l => (
-                        <SelectItem key={l} className="hover:bg-gray-700 focus:bg-gray-700" value={l}>{l}</SelectItem>
+                        <SelectItem key={l} className="hover:bg-muted focus:bg-muted" value={l}>{l}</SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
                 </div>
 
                 <div className="space-y-2">
-                  <label className="block text-sm font-medium text-gray-300">Máx. preguntas</label>
+                  <label className="block text-sm font-medium text-muted-foreground">Máx. preguntas</label>
                   <Input
                     type="number"
                     min="5"
@@ -588,7 +588,7 @@ const ExamForm: React.FC<ExamFormProps> = ({ exam, onCancel, onSaved }) => {
                 </div>
 
                 <div className="space-y-2">
-                  <label className="block text-sm font-medium text-gray-300">
+                  <label className="block text-sm font-medium text-muted-foreground">
                     Errores consecutivos para finalizar
                   </label>
                   <Input
@@ -602,7 +602,7 @@ const ExamForm: React.FC<ExamFormProps> = ({ exam, onCancel, onSaved }) => {
                 </div>
 
                 <div className="space-y-2">
-                  <label className="block text-sm font-medium text-gray-300">
+                  <label className="block text-sm font-medium text-muted-foreground">
                     Duración total (minutos)
                   </label>
                   <Input
@@ -631,7 +631,7 @@ const ExamForm: React.FC<ExamFormProps> = ({ exam, onCancel, onSaved }) => {
       <>
       <div className="space-y-4">
         <div className="flex items-center justify-between">
-          <h3 className="text-lg font-semibold text-gray-200">Secciones del Examen</h3>
+          <h3 className="text-lg font-semibold text-foreground">Secciones del Examen</h3>
           <Button
             type="button"
             onClick={addSection}
@@ -645,16 +645,16 @@ const ExamForm: React.FC<ExamFormProps> = ({ exam, onCancel, onSaved }) => {
         </div>
 
         {fields.map((field, index) => (
-          <div key={field.id} className="bg-gray-800/50 rounded-lg p-6 border border-gray-700">
+          <div key={field.id} className="bg-muted/50 rounded-lg p-6 border border-border">
             <div className="flex items-center justify-between mb-4">
-              <h4 className="font-medium text-gray-200">Sección {index + 1}</h4>
+              <h4 className="font-medium text-foreground">Sección {index + 1}</h4>
               {fields.length > 1 && (
                 <Button
                   type="button"
                   onClick={() => removeSection(index)}
                   variant="outline"
                   size="sm"
-                  className="text-red-400 bg-gray-800 hover:bg-gray-700"
+                  className="text-red-400 bg-muted hover:bg-muted"
                 >
                   <Trash2 className="w-4 h-4" />
                 </Button>
@@ -663,7 +663,7 @@ const ExamForm: React.FC<ExamFormProps> = ({ exam, onCancel, onSaved }) => {
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               <div className="space-y-2">
-                <label className="block text-sm font-medium text-gray-300">
+                <label className="block text-sm font-medium text-muted-foreground">
                   Nombre de la Sección *
                 </label>
                 <Controller
@@ -685,7 +685,7 @@ const ExamForm: React.FC<ExamFormProps> = ({ exam, onCancel, onSaved }) => {
               </div>
 
               <div className="space-y-2">
-                <label className="block text-sm font-medium text-gray-300">
+                <label className="block text-sm font-medium text-muted-foreground">
                   Competencia *
                 </label>
                 <Controller
@@ -705,13 +705,13 @@ const ExamForm: React.FC<ExamFormProps> = ({ exam, onCancel, onSaved }) => {
                       <SelectTrigger className={baseInputClass}>
                         <SelectValue />
                       </SelectTrigger>
-                      <SelectContent className="bg-gray-900 border border-gray-700">
-                        <SelectItem className='hover:bg-gray-700 focus:bg-gray-700' value="reading">Comprensión Lectora</SelectItem>
-                        <SelectItem className='hover:bg-gray-700 focus:bg-gray-700' value="writing">Expresión Escrita</SelectItem>
-                        <SelectItem className='hover:bg-gray-700 focus:bg-gray-700' value="listening">Comprensión Auditiva</SelectItem>
-                        <SelectItem className='hover:bg-gray-700 focus:bg-gray-700' value="speaking">Expresión Oral</SelectItem>
-                        <SelectItem className='hover:bg-gray-700 focus:bg-gray-700' value="grammar">Gramática</SelectItem>
-                        <SelectItem className='hover:bg-gray-700 focus:bg-gray-700' value="vocabulary">Vocabulario</SelectItem>
+                      <SelectContent className="bg-popover border border-border">
+                        <SelectItem className='hover:bg-muted focus:bg-muted' value="reading">Comprensión Lectora</SelectItem>
+                        <SelectItem className='hover:bg-muted focus:bg-muted' value="writing">Expresión Escrita</SelectItem>
+                        <SelectItem className='hover:bg-muted focus:bg-muted' value="listening">Comprensión Auditiva</SelectItem>
+                        <SelectItem className='hover:bg-muted focus:bg-muted' value="speaking">Expresión Oral</SelectItem>
+                        <SelectItem className='hover:bg-muted focus:bg-muted' value="grammar">Gramática</SelectItem>
+                        <SelectItem className='hover:bg-muted focus:bg-muted' value="vocabulary">Vocabulario</SelectItem>
                       </SelectContent>
                     </Select>
                   )}
@@ -719,7 +719,7 @@ const ExamForm: React.FC<ExamFormProps> = ({ exam, onCancel, onSaved }) => {
               </div>
 
               <div className="space-y-2">
-                <label className="block text-sm font-medium text-gray-300">
+                <label className="block text-sm font-medium text-muted-foreground">
                   Número de Preguntas *
                 </label>
                 <Controller
@@ -771,7 +771,7 @@ const ExamForm: React.FC<ExamFormProps> = ({ exam, onCancel, onSaved }) => {
               </div>
 
               <div className="space-y-2">
-                <label className="block text-sm font-medium text-gray-300">
+                <label className="block text-sm font-medium text-muted-foreground">
                   Puntos *
                 </label>
                 <Controller
@@ -790,7 +790,7 @@ const ExamForm: React.FC<ExamFormProps> = ({ exam, onCancel, onSaved }) => {
               </div>
 
               <div className="space-y-2">
-                <label className="block text-sm font-medium text-gray-300">
+                <label className="block text-sm font-medium text-muted-foreground">
                   Duración (min) *
                 </label>
                 <Controller
@@ -810,7 +810,7 @@ const ExamForm: React.FC<ExamFormProps> = ({ exam, onCancel, onSaved }) => {
             </div>
 
             <div className="mt-4 space-y-2">
-              <label className="block text-sm font-medium text-gray-300">
+              <label className="block text-sm font-medium text-muted-foreground">
                 Instrucciones *
               </label>
               <Controller
@@ -835,20 +835,20 @@ const ExamForm: React.FC<ExamFormProps> = ({ exam, onCancel, onSaved }) => {
         <h4 className="font-medium text-blue-200 mb-3">Resumen del Examen</h4>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
           <div>
-            <span className="text-gray-400">Total Preguntas:</span>
-            <p className="text-white font-medium">{watch('structure.totalQuestions')}</p>
+            <span className="text-muted-foreground">Total Preguntas:</span>
+            <p className="text-foreground font-medium">{watch('structure.totalQuestions')}</p>
           </div>
           <div>
-            <span className="text-gray-400">Total Puntos:</span>
-            <p className="text-white font-medium">{watch('structure.totalPoints')}</p>
+            <span className="text-muted-foreground">Total Puntos:</span>
+            <p className="text-foreground font-medium">{watch('structure.totalPoints')}</p>
           </div>
           <div>
-            <span className="text-gray-400">Duración Total:</span>
-            <p className="text-white font-medium">{watch('structure.totalDuration')} min</p>
+            <span className="text-muted-foreground">Duración Total:</span>
+            <p className="text-foreground font-medium">{watch('structure.totalDuration')} min</p>
           </div>
           <div>
-            <span className="text-gray-400">Puntaje Mínimo:</span>
-            <p className="text-white font-medium">{watch('structure.passingScore')}%</p>
+            <span className="text-muted-foreground">Puntaje Mínimo:</span>
+            <p className="text-foreground font-medium">{watch('structure.passingScore')}%</p>
           </div>
         </div>
       </div>
@@ -857,12 +857,12 @@ const ExamForm: React.FC<ExamFormProps> = ({ exam, onCancel, onSaved }) => {
 
       {/* Configuración */}
       <div className="space-y-4">
-        <h3 className="text-lg font-semibold text-gray-200">Configuración</h3>
+        <h3 className="text-lg font-semibold text-foreground">Configuración</h3>
         
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div className="space-y-4">
             <div className="flex items-center justify-between">
-              <label className="text-sm font-medium text-gray-300">
+              <label className="text-sm font-medium text-foreground/80">
                 Aleatorizar preguntas
               </label>
               <Controller
@@ -870,7 +870,7 @@ const ExamForm: React.FC<ExamFormProps> = ({ exam, onCancel, onSaved }) => {
                 control={control}
                 render={({ field }) => (
                   <Switch
-                    className="bg-gray-600 border border-line"
+                    className="bg-muted border border-line"
                     checked={field.value}
                   disabled={true}
                     onCheckedChange={field.onChange}
@@ -880,7 +880,7 @@ const ExamForm: React.FC<ExamFormProps> = ({ exam, onCancel, onSaved }) => {
             </div>
 
             <div className="flex items-center justify-between">
-              <label className="text-sm font-medium text-gray-300">
+              <label className="text-sm font-medium text-foreground/80">
                 Aleatorizar opciones
               </label>
               <Controller
@@ -888,7 +888,7 @@ const ExamForm: React.FC<ExamFormProps> = ({ exam, onCancel, onSaved }) => {
                 control={control}
                 render={({ field }) => (
                   <Switch
-                    className="bg-gray-600 border border-line"
+                    className="bg-muted border border-line"
                     checked={field.value}
                     disabled={true}
                     onCheckedChange={field.onChange}
@@ -898,7 +898,7 @@ const ExamForm: React.FC<ExamFormProps> = ({ exam, onCancel, onSaved }) => {
             </div>
 
             <div className="flex items-center justify-between">
-              <label className="text-sm font-medium text-gray-300">
+              <label className="text-sm font-medium text-foreground/80">
                 Mostrar resultados
               </label>
               <Controller
@@ -906,7 +906,7 @@ const ExamForm: React.FC<ExamFormProps> = ({ exam, onCancel, onSaved }) => {
                 control={control}
                 render={({ field }) => (
                   <Switch
-                    className="bg-gray-600 border border-line"
+                    className="bg-muted border border-line"
                     checked={field.value}
                     disabled={true}
                     onCheckedChange={field.onChange}
@@ -918,7 +918,7 @@ const ExamForm: React.FC<ExamFormProps> = ({ exam, onCancel, onSaved }) => {
 
           <div className="space-y-4">
             <div className="flex items-center justify-between">
-              <label className="text-sm font-medium text-gray-300">
+              <label className="text-sm font-medium text-foreground/80">
                 Permitir revisión
               </label>
               <Controller
@@ -926,7 +926,7 @@ const ExamForm: React.FC<ExamFormProps> = ({ exam, onCancel, onSaved }) => {
                 control={control}
                 render={({ field }) => (
                   <Switch
-                    className="bg-gray-600 border border-line"
+                    className="bg-muted border border-line"
                     checked={field.value}
                     disabled={true}
                     onCheckedChange={field.onChange}
@@ -936,7 +936,7 @@ const ExamForm: React.FC<ExamFormProps> = ({ exam, onCancel, onSaved }) => {
             </div>
 
             <div className="space-y-2">
-              <label className="block text-sm font-medium text-gray-300">
+              <label className="block text-sm font-medium text-muted-foreground">
                 Máximo de intentos
               </label>
               <Controller
@@ -957,7 +957,7 @@ const ExamForm: React.FC<ExamFormProps> = ({ exam, onCancel, onSaved }) => {
             </div>
 
             <div className="flex items-center justify-between">
-              <label className="text-sm font-medium text-gray-300">
+              <label className="text-sm font-medium text-foreground/80">
                 Es plantilla
               </label>
               <Controller
@@ -965,7 +965,7 @@ const ExamForm: React.FC<ExamFormProps> = ({ exam, onCancel, onSaved }) => {
                 control={control}
                 render={({ field }) => (
                   <Switch
-                    className="bg-gray-600 border border-line"
+                    className="bg-muted border border-line"
                     checked={field.value}
                     disabled={true}
                     onCheckedChange={field.onChange}
@@ -975,7 +975,7 @@ const ExamForm: React.FC<ExamFormProps> = ({ exam, onCancel, onSaved }) => {
             </div>
 
             <div className="flex items-center justify-between">
-              <label className="text-sm font-medium text-gray-300">
+              <label className="text-sm font-medium text-foreground/80">
                 Activo
               </label>
               <Controller
@@ -983,7 +983,7 @@ const ExamForm: React.FC<ExamFormProps> = ({ exam, onCancel, onSaved }) => {
                 control={control}
                 render={({ field }) => (
                   <Switch
-                    className="bg-gray-600 border border-line"
+                    className="bg-muted border border-line"
                     checked={field.value}
                     onCheckedChange={field.onChange}
                   />
@@ -995,7 +995,7 @@ const ExamForm: React.FC<ExamFormProps> = ({ exam, onCancel, onSaved }) => {
       </div>
 
       {/* Botones de acción */}
-      <div className="flex items-center gap-4 pt-6 border-t border-gray-700">
+      <div className="flex items-center gap-4 pt-6 border-t border-border">
         <Button
           type="submit"
           disabled={isSubmitting}
@@ -1018,7 +1018,7 @@ const ExamForm: React.FC<ExamFormProps> = ({ exam, onCancel, onSaved }) => {
           type="button"
           onClick={onCancel}
           variant="outline"
-          className="border-gray-600 bg-box border-line text-gray-300 hover:bg-gray-700"
+          className="border-border bg-box border-line text-foreground/80 hover:bg-muted"
         >
           <X className="w-4 h-4 mr-2" />
           Cancelar

@@ -148,7 +148,7 @@ const StudentExams = () => {
         <div className="max-w-7xl mx-auto flex items-center justify-center min-h-[60vh]">
           <div className="text-center space-y-4">
             <Loader2 className="h-12 w-12 animate-spin text-blue-500 mx-auto" />
-            <p className="text-gray-400">Cargando sesiones disponibles...</p>
+            <p className="text-muted-foreground">Cargando sesiones disponibles...</p>
           </div>
         </div>
       </MainLayout>
@@ -162,12 +162,12 @@ const StudentExams = () => {
         <ContentGradientSection variant="secondary" position="top-right" className="mb-8">
           <div className="text-center space-y-6 m-6">
             <div className="space-y-2">
-              <h1 className="mb-4 text-3xl font-extrabold text-gray-900 dark:text-white md:text-5xl lg:text-6xl">
+              <h1 className="mb-4 text-3xl font-extrabold text-foreground md:text-5xl lg:text-6xl">
                 <span className="text-transparent bg-clip-text bg-gradient-to-r to-emerald-600 from-sky-400">
                   Mis Exámenes
                 </span>
               </h1>
-              <p className="text-lg font-normal text-gray-500 lg:text-xl dark:text-gray-400">
+              <p className="text-lg font-normal text-muted-foreground lg:text-xl">
                 Accede a tus exámenes programados y revisa tu progreso
               </p>
             </div>
@@ -182,14 +182,14 @@ const StudentExams = () => {
               variant="outline"
               size="sm"
               disabled={refreshing}
-              className="border-gray-600"
+              className="border-border"
             >
               <RefreshCcw className={`h-4 w-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
               Actualizar
             </Button>
           </div>
           
-          <div className="flex items-center gap-2 text-sm text-gray-400">
+          <div className="flex items-center gap-2 text-sm text-muted-foreground">
             <Users className="h-4 w-4" />
             <span>{sessions.length} sesiones disponibles</span>
           </div>
@@ -197,7 +197,7 @@ const StudentExams = () => {
 
         {/* Tabs de Sesiones */}
         <Tabs defaultValue="active" className="w-full">
-          <TabsList className="grid w-full grid-cols-2 bg-[#0B1422]/50 border border-gray-700/50">
+          <TabsList className="grid w-full grid-cols-2 bg-background/50 border border-border/50">
             <TabsTrigger value="active">
               Activas ({activeSessions.length})
             </TabsTrigger>
@@ -209,10 +209,10 @@ const StudentExams = () => {
           {/* Sesiones Activas */}
           <TabsContent value="active" className="space-y-4 mt-6">
             {activeSessions.length === 0 ? (
-              <Card className="bg-[#0B1422] backdrop-blur-sm border border-gray-700/50">
+              <Card className="bg-muted/10 backdrop-blur-sm border border-border/50">
                 <CardContent className="pt-6 text-center">
-                  <AlertCircle className="h-12 w-12 text-gray-500 mx-auto mb-4" />
-                  <p className="text-gray-400">No hay sesiones activas en este momento</p>
+                  <AlertCircle className="h-12 w-12 text-muted-foreground/50 mx-auto mb-4" />
+                  <p className="text-muted-foreground">No hay sesiones activas en este momento</p>
                 </CardContent>
               </Card>
             ) : (
@@ -235,10 +235,10 @@ const StudentExams = () => {
           {/* Sesiones Próximas */}
           <TabsContent value="upcoming" className="space-y-4 mt-6">
             {upcomingSessions.length === 0 ? (
-              <Card className="bg-[#0B1422] backdrop-blur-sm border border-gray-700/50">
+              <Card className="bg-muted/10 backdrop-blur-sm border border-border/50">
                 <CardContent className="pt-6 text-center">
-                  <Calendar className="h-12 w-12 text-gray-500 mx-auto mb-4" />
-                  <p className="text-gray-400">No hay sesiones programadas</p>
+                  <Calendar className="h-12 w-12 text-muted-foreground/50 mx-auto mb-4" />
+                  <p className="text-muted-foreground">No hay sesiones programadas</p>
                 </CardContent>
               </Card>
             ) : (
@@ -299,12 +299,12 @@ const SessionCard = ({
   };
 
   return (
-    <Card className="bg-[#0B1422] backdrop-blur-sm border border-gray-700/50 hover:border-gray-600/50 transition-all">
+    <Card className="bg-card backdrop-blur-sm border border-border/50 hover:border-border transition-all">
       <CardHeader>
         <div className="flex items-start justify-between">
           <div className="flex-1">
-            <CardTitle className="text-white text-lg mb-2">{session.examName}</CardTitle>
-            <CardDescription className="text-gray-300">
+            <CardTitle className="text-foreground text-lg mb-2">{session.examName}</CardTitle>
+            <CardDescription className="text-muted-foreground">
               {session.sessionName || 'Sesión de evaluación'}
             </CardDescription>
           </div>
@@ -315,21 +315,21 @@ const SessionCard = ({
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="grid grid-cols-2 gap-4 text-sm">
-          <div className="flex items-center gap-2 text-gray-300">
+          <div className="flex items-center gap-2 text-muted-foreground">
             <Calendar className="h-4 w-4" />
             {formatDate(session.scheduledAt)}
           </div>
-          <div className="flex items-center gap-2 text-gray-300">
+          <div className="flex items-center gap-2 text-muted-foreground">
             <Clock className="h-4 w-4" />
             {formatTime(session.scheduledAt)} - {session.duration} min
           </div>
-          <div className="flex items-center gap-2 text-gray-300">
+          <div className="flex items-center gap-2 text-muted-foreground">
             <Users className="h-4 w-4" />
             {session.currentParticipants || 0}/{session.maxParticipants || '∞'} participantes
           </div>
           <div className="flex items-center gap-2">
             {getStatusIcon(session.status, session.hasLobby)}
-            <span className="text-gray-300">
+            <span className="text-muted-foreground">
               {session.hasLobby ? 'Lobby Activo' : 'Programado'}
             </span>
           </div>
@@ -337,13 +337,13 @@ const SessionCard = ({
 
         {session.competencies && session.competencies.length > 0 && (
           <div className="space-y-2">
-            <p className="text-sm font-medium text-gray-300">Competencias:</p>
+            <p className="text-sm font-medium text-muted-foreground">Competencias:</p>
             <div className="flex flex-wrap gap-1">
               {session.competencies.map((competency, index) => (
                 <Badge 
                   key={index} 
                   variant="secondary" 
-                  className="bg-gray-700/50 text-gray-300 text-xs"
+                  className="bg-muted text-muted-foreground text-xs"
                 >
                   {competency}
                 </Badge>

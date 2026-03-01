@@ -163,7 +163,7 @@ const NextExam: React.FC<PropsNextExam> = ({
         <Card className="bg-box backdrop-blur-sm border border-line">
           <CardHeader className="space-y-2 border-b border-line pb-4">
             <CardTitle className="text-white flex items-center gap-2 font-bold">
-              <Calendar className="h-6 w-6 text-brand-gray bg-gray-800 rounded-full p-1" />
+              <Calendar className="h-6 w-6 text-brand-gray bg-muted rounded-full p-1" />
               Próximo Examen
             </CardTitle>
             <CardDescription className="text-brand-gray text-xs">
@@ -184,7 +184,7 @@ const NextExam: React.FC<PropsNextExam> = ({
         <Card className="bg-box backdrop-blur-sm border border-line">
           <CardHeader className="space-y-2 border-b border-line pb-4">
             <CardTitle className="text-white flex items-center gap-2 font-bold">
-              <Calendar className="h-6 w-6 text-brand-gray bg-gray-800 rounded-full p-1" />
+              <Calendar className="h-6 w-6 text-brand-gray bg-muted rounded-full p-1" />
               Próximo Examen
             </CardTitle>
             <CardDescription className="text-brand-gray text-xs">
@@ -199,7 +199,7 @@ const NextExam: React.FC<PropsNextExam> = ({
             <Button
               onClick={loadNextExam}
               variant="outline"
-              className="mt-4 w-full bg-[#0F1A2A] hover:bg-[#16233F] text-white"
+              className="mt-4 w-full bg-muted hover:bg-muted/80 text-foreground"
             >
               Reintentar
             </Button>
@@ -212,7 +212,7 @@ const NextExam: React.FC<PropsNextExam> = ({
         <Card className="bg-box backdrop-blur-sm border border-line">
           <CardHeader className="space-y-2 border-b border-line pb-4">
             <CardTitle className="text-white flex items-center gap-2 font-bold">
-              <Calendar className="h-6 w-6 text-brand-gray bg-gray-800 rounded-full p-1" />
+              <Calendar className="h-6 w-6 text-brand-gray bg-muted rounded-full p-1" />
               Próximo Examen
             </CardTitle>
             <CardDescription className="text-brand-gray text-xs">
@@ -221,17 +221,17 @@ const NextExam: React.FC<PropsNextExam> = ({
           </CardHeader>
           <CardContent className="py-6">
             <div className="text-center">
-              <Calendar className="mx-auto h-8 w-8 text-gray-500 mb-4" />
-              <p className="text-gray-400 mb-2">
+              <Calendar className="mx-auto h-8 w-8 text-muted-foreground/50 mb-4" />
+              <p className="text-muted-foreground mb-2">
                 No tienes exámenes programados
               </p>
-              <p className="text-sm text-gray-500 mb-4">
+              <p className="text-sm text-muted-foreground/70 mb-4">
                 Los nuevos exámenes aparecerán aquí cuando sean programados
               </p>
               <Button
                 onClick={loadNextExam}
                 variant="outline"
-                className="mt-2 bg-[#0F1A2A] hover:bg-[#16233F] text-white w-full"
+                className="mt-2 bg-muted hover:bg-muted/80 text-foreground w-full"
               >
                 Actualizar
               </Button>
@@ -254,18 +254,18 @@ const NextExam: React.FC<PropsNextExam> = ({
       </CardHeader>
       <CardContent className="space-y-6 transition-all py-6">
         <div className="border border-line rounded-lg p-4 transition-colors thin-border">
-          <h3 className="text-lg font-semibold text-white mb-3">
+          <h3 className="text-lg font-semibold text-foreground mb-3">
             {nextExam.name}
           </h3>
 
           {/* --- Información básica del examen --- */}
-          <div className="grid grid-cols-2 gap-4 text-sm text-gray-300 mb-4">
+          <div className="grid grid-cols-2 gap-4 text-sm text-foreground/80 mb-4">
             <div className="flex items-center gap-2 font-light">
-              <Calendar className="h-4 w-4 text-gray-400" />
+              <Calendar className="h-4 w-4 text-muted-foreground" />
               {formatDate(nextExam.date)}
             </div>
             <div className="flex items-center gap-2 font-light">
-              <Clock className="h-4 w-4 text-gray-400" />
+              <Clock className="h-4 w-4 text-muted-foreground" />
               {nextExam.time}
             </div>
           </div>
@@ -294,7 +294,7 @@ const NextExam: React.FC<PropsNextExam> = ({
 
           {/* --- Información del examen --- */}
           {nextExam.exam && (
-            <div className="bg-gray-800/20 rounded-lg p-3 mb-4 border border-line">
+            <div className="bg-muted/20 rounded-lg p-3 mb-4 border border-line">
               <div className="flex items-center gap-3">
                 <div className="w-9 h-9 rounded-full bg-gradient-to-br from-blue-900 to-purple-900 flex items-center justify-center shrink-0">
                   <span className="text-white font-bold text-sm">
@@ -302,10 +302,10 @@ const NextExam: React.FC<PropsNextExam> = ({
                   </span>
                 </div>
                 <div>
-                  <p className="text-sm font-medium text-white">
+                  <p className="text-sm font-medium text-foreground">
                     {nextExam.exam.name}
                   </p>
-                  <p className="text-xs text-gray-400">
+                  <p className="text-xs text-muted-foreground">
                     Tipo: {nextExam.exam.type || 'Evaluación'}
                   </p>
                 </div>
@@ -315,22 +315,22 @@ const NextExam: React.FC<PropsNextExam> = ({
 
           {/* --- Información del creador --- */}
           {nextExam.createdBy && (
-            <div className="bg-gray-800/20 rounded-lg p-3 mb-4 border border-line">
+            <div className="bg-muted/20 rounded-lg p-3 mb-4 border border-line">
               <div className="flex items-center gap-3">
                 <div className="w-9 h-9 rounded-full bg-gradient-to-br from-green-900 to-emerald-900 flex items-center justify-center shrink-0">
                   <User className="h-4 w-4 text-white" />
                 </div>
                 <div className="flex-1">
-                  <p className="text-sm font-medium text-white">
+                  <p className="text-sm font-medium text-foreground">
                     {nextExam.createdBy.firstName} {nextExam.createdBy.lastName}
                   </p>
-                  <p className="text-xs text-gray-400">
+                  <p className="text-xs text-muted-foreground">
                     {getRoleDisplayName(nextExam.createdBy.role)}
                   </p>
                 </div>
                 {nextExam.createdBy.teacherData && (
                   <div className="text-right">
-                    <div className="flex items-center gap-1 text-xs text-gray-400">
+                    <div className="flex items-center gap-1 text-xs text-muted-foreground">
                       <GraduationCap className="h-4 w-4" />
                       <span>{nextExam.createdBy.teacherData.department}</span>
                     </div>
@@ -341,8 +341,8 @@ const NextExam: React.FC<PropsNextExam> = ({
               {/* --- Especializaciones del profesor --- */}
               {nextExam.createdBy.teacherData?.specialization &&
                 nextExam.createdBy.teacherData.specialization.length > 0 && (
-                  <div className="mt-3 pt-3 border-t border-gray-700/50">
-                    <p className="text-xs text-gray-400 mb-2">
+                  <div className="mt-3 pt-3 border-t border-border/50">
+                    <p className="text-xs text-muted-foreground mb-2">
                       Especializaciones:
                     </p>
                     <div className="flex flex-wrap gap-1.5">
@@ -358,7 +358,7 @@ const NextExam: React.FC<PropsNextExam> = ({
                         ))}
                       {nextExam.createdBy.teacherData.specialization.length >
                         3 && (
-                        <span className="px-2.5 py-0.5 text-xs bg-gray-500/20 text-gray-400 rounded-full">
+                        <span className="px-2.5 py-0.5 text-xs bg-muted/40 text-muted-foreground rounded-full">
                           +
                           {nextExam.createdBy.teacherData.specialization
                             .length - 3}{' '}
@@ -373,7 +373,7 @@ const NextExam: React.FC<PropsNextExam> = ({
 
           {/* --- Botón para iniciar examen --- */}
           {nextExam.status === 'scheduled' ? (
-            <div className="w-full flex items-center justify-center gap-2 py-2 px-4 rounded-md bg-gray-800/60 border border-line text-gray-400 text-sm">
+            <div className="w-full flex items-center justify-center gap-2 py-2 px-4 rounded-md bg-muted/40 border border-border text-muted-foreground text-sm">
               <Clock className="h-4 w-4 text-yellow-400" />
               <span>En espera — el examen aún no ha iniciado</span>
             </div>

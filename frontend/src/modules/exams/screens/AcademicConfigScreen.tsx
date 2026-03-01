@@ -58,8 +58,8 @@ const AcademicConfigScreen = () => {
               <Settings className="h-3.5 w-3.5 text-indigo-300" />
             </div>
           </div>
-          <h1 className="text-2xl font-bold text-gray-200">Configuración Académica</h1>
-          <p className="text-gray-400 max-w-2xl mx-auto">
+          <h1 className="text-2xl font-bold text-foreground">Configuración Académica</h1>
+          <p className="text-muted-foreground max-w-2xl mx-auto">
             Gestiona todos los aspectos académicos del sistema de evaluación lingüística
           </p>
         </div>
@@ -87,17 +87,17 @@ const AcademicConfigScreen = () => {
                           <IconComponent className={`h-4 w-4 ${option.iconColor}`} />
                         </div>
                         <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                          <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <svg className="w-5 h-5 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                           </svg>
                         </div>
                       </div>
                       
                       <div className="space-y-2">
-                        <h3 className="text-lg font-semibold text-gray-200 group-hover:text-white transition-colors">
+                        <h3 className="text-lg font-semibold text-foreground group-hover:text-foreground transition-colors">
                           {option.title}
                         </h3>
-                        <p className="text-gray-400 text-sm leading-relaxed">
+                        <p className="text-muted-foreground text-sm leading-relaxed">
                           {option.description}
                         </p>
                       </div>

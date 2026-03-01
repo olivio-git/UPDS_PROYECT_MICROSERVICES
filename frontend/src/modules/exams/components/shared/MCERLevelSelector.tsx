@@ -30,7 +30,7 @@ const MCERLevelSelector = ({
       onValueChange={onValueChange}
       disabled={disabled}
     >
-      <SelectTrigger className={`bg-input border-line text-gray-300 ${className}`}>
+      <SelectTrigger className={`bg-input border-line text-foreground ${className}`}>
         <SelectValue placeholder={placeholder} />
       </SelectTrigger>
       <SelectContent className="bg-box border-line">
@@ -38,12 +38,12 @@ const MCERLevelSelector = ({
           <SelectItem
             key={level}
             value={level}
-            className="text-gray-300 hover:bg-line/50 focus:bg-line/50"
+            className="text-foreground hover:bg-line/50 focus:bg-line/50"
           >
             <div className="flex flex-col">
               <span className="font-medium">{level}</span>
               {showDescriptions && (
-                <span className="text-xs text-gray-400">
+                <span className="text-xs text-muted-foreground">
                   {MCER_LEVEL_DESCRIPTIONS[level]}
                 </span>
               )}

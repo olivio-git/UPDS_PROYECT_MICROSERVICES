@@ -29,7 +29,7 @@ const CompetencySelector = ({
       onValueChange={onValueChange}
       disabled={disabled}
     >
-      <SelectTrigger className={`bg-input border-line text-gray-300 ${className}`}>
+      <SelectTrigger className={`bg-input border-line text-foreground ${className}`}>
         <SelectValue placeholder={placeholder} />
       </SelectTrigger>
       <SelectContent className="bg-box border-line">
@@ -37,11 +37,11 @@ const CompetencySelector = ({
           <SelectItem
             key={competency}
             value={competency}
-            className="text-gray-300 hover:bg-line/50 focus:bg-line/50"
+            className="text-foreground hover:bg-line/50 focus:bg-line/50"
           >
             <div className="flex flex-col">
               <span className="font-medium">{COMPETENCY_LABELS[competency]}</span>
-              <span className="text-xs text-gray-400 capitalize">{competency}</span>
+              <span className="text-xs text-muted-foreground capitalize">{competency}</span>
             </div>
           </SelectItem>
         ))}

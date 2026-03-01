@@ -359,7 +359,7 @@ const SessionsList: React.FC = () => {
         text: 'En Progreso',
       },
       completed: {
-        color: 'bg-gray-900/20 text-gray-300 border-gray-700',
+        color: 'bg-muted/50 text-foreground/80 border-border',
         icon: CheckCircle,
         text: 'Completada',
       },
@@ -402,10 +402,10 @@ const SessionsList: React.FC = () => {
       size: 200,
       cell: info => (
         <div>
-          <div className="text-sm font-medium text-gray-200">
+          <div className="text-sm font-medium text-foreground">
             {info.getValue()}
           </div>
-          <div className="text-xs text-gray-500">
+          <div className="text-xs text-muted-foreground">
             ID: {info.row.original._id}
           </div>
         </div>
@@ -415,7 +415,7 @@ const SessionsList: React.FC = () => {
       id: 'exam',
       header: () => (
         <div className="flex items-center">
-          <BookOpen className="h-4 w-4 mr-2 text-gray-400" />
+          <BookOpen className="h-4 w-4 mr-2 text-muted-foreground" />
           Examen
         </div>
       ),
@@ -424,12 +424,12 @@ const SessionsList: React.FC = () => {
         const session = info.row.original;
         return (
           <div>
-            <div className="text-sm text-gray-200">
+            <div className="text-sm text-foreground">
               {(session as any).examId?.name ||
                 session.exam?.name ||
                 'Examen no disponible'}
             </div>
-            <div className="text-xs text-gray-500">
+            <div className="text-xs text-muted-foreground">
               {(session as any).examId?.type || session.exam?.type || 'N/A'} -
               {(session as any).examId?.targetLevel ||
                 session.exam?.targetLevel ||
@@ -442,7 +442,7 @@ const SessionsList: React.FC = () => {
     columnHelper.accessor('scheduling.startDate', {
       header: () => (
         <div className="flex items-center">
-          <Clock className="h-4 w-4 mr-2 text-gray-400" />
+          <Clock className="h-4 w-4 mr-2 text-muted-foreground" />
           Fecha y Hora
         </div>
       ),
@@ -451,10 +451,10 @@ const SessionsList: React.FC = () => {
         const session = info.row.original;
         return (
           <div>
-            <div className="text-sm text-gray-200">
+            <div className="text-sm text-foreground">
               {formatDate(session.scheduling.startDate)}
             </div>
-            <div className="text-xs text-gray-500">
+            <div className="text-xs text-muted-foreground">
               hasta{' '}
               {new Date(session.scheduling.endDate).toLocaleTimeString(
                 'es-BO',
@@ -473,7 +473,7 @@ const SessionsList: React.FC = () => {
     columnHelper.accessor('participants', {
       header: () => (
         <div className="flex items-center">
-          <Users className="h-4 w-4 mr-2 text-gray-400" />
+          <Users className="h-4 w-4 mr-2 text-muted-foreground" />
           Participantes
         </div>
       ),
@@ -483,9 +483,9 @@ const SessionsList: React.FC = () => {
         const registered = participants.registeredCandidates?.length || 0;
         const max = participants.maxCandidates || 1;
         const fillPercentage = registered / max;
-        
+
         // Dynamic color based on fill percentage
-        let iconColor = 'text-gray-400'; // Empty state
+        let iconColor = 'text-muted-foreground'; // Empty state
         if (fillPercentage > 0.7) {
           iconColor = 'text-red-400'; // High occupancy
         } else if (fillPercentage > 0.4) {
@@ -496,11 +496,11 @@ const SessionsList: React.FC = () => {
         
         return (
           <div>
-            <div className="flex items-center text-sm text-gray-200">
+            <div className="flex items-center text-sm text-foreground">
               <Users className={`h-4 w-4 mr-1 ${iconColor}`} />
               {registered} / {max}
             </div>
-            <div className="text-xs text-gray-500">
+            <div className="text-xs text-muted-foreground">
               {participants.proctors?.length || 0} proctores
             </div>
           </div>
@@ -510,7 +510,7 @@ const SessionsList: React.FC = () => {
     columnHelper.accessor('status', {
       header: () => (
         <div className="flex items-center">
-          <Wifi className="h-4 w-4 mr-2 text-gray-400" />
+          <Wifi className="h-4 w-4 mr-2 text-muted-foreground" />
           Estado
         </div>
       ),
@@ -521,7 +521,7 @@ const SessionsList: React.FC = () => {
       id: 'actions',
       header: () => (
         <div className="flex items-center">
-          <Edit className="h-4 w-4 mr-2 text-gray-400" />
+          <Edit className="h-4 w-4 mr-2 text-muted-foreground" />
           Acciones
         </div>
       ),
@@ -556,7 +556,7 @@ const SessionsList: React.FC = () => {
               !isSessionStartTimeInPast(session) && (
                 <button
                   onClick={() => goEdit(session)}
-                  className="p-2 text-gray-300 hover:text-gray-100 hover:bg-gray-400/10 rounded-md transition-all duration-200 flex items-center justify-center"
+                  className="p-2 text-foreground/80 hover:text-foreground hover:bg-muted/40 rounded-md transition-all duration-200 flex items-center justify-center"
                   title="Editar"
                 >
                   <Edit className="h-4 w-4" />
@@ -655,12 +655,12 @@ const SessionsList: React.FC = () => {
       return (
         <div className="bg-box border border-line rounded-xl p-6">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-semibold text-white">
+            <h2 className="text-lg font-semibold text-foreground">
               {viewMode === 'edit' ? 'Editar Sesión' : 'Nueva Sesión'}
             </h2>
             <button
               onClick={goTable}
-              className="px-3 py-2 bg-dark-light border border-line rounded-lg text-gray-300 hover:bg-dark-light/80 flex items-center gap-2"
+              className="px-3 py-2 bg-dark-light border border-line rounded-lg text-foreground/80 hover:bg-dark-light/80 flex items-center gap-2"
             >
               <XCircle className="w-4 h-4" /> Volver
             </button>
@@ -710,13 +710,13 @@ const SessionsList: React.FC = () => {
     }
     // Tabla (vista por defecto "table")
     const baseInputClass =
-      'bg-box border-line text-white placeholder-gray-400 border-[0.5px] focus:border-blue-500 focus:ring-0 rounded-lg';
+      'bg-box border-line text-foreground placeholder-muted-foreground border-[0.5px] focus:border-blue-500 focus:ring-0 rounded-lg';
 
     if (loading) {
       return (
         <div className="bg-box border border-line rounded-xl p-12 text-center">
           <div className="inline-block animate-spin rounded-full h-10 w-10 border-b-2 border-blue-500"></div>
-          <p className="mt-4 text-gray-400">Cargando sesiones...</p>
+          <p className="mt-4 text-muted-foreground">Cargando sesiones...</p>
         </div>
       );
     }
@@ -741,7 +741,7 @@ const SessionsList: React.FC = () => {
         <div className="bg-box border border-line rounded-xl p-6">
           <div className="flex-1">
             <div className="flex items-center gap-3">
-              <h2 className="text-2xl font-bold text-gray-200">
+              <h2 className="text-2xl font-bold text-foreground">
                 Sesiones de Examen
               </h2>
 
@@ -779,7 +779,7 @@ const SessionsList: React.FC = () => {
                 )}
               </div>
             </div>
-            <p className="text-gray-400 mt-1">
+            <p className="text-muted-foreground mt-1">
               Gestiona y programa sesiones de evaluación
             </p>
           </div>
@@ -788,13 +788,13 @@ const SessionsList: React.FC = () => {
             {/* Búsqueda */}
             <div className="flex-1 max-w-xl">
               <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5" />
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground w-5 h-5" />
                 <Input
                   placeholder="Buscar por nombre de sesión..."
                   value={searchTerm}
                   onChange={e => setSearchTerm(e.target.value)}
                   onKeyDown={e => e.key === 'Enter' && handleSearch()}
-                  className="pl-10 pr-3 w-full bg-gray-800/50 border-gray-600 text-white placeholder-gray-400"
+                  className="pl-10 pr-3 w-full bg-muted/50 border-border text-foreground placeholder-muted-foreground"
                 />
               </div>
             </div>
@@ -803,7 +803,7 @@ const SessionsList: React.FC = () => {
             <div className="flex items-center gap-3"> 
               <Button
                 size={"sm"}
-                className='px-4 py-2.5 bg-dark-light border border-line rounded-lg hover:bg-dark-light/80 text-gray-300 flex items-center gap-2 transition-all'
+                className='px-4 py-2.5 bg-dark-light border border-line rounded-lg hover:bg-dark-light/80 text-foreground/80 flex items-center gap-2 transition-all'
                 onClick={() => setShowFilters(!showFilters)}
               >
                 <Filter className="w-4 h-4" />
@@ -826,12 +826,12 @@ const SessionsList: React.FC = () => {
             <div className="mt-6 pt-6 border-t border-line">
               <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-400 mb-2">
+                  <label className="block text-sm font-medium text-muted-foreground mb-2">
                     Estado
                   </label>
                   <Select
                     value={localFilters.status}
-                    onValueChange={(value) => 
+                    onValueChange={(value) =>
                       setLocalFilters(prev => ({
                         ...prev,
                         status: value,
@@ -841,18 +841,18 @@ const SessionsList: React.FC = () => {
                     <SelectTrigger className={`w-full px-3 py-2 text-sm ${baseInputClass}`}>
                       <SelectValue placeholder="Todos" />
                     </SelectTrigger>
-                    <SelectContent className="bg-gray-900 border border-line">
-                      <SelectItem className="hover:bg-gray-800" value="all">Todos</SelectItem>
-                      <SelectItem className="hover:bg-gray-800" value="scheduled">Programada</SelectItem>
-                      <SelectItem className="hover:bg-gray-800" value="in_progress">En Progreso</SelectItem>
-                      <SelectItem className="hover:bg-gray-800" value="completed">Completada</SelectItem>
-                      <SelectItem className="hover:bg-gray-800" value="cancelled">Cancelada</SelectItem>
-                      <SelectItem className="hover:bg-gray-800" value="expired">Expirada</SelectItem>
+                    <SelectContent className="bg-popover border border-border">
+                      <SelectItem className="hover:bg-muted" value="all">Todos</SelectItem>
+                      <SelectItem className="hover:bg-muted" value="scheduled">Programada</SelectItem>
+                      <SelectItem className="hover:bg-muted" value="in_progress">En Progreso</SelectItem>
+                      <SelectItem className="hover:bg-muted" value="completed">Completada</SelectItem>
+                      <SelectItem className="hover:bg-muted" value="cancelled">Cancelada</SelectItem>
+                      <SelectItem className="hover:bg-muted" value="expired">Expirada</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-400 mb-2">
+                  <label className="block text-sm font-medium text-muted-foreground mb-2">
                     Fecha Inicio
                   </label>
                   <input
@@ -868,7 +868,7 @@ const SessionsList: React.FC = () => {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-400 mb-2">
+                  <label className="block text-sm font-medium text-muted-foreground mb-2">
                     Fecha Fin
                   </label>
                   <input
@@ -884,7 +884,7 @@ const SessionsList: React.FC = () => {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-400 mb-2">
+                  <label className="block text-sm font-medium text-muted-foreground mb-2">
                     Ordenar por
                   </label>
                   <Select
@@ -899,18 +899,18 @@ const SessionsList: React.FC = () => {
                     <SelectTrigger className={`w-full px-3 py-2 text-sm ${baseInputClass}`}>
                       <SelectValue placeholder="Selecciona ordenamiento" />
                     </SelectTrigger>
-                    <SelectContent className="bg-gray-900 border border-line">
-                      <SelectItem className="hover:bg-gray-800" value="startDate">Fecha Inicio</SelectItem>
-                      <SelectItem className="hover:bg-gray-800" value="endDate">Fecha Fin</SelectItem>
-                      <SelectItem className="hover:bg-gray-800" value="sessionName">Nombre</SelectItem>
-                      <SelectItem className="hover:bg-gray-800" value="status">Estado</SelectItem>
-                      <SelectItem className="hover:bg-gray-800" value="createdAt">Fecha Creación</SelectItem>
-                      <SelectItem className="hover:bg-gray-800" value="candidatesCount">Núm. Candidatos</SelectItem>
+                    <SelectContent className="bg-popover border border-border">
+                      <SelectItem className="hover:bg-muted" value="startDate">Fecha Inicio</SelectItem>
+                      <SelectItem className="hover:bg-muted" value="endDate">Fecha Fin</SelectItem>
+                      <SelectItem className="hover:bg-muted" value="sessionName">Nombre</SelectItem>
+                      <SelectItem className="hover:bg-muted" value="status">Estado</SelectItem>
+                      <SelectItem className="hover:bg-muted" value="createdAt">Fecha Creación</SelectItem>
+                      <SelectItem className="hover:bg-muted" value="candidatesCount">Núm. Candidatos</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-400 mb-2">
+                  <label className="block text-sm font-medium text-muted-foreground mb-2">
                     Orden
                   </label>
                   <Select
@@ -925,9 +925,9 @@ const SessionsList: React.FC = () => {
                     <SelectTrigger className={`w-full px-3 py-2 text-sm ${baseInputClass}`}>
                       <SelectValue placeholder="Selecciona orden" />
                     </SelectTrigger>
-                    <SelectContent className="bg-gray-900 border border-line">
-                      <SelectItem className="hover:bg-gray-800" value="desc">Descendente</SelectItem>
-                      <SelectItem className="hover:bg-gray-800" value="asc">Ascendente</SelectItem>
+                    <SelectContent className="bg-popover border border-border">
+                      <SelectItem className="hover:bg-muted" value="desc">Descendente</SelectItem>
+                      <SelectItem className="hover:bg-muted" value="asc">Ascendente</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -940,7 +940,7 @@ const SessionsList: React.FC = () => {
                   </button>
                   <button
                     onClick={handleClearFilters}
-                    className="px-4 py-2 bg-dark-light border border-line rounded-lg hover:bg-dark-light/80 text-gray-300 transition-all"
+                    className="px-4 py-2 bg-dark-light border border-line rounded-lg hover:bg-dark-light/80 text-foreground/80 transition-all"
                   >
                     Limpiar
                   </button>
@@ -965,7 +965,7 @@ const SessionsList: React.FC = () => {
           {/* Paginación */}
           {totalPages > 1 && (
             <div className="px-6 py-4 border-t border-line flex flex-col sm:flex-row items-center justify-between gap-4">
-              <div className="text-sm text-gray-400">
+              <div className="text-sm text-muted-foreground">
                 Mostrando {(currentPage - 1) * 10 + 1} a{' '}
                 {Math.min(currentPage * 10, totalItems)} de {totalItems}{' '}
                 sesiones
@@ -976,7 +976,7 @@ const SessionsList: React.FC = () => {
                   disabled={currentPage === 1}
                   className="p-2 bg-dark-light border border-line rounded-lg hover:bg-dark-light/80 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
                 >
-                  <ChevronLeft className="w-4 h-4 text-gray-400" />
+                  <ChevronLeft className="w-4 h-4 text-muted-foreground" />
                 </button>
 
                 <div className="flex gap-1">
@@ -989,7 +989,7 @@ const SessionsList: React.FC = () => {
                         className={`px-3 py-1 rounded-lg transition-all ${
                           page === currentPage
                             ? 'bg-blue-600 text-white'
-                            : 'bg-dark-light border border-line text-gray-400 hover:bg-dark-light/80'
+                            : 'bg-dark-light border border-line text-muted-foreground hover:bg-dark-light/80'
                         }`}
                       >
                         {page}
@@ -1003,7 +1003,7 @@ const SessionsList: React.FC = () => {
                   disabled={currentPage === totalPages}
                   className="p-2 bg-dark-light border border-line rounded-lg hover:bg-dark-light/80 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
                 >
-                  <ChevronRight className="w-4 h-4 text-gray-400" />
+                  <ChevronRight className="w-4 h-4 text-muted-foreground" />
                 </button>
               </div>
             </div>

@@ -282,10 +282,10 @@ const ExamRunnerHTTP: React.FC = () => {
               <CardContent className="p-8">
                 <div className="text-center">
                   <CheckCircle className="h-12 w-12 text-green-500 mx-auto mb-4" />
-                  <h3 className="text-lg font-semibold text-white mb-2">
+                  <h3 className="text-lg font-semibold text-foreground mb-2">
                     ¡Examen Completado!
                   </h3>
-                  <p className="text-gray-400">
+                  <p className="text-muted-foreground">
                     {isWaitingForResult
                       ? 'Procesando resultados, espera un momento...'
                       : 'Tu examen ha sido finalizado exitosamente. Redirigiendo...'}
@@ -312,10 +312,10 @@ const ExamRunnerHTTP: React.FC = () => {
               <CardContent className="p-8">
                 <div className="text-center">
                   <Loader2 className="h-12 w-12 animate-spin text-blue-500 mx-auto mb-4" />
-                  <h3 className="text-lg font-semibold text-white mb-2">
+                  <h3 className="text-lg font-semibold text-foreground mb-2">
                     Iniciando Examen
                   </h3>
-                  <p className="text-gray-400">
+                  <p className="text-muted-foreground">
                     Preparando tu examen, por favor espera...
                   </p>
                 </div>
@@ -362,10 +362,10 @@ const ExamRunnerHTTP: React.FC = () => {
             <Card className="w-full max-w-md bg-box backdrop-blur-sm border border-line">
               <CardContent className="p-8 text-center">
                 <AlertTriangle className="h-12 w-12 text-yellow-500 mx-auto mb-4" />
-                <h3 className="text-lg font-semibold text-white mb-2">
+                <h3 className="text-lg font-semibold text-foreground mb-2">
                   Examen No Activo
                 </h3>
-                <p className="text-gray-400 mb-4">
+                <p className="text-muted-foreground mb-4">
                   No hay un examen activo para esta sesión.
                 </p>
                 <Button
@@ -388,31 +388,31 @@ const ExamRunnerHTTP: React.FC = () => {
       {/* ── Finish Exam confirmation modal ─────────────────────────────────── */}
       {showFinishConfirm && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-          <div className="bg-gray-900 border border-gray-700 rounded-2xl shadow-2xl w-full max-w-sm p-6 space-y-4">
+          <div className="bg-card border border-border rounded-2xl shadow-2xl w-full max-w-sm p-6 space-y-4">
             <div className="flex items-start justify-between">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-full bg-emerald-900/40 border border-emerald-700/50 flex items-center justify-center">
                   <Flag className="h-5 w-5 text-emerald-400" />
                 </div>
                 <div>
-                  <h3 className="text-base font-semibold text-white">Finalizar examen</h3>
-                  <p className="text-xs text-gray-400">Esta acción no se puede deshacer</p>
+                  <h3 className="text-base font-semibold text-foreground">Finalizar examen</h3>
+                  <p className="text-xs text-muted-foreground">Esta acción no se puede deshacer</p>
                 </div>
               </div>
               <button
                 onClick={() => setShowFinishConfirm(false)}
-                className="text-gray-500 hover:text-gray-300 transition-colors p-1 rounded-lg hover:bg-gray-800"
+                className="text-muted-foreground hover:text-foreground/80 transition-colors p-1 rounded-lg hover:bg-muted"
               >
                 <X className="h-4 w-4" />
               </button>
             </div>
 
-            <div className="bg-gray-800/60 rounded-xl p-4 space-y-2">
+            <div className="bg-muted/50 rounded-xl p-4 space-y-2">
               <div className="flex items-center justify-between text-sm">
-                <span className="text-gray-400">Preguntas respondidas</span>
-                <span className="font-medium text-white">{answeredCount} / {totalQuestions}</span>
+                <span className="text-muted-foreground">Preguntas respondidas</span>
+                <span className="font-medium text-foreground">{answeredCount} / {totalQuestions}</span>
               </div>
-              <div className="h-1.5 w-full bg-gray-700 rounded-full overflow-hidden">
+              <div className="h-1.5 w-full bg-muted rounded-full overflow-hidden">
                 <div
                   className="h-full bg-emerald-500 rounded-full transition-all"
                   style={{ width: `${Math.round(overallProgress * 100)}%` }}
@@ -428,7 +428,7 @@ const ExamRunnerHTTP: React.FC = () => {
             <div className="flex gap-3 pt-1">
               <button
                 onClick={() => setShowFinishConfirm(false)}
-                className="flex-1 px-4 py-2.5 rounded-xl border border-gray-600 text-gray-300 hover:bg-gray-800 text-sm font-medium transition-colors"
+                className="flex-1 px-4 py-2.5 rounded-xl border border-border text-foreground/80 hover:bg-muted text-sm font-medium transition-colors"
               >
                 Seguir respondiendo
               </button>
@@ -475,7 +475,7 @@ const ExamRunnerHTTP: React.FC = () => {
                         ? 'border-red-700/60 bg-red-900/20 text-red-300'
                         : timeRemaining && timeRemaining < 600
                         ? 'border-amber-700/60 bg-amber-900/20 text-amber-300'
-                        : 'border-line bg-gray-800/60 text-white'
+                        : 'border-line bg-muted/50 text-foreground'
                     }`}>
                       <Timer className="h-4 w-4 opacity-70" />
                       {timeRemaining ? formatTime(timeRemaining) : '--:--'}
@@ -504,9 +504,9 @@ const ExamRunnerHTTP: React.FC = () => {
 
                   {/* Right: progress count + save button */}
                   <div className="flex items-center gap-3">
-                    <span className="text-gray-400 text-sm tabular-nums">
-                      <span className="text-white font-medium">{answeredCount}</span>
-                      <span className="text-gray-600"> / </span>
+                    <span className="text-muted-foreground text-sm tabular-nums">
+                      <span className="text-foreground font-medium">{answeredCount}</span>
+                      <span className="text-muted-foreground"> / </span>
                       {totalQuestions}
                     </span>
                     <Button
@@ -514,7 +514,7 @@ const ExamRunnerHTTP: React.FC = () => {
                       variant="outline"
                       size="sm"
                       disabled={autoSaveStatus === 'saving'}
-                      className='text-gray-300 bg-transparent border-line hover:bg-gray-800 hover:text-white disabled:opacity-40 disabled:cursor-not-allowed gap-1.5'
+                      className='text-foreground/80 bg-transparent border-line hover:bg-muted hover:text-foreground disabled:opacity-40 disabled:cursor-not-allowed gap-1.5'
                     >
                       <Save className="h-3.5 w-3.5" />
                       Guardar
@@ -527,10 +527,10 @@ const ExamRunnerHTTP: React.FC = () => {
                   {/* Overall progress */}
                   <div>
                     <div className="flex items-center justify-between mb-1.5">
-                      <span className="text-xs text-gray-500">
+                      <span className="text-xs text-muted-foreground">
                         Pregunta {currentQuestionIndex + 1} de {totalQuestions}
                       </span>
-                      <span className="text-xs text-gray-500">
+                      <span className="text-xs text-muted-foreground">
                         {Math.round(overallProgress * 100)}% completado
                       </span>
                     </div>
@@ -577,22 +577,22 @@ const ExamRunnerHTTP: React.FC = () => {
                   />
                 ) : (
                   <div className="text-center py-8">
-                    <AlertCircle className="h-8 w-8 text-gray-500 mx-auto mb-2" />
-                    <p className="text-gray-400">No hay pregunta disponible</p>
+                    <AlertCircle className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
+                    <p className="text-muted-foreground">No hay pregunta disponible</p>
                   </div>
                 )}
               </CardContent>
             </Card>
 
             {/* Navigation controls */}
-            <Card className="bg-box backdrop-blur-sm border border-line text-white">
+            <Card className="bg-box backdrop-blur-sm border border-line text-foreground">
               <CardContent className="p-4">
                 <div className="flex items-center justify-between gap-3">
                   <Button
                     onClick={goToPreviousQuestion}
                     disabled={isFirstQuestionOverall}
                     variant="outline"
-                    className='text-gray-300 border-line bg-transparent hover:bg-gray-800 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed'
+                    className='text-foreground/80 border-line bg-transparent hover:bg-muted hover:text-foreground disabled:opacity-30 disabled:cursor-not-allowed'
                   >
                     <ChevronLeft className="h-4 w-4 mr-1" />
                     Anterior
@@ -600,7 +600,7 @@ const ExamRunnerHTTP: React.FC = () => {
 
                   <div className="flex items-center gap-2">
                     {currentSection && (
-                      <span className="text-xs text-gray-500 hidden sm:block">
+                      <span className="text-xs text-muted-foreground hidden sm:block">
                         {currentSection.name} · {currentQuestionIndex + 1}/{totalQuestions}
                       </span>
                     )}

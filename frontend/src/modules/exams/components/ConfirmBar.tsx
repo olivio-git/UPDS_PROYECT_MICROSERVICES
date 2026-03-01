@@ -25,17 +25,17 @@ const ConfirmBar: React.FC<Props> = ({
   return (
     <div className={`fixed bottom-4 left-1/2 -translate-x-1/2 z-50 w-[95%] md:w-[720px] ${toneClasses} border rounded-xl shadow-lg`}>
       <div className="px-4 py-3 flex items-center justify-between gap-3">
-        <p className="text-sm text-gray-200">{message}</p>
+        <p className="text-sm text-foreground/80">{message}</p>
         <div className="flex items-center gap-2">
           <button
             onClick={onCancel}
-            className="px-3 py-1.5 bg-transparent border border-line rounded-lg text-gray-300 hover:bg-black/20"
+            className="px-3 py-1.5 bg-transparent border border-line rounded-lg text-muted-foreground hover:bg-black/20"
           >
             {cancelLabel}
           </button>
           <button
             onClick={onConfirm}
-            className={`px-3 py-1.5 rounded-lg text-white ${tone === "danger" ? "bg-red-600 hover:bg-red-700" : "bg-blue-600 hover:bg-blue-700"}`}
+            className={`px-3 py-1.5 rounded-lg text-foreground ${tone === "danger" ? "bg-red-600 hover:bg-red-700" : "bg-blue-600 hover:bg-blue-700"}`}
           >
             {confirmLabel}
           </button>

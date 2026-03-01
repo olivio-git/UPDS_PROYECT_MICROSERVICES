@@ -375,14 +375,14 @@ const QuestionDetailView: React.FC<QuestionDetailViewProps> = ({
           <Button
             variant="outline"
             onClick={onBack}
-            className="px-3 py-2 bg-dark-light border border-line rounded-lg text-gray-300 hover:bg-dark-light/80 flex items-center gap-2"
+            className="px-3 py-2 bg-dark-light border border-line rounded-lg text-muted-foreground hover:bg-dark-light/80 flex items-center gap-2"
           >
             <ArrowLeft className="w-4 h-4" />
             Volver
           </Button>
           <div>
-            <h2 className="text-xl font-semibold text-white">Detalles de la Pregunta</h2>
-            <p className="text-sm text-gray-400">ID: {question._id}</p>
+            <h2 className="text-xl font-semibold text-foreground">Detalles de la Pregunta</h2>
+            <p className="text-sm text-muted-foreground">ID: {question._id}</p>
           </div>
         </div>
         <Button
@@ -401,7 +401,7 @@ const QuestionDetailView: React.FC<QuestionDetailViewProps> = ({
           className={`px-4 py-2 rounded-md text-sm font-medium transition-colors flex items-center gap-2 ${
             activeTab === 'teacher'
               ? 'bg-blue-600 text-white'
-              : 'text-gray-400 hover:text-white'
+              : 'text-muted-foreground hover:text-foreground'
           }`}
         >
           <BookOpen className="w-4 h-4" />
@@ -412,7 +412,7 @@ const QuestionDetailView: React.FC<QuestionDetailViewProps> = ({
           className={`px-4 py-2 rounded-md text-sm font-medium transition-colors flex items-center gap-2 ${
             activeTab === 'student'
               ? 'bg-purple-600 text-white'
-              : 'text-gray-400 hover:text-white'
+              : 'text-muted-foreground hover:text-foreground'
           }`}
         >
           <Eye className="w-4 h-4" />
@@ -429,28 +429,28 @@ const QuestionDetailView: React.FC<QuestionDetailViewProps> = ({
               <div className="bg-dark-light border border-line rounded-lg p-3">
                 <div className="flex items-center gap-2 mb-1">
                   <BookOpen className="w-4 h-4 text-blue-400" />
-                  <span className="text-xs text-gray-400">Tipo</span>
+                  <span className="text-xs text-muted-foreground">Tipo</span>
                 </div>
-                <div className="text-sm text-white font-medium">{getQuestionTypeLabel(question.type)}</div>
+                <div className="text-sm text-foreground font-medium">{getQuestionTypeLabel(question.type)}</div>
               </div>
 
               <div className="bg-dark-light border border-line rounded-lg p-3">
                 <div className="flex items-center gap-2 mb-1">
                   <Target className="w-4 h-4 text-green-400" />
-                  <span className="text-xs text-gray-400">Competencia</span>
+                  <span className="text-xs text-muted-foreground">Competencia</span>
                 </div>
-                <div className="text-sm text-white font-medium capitalize">{question.competency}</div>
+                <div className="text-sm text-foreground font-medium capitalize">{question.competency}</div>
               </div>
 
               <div className="bg-dark-light border border-line rounded-lg p-3">
-                <div className="text-xs text-gray-400 mb-1">Nivel</div>
+                <div className="text-xs text-muted-foreground mb-1">Nivel</div>
                 <span className="px-2 py-1 text-xs font-medium bg-blue-900/20 text-blue-400 border border-blue-800/30 rounded">
                   {question.level}
                 </span>
               </div>
 
               <div className="bg-dark-light border border-line rounded-lg p-3">
-                <div className="text-xs text-gray-400 mb-1">Dificultad</div>
+                <div className="text-xs text-muted-foreground mb-1">Dificultad</div>
                 <span className={`px-2 py-1 text-xs font-medium border rounded ${getDifficultyColor(question.difficulty)}`}>
                   {getDifficultyLabel(question.difficulty)}
                 </span>
@@ -459,24 +459,24 @@ const QuestionDetailView: React.FC<QuestionDetailViewProps> = ({
 
             {(question.metadata?.topic || question.metadata?.estimatedTime || question.points) && (
               <div className="bg-dark-light border border-line rounded-lg p-4">
-                <h3 className="text-sm font-semibold text-white mb-3">Información Adicional</h3>
+                <h3 className="text-sm font-semibold text-foreground mb-3">Información Adicional</h3>
                 <div className="space-y-2">
                   {question.metadata?.topic && (
                     <div className="flex items-center justify-between">
-                      <span className="text-xs text-gray-400">Tema:</span>
-                      <span className="text-sm text-white">{question.metadata.topic}</span>
+                      <span className="text-xs text-muted-foreground">Tema:</span>
+                      <span className="text-sm text-foreground">{question.metadata.topic}</span>
                     </div>
                   )}
                   {question.metadata?.subtopic && (
                     <div className="flex items-center justify-between">
-                      <span className="text-xs text-gray-400">Subtema:</span>
-                      <span className="text-sm text-white">{question.metadata.subtopic}</span>
+                      <span className="text-xs text-muted-foreground">Subtema:</span>
+                      <span className="text-sm text-foreground">{question.metadata.subtopic}</span>
                     </div>
                   )}
                   {question.metadata?.estimatedTime && (
                     <div className="flex items-center justify-between">
-                      <span className="text-xs text-gray-400">Tiempo:</span>
-                      <div className="flex items-center gap-1 text-sm text-white">
+                      <span className="text-xs text-muted-foreground">Tiempo:</span>
+                      <div className="flex items-center gap-1 text-sm text-foreground">
                         <Clock className="w-3 h-3" />
                         {question.metadata.estimatedTime} min
                       </div>
@@ -484,8 +484,8 @@ const QuestionDetailView: React.FC<QuestionDetailViewProps> = ({
                   )}
                   {question.points && (
                     <div className="flex items-center justify-between">
-                      <span className="text-xs text-gray-400">Puntos:</span>
-                      <span className="text-sm text-white">{question.points}</span>
+                      <span className="text-xs text-muted-foreground">Puntos:</span>
+                      <span className="text-sm text-foreground">{question.points}</span>
                     </div>
                   )}
                 </div>
@@ -494,12 +494,12 @@ const QuestionDetailView: React.FC<QuestionDetailViewProps> = ({
 
             {question.metadata?.tags && question.metadata.tags.length > 0 && (
               <div className="bg-dark-light border border-line rounded-lg p-4">
-                <h3 className="text-sm font-semibold text-white mb-3">Etiquetas</h3>
+                <h3 className="text-sm font-semibold text-foreground mb-3">Etiquetas</h3>
                 <div className="flex flex-wrap gap-2">
                   {question.metadata.tags.map((tag, index) => (
                     <span
                       key={index}
-                      className="px-2 py-1 bg-gray-700 text-gray-300 rounded text-xs flex items-center gap-1"
+                      className="px-2 py-1 bg-muted text-muted-foreground rounded text-xs flex items-center gap-1"
                     >
                       <Hash className="w-3 h-3" />
                       {tag}
@@ -510,11 +510,11 @@ const QuestionDetailView: React.FC<QuestionDetailViewProps> = ({
             )}
 
             <div className="bg-dark-light border border-line rounded-lg p-4">
-              <h3 className="text-sm font-semibold text-white mb-3">Estado</h3>
+              <h3 className="text-sm font-semibold text-foreground mb-3">Estado</h3>
               <span className={`px-3 py-1 text-xs font-medium border rounded-lg ${
                 question.isActive
                   ? 'bg-green-900/20 text-green-400 border-green-800/30'
-                  : 'bg-gray-900/20 text-gray-400 border-gray-800/30'
+                  : 'bg-muted text-muted-foreground border-border'
               }`}>
                 {question.isActive ? 'Activa' : 'Inactiva'}
               </span>
@@ -524,16 +524,16 @@ const QuestionDetailView: React.FC<QuestionDetailViewProps> = ({
           {/* Columna 2: Contenido (clave de respuestas visible) */}
           <div className="lg:col-span-2 space-y-4">
             <div className="bg-dark-light border border-line rounded-lg p-4">
-              <h3 className="text-sm font-semibold text-white mb-3">Pregunta</h3>
-              <div className="text-gray-200 text-sm leading-relaxed">
+              <h3 className="text-sm font-semibold text-foreground mb-3">Pregunta</h3>
+              <div className="text-foreground/80 text-sm leading-relaxed">
                 {question.content.question}
               </div>
             </div>
 
             {question.content.instructions && (
               <div className="bg-dark-light border border-line rounded-lg p-4">
-                <h3 className="text-sm font-semibold text-white mb-3">Instrucciones</h3>
-                <div className="text-gray-200 text-sm leading-relaxed">
+                <h3 className="text-sm font-semibold text-foreground mb-3">Instrucciones</h3>
+                <div className="text-foreground/80 text-sm leading-relaxed">
                   {question.content.instructions}
                 </div>
               </div>
@@ -541,7 +541,7 @@ const QuestionDetailView: React.FC<QuestionDetailViewProps> = ({
 
             {question.content.mediaUrl && question.content.mediaType === 'audio' && (
               <div className="bg-dark-light border border-green-700/30 rounded-lg p-4">
-                <h3 className="text-sm font-semibold text-white mb-3 flex items-center gap-2">
+                <h3 className="text-sm font-semibold text-foreground mb-3 flex items-center gap-2">
                   <Volume2 className="w-4 h-4 text-green-400" />
                   {question.competency === 'listening' ? 'Audio de Comprensión Auditiva' : 'Audio Principal'}
                 </h3>
@@ -563,10 +563,10 @@ const QuestionDetailView: React.FC<QuestionDetailViewProps> = ({
 
             {question.content.context && (
               <div className="bg-dark-light border border-line rounded-lg p-4">
-                <h3 className="text-sm font-semibold text-white mb-3">
+                <h3 className="text-sm font-semibold text-foreground mb-3">
                   {question.competency === 'listening' ? 'Transcripción del audio' : 'Contexto'}
                 </h3>
-                <div className="text-gray-200 text-sm leading-relaxed">
+                <div className="text-foreground/80 text-sm leading-relaxed">
                   {question.content.context}
                 </div>
               </div>
@@ -574,7 +574,7 @@ const QuestionDetailView: React.FC<QuestionDetailViewProps> = ({
 
             {question.content.mediaUrl && question.content.mediaType !== 'audio' && (
               <div className="bg-dark-light border border-line rounded-lg p-4">
-                <h3 className="text-sm font-semibold text-white mb-3 flex items-center gap-2">
+                <h3 className="text-sm font-semibold text-foreground mb-3 flex items-center gap-2">
                   {question.content.mediaType === 'image' && <ImageIcon className="w-4 h-4" />}
                   Multimedia Principal
                 </h3>
@@ -589,11 +589,11 @@ const QuestionDetailView: React.FC<QuestionDetailViewProps> = ({
                       <img
                         src={question.content.mediaUrl}
                         alt="Imagen de la pregunta"
-                        className="max-w-full h-auto rounded-lg border border-gray-600 cursor-pointer"
+                        className="max-w-full h-auto rounded-lg border border-border cursor-pointer"
                         onClick={() => window.open(question.content.mediaUrl, '_blank')}
                       />
                     )}
-                    <div className="text-xs text-gray-400">
+                    <div className="text-xs text-muted-foreground">
                       {question.content.mediaUrl.split('/').pop()}
                     </div>
                   </div>
@@ -604,7 +604,7 @@ const QuestionDetailView: React.FC<QuestionDetailViewProps> = ({
             {/* Opciones (con clave de respuesta) */}
             {question.content.options && question.content.options.length > 0 && (
               <div className="bg-dark-light border border-line rounded-lg p-4">
-                <h3 className="text-sm font-semibold text-white mb-3">Opciones de Respuesta <span className="text-xs text-green-400 font-normal">(clave visible)</span></h3>
+                <h3 className="text-sm font-semibold text-foreground mb-3">Opciones de Respuesta <span className="text-xs text-green-400 font-normal">(clave visible)</span></h3>
                 <div className="space-y-2">
                   {question.content.options.map((option, index) => (
                     <div
@@ -612,13 +612,13 @@ const QuestionDetailView: React.FC<QuestionDetailViewProps> = ({
                       className={`flex items-center gap-3 p-3 rounded-lg border ${
                         option.isCorrect
                           ? 'bg-green-900/20 border-green-800/30 text-green-300'
-                          : 'bg-gray-800/50 border-gray-600 text-gray-200'
+                          : 'bg-muted/50 border-border text-foreground/80'
                       }`}
                     >
                       <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center text-xs font-bold ${
                         option.isCorrect
                           ? 'border-green-400 bg-green-400/20 text-green-400'
-                          : 'border-gray-500 text-gray-500'
+                          : 'border-muted-foreground text-muted-foreground'
                       }`}>
                         {String.fromCharCode(65 + index)}
                       </div>
@@ -637,7 +637,7 @@ const QuestionDetailView: React.FC<QuestionDetailViewProps> = ({
             {/* Items: matching (two-column), ordering, drag_drop */}
             {question.content.items && question.content.items.length > 0 && (
               <div className="bg-dark-light border border-line rounded-lg p-4">
-                <h3 className="text-sm font-semibold text-white mb-3 flex items-center gap-2">
+                <h3 className="text-sm font-semibold text-foreground mb-3 flex items-center gap-2">
                   {question.type === 'matching' && 'Pares a Emparejar'}
                   {question.type === 'ordering' && 'Elementos en Orden Correcto'}
                   {question.type === 'drag_drop' && 'Elementos con Posición Correcta'}
@@ -649,8 +649,8 @@ const QuestionDetailView: React.FC<QuestionDetailViewProps> = ({
                 {question.type === 'matching' && (
                   <div className="space-y-2">
                     <div className="grid grid-cols-2 gap-2 mb-2">
-                      <div className="text-xs text-gray-400 font-medium px-1">Concepto</div>
-                      <div className="text-xs text-gray-400 font-medium px-1">Pareja correcta</div>
+                      <div className="text-xs text-muted-foreground font-medium px-1">Concepto</div>
+                      <div className="text-xs text-muted-foreground font-medium px-1">Pareja correcta</div>
                     </div>
                     {question.content.items.map((item, idx) => (
                       <div key={item.id ?? String(idx)} className="grid grid-cols-2 gap-2">
@@ -661,7 +661,7 @@ const QuestionDetailView: React.FC<QuestionDetailViewProps> = ({
                           <span className="text-sm text-blue-200 font-medium">{item.content}</span>
                         </div>
                         <div className="flex items-center gap-2 p-3 bg-emerald-900/20 border border-emerald-700/40 rounded-lg">
-                          <span className="text-sm text-emerald-200 font-medium">{item.matchingPair || <span className="text-gray-500 italic">Sin pareja</span>}</span>
+                          <span className="text-sm text-emerald-200 font-medium">{item.matchingPair || <span className="text-muted-foreground italic">Sin pareja</span>}</span>
                         </div>
                       </div>
                     ))}
@@ -674,14 +674,14 @@ const QuestionDetailView: React.FC<QuestionDetailViewProps> = ({
                     {[...question.content.items]
                       .sort((a: any, b: any) => (a.correctPosition ?? 0) - (b.correctPosition ?? 0))
                       .map((item: any, idx) => (
-                        <div key={item.id ?? String(idx)} className="flex items-center gap-3 p-3 bg-gray-800/50 border border-gray-700 rounded-lg">
+                        <div key={item.id ?? String(idx)} className="flex items-center gap-3 p-3 bg-muted/50 border border-border rounded-lg">
                           <div className="w-7 h-7 rounded-full bg-blue-600/80 text-white text-xs font-bold flex items-center justify-center flex-shrink-0">
                             {item.correctPosition ?? idx + 1}
                           </div>
                           {item.mediaUrl && (
                             <ItemMediaPreview url={item.mediaUrl} explicitType={detectMediaType(item.mediaUrl)} />
                           )}
-                          <span className="text-sm text-gray-200">{item.content}</span>
+                          <span className="text-sm text-foreground/80">{item.content}</span>
                         </div>
                       ))}
                   </div>
@@ -691,9 +691,9 @@ const QuestionDetailView: React.FC<QuestionDetailViewProps> = ({
                 {!['matching', 'ordering', 'drag_drop'].includes(question.type) && (
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                     {question.content.items.map((item, idx) => (
-                      <div key={item.id ?? String(idx)} className="flex items-start gap-3 p-3 bg-gray-800/50 border border-gray-700 rounded-lg">
+                      <div key={item.id ?? String(idx)} className="flex items-start gap-3 p-3 bg-muted/50 border border-border rounded-lg">
                         <div className="flex-1">
-                          <div className="text-sm text-gray-200 font-medium">{item.content}</div>
+                          <div className="text-sm text-foreground/80 font-medium">{item.content}</div>
                         </div>
                         {item.mediaUrl && (
                           <div className="w-20 h-12 flex-shrink-0">
@@ -710,14 +710,14 @@ const QuestionDetailView: React.FC<QuestionDetailViewProps> = ({
             {/* fill_blanks answer key */}
             {question.content.blanks && question.content.blanks.length > 0 && (
               <div className="bg-dark-light border border-line rounded-lg p-4">
-                <h3 className="text-sm font-semibold text-white mb-3">Clave de Espacios <span className="text-xs text-green-400 font-normal">(clave visible)</span></h3>
-                <div className="font-mono text-sm text-gray-200 mb-3 bg-gray-900/40 p-3 rounded-lg">
+                <h3 className="text-sm font-semibold text-foreground mb-3">Clave de Espacios <span className="text-xs text-green-400 font-normal">(clave visible)</span></h3>
+                <div className="font-mono text-sm text-foreground/80 mb-3 bg-muted/50 p-3 rounded-lg">
                   {question.content.template}
                 </div>
                 <div className="space-y-2">
                   {question.content.blanks.map((blank: any, idx: number) => (
                     <div key={idx} className="flex items-center gap-3 text-sm">
-                      <span className="text-gray-400">Espacio {blank.position}:</span>
+                      <span className="text-muted-foreground">Espacio {blank.position}:</span>
                       <div className="flex flex-wrap gap-1">
                         {blank.correctAnswers?.map((ans: string, i: number) => (
                           <span key={i} className="px-2 py-0.5 bg-green-900/30 text-green-300 border border-green-700/40 rounded text-xs">
@@ -734,13 +734,13 @@ const QuestionDetailView: React.FC<QuestionDetailViewProps> = ({
             {/* essay/open_text sample answer */}
             {question.content.sampleAnswer && (
               <div className="bg-dark-light border border-line rounded-lg p-4">
-                <h3 className="text-sm font-semibold text-white mb-3">Respuesta de Referencia</h3>
-                <div className="text-gray-200 text-sm leading-relaxed bg-gray-900/40 p-3 rounded-lg">
+                <h3 className="text-sm font-semibold text-foreground mb-3">Respuesta de Referencia</h3>
+                <div className="text-foreground/80 text-sm leading-relaxed bg-muted/50 p-3 rounded-lg">
                   {question.content.sampleAnswer}
                 </div>
                 {question.content.keywords && question.content.keywords.length > 0 && (
                   <div className="mt-3">
-                    <div className="text-xs text-gray-400 mb-2">Palabras clave esperadas:</div>
+                    <div className="text-xs text-muted-foreground mb-2">Palabras clave esperadas:</div>
                     <div className="flex flex-wrap gap-1">
                       {question.content.keywords.map((kw: string, i: number) => (
                         <span key={i} className="px-2 py-0.5 bg-yellow-900/30 text-yellow-300 border border-yellow-700/40 rounded text-xs">{kw}</span>
@@ -754,22 +754,22 @@ const QuestionDetailView: React.FC<QuestionDetailViewProps> = ({
             {/* Estadísticas */}
             {question.statistics && (
               <div className="bg-dark-light border border-line rounded-lg p-4">
-                <h3 className="text-sm font-semibold text-white mb-3 flex items-center gap-2">
+                <h3 className="text-sm font-semibold text-foreground mb-3 flex items-center gap-2">
                   <Users className="w-4 h-4" />
                   Estadísticas de Uso
                 </h3>
                 <div className="grid grid-cols-3 gap-4">
                   <div className="text-center">
                     <div className="text-lg font-bold text-blue-400">{question.statistics.timesUsed || 0}</div>
-                    <div className="text-xs text-gray-400">Usos</div>
+                    <div className="text-xs text-muted-foreground">Usos</div>
                   </div>
                   <div className="text-center">
                     <div className="text-lg font-bold text-green-400">{question.statistics.averageScore || 0}%</div>
-                    <div className="text-xs text-gray-400">Promedio</div>
+                    <div className="text-xs text-muted-foreground">Promedio</div>
                   </div>
                   <div className="text-center">
                     <div className="text-lg font-bold text-yellow-400">{question.statistics.averageTime || 0}s</div>
-                    <div className="text-xs text-gray-400">Tiempo</div>
+                    <div className="text-xs text-muted-foreground">Tiempo</div>
                   </div>
                 </div>
               </div>
@@ -826,7 +826,7 @@ const QuestionDetailView: React.FC<QuestionDetailViewProps> = ({
                     : isAiType
                       ? 'bg-purple-600 hover:bg-purple-700 text-white'
                       : 'bg-blue-600 hover:bg-blue-700 text-white'
-                  : 'bg-gray-700 text-gray-500 cursor-not-allowed'
+                  : 'bg-muted text-muted-foreground cursor-not-allowed'
               }`}
             >
               {isEvaluating
@@ -840,7 +840,7 @@ const QuestionDetailView: React.FC<QuestionDetailViewProps> = ({
             </button>
             <button
               onClick={() => { setStudentAnswer(null); setShowResult(false); setAiResult(null); }}
-              className="px-4 py-2 rounded-lg text-sm text-gray-400 hover:text-white border border-gray-600 hover:border-gray-400 transition-colors flex items-center gap-2"
+              className="px-4 py-2 rounded-lg text-sm text-muted-foreground hover:text-foreground border border-border hover:border-foreground/50 transition-colors flex items-center gap-2"
             >
               <XCircle className="w-4 h-4" />
               Limpiar
@@ -862,7 +862,7 @@ const QuestionDetailView: React.FC<QuestionDetailViewProps> = ({
                 <div className={`font-medium text-sm ${result.correct ? 'text-green-300' : 'text-red-300'}`}>
                   {result.correct ? 'Respuesta Correcta' : 'Respuesta Incorrecta'}
                 </div>
-                <div className="text-sm text-gray-300 mt-1">{result.explanation}</div>
+                <div className="text-sm text-foreground/80 mt-1">{result.explanation}</div>
               </div>
             </div>
           )}
@@ -877,15 +877,15 @@ const QuestionDetailView: React.FC<QuestionDetailViewProps> = ({
                     <Brain className="w-5 h-5 text-purple-400" />
                     <span className="font-medium text-sm text-purple-300">Evaluación IA</span>
                   </div>
-                  <span className="text-lg font-bold text-white">
+                  <span className="text-lg font-bold text-foreground">
                     {aiResult.score} / {aiResult.maxScore}
-                    <span className="text-sm font-normal text-gray-400 ml-1">
+                    <span className="text-sm font-normal text-muted-foreground ml-1">
                       ({Math.round((aiResult.score / aiResult.maxScore) * 100)}%)
                     </span>
                   </span>
                 </div>
                 {/* Progress bar */}
-                <div className="w-full bg-gray-700 rounded-full h-2 mb-3">
+                <div className="w-full bg-muted rounded-full h-2 mb-3">
                   <div
                     className={`h-2 rounded-full transition-all ${
                       aiResult.score / aiResult.maxScore >= 0.7
@@ -897,18 +897,18 @@ const QuestionDetailView: React.FC<QuestionDetailViewProps> = ({
                     style={{ width: `${Math.round((aiResult.score / aiResult.maxScore) * 100)}%` }}
                   />
                 </div>
-                <p className="text-sm text-gray-200 leading-relaxed">{aiResult.feedback}</p>
+                <p className="text-sm text-foreground/80 leading-relaxed">{aiResult.feedback}</p>
               </div>
 
               {/* Criteria breakdown */}
               {aiResult.criteria && Object.keys(aiResult.criteria).length > 0 && (
-                <div className="p-3 rounded-lg border bg-gray-800/50 border-gray-700">
-                  <div className="text-xs font-medium text-gray-400 mb-2">Criterios de evaluación</div>
+                <div className="p-3 rounded-lg border bg-muted/50 border-border">
+                  <div className="text-xs font-medium text-muted-foreground mb-2">Criterios de evaluación</div>
                   <div className="grid grid-cols-2 gap-2">
                     {Object.entries(aiResult.criteria).map(([key, val]) => (
                       <div key={key} className="flex items-center justify-between text-xs">
-                        <span className="text-gray-300 capitalize">{key.replace(/_/g, ' ')}</span>
-                        <span className="text-white font-medium">{val}</span>
+                        <span className="text-foreground/80 capitalize">{key.replace(/_/g, ' ')}</span>
+                        <span className="text-foreground font-medium">{val}</span>
                       </div>
                     ))}
                   </div>
@@ -924,7 +924,7 @@ const QuestionDetailView: React.FC<QuestionDetailViewProps> = ({
                   </div>
                   <ul className="space-y-1">
                     {aiResult.suggestions.map((s, i) => (
-                      <li key={i} className="text-xs text-gray-300 flex gap-2">
+                      <li key={i} className="text-xs text-foreground/80 flex gap-2">
                         <span className="text-yellow-500 flex-shrink-0">•</span>
                         {s}
                       </li>
