@@ -202,10 +202,10 @@ const QuestionsScreen = () => {
   };
 
   const getDifficultyColor = (d: number) => {
-    if (d <= 2) return 'text-green-400 bg-green-900/20 border-green-800/30';
-    if (d <= 3) return 'text-yellow-400 bg-yellow-900/20 border-yellow-800/30';
-    if (d <= 4) return 'text-orange-400 bg-orange-900/20 border-orange-800/30';
-    return 'text-red-400 bg-red-900/20 border-red-800/30';
+    if (d <= 2) return 'bg-green-100 text-green-700 border-green-200 dark:bg-green-500/20 dark:text-green-300 dark:border-green-500/30';
+    if (d <= 3) return 'bg-yellow-100 text-yellow-700 border-yellow-200 dark:bg-yellow-500/20 dark:text-yellow-300 dark:border-yellow-500/30';
+    if (d <= 4) return 'bg-orange-100 text-orange-700 border-orange-200 dark:bg-orange-500/20 dark:text-orange-300 dark:border-orange-500/30';
+    return 'bg-red-100 text-red-700 border-red-200 dark:bg-red-500/20 dark:text-red-300 dark:border-red-500/30';
   };
   const getDifficultyLabel = (d: number) =>
     ['', 'Muy Fácil', 'Fácil', 'Medio', 'Difícil', 'Muy Difícil'][d] || '';
@@ -288,7 +288,7 @@ const QuestionsScreen = () => {
         size: 120,
         accessorKey: 'level',
         cell: ({ getValue }) => (
-          <span className="px-2.5 py-1 text-xs font-medium bg-blue-900/20 text-blue-400 border border-blue-800/30 rounded-lg">
+          <span className="px-2.5 py-1 text-xs font-medium bg-blue-100 text-blue-700 border border-blue-200 dark:bg-blue-500/20 dark:text-blue-300 dark:border-blue-500/30 rounded-lg">
             {String(getValue() ?? '')}
           </span>
         ),
@@ -386,7 +386,7 @@ const QuestionsScreen = () => {
             <span
               className={`px-2.5 py-1 text-xs font-medium border rounded-lg ${
                 active
-                  ? 'bg-green-900/20 text-green-400 border-green-800/30'
+                  ? 'bg-green-100 text-green-700 border-green-200 dark:bg-green-500/20 dark:text-green-300 dark:border-green-500/30'
                   : 'bg-muted/20 text-muted-foreground border-border/30'
               }`}
             >

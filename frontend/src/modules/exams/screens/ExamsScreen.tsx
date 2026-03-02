@@ -133,10 +133,10 @@ const ExamsScreen = () => {
 
   const getExamTypeColor = (type: string) => {
     const colors: Record<string, string> = {
-      placement: "text-blue-400 bg-blue-900/20 border-blue-800/30",
-      progress: "text-green-400 bg-green-900/20 border-green-800/30",
-      final: "text-red-400 bg-red-900/20 border-red-800/30",
-      practice: "text-yellow-400 bg-yellow-900/20 border-yellow-800/30"
+      placement: "bg-blue-100 text-blue-700 border-blue-200 dark:bg-blue-500/20 dark:text-blue-300 dark:border-blue-500/30",
+      progress:  "bg-green-100 text-green-700 border-green-200 dark:bg-green-500/20 dark:text-green-300 dark:border-green-500/30",
+      final:     "bg-red-100 text-red-700 border-red-200 dark:bg-red-500/20 dark:text-red-300 dark:border-red-500/30",
+      practice:  "bg-yellow-100 text-yellow-700 border-yellow-200 dark:bg-yellow-500/20 dark:text-yellow-300 dark:border-yellow-500/30",
     };
     return colors[type] || "text-muted-foreground bg-muted/20 border-border";
   };
@@ -187,7 +187,7 @@ const ExamsScreen = () => {
       size: 100,
       accessorKey: "targetLevel",
       cell: ({ getValue }) => (
-        <span className="px-2.5 py-1 text-xs font-medium bg-purple-900/20 text-purple-400 border border-purple-800/30 rounded-lg">
+        <span className="px-2.5 py-1 text-xs font-medium bg-purple-100 text-purple-700 border border-purple-200 dark:bg-purple-500/20 dark:text-purple-300 dark:border-purple-500/30 rounded-lg">
           {String(getValue() ?? "")}
         </span>
       ),
@@ -241,7 +241,7 @@ const ExamsScreen = () => {
         
         if (isTemplate) {
           return (
-            <span className="px-2.5 py-1 text-xs font-medium bg-orange-900/20 text-orange-400 border border-orange-800/30 rounded-lg">
+            <span className="px-2.5 py-1 text-xs font-medium bg-orange-100 text-orange-700 border border-orange-200 dark:bg-orange-500/20 dark:text-orange-300 dark:border-orange-500/30 rounded-lg">
               Plantilla
             </span>
           );
@@ -251,7 +251,7 @@ const ExamsScreen = () => {
           <span
             className={`px-2.5 py-1 text-xs font-medium border rounded-lg ${
               isActive
-                ? "bg-green-900/20 text-green-400 border-green-800/30"
+                ? "bg-green-100 text-green-700 border-green-200 dark:bg-green-500/20 dark:text-green-300 dark:border-green-500/30"
                 : "bg-muted/20 text-muted-foreground border-border"
             }`}
           >

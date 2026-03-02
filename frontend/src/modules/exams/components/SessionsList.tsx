@@ -349,12 +349,12 @@ const SessionsList: React.FC = () => {
   const getStatusBadge = (status: string) => {
     const statusConfig = {
       scheduled: {
-        color: 'bg-blue-900/20 text-blue-400 border-blue-800/30',
+        color: 'bg-blue-100 text-blue-700 border-blue-200 dark:bg-blue-500/20 dark:text-blue-300 dark:border-blue-500/30',
         icon: Clock,
         text: 'Programada',
       },
       in_progress: {
-        color: 'bg-green-900/20 text-green-400 border-green-800/30',
+        color: 'bg-green-100 text-green-700 border-green-200 dark:bg-green-500/20 dark:text-green-300 dark:border-green-500/30',
         icon: Play,
         text: 'En Progreso',
       },
@@ -364,12 +364,12 @@ const SessionsList: React.FC = () => {
         text: 'Completada',
       },
       cancelled: {
-        color: 'bg-red-900/20 text-red-400 border-red-800/30',
+        color: 'bg-red-100 text-red-700 border-red-200 dark:bg-red-500/20 dark:text-red-300 dark:border-red-500/30',
         icon: XCircle,
         text: 'Cancelada',
       },
       expired: {
-        color: 'bg-orange-900/20 text-orange-400 border-orange-800/30',
+        color: 'bg-orange-100 text-orange-700 border-orange-200 dark:bg-orange-500/20 dark:text-orange-300 dark:border-orange-500/30',
         icon: XCircle,
         text: 'Expirada',
       },
