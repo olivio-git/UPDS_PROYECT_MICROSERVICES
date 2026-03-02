@@ -237,8 +237,8 @@ const LevelsManagementScreen = () => {
               <BarChart3 className="h-3.5 w-3.5 text-blue-300" />
             </div>
           </div>
-          <h1 className="text-2xl font-bold text-gray-200">Gestión de Niveles MCER</h1>
-          <p className="text-gray-400 max-w-2xl mx-auto">
+          <h1 className="text-2xl font-bold text-foreground">Gestión de Niveles MCER</h1>
+          <p className="text-muted-foreground max-w-2xl mx-auto">
             Configure y administre los niveles del Marco Común Europeo de Referencia para las Lenguas
           </p>
         </div>
@@ -259,16 +259,16 @@ const LevelsManagementScreen = () => {
         open={isDeleteDialogOpen}
         onOpenChange={setIsDeleteDialogOpen}
       >
-        <AlertDialogContent className="bg-box">
+        <AlertDialogContent className="bg-card">
           <AlertDialogHeader>
-            <AlertDialogTitle className="text-gray-200">Confirmar eliminación</AlertDialogTitle>
-            <AlertDialogDescription className="text-gray-400">
+            <AlertDialogTitle className="text-foreground">Confirmar eliminación</AlertDialogTitle>
+            <AlertDialogDescription className="text-muted-foreground">
               ¿Estás seguro de que deseas eliminar el nivel{" "}
               <strong>{levelToDelete?.code}</strong>? Esta acción no se puede deshacer y puede afectar preguntas y exámenes relacionados.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel className="bg-transparent text-white border border-line focus:outline-none">
+            <AlertDialogCancel className="bg-transparent text-foreground border border-line focus:outline-none">
               Cancelar
             </AlertDialogCancel>
             <AlertDialogAction

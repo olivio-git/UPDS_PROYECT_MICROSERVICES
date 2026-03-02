@@ -487,11 +487,11 @@ const SessionsList: React.FC = () => {
         // Dynamic color based on fill percentage
         let iconColor = 'text-muted-foreground'; // Empty state
         if (fillPercentage > 0.7) {
-          iconColor = 'text-red-400'; // High occupancy
+          iconColor = 'text-red-600 dark:text-red-400'; // High occupancy
         } else if (fillPercentage > 0.4) {
-          iconColor = 'text-orange-400'; // Medium occupancy
+          iconColor = 'text-orange-600 dark:text-orange-400'; // Medium occupancy
         } else if (fillPercentage > 0) {
-          iconColor = 'text-cyan-400'; // Low occupancy
+          iconColor = 'text-cyan-600 dark:text-cyan-400'; // Low occupancy
         }
         
         return (
@@ -533,7 +533,7 @@ const SessionsList: React.FC = () => {
             {/* Botón Ver detalles */}
             <button
               onClick={() => goDetail(session)}
-              className="p-2 text-blue-400 hover:text-blue-300 hover:bg-blue-400/10 rounded-md transition-all duration-200 flex items-center justify-center"
+              className="p-2 text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 hover:bg-blue-100 dark:hover:bg-blue-400/10 rounded-md transition-all duration-200 flex items-center justify-center"
               title="Ver detalles"
             >
               <Eye className="h-4 w-4" />
@@ -543,7 +543,7 @@ const SessionsList: React.FC = () => {
             {session.status === 'in_progress' && (
               <button
                 onClick={() => navigate(`/sessions/${session._id}/monitor`)}
-                className="p-2 text-cyan-400 hover:text-cyan-300 hover:bg-cyan-400/10 rounded-md transition-all duration-200 flex items-center justify-center"
+                className="p-2 text-cyan-600 dark:text-cyan-400 hover:text-cyan-700 dark:hover:text-cyan-300 hover:bg-cyan-100 dark:hover:bg-cyan-400/10 rounded-md transition-all duration-200 flex items-center justify-center"
                 title="Monitorear en tiempo real"
               >
                 <Activity className="h-4 w-4" />
@@ -567,7 +567,7 @@ const SessionsList: React.FC = () => {
             {canManageSession(session) && (
               <button
                 onClick={() => goProctors(session)}
-                className="p-2 text-orange-400 hover:text-orange-300 hover:bg-orange-400/10 rounded-md transition-all duration-200 flex items-center justify-center"
+                className="p-2 text-orange-600 dark:text-orange-400 hover:text-orange-700 dark:hover:text-orange-300 hover:bg-orange-100 dark:hover:bg-orange-400/10 rounded-md transition-all duration-200 flex items-center justify-center"
                 title="Gestionar proctores"
               >
                 <User2 className="h-4 w-4" />
@@ -578,7 +578,7 @@ const SessionsList: React.FC = () => {
             {canManageSession(session) && (
               <button
                 onClick={() => goCandidates(session)}
-                className="p-2 text-green-400 hover:text-green-300 hover:bg-green-400/10 rounded-md transition-all duration-200 flex items-center justify-center"
+                className="p-2 text-green-600 dark:text-green-400 hover:text-green-700 dark:hover:text-green-300 hover:bg-green-100 dark:hover:bg-green-400/10 rounded-md transition-all duration-200 flex items-center justify-center"
                 title="Gestionar candidatos"
               >
                 <UserPlus className="h-4 w-4" />
@@ -589,7 +589,7 @@ const SessionsList: React.FC = () => {
             {canStartSession(session) && canManageSession(session) && (
               <button
                 onClick={() => handleStartSession(session._id!)}
-                className="p-2 text-green-400 hover:text-green-300 hover:bg-green-400/10 rounded-md transition-all duration-200 flex items-center justify-center"
+                className="p-2 text-green-600 dark:text-green-400 hover:text-green-700 dark:hover:text-green-300 hover:bg-green-100 dark:hover:bg-green-400/10 rounded-md transition-all duration-200 flex items-center justify-center"
                 title="Iniciar sesión"
               >
                 <Play className="h-4 w-4" />
@@ -599,7 +599,7 @@ const SessionsList: React.FC = () => {
             {canEndSession(session) && canManageSession(session) && (
               <button
                 onClick={() => handleEndSession(session._id!)}
-                className="p-2 text-red-400 hover:text-red-300 hover:bg-red-400/10 rounded-md transition-all duration-200 flex items-center justify-center"
+                className="p-2 text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 hover:bg-red-100 dark:hover:bg-red-400/10 rounded-md transition-all duration-200 flex items-center justify-center"
                 title="Finalizar sesión"
               >
                 <Square className="h-4 w-4" />
@@ -611,7 +611,7 @@ const SessionsList: React.FC = () => {
               <button
                 onClick={() => handleRegrade(session)}
                 disabled={regradingId === session._id}
-                className="p-2 text-purple-400 hover:text-purple-300 hover:bg-purple-400/10 rounded-md transition-all duration-200 flex items-center justify-center disabled:opacity-50"
+                className="p-2 text-purple-600 dark:text-purple-400 hover:text-purple-700 dark:hover:text-purple-300 hover:bg-purple-100 dark:hover:bg-purple-400/10 rounded-md transition-all duration-200 flex items-center justify-center disabled:opacity-50"
                 title="Recalificar examen"
               >
                 {regradingId === session._id

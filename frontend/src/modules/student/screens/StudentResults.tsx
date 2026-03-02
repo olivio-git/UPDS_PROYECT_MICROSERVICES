@@ -150,29 +150,29 @@ const StudentResults = () => {
 
   const getScoreBadgeColor = (score: number) => {
     if (score >= 80)
-      return 'bg-green-500/20 text-green-300 border-green-500/30';
+      return 'bg-green-100 text-green-700 border-green-200 dark:bg-green-500/20 dark:text-green-300 dark:border-green-500/30';
     if (score >= 60)
-      return 'bg-yellow-500/20 text-yellow-300 border-yellow-500/30';
-    return 'bg-red-500/20 text-red-300 border-red-500/30';
+      return 'bg-yellow-100 text-yellow-700 border-yellow-200 dark:bg-yellow-500/20 dark:text-yellow-300 dark:border-yellow-500/30';
+    return 'bg-red-100 text-red-700 border-red-200 dark:bg-red-500/20 dark:text-red-300 dark:border-red-500/30';
   };
 
   const getTypeBadge = (type: string) => {
     switch (type) {
       case 'placement':
         return (
-          <Badge className="bg-purple-500/20 text-purple-300 border border-purple-500/30">
+          <Badge className="bg-purple-100 text-purple-700 border border-purple-200 dark:bg-purple-500/20 dark:text-purple-300 dark:border-purple-500/30">
             Ubicación
           </Badge>
         );
       case 'progress':
         return (
-          <Badge className="bg-orange-500/20 text-orange-300 border border-orange-500/30">
+          <Badge className="bg-orange-100 text-orange-700 border border-orange-200 dark:bg-orange-500/20 dark:text-orange-300 dark:border-orange-500/30">
             Progreso
           </Badge>
         );
       case 'final':
         return (
-          <Badge className="bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
+          <Badge className="bg-indigo-100 text-indigo-700 border border-indigo-200 dark:bg-indigo-500/20 dark:text-indigo-300 dark:border-indigo-500/30">
             Final
           </Badge>
         );
@@ -254,11 +254,11 @@ const StudentResults = () => {
                       key={option.id}
                       className={`p-2 rounded text-sm border ${
                         isSelected && isCorrect
-                          ? 'bg-green-900/30 border-green-700 text-green-300'
+                          ? 'bg-green-100 border-green-300 text-green-800 dark:bg-green-900/30 dark:border-green-700 dark:text-green-300'
                           : isSelected && !isCorrect
-                          ? 'bg-red-900/30 border-red-700 text-red-300'
+                          ? 'bg-red-100 border-red-300 text-red-800 dark:bg-red-900/30 dark:border-red-700 dark:text-red-300'
                           : isCorrect
-                          ? 'bg-blue-900/30 border-blue-700 text-blue-300'
+                          ? 'bg-blue-100 border-blue-300 text-blue-800 dark:bg-blue-900/30 dark:border-blue-700 dark:text-blue-300'
                           : 'bg-muted/30 border-border text-muted-foreground'
                       }`}
                     >
@@ -285,14 +285,14 @@ const StudentResults = () => {
               <Badge
                 className={`text-xs ${
                   question.isCorrect
-                    ? 'bg-green-500/20 text-green-300 border-green-500/30'
-                    : 'bg-red-500/20 text-red-300 border-red-500/30'
+                    ? 'bg-green-100 text-green-700 border-green-200 dark:bg-green-500/20 dark:text-green-300 dark:border-green-500/30'
+                    : 'bg-red-100 text-red-700 border-red-200 dark:bg-red-500/20 dark:text-red-300 dark:border-red-500/30'
                 }`}
               >
                 {userAnswer ? 'Verdadero' : 'Falso'}
               </Badge>
               {!question.isCorrect && (
-                <p className="text-xs text-blue-300">
+                <p className="text-xs text-blue-600 dark:text-blue-300">
                   Respuesta correcta: {correctAnswer ? 'Verdadero' : 'Falso'}
                 </p>
               )}
@@ -307,7 +307,7 @@ const StudentResults = () => {
                 <p className="text-foreground">"{question.response?.text || 'Sin respuesta'}"</p>
               </div>
               {questionData?.correctAnswer && (
-                <p className="text-xs text-blue-300">
+                <p className="text-xs text-blue-600 dark:text-blue-300">
                   Respuesta esperada: {questionData.correctAnswer}
                 </p>
               )}
@@ -348,7 +348,7 @@ const StudentResults = () => {
               </div>
               {questionData?.sampleAnswer && (
                 <details className="text-xs">
-                  <summary className="text-blue-300 cursor-pointer">Ver respuesta de ejemplo</summary>
+                  <summary className="text-blue-600 dark:text-blue-300 cursor-pointer">Ver respuesta de ejemplo</summary>
                   <p className="text-muted-foreground mt-1 p-2 bg-muted/50 rounded">
                     {questionData.sampleAnswer}
                   </p>
@@ -484,7 +484,7 @@ const StudentResults = () => {
         size: 70,
         header: 'Nivel',
         cell: ({ row }) => (
-          <span className="inline-flex items-center px-2 py-0.5 text-xs font-medium rounded bg-blue-500/20 text-blue-300 border border-blue-500/30">
+          <span className="inline-flex items-center px-2 py-0.5 text-xs font-medium rounded bg-blue-100 text-blue-700 border border-blue-200 dark:bg-blue-500/20 dark:text-blue-300 dark:border-blue-500/30">
             {row.original.level}
           </span>
         ),
@@ -520,11 +520,11 @@ const StudentResults = () => {
         cell: ({ row }) => {
           const { passed } = row.original;
           return passed ? (
-            <span className="inline-flex items-center px-2 py-0.5 text-xs font-medium rounded bg-green-500/20 text-green-300 border border-green-500/30">
+            <span className="inline-flex items-center px-2 py-0.5 text-xs font-medium rounded bg-green-100 text-green-700 border border-green-200 dark:bg-green-500/20 dark:text-green-300 dark:border-green-500/30">
               APROBADO
             </span>
           ) : (
-            <span className="inline-flex items-center px-2 py-0.5 text-xs font-medium rounded bg-red-500/20 text-red-300 border border-red-500/30">
+            <span className="inline-flex items-center px-2 py-0.5 text-xs font-medium rounded bg-red-100 text-red-700 border border-red-200 dark:bg-red-500/20 dark:text-red-300 dark:border-red-500/30">
               NO APROBADO
             </span>
           );
@@ -654,7 +654,7 @@ const StudentResults = () => {
                   {currentResult.passed ? <CheckCircle className="h-3 w-3" /> : <XCircle className="h-3 w-3" />}
                   {currentResult.passed ? 'Aprobado' : 'No aprobado'}
                 </span>
-                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium border border-blue-500/30 text-blue-300 bg-blue-500/10">
+                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium border border-blue-200 text-blue-700 bg-blue-100 dark:border-blue-500/30 dark:text-blue-300 dark:bg-blue-500/10">
                   Nivel {currentResult.level}
                 </span>
                 {currentResult.nextLevel && (

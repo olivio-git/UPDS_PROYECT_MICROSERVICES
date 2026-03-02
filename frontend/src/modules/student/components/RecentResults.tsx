@@ -91,7 +91,7 @@ const RecentResults = ({
       animate={false}
       variant="cosmic"
     >
-      <Card className="bg-box backdrop-blur-sm border border-line">
+      <Card className="bg-card backdrop-blur-sm border border-line">
         <CardHeader className="pb-3">
           <CardTitle className="text-foreground flex items-center gap-2">
             <FileText className="h-5 w-5 text-muted-foreground" />
@@ -133,7 +133,7 @@ const RecentResults = ({
               <button
                 key={result.id}
                 type="button"
-                className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-white/5 transition-colors cursor-pointer text-left"
+                className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-muted/20 transition-colors cursor-pointer text-left"
                 onClick={() => handleResultClick(result.id)}
                 aria-label={`Ver resultado: ${result.examName}`}
               >
@@ -161,7 +161,7 @@ const RecentResults = ({
                 </span>
 
                 {/* Badge de nivel */}
-                <span className="flex-shrink-0 inline-flex items-center px-1.5 py-0.5 text-xs font-medium rounded bg-blue-500/20 text-blue-300 border border-blue-500/30">
+                <span className="flex-shrink-0 inline-flex items-center px-1.5 py-0.5 text-xs font-medium rounded bg-blue-100 text-blue-700 border border-blue-200 dark:bg-blue-500/20 dark:text-blue-300 dark:border-blue-500/30">
                   {result.level}
                 </span>
 
@@ -176,7 +176,7 @@ const RecentResults = ({
           <div className="pt-2">
             <Button
               variant="outline"
-              className="w-full border-border text-muted-foreground hover:border-yellow-500 bg-box transition-colors hover:cursor-pointer"
+              className="w-full border-border text-muted-foreground hover:border-yellow-500 bg-card transition-colors hover:cursor-pointer"
               onClick={() => navigate("/student/results")}
             >
               Ver Todos los Resultados

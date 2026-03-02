@@ -78,7 +78,7 @@ const Performance = ({ initiallyExpanded = false }: PropsPerformance) => {
       animate={false}
       variant="cosmic"
     >
-      <Card className="bg-box backdrop-blur-sm border border-line transition-all duration-200 hover:border-line/80">
+      <Card className="bg-card backdrop-blur-sm border border-line transition-all duration-200 hover:border-line/80">
         <CardHeader
           className="cursor-pointer select-none"
           onClick={() => setIsExpanded(!isExpanded)}
@@ -86,7 +86,7 @@ const Performance = ({ initiallyExpanded = false }: PropsPerformance) => {
           <div className="flex items-center justify-between">
             <div className="flex-1 text-center">
               <Crown className="h-5 w-5 text-yellow-400" />
-              <CardTitle className="text-white flex items-center gap-2 text-lg justify-center">
+              <CardTitle className="text-foreground flex items-center gap-2 text-lg justify-center">
                 Estadísticas de Rendimiento
               </CardTitle>
               <CardDescription className="text-brand-gray text-xs">
@@ -116,7 +116,7 @@ const Performance = ({ initiallyExpanded = false }: PropsPerformance) => {
                 <div className="text-xs text-brand-gray">Promedio</div>
               </div>
               <div className="text-center">
-                <Badge className="bg-blue-500/20 text-blue-300 border border-blue-500/30">
+                <Badge className="bg-blue-100 text-blue-700 border border-blue-200 dark:bg-blue-500/20 dark:text-blue-300 dark:border-blue-500/30">
                   {stats.currentLevel}
                 </Badge>
                 <div className="text-xs text-brand-gray mt-1">Nivel</div>
@@ -234,7 +234,7 @@ const Performance = ({ initiallyExpanded = false }: PropsPerformance) => {
                     <span className="text-sm text-muted-foreground">
                       Nivel Estimado
                     </span>
-                    <Badge className="bg-blue-500/20 text-blue-300 border border-blue-500/30">
+                    <Badge className="bg-blue-100 text-blue-700 border border-blue-200 dark:bg-blue-500/20 dark:text-blue-300 dark:border-blue-500/30">
                       {stats.currentLevel}
                     </Badge>
                   </div>
@@ -312,7 +312,7 @@ const Performance = ({ initiallyExpanded = false }: PropsPerformance) => {
                 {/* Botón para ver análisis detallado */}
                 <Button
                   variant="outline"
-                  className="w-full mt-4 border-border text-muted-foreground hover:border-yellow-500 bg-box transition-colors hover:cursor-pointer"
+                  className="w-full mt-4 border-border text-muted-foreground hover:border-yellow-500 bg-card transition-colors hover:cursor-pointer"
                   onClick={() => navigate('/student/analytics')}
                 >
                   <Trophy className="h-4 w-4 mr-2" />
