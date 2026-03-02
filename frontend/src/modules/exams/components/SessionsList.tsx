@@ -653,14 +653,14 @@ const SessionsList: React.FC = () => {
 
     if (viewMode === 'create' || viewMode === 'edit') {
       return (
-        <div className="bg-box border border-line rounded-xl p-6">
+        <div className="bg-card border border-line rounded-xl p-6">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-lg font-semibold text-foreground">
               {viewMode === 'edit' ? 'Editar Sesión' : 'Nueva Sesión'}
             </h2>
             <button
               onClick={goTable}
-              className="px-3 py-2 bg-dark-light border border-line rounded-lg text-foreground/80 hover:bg-dark-light/80 flex items-center gap-2"
+              className="px-3 py-2 bg-muted/50 border border-line rounded-lg text-foreground/80 hover:bg-muted flex items-center gap-2"
             >
               <XCircle className="w-4 h-4" /> Volver
             </button>
@@ -680,7 +680,7 @@ const SessionsList: React.FC = () => {
 
     if (viewMode === 'candidates' && selectedSession) {
       return (
-        <div className="bg-box border border-line rounded-xl p-6">
+        <div className="bg-card border border-line rounded-xl p-6">
           <CandidateAssignmentView
             session={selectedSession}
             onClose={goTable}
@@ -695,7 +695,7 @@ const SessionsList: React.FC = () => {
     }
     if (viewMode === 'proctors' && selectedSession) {
       return (
-        <div className="bg-box border border-line rounded-xl p-6">
+        <div className="bg-card border border-line rounded-xl p-6">
           <ProctorAssignmentModal
             session={selectedSession}
             onClose={goTable}
@@ -710,11 +710,11 @@ const SessionsList: React.FC = () => {
     }
     // Tabla (vista por defecto "table")
     const baseInputClass =
-      'bg-box border-line text-foreground placeholder-muted-foreground border-[0.5px] focus:border-blue-500 focus:ring-0 rounded-lg';
+      'bg-muted/50 border-border text-foreground placeholder:text-muted-foreground border-[0.5px] focus:border-blue-500 focus:ring-0 rounded-lg';
 
     if (loading) {
       return (
-        <div className="bg-box border border-line rounded-xl p-12 text-center">
+        <div className="bg-card border border-line rounded-xl p-12 text-center">
           <div className="inline-block animate-spin rounded-full h-10 w-10 border-b-2 border-blue-500"></div>
           <p className="mt-4 text-muted-foreground">Cargando sesiones...</p>
         </div>
@@ -723,7 +723,7 @@ const SessionsList: React.FC = () => {
 
     if (error) {
       return (
-        <div className="bg-box border border-line rounded-xl p-12 text-center">
+        <div className="bg-card border border-line rounded-xl p-12 text-center">
           <p className="text-red-400 mb-4">{error}</p>
           <button
             onClick={() => loadSessions()}
@@ -738,7 +738,7 @@ const SessionsList: React.FC = () => {
     return (
       <div className="space-y-6">
         {/* Header con búsqueda y acciones */}
-        <div className="bg-box border border-line rounded-xl p-6">
+        <div className="bg-card border border-line rounded-xl p-6">
           <div className="flex-1">
             <div className="flex items-center gap-3">
               <h2 className="text-2xl font-bold text-foreground">
@@ -803,7 +803,7 @@ const SessionsList: React.FC = () => {
             <div className="flex items-center gap-3"> 
               <Button
                 size={"sm"}
-                className='px-4 py-2.5 bg-dark-light border border-line rounded-lg hover:bg-dark-light/80 text-foreground/80 flex items-center gap-2 transition-all'
+                className='px-4 py-2.5 bg-muted/50 border border-line rounded-lg hover:bg-muted text-foreground/80 flex items-center gap-2 transition-all'
                 onClick={() => setShowFilters(!showFilters)}
               >
                 <Filter className="w-4 h-4" />
@@ -940,7 +940,7 @@ const SessionsList: React.FC = () => {
                   </button>
                   <button
                     onClick={handleClearFilters}
-                    className="px-4 py-2 bg-dark-light border border-line rounded-lg hover:bg-dark-light/80 text-foreground/80 transition-all"
+                    className="px-4 py-2 bg-muted/50 border border-line rounded-lg hover:bg-muted text-foreground/80 transition-all"
                   >
                     Limpiar
                   </button>
@@ -951,7 +951,7 @@ const SessionsList: React.FC = () => {
         </div>
 
         {/* Tabla */}
-        <div className="bg-box border border-line rounded-xl overflow-hidden">
+        <div className="bg-card border border-line rounded-xl overflow-hidden">
           <CustomizableTable
             table={table}
             isLoading={loading}
@@ -974,7 +974,7 @@ const SessionsList: React.FC = () => {
                 <button
                   onClick={() => changePage(currentPage - 1)}
                   disabled={currentPage === 1}
-                  className="p-2 bg-dark-light border border-line rounded-lg hover:bg-dark-light/80 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                  className="p-2 bg-muted/50 border border-line rounded-lg hover:bg-muted disabled:opacity-50 disabled:cursor-not-allowed transition-all"
                 >
                   <ChevronLeft className="w-4 h-4 text-muted-foreground" />
                 </button>
@@ -989,7 +989,7 @@ const SessionsList: React.FC = () => {
                         className={`px-3 py-1 rounded-lg transition-all ${
                           page === currentPage
                             ? 'bg-blue-600 text-white'
-                            : 'bg-dark-light border border-line text-muted-foreground hover:bg-dark-light/80'
+                            : 'bg-muted/50 border border-line text-muted-foreground hover:bg-muted'
                         }`}
                       >
                         {page}
@@ -1001,7 +1001,7 @@ const SessionsList: React.FC = () => {
                 <button
                   onClick={() => changePage(currentPage + 1)}
                   disabled={currentPage === totalPages}
-                  className="p-2 bg-dark-light border border-line rounded-lg hover:bg-dark-light/80 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                  className="p-2 bg-muted/50 border border-line rounded-lg hover:bg-muted disabled:opacity-50 disabled:cursor-not-allowed transition-all"
                 >
                   <ChevronRight className="w-4 h-4 text-muted-foreground" />
                 </button>

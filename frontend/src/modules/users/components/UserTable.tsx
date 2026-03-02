@@ -308,13 +308,13 @@ const UserTable: React.FC<UserTableProps> = ({
         
         return (
           <DropdownMenu>
-            <DropdownMenuTrigger asChild className='bg-box border border-line rounded-md p-1 hover:bg-muted'>
+            <DropdownMenuTrigger asChild className='bg-card border border-line rounded-md p-1 hover:bg-muted'>
               <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
                 <MoreVertical className="h-4 w-4 text-foreground" />
                 <span className="sr-only">Abrir menú</span>
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-48 bg-box border-line text-foreground">
+            <DropdownMenuContent align="end" className="w-48 bg-popover border-line text-foreground">
               {/* Ver detalles */}
               <DropdownMenuItem className='hover:bg-muted' onClick={() => onViewUser(user)}>
                 <Eye className="mr-2 h-4 w-4" />
@@ -408,7 +408,7 @@ const UserTable: React.FC<UserTableProps> = ({
   });
 
   return (
-    <div className="bg-box border border-line rounded-lg shadow-sm overflow-hidden">
+    <div className="bg-card border border-line rounded-lg shadow-sm overflow-hidden">
       <CustomizableTable
         table={table}
         isLoading={isLoading}
@@ -431,7 +431,7 @@ const UserTable: React.FC<UserTableProps> = ({
             <button
               onClick={() => onPageChange(currentPage - 1)}
               disabled={currentPage === 1}
-              className="p-2 bg-dark-light border border-line rounded-lg hover:bg-dark-light/80 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+              className="p-2 bg-muted/50 border border-line rounded-lg hover:bg-muted disabled:opacity-50 disabled:cursor-not-allowed transition-all"
             >
               <ChevronLeft className="w-4 h-4 text-muted-foreground" />
             </button>
@@ -446,7 +446,7 @@ const UserTable: React.FC<UserTableProps> = ({
                     className={`px-3 py-1 rounded-lg transition-all ${
                       page === currentPage
                         ? 'bg-blue-600 text-white'
-                        : 'bg-dark-light border border-line text-muted-foreground hover:bg-dark-light/80'
+                        : 'bg-muted/50 border border-line text-muted-foreground hover:bg-muted'
                     }`}
                   >
                     {page}
@@ -458,7 +458,7 @@ const UserTable: React.FC<UserTableProps> = ({
             <button
               onClick={() => onPageChange(currentPage + 1)}
               disabled={currentPage === totalPages}
-              className="p-2 bg-dark-light border border-line rounded-lg hover:bg-dark-light/80 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+              className="p-2 bg-muted/50 border border-line rounded-lg hover:bg-muted disabled:opacity-50 disabled:cursor-not-allowed transition-all"
             >
               <ChevronRight className="w-4 h-4 text-muted-foreground" />
             </button>
