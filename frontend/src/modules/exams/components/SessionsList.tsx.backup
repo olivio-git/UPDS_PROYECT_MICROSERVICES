@@ -1,0 +1,1480 @@
+import { Button } from '@/components/atoms/button';
+import { Input } from '@/components/atoms/input';
+import GradientWrapper from '@/components/background/GrandWrapperSection';
+import CustomizableTable from '@/components/common/CustomizableTable';
+import { MainLayout } from '@/components/layout';
+import { authSDK } from '@/services/sdk-simple-auth';
+import {
+  createColumnHelper,
+  getCoreRowModel,
+  getSortedRowModel,
+  useReactTable,
+  type SortingState
+} from '@tanstack/react-table';
+import {
+  BookOpen,
+  CheckCircle,
+  ChevronLeft,
+  ChevronRight,
+  Clock,
+  Edit,
+  Eye,
+  Filter,
+  MessageSquare,
+  Monitor,
+  Play,
+  Plus,
+  Search,
+  Square,
+  User2,
+  UserPlus,
+  Users,
+  Wifi,
+  WifiOff,
+  XCircle,
+} from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import { toast } from 'sonner';
+import { openLobbyInNewWindow } from '../hooks/useNavigation';
+import { useSessions } from '../hooks/useSessions';
+import type { ExamSession } from '../types';
+import CandidateAssignmentView from './CandidateAssignmentView';
+import ProctorAssignmentModal from './ProctorAssignmentView';
+import SessionDetailView from './SessionDetailView';
+import SessionForm from './SessionForm';
+
+type ViewMode =
+  | 'table'
+  | 'create'
+  | 'edit'
+  | 'detail'
+  | 'candidates'
+  | 'proctors'
+  | 'lobby-monitor';
+
+// Interfaces para WebSocket y Lobby
+interface LobbyData {
+  sessionId: string;
+  examName: string;
+  status: 'waiting' | 'starting' | 'in_progress' | 'finished';
+  participants: number;
+  maxParticipants: number;
+  scheduledStartTime: number;
+  actualStartTime?: number;
+}
+
+interface LobbyStats {
+  totalParticipants: number;
+  totalProctors: number;
+  readyParticipants: number;
+  waitingParticipants: number;
+  maxParticipants: number;
+  canStart: boolean;
+  timeUntilScheduledStart: number;
+}
+console.log(authSDK.getAccessToken());
+// Clase para manejar WebSocket connection
+class AdminLobbyService {
+  private socket: any = null;
+  private isConnected = false;
+  private reconnectAttempts = 0;
+  private maxReconnectAttempts = 5;
+  private reconnectInterval: ReturnType<typeof setTimeout> | null = null;
+  private heartbeatInterval: ReturnType<typeof setInterval> | null = null;
+  private eventCallbacks: Map<string, Function[]> = new Map();
+
+  constructor() {
+    this.connect();
+  }
+
+  async connect(): Promise<boolean> {
+    try {
+      const token = await authSDK.getAccessToken();
+      console.log(await authSDK.getAccessToken());
+
+      if (!token) {
+        throw new Error('Token de autenticación requerido');
+      }
+
+      const serverUrl =
+        import.meta.env.VITE_SESSION_MANAGER_URL || 'http://localhost:3004';
+
+      // Importación dinámica de socket.io-client
+      const { io } = await import('socket.io-client');
+
+      this.socket = io(serverUrl, {
+        auth: { token },
+        transports: ['websocket', 'polling'],
+        timeout: 20000,
+        reconnection: true,
+        reconnectionAttempts: this.maxReconnectAttempts,
+      });
+
+      return new Promise((resolve, reject) => {
+        const timeout = setTimeout(() => {
+          reject(new Error('Tiempo de conexión agotado'));
+        }, 10000);
+
+        this.socket.on('connect', () => {
+          clearTimeout(timeout);
+          this.isConnected = true;
+          this.reconnectAttempts = 0;
+          console.log('🔌 Admin conectado al WebSocket');
+          this.startHeartbeat();
+          this.reregisterEvents(); // Re-registrar eventos después de reconexión
+          this.triggerCallbacks('connect', {});
+          resolve(true);
+        });
+
+        this.socket.on('connect_error', (error: Error) => {
+          clearTimeout(timeout);
+          console.error('❌ Error conectando WebSocket:', error);
+          this.scheduleReconnect();
+          reject(error);
+        });
+
+        this.socket.on('disconnect', () => {
+          this.isConnected = false;
+          this.stopHeartbeat();
+          console.log('🔌 Admin desconectado del WebSocket');
+          this.triggerCallbacks('disconnect', {});
+          this.scheduleReconnect();
+        });
+      });
+    } catch (error) {
+      console.error('❌ Error iniciando conexión WebSocket:', error);
+      throw error;
+    }
+  }
+
+  disconnect(): void {
+    if (this.reconnectInterval) {
+      clearTimeout(this.reconnectInterval);
+      this.reconnectInterval = null;
+    }
+    this.stopHeartbeat();
+    
+    if (this.socket) {
+      this.socket.disconnect();
+      this.socket = null;
+      this.isConnected = false;
+    }
+  }
+
+  private scheduleReconnect(): void {
+    if (this.reconnectAttempts >= this.maxReconnectAttempts) {
+      console.error('❌ Máximo de intentos de reconexión alcanzado');
+      return;
+    }
+
+    if (this.reconnectInterval) return; // Ya hay uno programado
+
+    const delay = Math.min(1000 * Math.pow(2, this.reconnectAttempts), 30000);
+    console.log(`🔄 Reconectando en ${delay}ms (intento ${this.reconnectAttempts + 1})`);
+
+    this.reconnectInterval = setTimeout(async () => {
+      this.reconnectInterval = null;
+      this.reconnectAttempts++;
+      
+      try {
+        await this.connect();
+      } catch (error) {
+        console.error('❌ Fallo en reconexión:', error);
+      }
+    }, delay);
+  }
+
+  private startHeartbeat(): void {
+    this.stopHeartbeat();
+    this.heartbeatInterval = setInterval(() => {
+      if (this.socket && this.isConnected) {
+        this.socket.emit('ping');
+      }
+    }, 30000);
+  }
+
+  private stopHeartbeat(): void {
+    if (this.heartbeatInterval) {
+      clearInterval(this.heartbeatInterval);
+      this.heartbeatInterval = null;
+    }
+  }
+
+  private triggerCallbacks(event: string, data: any): void {
+    const callbacks = this.eventCallbacks.get(event) || [];
+    callbacks.forEach(callback => {
+      try {
+        callback(data);
+      } catch (error) {
+        console.error(`Error en callback de evento ${event}:`, error);
+      }
+    });
+  }
+
+  isSocketConnected(): boolean {
+    return this.isConnected && this.socket?.connected;
+  }
+
+
+
+
+
+  // Escuchar eventos del lobby
+  on(event: string, callback: Function): void {
+    // Guardar callback para triggering manual
+    const callbacks = this.eventCallbacks.get(event) || [];
+    callbacks.push(callback);
+    this.eventCallbacks.set(event, callbacks);
+
+    // Registrar en socket si está conectado
+    if (this.socket) {
+      this.socket.on(event, callback);
+    }
+  }
+
+  off(event: string, callback?: Function): void {
+    // Remover de callbacks guardados
+    if (callback) {
+      const callbacks = this.eventCallbacks.get(event) || [];
+      const index = callbacks.indexOf(callback);
+      if (index > -1) {
+        callbacks.splice(index, 1);
+        this.eventCallbacks.set(event, callbacks);
+      }
+    } else {
+      this.eventCallbacks.delete(event);
+    }
+
+    // Remover del socket
+    if (this.socket) {
+      this.socket.off(event, callback);
+    }
+  }
+
+  // Método para re-registrar todos los eventos después de reconexión
+  private reregisterEvents(): void {
+    if (!this.socket) return;
+
+    this.eventCallbacks.forEach((callbacks, event) => {
+      callbacks.forEach(callback => {
+        this.socket.on(event, callback);
+      });
+    });
+  }
+}
+
+// Instancia singleton (se inicializa de forma perezosa cuando haya auth)
+let adminLobbyService: AdminLobbyService | null = null;
+
+const SessionsList: React.FC = () => {
+  const {
+    sessions,
+    loading,
+    error,
+    totalPages,
+    totalItems,
+    currentPage,
+    applyFilters,
+    clearFilters,
+    changePage,
+    loadSessions,
+    startSession,
+    endSession,
+  } = useSessions();
+
+  // Navegación / vistas
+  const [viewMode, setViewMode] = useState<ViewMode>('table');
+  const [selectedSession, setSelectedSession] = useState<ExamSession | null>(
+    null
+  );
+
+  // UI state
+  const [searchTerm, setSearchTerm] = useState('');
+  const [showFilters, setShowFilters] = useState(false);
+
+  // Estados para WebSocket y Lobby
+  const [socketConnected, setSocketConnected] = useState(false);
+  const [activeLobbies, setActiveLobbies] = useState<LobbyData[]>([]);
+  const [lobbyStatuses, setLobbyStatuses] = useState<Map<string, LobbyData>>(
+    new Map()
+  );
+  const [creatingLobby, setCreatingLobby] = useState<Set<string>>(new Set());
+  
+  // Estado para tabla
+  const [sorting, setSorting] = useState<SortingState>([]);
+
+  // Filtros locales
+  const [localFilters, setLocalFilters] = useState({
+    status: '',
+    examId: '',
+    startDate: '',
+    endDate: '',
+  });
+
+  // Effect para verificar lobbies cuando cambian las sesiones
+  useEffect(() => {
+    if (sessions.length > 0 && socketConnected) {
+      checkExistingLobbies();
+    }
+  }, [sessions, socketConnected]);
+
+  // Effect para inicializar WebSocket y cargar lobbies
+  useEffect(() => {
+    const initializeWebSocket = async () => {
+      try {
+        // Asegurarse de que el SDK de auth esté inicializado y el usuario autenticado
+        const isAuth = await authSDK.isAuthenticated();
+
+        if (!adminLobbyService && isAuth) {
+          adminLobbyService = new AdminLobbyService();
+        }
+
+        const connected = adminLobbyService
+          ? adminLobbyService.isSocketConnected()
+          : false;
+        setSocketConnected(connected);
+
+        if (connected) {
+          await loadActiveLobbies();
+          await checkExistingLobbies();
+        } else if (adminLobbyService && isAuth) {
+          // Intentar conectar si aún no está conectado
+          try {
+            await adminLobbyService.connect();
+            setSocketConnected(adminLobbyService.isSocketConnected());
+            await loadActiveLobbies();
+            await checkExistingLobbies();
+          } catch (err) {
+            console.error(
+              'Error connecting adminLobbyService during init:',
+              err
+            );
+            setSocketConnected(false);
+          }
+        }
+      } catch (error) {
+        console.error('Error inicializando WebSocket:', error);
+        setSocketConnected(false);
+      }
+    };
+
+    initializeWebSocket();
+
+    // Configurar listeners de WebSocket
+    setupWebSocketListeners();
+
+    // Actualizar lobbies cada 30 segundos
+    const interval = setInterval(() => {
+      if (socketConnected && adminLobbyService) {
+        loadActiveLobbies();
+        // Solo verificar lobbies existentes cada 2 minutos para reducir 404s
+        if (Date.now() % (2 * 60 * 1000) < 30000) {
+          checkExistingLobbies();
+        }
+      }
+    }, 30000);
+
+    return () => {
+      clearInterval(interval);
+      cleanupWebSocketListeners();
+    };
+  }, [socketConnected]);
+
+  // Configurar listeners de WebSocket
+  const setupWebSocketListeners = () => {
+    if (!adminLobbyService) return;
+
+    adminLobbyService.on('lobby-joined', (data: any) => {
+      console.log('Lobby joined as admin:', data);
+      toast.success('Conectado al lobby como administrador');
+    });
+
+    adminLobbyService.on('lobby-error', (error: any) => {
+      console.error('Lobby error:', error);
+      toast.error(`Error de lobby: ${error.message}`);
+    });
+
+    adminLobbyService.on('participant-joined', (payload: any) => {
+      console.log('👤 Participante se unió:', payload);
+      toast.info(`${payload.participant.userEmail} se unió al lobby`);
+      loadActiveLobbies(); // Actualizar estado
+      checkExistingLobbies(); // Actualizar estados específicos
+    });
+
+    adminLobbyService.on('participant-left', (payload: any) => {
+      console.log('👤 Participante salió:', payload);
+      toast.info(`Un participante salió del lobby`);
+      loadActiveLobbies();
+      checkExistingLobbies();
+    });
+
+    adminLobbyService.on('participant-status-changed', (payload: any) => {
+      console.log('🔄 Estado de participante cambió:', payload);
+      checkExistingLobbies(); // Solo actualizar estados específicos
+    });
+
+    adminLobbyService.on('lobby-stats-updated', (payload: any) => {
+      console.log('📊 Estadísticas de lobby actualizadas:', payload);
+      setLobbyStatuses(prevStatuses => {
+        const newStatuses = new Map(prevStatuses);
+        newStatuses.set(payload.sessionId, {
+          sessionId: payload.sessionId,
+          examName: payload.examName || 'Examen',
+          status: payload.status,
+          participants: payload.participantCount || 0,
+          maxParticipants: payload.maxParticipants || 50,
+          scheduledStartTime: payload.scheduledStartTime || Date.now(),
+          actualStartTime: payload.actualStartTime
+        });
+        return newStatuses;
+      });
+    });
+
+    adminLobbyService.on('lobby-message', (payload: any) => {
+      console.log('💬 Mensaje de lobby:', payload);
+      // Aquí podrías mostrar mensajes del chat si implementas esa funcionalidad
+    });
+
+    adminLobbyService.on('technical-verification-updated', (payload: any) => {
+      console.log('🔧 Verificación técnica actualizada:', payload);
+      // Actualizar indicadores de verificación técnica
+    });
+
+    adminLobbyService.on('exam-started', (payload: any) => {
+      toast.success(`Examen iniciado: ${payload.sessionId}`);
+      loadActiveLobbies();
+      loadSessions(); // Actualizar sesiones
+    });
+
+    adminLobbyService.on('exam-start-failed', (payload: any) => {
+      toast.error(`Error iniciando examen: ${payload.message}`);
+    });
+
+    adminLobbyService.on('connect', () => {
+      setSocketConnected(true);
+      toast.success('Conectado al servidor WebSocket');
+    });
+
+    adminLobbyService.on('disconnect', () => {
+      setSocketConnected(false);
+      toast.error('Desconectado del servidor WebSocket');
+    });
+
+    adminLobbyService.on('pong', () => {
+      console.log('🏓 Pong recibido del servidor');
+    });
+
+    adminLobbyService.on('lobby-created', (payload: any) => {
+      console.log('🏢 Lobby creado:', payload);
+      toast.success(`Lobby creado: ${payload.examName}`);
+      loadActiveLobbies();
+      checkExistingLobbies();
+    });
+
+    adminLobbyService.on('lobby-destroyed', (payload: any) => {
+      console.log('🏢 Lobby destruido:', payload);
+      toast.info(`Lobby finalizado: ${payload.sessionId}`);
+      loadActiveLobbies();
+      checkExistingLobbies();
+    });
+
+    // Eventos de inicio de examen con countdown
+    adminLobbyService.on('exam-starting', (payload: any) => {
+      console.log('🚀 Examen iniciando:', payload);
+      toast.info(`${payload.message} (${payload.countdown}s)`);
+      // Actualizar estado para mostrar countdown
+      checkExistingLobbies();
+    });
+
+    adminLobbyService.on('exam-countdown', (payload: any) => {
+      console.log('⏰ Countdown:', payload.seconds);
+      if (payload.seconds <= 3 && payload.seconds > 0) {
+        toast.info(`Iniciando en ${payload.seconds}...`);
+      }
+    });
+
+    // Eventos de verificación técnica
+    adminLobbyService.on('technical-verification-updated', (payload: any) => {
+      console.log('🔧 Verificación técnica actualizada:', payload);
+      // Solo mostrar si es relevante para el admin
+      checkExistingLobbies();
+    });
+
+    // Eventos adicionales para mejor UX
+    adminLobbyService.on('lobby-message', (payload: any) => {
+      console.log('💬 Mensaje de lobby:', payload);
+      if (payload.role === 'proctor' || payload.role === 'admin') {
+        toast.info(`Mensaje de ${payload.userEmail}: ${payload.message.substring(0, 50)}...`);
+      }
+    });
+  };
+  // Limpiar listeners
+  const cleanupWebSocketListeners = () => {
+    const events = [
+      'lobby-joined',
+      'lobby-error',
+      'participant-joined',
+      'participant-left',
+      'participant-status-changed',
+      'lobby-stats-updated',
+      'lobby-message',
+      'technical-verification-updated',
+      'exam-started',
+      'exam-start-failed',
+      'exam-starting',
+      'exam-countdown',
+      'connect',
+      'disconnect',
+      'pong',
+      'lobby-created',
+      'lobby-destroyed',
+    ];
+    if (adminLobbyService) {
+      events.forEach(event => {
+        adminLobbyService!.off(event);
+      });
+    }
+  };
+
+  // Cargar lobbies activos
+  const loadActiveLobbies = async () => {
+    try {
+      if (!adminLobbyService)
+        throw new Error('WebSocket service not initialized');
+      const lobbies = await adminLobbyService.getActiveLobbies();
+      setActiveLobbies(lobbies);
+    } catch (error) {
+      console.error('Error loading active lobbies:', error);
+    }
+  };
+
+  // Verificar lobbies existentes para las sesiones cargadas
+  const checkExistingLobbies = async () => {
+    if (!adminLobbyService) return;
+
+    const statusMap = new Map<string, LobbyData>();
+
+    // Solo verificar lobbies para sesiones programadas o en progreso
+    const relevantSessions = sessions.filter(
+      session =>
+        session._id &&
+        (session.status === 'scheduled' || session.status === 'in_progress')
+    );
+
+    console.log(
+      `🔍 Verificando lobbies para ${relevantSessions.length} sesiones relevantes...`
+    );
+
+    // Verificar en paralelo pero con límite
+    const batchSize = 5;
+    for (let i = 0; i < relevantSessions.length; i += batchSize) {
+      const batch = relevantSessions.slice(i, i + batchSize);
+
+      await Promise.allSettled(
+        batch.map(async session => {
+          try {
+            const lobbyStatus = await adminLobbyService!.getLobbyStatus(
+              session._id!
+            );
+            if (lobbyStatus) {
+              statusMap.set(session._id!, lobbyStatus);
+              console.log(
+                `✅ Lobby encontrado para sesión ${session._id}: ${lobbyStatus.status}`
+              );
+            }
+          } catch (error) {
+            // Error ya manejado en getLobbyStatus, no hacer nada aquí
+          }
+        })
+      );
+    }
+
+    setLobbyStatuses(statusMap);
+    console.log(`📋 ${statusMap.size} lobbies activos encontrados`);
+  };
+
+  // Handlers de navegación
+  const goTable = () => {
+    setSelectedSession(null);
+    setViewMode('table');
+  };
+  const goCreate = () => {
+    setSelectedSession(null);
+    setViewMode('create');
+  };
+  const goEdit = (s: ExamSession) => {
+    setSelectedSession(s);
+    setViewMode('edit');
+  };
+  const goDetail = (s: ExamSession) => {
+    setSelectedSession(s);
+    setViewMode('detail');
+  };
+  const goCandidates = (s: ExamSession) => {
+    setSelectedSession(s);
+    setViewMode('candidates');
+  };
+  const goProctors = (s: ExamSession) => {
+    setSelectedSession(s);
+    setViewMode('proctors');
+  };
+  const goLobbyMonitor = (s: ExamSession) => {
+    setSelectedSession(s);
+    setViewMode('lobby-monitor');
+  };
+
+  // Funciones para manejo de lobbies
+  const createLobbyForSession = async (session: ExamSession) => {
+    if (!session._id) {
+      toast.error('ID de sesión no válido');
+      return;
+    }
+
+    try {
+      setCreatingLobby(prev => new Set(prev).add(session._id!));
+
+      const examData = {
+        examId: (session as any).examId?._id || (session as any).examId,
+        name: (session as any).examId?.name || session.sessionName || 'Examen',
+        scheduledStartTime: new Date(session.scheduling.startDate).getTime(),
+        duration: 120, // Duración por defecto en minutos
+        maxParticipants: session.participants.maxCandidates || 50,
+        requiresTechnicalVerification: true,
+        settings: {
+          autoStart: false,
+          allowLateJoin: true,
+        },
+      };
+
+      const settings = {
+        autoStartEnabled: false,
+        minParticipantsToStart: 1,
+        maxWaitTimeMinutes: 15,
+        lateJoinAllowedMinutes: 5,
+      };
+
+      if (!adminLobbyService)
+        throw new Error('WebSocket service not initialized');
+      await adminLobbyService.createLobby({
+        sessionId: session._id,
+        examData,
+        settings,
+      });
+
+      toast.success('Lobby creado exitosamente');
+      await checkExistingLobbies();
+      await loadActiveLobbies();
+    } catch (error) {
+      console.error('Error creating lobby:', error);
+      toast.error(
+        error instanceof Error ? error.message : 'Error creando lobby'
+      );
+    } finally {
+      setCreatingLobby(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(session._id!);
+        return newSet;
+      });
+    }
+  };
+
+  const joinLobbyAsAdmin = async (sessionId: string) => {
+    try {
+      if (!socketConnected) {
+        toast.error('WebSocket no conectado');
+        return;
+      }
+
+      if (!adminLobbyService)
+        throw new Error('WebSocket service not initialized');
+      await adminLobbyService.joinLobbyAsProctor(sessionId);
+      toast.success('Conectado al lobby como administrador');
+    } catch (error) {
+      console.error('Error joining lobby:', error);
+      toast.error(
+        error instanceof Error ? error.message : 'Error unirse al lobby'
+      );
+    }
+  };
+
+  const startExamFromLobby = async (sessionId: string) => {
+    try {
+      if (!socketConnected) {
+        toast.error('WebSocket no conectado');
+        return;
+      }
+
+      if (
+        confirm('¿Está seguro de que desea iniciar este examen manualmente?')
+      ) {
+        if (adminLobbyService) adminLobbyService.startExamManual(sessionId);
+        toast.info('Solicitando inicio de examen...');
+      }
+    } catch (error) {
+      console.error('Error starting exam:', error);
+      toast.error('Error iniciando examen desde lobby');
+    }
+  };
+
+  // Verificar si una sesión tiene lobby
+  const hasLobby = (sessionId: string): boolean => {
+    return lobbyStatuses.has(sessionId);
+  };
+
+  // Obtener estado del lobby
+  const getLobbyStatus = (sessionId: string): LobbyData | null => {
+    return lobbyStatuses.get(sessionId) || null;
+  };
+
+  // Validaciones de tiempo/fecha para sesiones
+  const isSessionInPast = (session: ExamSession): boolean => {
+    const sessionEndTime = new Date(session.scheduling.endDate).getTime();
+    return sessionEndTime < Date.now();
+  };
+
+  const isSessionStartTimeInPast = (session: ExamSession): boolean => {
+    const sessionStartTime = new Date(session.scheduling.startDate).getTime();
+    return sessionStartTime < Date.now();
+  };
+
+  const canCreateLobby = (session: ExamSession): boolean => {
+    // No crear lobby si la sesión ya terminó completamente
+    if (isSessionInPast(session)) return false;
+    
+    // No crear lobby si el estado no es apropiado
+    if (session.status !== 'scheduled') return false;
+    
+    // Permitir crear lobby hasta 30 minutos después de la hora de inicio programada
+    const sessionStartTime = new Date(session.scheduling.startDate).getTime();
+    const thirtyMinutesAfterStart = sessionStartTime + (30 * 60 * 1000);
+    const now = Date.now();
+    
+    return now <= thirtyMinutesAfterStart;
+  };
+
+  const canManageSession = (session: ExamSession): boolean => {
+    // Solo permitir gestión si la sesión no ha terminado
+    return !isSessionInPast(session) && session.status !== 'completed';
+  };
+
+  // Acciones de sesiones
+  const canStartSession = (session: ExamSession) =>
+    session.status === 'scheduled' &&
+    new Date(session.scheduling.startDate) <= new Date();
+
+  const canEndSession = (session: ExamSession) =>
+    session.status === 'in_progress';
+
+  const handleStartSession = async (sessionId: string) => {
+    if (confirm('¿Está seguro de que desea iniciar esta sesión?')) {
+      await startSession(sessionId);
+      loadSessions();
+    }
+  };
+
+  const handleEndSession = async (sessionId: string) => {
+    if (confirm('¿Está seguro de que desea finalizar esta sesión?')) {
+      await endSession(sessionId);
+      loadSessions();
+    }
+  };
+
+  // Búsqueda / filtros
+  const handleSearch = () => {
+    applyFilters({
+      ...localFilters,
+      q: searchTerm || undefined,
+    });
+  };
+
+  const handleClearFilters = () => {
+    setLocalFilters({ status: '', examId: '', startDate: '', endDate: '' });
+    setSearchTerm('');
+    clearFilters();
+  };
+
+  const formatDate = (date: string) => {
+    // Simplemente usar toLocaleString con zona horaria específica
+    const utcDate = new Date(date);
+    
+    return utcDate.toLocaleString('es-BO', {
+      timeZone: 'America/La_Paz',
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false,
+    });
+  };
+
+  const getStatusBadge = (status: string) => {
+    const statusConfig = {
+      scheduled: {
+        color: 'bg-blue-900/20 text-blue-400 border-blue-800/30',
+        icon: Clock,
+        text: 'Programada',
+      },
+      in_progress: {
+        color: 'bg-green-900/20 text-green-400 border-green-800/30',
+        icon: Play,
+        text: 'En Progreso',
+      },
+      completed: {
+        color: 'bg-gray-900/20 text-gray-300 border-gray-700',
+        icon: CheckCircle,
+        text: 'Completada',
+      },
+      cancelled: {
+        color: 'bg-red-900/20 text-red-400 border-red-800/30',
+        icon: XCircle,
+        text: 'Cancelada',
+      },
+      expired: {
+        color: 'bg-orange-900/20 text-orange-400 border-orange-800/30',
+        icon: XCircle,
+        text: 'Expirada',
+      },
+    } as const;
+
+    const cfg = (statusConfig as any)[status] || statusConfig.scheduled;
+    const Icon = cfg.icon;
+    return (
+      <span
+        className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${cfg.color}`}
+      >
+        <Icon className="w-3.5 h-3.5 mr-1" />
+        {cfg.text}
+      </span>
+    );
+  };
+
+  // Column helper para TanStack Table
+  const columnHelper = createColumnHelper<ExamSession>();
+  
+  // Definición de columnas
+  const columns = [
+    columnHelper.accessor('sessionName', {
+      header: 'Sesión',
+      size: 200,
+      cell: (info) => (
+        <div>
+          <div className="text-sm font-medium text-gray-200">
+            {info.getValue()}
+          </div>
+          <div className="text-xs text-gray-500">
+            ID: {info.row.original._id}
+          </div>
+        </div>
+      ),
+    }),
+    columnHelper.accessor((row) => (row as any).examId?.name || row.exam?.name, {
+      id: 'exam',
+      header: 'Examen',
+      size: 180,
+      cell: (info) => {
+        const session = info.row.original;
+        return (
+          <div>
+            <div className="text-sm text-gray-200">
+              {(session as any).examId?.name || session.exam?.name || 'Examen no disponible'}
+            </div>
+            <div className="text-xs text-gray-500">
+              {(session as any).examId?.type || session.exam?.type || 'N/A'} -
+              {(session as any).examId?.targetLevel || session.exam?.targetLevel || 'N/A'}
+            </div>
+          </div>
+        );
+      },
+    }),
+    columnHelper.accessor('scheduling.startDate', {
+      header: 'Fecha y Hora',
+      size: 160,
+      cell: (info) => {
+        const session = info.row.original;
+        return (
+          <div>
+            <div className="text-sm text-gray-200">
+              {formatDate(session.scheduling.startDate)}
+            </div>
+            <div className="text-xs text-gray-500">
+              hasta{' '}
+              {new Date(session.scheduling.endDate).toLocaleTimeString('es-BO', {
+                timeZone: 'America/La_Paz',
+                hour: '2-digit',
+                minute: '2-digit',
+                hour12: false,
+              })}
+            </div>
+          </div>
+        );
+      },
+    }),
+    columnHelper.accessor('participants', {
+      header: 'Participantes',
+      size: 120,
+      cell: (info) => {
+        const participants = info.getValue();
+        return (
+          <div>
+            <div className="flex items-center text-sm text-gray-200">
+              <Users className="h-4 w-4 mr-1 text-gray-400" />
+              {participants.registeredCandidates?.length || 0} / {participants.maxCandidates}
+            </div>
+            <div className="text-xs text-gray-500">
+              {participants.proctors?.length || 0} proctores
+            </div>
+          </div>
+        );
+      },
+    }),
+    columnHelper.accessor('status', {
+      header: 'Estado',
+      size: 120,
+      cell: (info) => getStatusBadge(info.getValue()),
+    }),
+    columnHelper.display({
+      id: 'lobby',
+      header: 'Lobby',
+      size: 120,
+      cell: (info) => {
+        const session = info.row.original;
+        const lobbyStatus = getLobbyStatus(session._id!);
+        const isCreating = creatingLobby.has(session._id!);
+
+        if (isCreating) {
+          return (
+            <div className="flex items-center gap-1 px-2 py-1 bg-yellow-500/20 text-yellow-300 border border-yellow-500/30 rounded-full text-xs">
+              <div className="animate-spin rounded-full h-3 w-3 border-b border-yellow-300"></div>
+              Creando...
+            </div>
+          );
+        }
+
+        if (lobbyStatus) {
+          return (
+            <div className="space-y-1">
+              <div
+                className={`flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium ${
+                  lobbyStatus.status === 'waiting'
+                    ? 'bg-blue-500/20 text-blue-300 border border-blue-500/30'
+                    : lobbyStatus.status === 'starting'
+                    ? 'bg-yellow-500/20 text-yellow-300 border border-yellow-500/30'
+                    : lobbyStatus.status === 'in_progress'
+                    ? 'bg-green-500/20 text-green-300 border border-green-500/30'
+                    : 'bg-gray-500/20 text-gray-300 border border-gray-500/30'
+                }`}
+              >
+                <MessageSquare className="w-3 h-3" />
+                {lobbyStatus.status === 'waiting'
+                  ? 'Esperando'
+                  : lobbyStatus.status === 'starting'
+                  ? 'Iniciando'
+                  : lobbyStatus.status === 'in_progress'
+                  ? 'En Progreso'
+                  : 'Finalizado'}
+              </div>
+              <div className="text-xs text-gray-500">
+                {lobbyStatus.participants}/{lobbyStatus.maxParticipants} participantes
+              </div>
+            </div>
+          );
+        }
+
+        if (canCreateLobby(session)) {
+          return (
+            <button
+              onClick={() => createLobbyForSession(session)}
+              disabled={!socketConnected}
+              className="flex items-center gap-1 px-2 py-1 bg-gray-600/20 text-gray-400 border border-gray-600/30 rounded-full text-xs hover:bg-gray-600/40 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              title={!socketConnected ? 'Servidor desconectado' : 'Crear lobby'}
+            >
+              <Plus className="w-3 h-3" />
+              Crear Lobby
+            </button>
+          );
+        }
+
+        // Mostrar mensajes informativos según el estado
+        if (isSessionInPast(session)) {
+          return <span className="text-xs text-red-400">Sesión terminada</span>;
+        }
+
+        if (session.status === 'completed') {
+          return <span className="text-xs text-gray-400">Completada</span>;
+        }
+
+        if (session.status === 'cancelled') {
+          return <span className="text-xs text-red-400">Cancelada</span>;
+        }
+
+        return <span className="text-xs text-gray-500">No disponible</span>;
+      },
+    }),
+    columnHelper.display({
+      id: 'actions',
+      header: 'Acciones',
+      size: 100,
+      cell: (info) => {
+        const session = info.row.original;
+        return (
+          <div className="grid grid-cols-3 gap-2 max-w-[120px]">
+            {/* Botón Ver detalles */}
+            <button
+              onClick={() => goDetail(session)}
+              className="p-2 text-blue-400 hover:text-blue-300 hover:bg-blue-400/10 rounded-md transition-all duration-200 flex items-center justify-center"
+              title="Ver detalles"
+            >
+              <Eye className="h-4 w-4" />
+            </button>
+
+            {/* Botón Editar */}
+            {session.status === 'scheduled' && canManageSession(session) && !isSessionStartTimeInPast(session) && (
+              <button
+                onClick={() => goEdit(session)}
+                className="p-2 text-gray-300 hover:text-gray-100 hover:bg-gray-400/10 rounded-md transition-all duration-200 flex items-center justify-center"
+                title="Editar"
+              >
+                <Edit className="h-4 w-4" />
+              </button>
+            )}
+
+            {/* Botón Gestionar proctores */}
+            {canManageSession(session) && (
+              <button
+                onClick={() => goProctors(session)}
+                className="p-2 text-orange-400 hover:text-orange-300 hover:bg-orange-400/10 rounded-md transition-all duration-200 flex items-center justify-center"
+                title="Gestionar proctores"
+              >
+                <User2 className="h-4 w-4" />
+              </button>
+            )}
+
+            {/* Botón Gestionar candidatos */}
+            {canManageSession(session) && (
+              <button
+                onClick={() => goCandidates(session)}
+                className="p-2 text-green-400 hover:text-green-300 hover:bg-green-400/10 rounded-md transition-all duration-200 flex items-center justify-center"
+                title="Gestionar candidatos"
+              >
+                <UserPlus className="h-4 w-4" />
+              </button>
+            )}
+
+            {/* Acciones de Lobby */}
+            {hasLobby(session._id!) && canManageSession(session) && (
+              <>
+                <button
+                  onClick={() => openLobbyInNewWindow(session._id!)}
+                  className="p-2 text-purple-400 hover:text-purple-300 hover:bg-purple-400/10 rounded-md transition-all duration-200 flex items-center justify-center"
+                  title="Abrir lobby (nueva ventana)"
+                >
+                  <Monitor className="h-4 w-4" />
+                </button>
+
+                <button
+                  onClick={() => joinLobbyAsAdmin(session._id!)}
+                  disabled={!socketConnected}
+                  className="p-2 text-blue-400 hover:text-blue-300 hover:bg-blue-400/10 rounded-md transition-all duration-200 flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed"
+                  title={socketConnected ? 'Conectar como admin' : 'WebSocket desconectado'}
+                >
+                  <MessageSquare className="h-4 w-4" />
+                </button>
+
+                {getLobbyStatus(session._id!)?.status === 'waiting' && (
+                  <button
+                    onClick={() => startExamFromLobby(session._id!)}
+                    disabled={!socketConnected}
+                    className="p-2 text-orange-400 hover:text-orange-300 hover:bg-orange-400/10 rounded-md transition-all duration-200 flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed"
+                    title={socketConnected ? 'Iniciar examen desde lobby' : 'WebSocket desconectado'}
+                  >
+                    <Play className="h-4 w-4" />
+                  </button>
+                )}
+              </>
+            )}
+
+            {/* Acciones tradicionales de sesión */}
+            {canStartSession(session) && !hasLobby(session._id!) && canManageSession(session) && (
+              <button
+                onClick={() => handleStartSession(session._id!)}
+                className="p-2 text-green-400 hover:text-green-300 hover:bg-green-400/10 rounded-md transition-all duration-200 flex items-center justify-center"
+                title="Iniciar la sesión (tradicional)"
+              >
+                <Play className="h-4 w-4" />
+              </button>
+            )}
+
+            {canEndSession(session) && canManageSession(session) && (
+              <button
+                onClick={() => handleEndSession(session._id!)}
+                className="p-2 text-red-400 hover:text-red-300 hover:bg-red-400/10 rounded-md transition-all duration-200 flex items-center justify-center"
+                title="Finalizar sesión"
+              >
+                <Square className="h-4 w-4" />
+              </button>
+            )}
+          </div>
+        );
+      },
+    }),
+  ];
+
+  // Configurar TanStack Table
+  const table = useReactTable({
+    data: sessions,
+    columns,
+    state: {
+      sorting,
+    },
+    onSortingChange: setSorting,
+    getCoreRowModel: getCoreRowModel(),
+    getSortedRowModel: getSortedRowModel(),
+    columnResizeMode: "onChange",
+
+  });
+
+  // Render por vista (igual a ExamsScreen: renderView())
+  const renderView = () => {
+    if (viewMode === 'detail' && selectedSession) {
+      return (
+        <SessionDetailView
+          session={selectedSession}
+          onBack={goTable}
+          onEdit={() => goEdit(selectedSession)}
+          onManageCandidates={() => goCandidates(selectedSession)}
+        />
+      );
+    }
+
+    if (viewMode === 'create' || viewMode === 'edit') {
+      return (
+        <div className="bg-box border border-line rounded-xl p-6">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-lg font-semibold text-white">
+              {viewMode === 'edit' ? 'Editar Sesión' : 'Nueva Sesión'}
+            </h2>
+            <button
+              onClick={goTable}
+              className="px-3 py-2 bg-dark-light border border-line rounded-lg text-gray-300 hover:bg-dark-light/80 flex items-center gap-2"
+            >
+              <XCircle className="w-4 h-4" /> Volver
+            </button>
+          </div>
+
+          <SessionForm
+            session={viewMode === 'edit' ? selectedSession : null}
+            onCancel={goTable}
+            onSaved={() => {
+              goTable();
+              loadSessions();
+            }}
+          />
+        </div>
+      );
+    }
+
+    if (viewMode === 'candidates' && selectedSession) {
+      return (
+        <div className="bg-box border border-line rounded-xl p-6">
+          <CandidateAssignmentView
+            session={selectedSession}
+            onClose={goTable}
+            loadSessions={loadSessions}
+            onSuccess={() => {
+              goTable();
+              loadSessions();
+            }}
+          />
+        </div>
+      );
+    }
+    if (viewMode === 'proctors' && selectedSession) {
+      return (
+        <div className="bg-box border border-line rounded-xl p-6">
+          <ProctorAssignmentModal
+            session={selectedSession}
+            onClose={goTable}
+            loadSessions={loadSessions}
+            onSuccess={() => {
+              goTable();
+              loadSessions();
+            }}
+          />
+        </div>
+      );
+    }
+    // Tabla (vista por defecto "table")
+    const baseInputClass =
+      'bg-gray-800/50 border-gray-600 text-white placeholder-gray-400 border-[0.5px] focus:border-blue-500 focus:ring-0 rounded-lg';
+
+    if (loading) {
+      return (
+        <div className="bg-box border border-line rounded-xl p-12 text-center">
+          <div className="inline-block animate-spin rounded-full h-10 w-10 border-b-2 border-blue-500"></div>
+          <p className="mt-4 text-gray-400">Cargando sesiones...</p>
+        </div>
+      );
+    }
+
+    if (error) {
+      return (
+        <div className="bg-box border border-line rounded-xl p-12 text-center">
+          <p className="text-red-400 mb-4">{error}</p>
+          <button
+            onClick={() => loadSessions()}
+            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-all"
+          >
+            Reintentar
+          </button>
+        </div>
+      );
+    }
+
+    return (
+      <div className="space-y-6">
+        {/* Header con búsqueda y acciones */}
+        <div className="bg-box border border-line rounded-xl p-6">
+          <div className="flex-1">
+            <div className="flex items-center gap-3">
+              <h2 className="text-2xl font-bold text-gray-200">
+                Sesiones de Examen
+              </h2>
+
+              {/* Indicador de conexión WebSocket */}
+              <div
+                className={`flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium ${
+                  socketConnected
+                    ? 'bg-green-500/20 text-green-300 border border-green-500/30'
+                    : 'bg-red-500/20 text-red-300 border border-red-500/30'
+                }`}
+              >
+                {socketConnected ? (
+                  <>
+                    <Wifi className="w-3 h-3" /> Servidor Conectado
+                  </>
+                ) : (
+                  <>
+                    <WifiOff className="w-3 h-3" /> Servidor Desconectado
+                  </>
+                )}
+              </div>
+
+              {/* Contador de lobbies activos */}
+              {activeLobbies.length > 0 && (
+                <div className="flex items-center gap-1 px-2 py-1 bg-blue-500/20 text-blue-300 border border-blue-500/30 rounded-full text-xs font-medium">
+                  <MessageSquare className="w-3 h-3" />
+                  {activeLobbies.length} Lobbies Activos
+                </div>
+              )}
+            </div>
+            <p className="text-gray-400 mt-1">
+              Gestiona y programa sesiones de evaluación
+            </p>
+          </div>
+
+          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 mt-4">
+            {/* Búsqueda */}
+            <div className="flex-1 max-w-xl">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5" />
+                <Input
+                  placeholder="Buscar por nombre de sesión..."
+                  value={searchTerm}
+                  onChange={e => setSearchTerm(e.target.value)}
+                  onKeyDown={e => e.key === 'Enter' && handleSearch()}
+                  className="pl-10 pr-3 w-full bg-gray-800/50 border-gray-600 text-white placeholder-gray-400"
+                />
+              </div>
+            </div>
+
+            {/* Acciones */}
+            <div className="flex items-center gap-3">
+              <button
+                onClick={() => setShowFilters(!showFilters)}
+                className="px-4 py-2.5 bg-dark-light border border-line rounded-lg hover:bg-dark-light/80 text-gray-300 flex items-center gap-2 transition-all"
+              >
+                <Filter className="w-4 h-4" />
+                Filtros
+              </button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={goCreate}
+                className="gap-1 bg-blue-600 hover:bg-blue-700 text-white"
+              >
+                <Plus className="w-4 h-4" />
+                Nueva Sesión
+              </Button>
+            </div>
+          </div>
+
+          {/* Filtros expandidos */}
+          {showFilters && (
+            <div className="mt-6 pt-6 border-t border-line">
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-400 mb-2">
+                    Estado
+                  </label>
+                  <select
+                    value={localFilters.status}
+                    onChange={e =>
+                      setLocalFilters(prev => ({
+                        ...prev,
+                        status: e.target.value,
+                      }))
+                    }
+                    className={`w-full px-3 py-2 text-sm ${baseInputClass}`}
+                  >
+                    <option value="">Todos</option>
+                    <option value="scheduled">Programada</option>
+                    <option value="in_progress">En Progreso</option>
+                    <option value="completed">Completada</option>
+                    <option value="cancelled">Cancelada</option>
+                    <option value="expired">Expirada</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-400 mb-2">
+                    Fecha Inicio
+                  </label>
+                  <input
+                    type="date"
+                    value={localFilters.startDate}
+                    onChange={e =>
+                      setLocalFilters(prev => ({
+                        ...prev,
+                        startDate: e.target.value,
+                      }))
+                    }
+                    className={`w-full px-3 py-2 text-sm ${baseInputClass}`}
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-400 mb-2">
+                    Fecha Fin
+                  </label>
+                  <input
+                    type="date"
+                    value={localFilters.endDate}
+                    onChange={e =>
+                      setLocalFilters(prev => ({
+                        ...prev,
+                        endDate: e.target.value,
+                      }))
+                    }
+                    className={`w-full px-3 py-2 text-sm ${baseInputClass}`}
+                  />
+                </div>
+                <div className="flex items-end gap-2">
+                  <button
+                    onClick={handleSearch}
+                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-all"
+                  >
+                    Aplicar
+                  </button>
+                  <button
+                    onClick={handleClearFilters}
+                    className="px-4 py-2 bg-dark-light border border-line rounded-lg hover:bg-dark-light/80 text-gray-300 transition-all"
+                  >
+                    Limpiar
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Tabla */}
+        <div className="bg-box border border-line rounded-xl overflow-hidden">
+          <CustomizableTable
+            table={table}
+            isLoading={loading}
+            isFetching={false}
+            isError={!!error}
+            errorMessage={error || undefined}
+            noDataMessage="No hay sesiones disponibles"
+            rows={10}
+          />
+          
+          {/* Paginación */}
+          {totalPages > 1 && (
+            <div className="px-6 py-4 border-t border-line flex flex-col sm:flex-row items-center justify-between gap-4">
+              <div className="text-sm text-gray-400">
+                Mostrando {(currentPage - 1) * 10 + 1} a{' '}
+                {Math.min(currentPage * 10, totalItems)} de {totalItems}{' '}
+                sesiones
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => changePage(currentPage - 1)}
+                  disabled={currentPage === 1}
+                  className="p-2 bg-dark-light border border-line rounded-lg hover:bg-dark-light/80 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                >
+                  <ChevronLeft className="w-4 h-4 text-gray-400" />
+                </button>
+
+                <div className="flex gap-1">
+                  {Array.from(
+                    { length: Math.min(5, totalPages) },
+                    (_, i) => {
+                      const page = i + 1;
+                      return (
+                        <button
+                          key={page}
+                          onClick={() => changePage(page)}
+                          className={`px-3 py-1 rounded-lg transition-all ${
+                            page === currentPage
+                              ? 'bg-blue-600 text-white'
+                              : 'bg-dark-light border border-line text-gray-400 hover:bg-dark-light/80'
+                          }`}
+                        >
+                          {page}
+                        </button>
+                      );
+                    }
+                  )}
+                </div>
+
+                <button
+                  onClick={() => changePage(currentPage + 1)}
+                  disabled={currentPage === totalPages}
+                  className="p-2 bg-dark-light border border-line rounded-lg hover:bg-dark-light/80 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                >
+                  <ChevronRight className="w-4 h-4 text-gray-400" />
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  };
+
+  return (
+    <MainLayout gradientVariant="aurora">
+      <div className="max-w-7xl mx-auto space-y-8 epilogue-uniquifier">
+        <div className="text-center space-y-3 mb-5">
+          <div className="flex justify-center">
+            <div className="p-2.5 rounded-full bg-gradient-to-br from-blue-500/15 to-purple-600/15 border border-blue-500/20">
+              <BookOpen className="h-3.5 w-3.5 text-blue-300" />
+            </div>
+          </div>
+        </div>
+
+        <GradientWrapper
+          intensity="low"
+          size="xl"
+          position="right"
+          animate={false}
+          variant="cosmic"
+        >
+          <div className="min-h-screen">{renderView()}</div>
+        </GradientWrapper>
+      </div>
+    </MainLayout>
+  );
+};
+
+export default SessionsList;

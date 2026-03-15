@@ -1,0 +1,59 @@
+%% Consolidated class diagram (Mermaid) for the system
+classDiagram
+    class User {
+        +String _id
+        +String email
+        +String password
+        +String firstName
+        +String lastName
+        +String role
+        +Date createdAt
+        +Date updatedAt
+        +login()
+        +logout()
+    }
+
+    class Candidate {
+        +String _id
+        +Object personalInfo
+        +Object academicInfo
+        +Object technicalSetup
+        +Array examHistory
+        +register()
+        +verify()
+    }
+
+    class Exam {
+        +String _id
+        +String name
+        +Object structure
+        +generateQuestions()
+    }
+
+    class Question {
+        +String _id
+        +String type
+        +Object content
+        +evaluate()
+    }
+
+    class ExamSession {
+        +String _id
+        +Object scheduling
+        +Array participants
+        +start()
+        +end()
+    }
+
+    class ExamResult {
+        +String _id
+        +String candidateId
+        +Array responses
+        +calculateScores()
+    }
+
+    User "1" --> "many" Candidate : registers
+    User "1" --> "many" Exam : creates
+    Exam "1" --> "many" ExamSession : instantiates
+    ExamSession "1" --> "many" ExamResult : contains
+    Exam "1" --> "many" Question : contains

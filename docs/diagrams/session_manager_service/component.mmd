@@ -1,0 +1,18 @@
+%% Session Manager component diagram
+graph TB
+    subgraph session-manager-service
+      S1[Express + Socket.IO API]
+      S2[Controllers: Sessions / Participants]
+      S3[Services: Real-time State, Monitoring]
+      S4[Redis - presence & locks]
+      S5[MongoDB - session records]
+      S6[Kafka Producer/Consumer]
+      S7[Admin UI, socket admin]
+    end
+
+    S1 --> S2
+    S2 --> S3
+    S3 --> S4
+    S3 --> S5
+    S2 --> S6
+    S1 --> S7

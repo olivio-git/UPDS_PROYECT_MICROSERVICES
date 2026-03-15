@@ -1,0 +1,31 @@
+# Dependencias para LLM LOCAL (Ollama)
+
+# ===========================================
+# LOCAL LLM SUPPORT (OLLAMA)
+# ===========================================
+# Agregar a requirements.txt cuando quieras habilitar LLMs locales
+
+# HTTP client para Ollama API
+aiohttp==3.9.1
+
+# Opcional: Cliente oficial de Ollama (más features)
+# ollama==0.1.7
+
+# ===========================================
+# INSTALACIÓN OLLAMA (EN TU MÁQUINA HOST)
+# ===========================================
+# 1. Instalar Ollama:
+#    curl -fsSL https://ollama.ai/install.sh | sh
+#
+# 2. Descargar modelo recomendado:
+#    ollama pull llama3.2:3b-instruct-q4_0
+#
+# 3. Otros modelos útiles:
+#    ollama pull qwen2.5:1.5b-instruct-q4_0  # Ultraligero
+#    ollama pull llama3.2:7b-instruct-q4_0   # Mejor calidad
+#
+# 4. Iniciar servidor:
+#    ollama serve
+#
+# 5. Verificar modelos instalados:
+#    ollama list

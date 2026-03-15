@@ -1,0 +1,91 @@
+%% Detailed class diagram (based on models)
+classDiagram
+    class User {
+        +ObjectId _id
+        +String email
+        +String password
+        +String firstName
+        +String lastName
+        +String role
+        +Array permissions
+        +Date createdAt
+        +Date updatedAt
+        +getFullName()
+        +isActive()
+    }
+
+    class Candidate {
+        +ObjectId _id
+        +ObjectId userId
+        +Object personalInfo
+        +Object academicInfo
+        +Object technicalSetup
+        +Array examHistory
+        +String status
+        +getFullName()
+        +calculateTargetLevel()
+    }
+
+    class Exam {
+        +ObjectId _id
+        +String name
+        +String type
+        +Object structure
+        +Object configuration
+        +Array questionPool
+        +generateQuestions()
+    }
+
+    class Question {
+        +ObjectId _id
+        +String type
+        +String competency
+        +String level
+        +Number difficulty
+        +Object content
+        +evaluate()
+    }
+
+    class ExamSession {
+        +ObjectId _id
+        +ObjectId examId
+        +Object scheduling
+        +Object participants
+        +String status
+        +start()
+        +end()
+    }
+
+    class Attempt {
+        +ObjectId _id
+        +ObjectId sessionId
+        +ObjectId candidateId
+        +Date startedAt
+        +Date finishedAt
+        +String status
+    }
+
+    class Response {
+        +ObjectId _id
+        +ObjectId questionId
+        +Object response
+        +Object evaluation
+        +Boolean isEvaluated
+    }
+
+    class Evaluation {
+        +Boolean isCorrect
+        +Number score
+        +Number maxScore
+        +String evaluatedBy
+        +Date evaluatedAt
+    }
+
+    %% relationships
+    User "1" --> "1" Candidate : owns
+    Candidate "1" --> "many" Attempt : attempts
+    Exam "1" --> "many" Question : contains
+    Exam "1" --> "many" ExamSession : instantiates
+    ExamSession "1" --> "many" Attempt : contains
+    Attempt "1" --> "many" Response : contains
+    Response "1" --> "1" Evaluation : has

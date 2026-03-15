@@ -1,0 +1,27 @@
+%% Use-case diagram for the system
+usecaseDiagram
+    actor Student
+    actor Teacher
+    actor Proctor
+    actor Admin
+
+    Student --> (Register / Login)
+    Student --> (Take Exam)
+    Student --> (View Results)
+    Student --> (Perform Technical Check)
+
+    Teacher --> (Create Exam)
+    Teacher --> (Create Questions)
+    Teacher --> (Review Results)
+
+    Proctor --> (Monitor Session)
+    Proctor --> (Flag Incidents)
+
+    Admin --> (Manage Users)
+    Admin --> (Manage Roles & Permissions)
+    Admin --> (Schedule Sessions)
+    Admin --> (View System Logs)
+
+    (Take Exam) ..> (Submit Answers) : include
+    (Submit Answers) ..> (Auto / AI Grading) : include
+    (Auto / AI Grading) ..> (Generate Reports) : include

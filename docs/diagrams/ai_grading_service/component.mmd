@@ -1,0 +1,16 @@
+%% AI Grading service component diagram
+graph TB
+    subgraph ai-grading-service
+      A1[FastAPI - /api/v1]
+      A2[Controllers: Grade Text / Grade Audio / Health]
+      A3[Services: NLP spaCy, ASR Whisper, Scoring]
+      A4[Model Hosts: Ollama / Local Models]
+      A5[MongoDB - grading results]
+      A6[Kafka Consumer - exam events]
+    end
+
+    A1 --> A2
+    A2 --> A3
+    A3 --> A4
+    A3 --> A5
+    A2 --> A6

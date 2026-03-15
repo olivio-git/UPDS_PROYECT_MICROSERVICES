@@ -1,0 +1,42 @@
+# Core FastAPI stack
+fastapi==0.104.1
+uvicorn[standard]==0.24.0
+pydantic==2.5.0
+pydantic-settings==2.1.0
+
+# Database - Compatible versions
+pymongo==4.5.0
+motor==3.3.1
+redis==5.0.1
+
+# Essential AI/ML (minimal for startup)
+spacy==3.7.2
+numpy==1.24.3
+# Commented out for faster builds - uncomment if advanced transformer models needed
+# transformers>=4.33.0
+# torch>=2.2.0
+
+# Text metrics
+textstat>=0.7.0
+vaderSentiment>=3.3.2
+
+# Grammar checking (LanguageTool) - rule-based, returns offsets and suggestions
+language-tool-python>=2.0.0
+
+# Audio processing (minimal)
+librosa==0.10.1
+openai-whisper==20231117
+
+# HTTP & Auth  
+httpx==0.25.2
+aiohttp==3.9.1
+python-jose[cryptography]==3.3.0
+python-multipart==0.0.6
+
+# Utils
+python-dotenv==1.0.0
+aiofiles==23.2.1
+
+# Development
+pytest==7.4.3
+pytest-asyncio==0.21.1

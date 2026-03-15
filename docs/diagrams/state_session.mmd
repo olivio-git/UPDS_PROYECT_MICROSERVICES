@@ -1,0 +1,12 @@
+%% State diagram for Session (exam session)
+stateDiagram-v2
+    [*] --> scheduled
+    scheduled --> in_progress: autoStart / manualStart
+    scheduled --> cancelled: cancelledByAdmin
+    in_progress --> completed: allCandidatesFinished / endTime
+    in_progress --> expired: timeLimitExceeded
+    in_progress --> cancelled: emergencyCancel
+    completed --> evaluated: gradingCompleted
+    expired --> archived
+    cancelled --> archived
+    completed --> archived
