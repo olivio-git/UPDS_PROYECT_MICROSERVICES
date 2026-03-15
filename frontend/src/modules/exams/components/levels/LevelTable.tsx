@@ -66,7 +66,7 @@ const LevelTable = ({
         variant={isActive ? "default" : "secondary"}
         className={`${
           isActive 
-            ? "bg-green-500/20 text-green-300 border-green-500/30" 
+            ? "bg-green-100 text-green-700 border-green-200 dark:bg-green-500/20 dark:text-green-300 dark:border-green-500/30"
             : "bg-muted/50 text-muted-foreground border-border"
         }`}
       >
@@ -77,7 +77,7 @@ const LevelTable = ({
 
   if (isLoading) {
     return (
-      <div className="bg-box/50 backdrop-blur-sm border border-line rounded-xl p-8">
+      <div className="bg-card/50 backdrop-blur-sm border border-line rounded-xl p-8">
         <div className="flex items-center justify-center space-x-2">
           <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-500"></div>
           <span className="text-muted-foreground">Cargando niveles...</span>
@@ -88,7 +88,7 @@ const LevelTable = ({
 
   if (isError) {
     return (
-      <div className="bg-box/50 backdrop-blur-sm border border-line rounded-xl p-8">
+      <div className="bg-card/50 backdrop-blur-sm border border-line rounded-xl p-8">
         <div className="text-center space-y-3">
           <div className="text-red-400">❌ Error al cargar los niveles</div>
           <p className="text-muted-foreground text-sm">{errorMessage}</p>
@@ -99,7 +99,7 @@ const LevelTable = ({
 
   if (levels.length === 0) {
     return (
-      <div className="bg-box/50 backdrop-blur-sm border border-line rounded-xl p-8">
+      <div className="bg-card/50 backdrop-blur-sm border border-line rounded-xl p-8">
         <div className="text-center space-y-4">
           <BookOpen className="h-12 w-12 text-muted-foreground mx-auto" />
           <div className="space-y-2">
@@ -114,10 +114,10 @@ const LevelTable = ({
   }
 
   return (
-    <div className="bg-box/50 backdrop-blur-sm border border-line rounded-xl overflow-hidden bg-box">
+    <div className="bg-card backdrop-blur-sm border border-line rounded-xl overflow-hidden">
       <Table>
         <TableHeader>
-          <TableRow className="border-line hover:bg-line/30">
+          <TableRow className="border-line hover:bg-muted/30">
             <TableHead className="text-muted-foreground font-medium">Nivel</TableHead>
             <TableHead className="text-muted-foreground font-medium">Nombre</TableHead>
             <TableHead className="text-muted-foreground font-medium">Descripción</TableHead>
@@ -131,12 +131,12 @@ const LevelTable = ({
           {levels.map((level) => (
             <TableRow 
               key={level._id}
-              className="border-line hover:bg-line/20 transition-colors"
+              className="border-line hover:bg-muted/20 transition-colors"
             >
               <TableCell>
                 <div className="flex items-center space-x-2">
                   <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500/20 to-purple-600/20 border border-blue-500/30 flex items-center justify-center">
-                    <span className="text-blue-300 font-bold text-sm">{level.code}</span>
+                    <span className="text-blue-700 dark:text-blue-300 font-bold text-sm">{level.code}</span>
                   </div>
                 </div>
               </TableCell>
@@ -179,18 +179,18 @@ const LevelTable = ({
                     <Button 
                       variant="ghost" 
                       size="sm"
-                      className="h-8 w-8 p-0 hover:bg-line/50"
+                      className="h-8 w-8 p-0 hover:bg-muted"
                     >
                       <MoreHorizontal className="h-4 w-4 text-muted-foreground" />
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent 
                     align="end" 
-                    className="bg-box border-line"
+                    className="bg-popover border-line"
                   >
                     <DropdownMenuItem 
                       onClick={() => onViewLevel(level)}
-                      className="text-foreground hover:bg-line/50 focus:bg-line/50"
+                      className="text-foreground hover:bg-muted focus:bg-muted"
                     >
                       <Eye className="h-4 w-4 mr-2" />
                       Ver detalles
@@ -198,13 +198,13 @@ const LevelTable = ({
                     
                     <DropdownMenuItem 
                       onClick={() => onEditLevel(level)}
-                      className="text-foreground hover:bg-line/50 focus:bg-line/50"
+                      className="text-foreground hover:bg-muted focus:bg-muted"
                     >
                       <Edit className="h-4 w-4 mr-2" />
                       Editar
                     </DropdownMenuItem>
                     
-                    <DropdownMenuSeparator className="bg-line" />
+                    <DropdownMenuSeparator className="bg-border" />
                     
                     {level.isActive ? (
                       <DropdownMenuItem 
@@ -224,7 +224,7 @@ const LevelTable = ({
                       </DropdownMenuItem>
                     )}
                     
-                    <DropdownMenuSeparator className="bg-line" />
+                    <DropdownMenuSeparator className="bg-border" />
                     
                     <DropdownMenuItem 
                       onClick={() => onDeleteLevel(level)}

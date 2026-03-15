@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import { useTheme } from '@/context/ThemeContext';
 
 interface GradientWrapperProps {
   children: ReactNode;
@@ -120,18 +121,19 @@ const GradientWrapper = ({
     }
   };
 
+  const { theme } = useTheme();
   const config = variantConfig[variant];
   const animationClass = animate ? 'animate-pulse-slow' : '';
 
   return (
     <div className={`relative ${className}`}>
-      {/* Gradiente de fondo - positioned absolute para no afectar layout */}
-      <div 
-        className={`absolute pointer-events-none z-0 ${sizeConfig[size]} ${positionConfig[position]} ${config.blur} ${animationClass} rounded-full`}
-        style={{
-          background: config.gradient
-        }}
-      />
+      {/* Gradiente solo en dark mode — en light se ve saturado sobre fondo claro */}
+      {theme === 'dark' && (
+        <div
+          className={`absolute pointer-events-none z-0 ${sizeConfig[size]} ${positionConfig[position]} ${config.blur} ${animationClass} rounded-full`}
+          style={{ background: config.gradient }}
+        />
+      )}
       
       {/* Contenido - positioned relative para estar encima del gradiente */}
       <div className="relative z-10">

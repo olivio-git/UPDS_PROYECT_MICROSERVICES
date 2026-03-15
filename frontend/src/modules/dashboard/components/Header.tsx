@@ -339,7 +339,7 @@ const Header = () => {
           </div>
 
           {/* Desktop Navigation */}
-          <nav className="hidden md:flex px-6 py-1 text-xs font-medium rounded-full bg-background/80 backdrop-blur-xl border border-border/40 text-foreground justify-center items-center gap-4">
+          <nav className="hidden md:flex px-6 py-1 text-xs font-medium rounded-full bg-background/80 backdrop-blur-xl border border-border text-foreground justify-center items-center gap-4">
             {filteredRoutes.map(route => {
               const IconComponent = route.icon;
               const isActive = location.pathname === route.path;
@@ -386,7 +386,7 @@ const Header = () => {
                 variant="outline"
                 size="icon"
                 onClick={() => setIsNotificationsOpen(!isNotificationsOpen)}
-                className="relative border border-border/40 bg-background/80 backdrop-blur-sm hover:border-border hover:bg-muted transition-all duration-300"
+                className="relative border border-border bg-background/80 backdrop-blur-sm hover:border-border hover:bg-muted transition-all duration-300"
               >
                 <Bell className="h-4 w-4 text-foreground" />
                 {unreadCount > 0 && (
@@ -514,7 +514,7 @@ const Header = () => {
                 variant="outline"
                 size="icon"
                 onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
-                className="border border-border/40 bg-background/80 backdrop-blur-sm hover:border-border hover:bg-muted transition-all duration-300"
+                className="border border-border bg-background/80 backdrop-blur-sm hover:border-border hover:bg-muted transition-all duration-300"
               >
                 <User className="h-4 w-4 text-foreground" />
               </Button>
@@ -586,7 +586,7 @@ const Header = () => {
                 variant="outline"
                 size="icon"
                 onClick={toggleMobileMenu}
-                className="md:hidden border border-border/40 bg-background/80 backdrop-blur-sm hover:border-border hover:bg-muted transition-all duration-300"
+                className="md:hidden border border-border bg-background/80 backdrop-blur-sm hover:border-border hover:bg-muted transition-all duration-300"
               >
                 <Menu className="h-4 w-4 text-foreground" />
               </Button>
@@ -639,7 +639,7 @@ const Header = () => {
                 <Button
                   variant="outline"
                   size="icon"
-                  className="border border-border/40 bg-background/80 backdrop-blur-sm hover:border-border hover:bg-muted transition-all duration-300 relative"
+                  className="border border-border bg-background/80 backdrop-blur-sm hover:border-border hover:bg-muted transition-all duration-300 relative"
                 >
                   <Bell className="h-4 w-4 text-foreground" />
                   {unreadCount > 0 && (

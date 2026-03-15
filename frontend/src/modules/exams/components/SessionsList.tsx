@@ -349,12 +349,12 @@ const SessionsList: React.FC = () => {
   const getStatusBadge = (status: string) => {
     const statusConfig = {
       scheduled: {
-        color: 'bg-blue-900/20 text-blue-400 border-blue-800/30',
+        color: 'bg-blue-100 text-blue-700 border-blue-200 dark:bg-blue-500/20 dark:text-blue-300 dark:border-blue-500/30',
         icon: Clock,
         text: 'Programada',
       },
       in_progress: {
-        color: 'bg-green-900/20 text-green-400 border-green-800/30',
+        color: 'bg-green-100 text-green-700 border-green-200 dark:bg-green-500/20 dark:text-green-300 dark:border-green-500/30',
         icon: Play,
         text: 'En Progreso',
       },
@@ -364,12 +364,12 @@ const SessionsList: React.FC = () => {
         text: 'Completada',
       },
       cancelled: {
-        color: 'bg-red-900/20 text-red-400 border-red-800/30',
+        color: 'bg-red-100 text-red-700 border-red-200 dark:bg-red-500/20 dark:text-red-300 dark:border-red-500/30',
         icon: XCircle,
         text: 'Cancelada',
       },
       expired: {
-        color: 'bg-orange-900/20 text-orange-400 border-orange-800/30',
+        color: 'bg-orange-100 text-orange-700 border-orange-200 dark:bg-orange-500/20 dark:text-orange-300 dark:border-orange-500/30',
         icon: XCircle,
         text: 'Expirada',
       },
@@ -487,11 +487,11 @@ const SessionsList: React.FC = () => {
         // Dynamic color based on fill percentage
         let iconColor = 'text-muted-foreground'; // Empty state
         if (fillPercentage > 0.7) {
-          iconColor = 'text-red-400'; // High occupancy
+          iconColor = 'text-red-600 dark:text-red-400'; // High occupancy
         } else if (fillPercentage > 0.4) {
-          iconColor = 'text-orange-400'; // Medium occupancy
+          iconColor = 'text-orange-600 dark:text-orange-400'; // Medium occupancy
         } else if (fillPercentage > 0) {
-          iconColor = 'text-cyan-400'; // Low occupancy
+          iconColor = 'text-cyan-600 dark:text-cyan-400'; // Low occupancy
         }
         
         return (
@@ -533,7 +533,7 @@ const SessionsList: React.FC = () => {
             {/* Botón Ver detalles */}
             <button
               onClick={() => goDetail(session)}
-              className="p-2 text-blue-400 hover:text-blue-300 hover:bg-blue-400/10 rounded-md transition-all duration-200 flex items-center justify-center"
+              className="p-2 text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 hover:bg-blue-100 dark:hover:bg-blue-400/10 rounded-md transition-all duration-200 flex items-center justify-center"
               title="Ver detalles"
             >
               <Eye className="h-4 w-4" />
@@ -543,7 +543,7 @@ const SessionsList: React.FC = () => {
             {session.status === 'in_progress' && (
               <button
                 onClick={() => navigate(`/sessions/${session._id}/monitor`)}
-                className="p-2 text-cyan-400 hover:text-cyan-300 hover:bg-cyan-400/10 rounded-md transition-all duration-200 flex items-center justify-center"
+                className="p-2 text-cyan-600 dark:text-cyan-400 hover:text-cyan-700 dark:hover:text-cyan-300 hover:bg-cyan-100 dark:hover:bg-cyan-400/10 rounded-md transition-all duration-200 flex items-center justify-center"
                 title="Monitorear en tiempo real"
               >
                 <Activity className="h-4 w-4" />
@@ -567,7 +567,7 @@ const SessionsList: React.FC = () => {
             {canManageSession(session) && (
               <button
                 onClick={() => goProctors(session)}
-                className="p-2 text-orange-400 hover:text-orange-300 hover:bg-orange-400/10 rounded-md transition-all duration-200 flex items-center justify-center"
+                className="p-2 text-orange-600 dark:text-orange-400 hover:text-orange-700 dark:hover:text-orange-300 hover:bg-orange-100 dark:hover:bg-orange-400/10 rounded-md transition-all duration-200 flex items-center justify-center"
                 title="Gestionar proctores"
               >
                 <User2 className="h-4 w-4" />
@@ -578,7 +578,7 @@ const SessionsList: React.FC = () => {
             {canManageSession(session) && (
               <button
                 onClick={() => goCandidates(session)}
-                className="p-2 text-green-400 hover:text-green-300 hover:bg-green-400/10 rounded-md transition-all duration-200 flex items-center justify-center"
+                className="p-2 text-green-600 dark:text-green-400 hover:text-green-700 dark:hover:text-green-300 hover:bg-green-100 dark:hover:bg-green-400/10 rounded-md transition-all duration-200 flex items-center justify-center"
                 title="Gestionar candidatos"
               >
                 <UserPlus className="h-4 w-4" />
@@ -589,7 +589,7 @@ const SessionsList: React.FC = () => {
             {canStartSession(session) && canManageSession(session) && (
               <button
                 onClick={() => handleStartSession(session._id!)}
-                className="p-2 text-green-400 hover:text-green-300 hover:bg-green-400/10 rounded-md transition-all duration-200 flex items-center justify-center"
+                className="p-2 text-green-600 dark:text-green-400 hover:text-green-700 dark:hover:text-green-300 hover:bg-green-100 dark:hover:bg-green-400/10 rounded-md transition-all duration-200 flex items-center justify-center"
                 title="Iniciar sesión"
               >
                 <Play className="h-4 w-4" />
@@ -599,7 +599,7 @@ const SessionsList: React.FC = () => {
             {canEndSession(session) && canManageSession(session) && (
               <button
                 onClick={() => handleEndSession(session._id!)}
-                className="p-2 text-red-400 hover:text-red-300 hover:bg-red-400/10 rounded-md transition-all duration-200 flex items-center justify-center"
+                className="p-2 text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 hover:bg-red-100 dark:hover:bg-red-400/10 rounded-md transition-all duration-200 flex items-center justify-center"
                 title="Finalizar sesión"
               >
                 <Square className="h-4 w-4" />
@@ -611,7 +611,7 @@ const SessionsList: React.FC = () => {
               <button
                 onClick={() => handleRegrade(session)}
                 disabled={regradingId === session._id}
-                className="p-2 text-purple-400 hover:text-purple-300 hover:bg-purple-400/10 rounded-md transition-all duration-200 flex items-center justify-center disabled:opacity-50"
+                className="p-2 text-purple-600 dark:text-purple-400 hover:text-purple-700 dark:hover:text-purple-300 hover:bg-purple-100 dark:hover:bg-purple-400/10 rounded-md transition-all duration-200 flex items-center justify-center disabled:opacity-50"
                 title="Recalificar examen"
               >
                 {regradingId === session._id
@@ -653,14 +653,14 @@ const SessionsList: React.FC = () => {
 
     if (viewMode === 'create' || viewMode === 'edit') {
       return (
-        <div className="bg-box border border-line rounded-xl p-6">
+        <div className="bg-card border border-line rounded-xl p-6">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-lg font-semibold text-foreground">
               {viewMode === 'edit' ? 'Editar Sesión' : 'Nueva Sesión'}
             </h2>
             <button
               onClick={goTable}
-              className="px-3 py-2 bg-dark-light border border-line rounded-lg text-foreground/80 hover:bg-dark-light/80 flex items-center gap-2"
+              className="px-3 py-2 bg-muted/50 border border-line rounded-lg text-foreground/80 hover:bg-muted flex items-center gap-2"
             >
               <XCircle className="w-4 h-4" /> Volver
             </button>
@@ -680,7 +680,7 @@ const SessionsList: React.FC = () => {
 
     if (viewMode === 'candidates' && selectedSession) {
       return (
-        <div className="bg-box border border-line rounded-xl p-6">
+        <div className="bg-card border border-line rounded-xl p-6">
           <CandidateAssignmentView
             session={selectedSession}
             onClose={goTable}
@@ -695,7 +695,7 @@ const SessionsList: React.FC = () => {
     }
     if (viewMode === 'proctors' && selectedSession) {
       return (
-        <div className="bg-box border border-line rounded-xl p-6">
+        <div className="bg-card border border-line rounded-xl p-6">
           <ProctorAssignmentModal
             session={selectedSession}
             onClose={goTable}
@@ -710,11 +710,11 @@ const SessionsList: React.FC = () => {
     }
     // Tabla (vista por defecto "table")
     const baseInputClass =
-      'bg-box border-line text-foreground placeholder-muted-foreground border-[0.5px] focus:border-blue-500 focus:ring-0 rounded-lg';
+      'bg-muted/50 border-border text-foreground placeholder:text-muted-foreground border-[0.5px] focus:border-blue-500 focus:ring-0 rounded-lg';
 
     if (loading) {
       return (
-        <div className="bg-box border border-line rounded-xl p-12 text-center">
+        <div className="bg-card border border-line rounded-xl p-12 text-center">
           <div className="inline-block animate-spin rounded-full h-10 w-10 border-b-2 border-blue-500"></div>
           <p className="mt-4 text-muted-foreground">Cargando sesiones...</p>
         </div>
@@ -723,7 +723,7 @@ const SessionsList: React.FC = () => {
 
     if (error) {
       return (
-        <div className="bg-box border border-line rounded-xl p-12 text-center">
+        <div className="bg-card border border-line rounded-xl p-12 text-center">
           <p className="text-red-400 mb-4">{error}</p>
           <button
             onClick={() => loadSessions()}
@@ -738,7 +738,7 @@ const SessionsList: React.FC = () => {
     return (
       <div className="space-y-6">
         {/* Header con búsqueda y acciones */}
-        <div className="bg-box border border-line rounded-xl p-6">
+        <div className="bg-card border border-line rounded-xl p-6">
           <div className="flex-1">
             <div className="flex items-center gap-3">
               <h2 className="text-2xl font-bold text-foreground">
@@ -803,7 +803,7 @@ const SessionsList: React.FC = () => {
             <div className="flex items-center gap-3"> 
               <Button
                 size={"sm"}
-                className='px-4 py-2.5 bg-dark-light border border-line rounded-lg hover:bg-dark-light/80 text-foreground/80 flex items-center gap-2 transition-all'
+                className='px-4 py-2.5 bg-muted/50 border border-line rounded-lg hover:bg-muted text-foreground/80 flex items-center gap-2 transition-all'
                 onClick={() => setShowFilters(!showFilters)}
               >
                 <Filter className="w-4 h-4" />
@@ -940,7 +940,7 @@ const SessionsList: React.FC = () => {
                   </button>
                   <button
                     onClick={handleClearFilters}
-                    className="px-4 py-2 bg-dark-light border border-line rounded-lg hover:bg-dark-light/80 text-foreground/80 transition-all"
+                    className="px-4 py-2 bg-muted/50 border border-line rounded-lg hover:bg-muted text-foreground/80 transition-all"
                   >
                     Limpiar
                   </button>
@@ -951,7 +951,7 @@ const SessionsList: React.FC = () => {
         </div>
 
         {/* Tabla */}
-        <div className="bg-box border border-line rounded-xl overflow-hidden">
+        <div className="bg-card border border-line rounded-xl overflow-hidden">
           <CustomizableTable
             table={table}
             isLoading={loading}
@@ -974,7 +974,7 @@ const SessionsList: React.FC = () => {
                 <button
                   onClick={() => changePage(currentPage - 1)}
                   disabled={currentPage === 1}
-                  className="p-2 bg-dark-light border border-line rounded-lg hover:bg-dark-light/80 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                  className="p-2 bg-muted/50 border border-line rounded-lg hover:bg-muted disabled:opacity-50 disabled:cursor-not-allowed transition-all"
                 >
                   <ChevronLeft className="w-4 h-4 text-muted-foreground" />
                 </button>
@@ -989,7 +989,7 @@ const SessionsList: React.FC = () => {
                         className={`px-3 py-1 rounded-lg transition-all ${
                           page === currentPage
                             ? 'bg-blue-600 text-white'
-                            : 'bg-dark-light border border-line text-muted-foreground hover:bg-dark-light/80'
+                            : 'bg-muted/50 border border-line text-muted-foreground hover:bg-muted'
                         }`}
                       >
                         {page}
@@ -1001,7 +1001,7 @@ const SessionsList: React.FC = () => {
                 <button
                   onClick={() => changePage(currentPage + 1)}
                   disabled={currentPage === totalPages}
-                  className="p-2 bg-dark-light border border-line rounded-lg hover:bg-dark-light/80 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                  className="p-2 bg-muted/50 border border-line rounded-lg hover:bg-muted disabled:opacity-50 disabled:cursor-not-allowed transition-all"
                 >
                   <ChevronRight className="w-4 h-4 text-muted-foreground" />
                 </button>

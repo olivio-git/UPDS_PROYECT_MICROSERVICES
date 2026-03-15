@@ -202,10 +202,10 @@ const QuestionsScreen = () => {
   };
 
   const getDifficultyColor = (d: number) => {
-    if (d <= 2) return 'text-green-400 bg-green-900/20 border-green-800/30';
-    if (d <= 3) return 'text-yellow-400 bg-yellow-900/20 border-yellow-800/30';
-    if (d <= 4) return 'text-orange-400 bg-orange-900/20 border-orange-800/30';
-    return 'text-red-400 bg-red-900/20 border-red-800/30';
+    if (d <= 2) return 'bg-green-100 text-green-700 border-green-200 dark:bg-green-500/20 dark:text-green-300 dark:border-green-500/30';
+    if (d <= 3) return 'bg-yellow-100 text-yellow-700 border-yellow-200 dark:bg-yellow-500/20 dark:text-yellow-300 dark:border-yellow-500/30';
+    if (d <= 4) return 'bg-orange-100 text-orange-700 border-orange-200 dark:bg-orange-500/20 dark:text-orange-300 dark:border-orange-500/30';
+    return 'bg-red-100 text-red-700 border-red-200 dark:bg-red-500/20 dark:text-red-300 dark:border-red-500/30';
   };
   const getDifficultyLabel = (d: number) =>
     ['', 'Muy Fácil', 'Fácil', 'Medio', 'Difícil', 'Muy Difícil'][d] || '';
@@ -288,7 +288,7 @@ const QuestionsScreen = () => {
         size: 120,
         accessorKey: 'level',
         cell: ({ getValue }) => (
-          <span className="px-2.5 py-1 text-xs font-medium bg-blue-900/20 text-blue-400 border border-blue-800/30 rounded-lg">
+          <span className="px-2.5 py-1 text-xs font-medium bg-blue-100 text-blue-700 border border-blue-200 dark:bg-blue-500/20 dark:text-blue-300 dark:border-blue-500/30 rounded-lg">
             {String(getValue() ?? '')}
           </span>
         ),
@@ -386,7 +386,7 @@ const QuestionsScreen = () => {
             <span
               className={`px-2.5 py-1 text-xs font-medium border rounded-lg ${
                 active
-                  ? 'bg-green-900/20 text-green-400 border-green-800/30'
+                  ? 'bg-green-100 text-green-700 border-green-200 dark:bg-green-500/20 dark:text-green-300 dark:border-green-500/30'
                   : 'bg-muted/20 text-muted-foreground border-border/30'
               }`}
             >
@@ -407,29 +407,29 @@ const QuestionsScreen = () => {
             <div className="text-right">
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <button className="p-2 hover:bg-dark-light rounded-lg transition-colors">
+                  <button className="p-2 hover:bg-muted rounded-lg transition-colors">
                     <MoreVertical className="w-4 h-4 text-muted-foreground" />
                   </button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="bg-box border-line">
+                <DropdownMenuContent align="end" className="bg-popover border-line">
                   <DropdownMenuItem
                     onClick={() => handleViewDetails(q)}
-                    className="text-foreground hover:bg-dark-light cursor-pointer"
+                    className="text-foreground hover:bg-muted cursor-pointer"
                   >
                     <FileText className="w-4 h-4 mr-2" />
                     Ver detalles
                   </DropdownMenuItem>
                   <DropdownMenuItem
                     onClick={() => handleEdit(q)}
-                    className="text-foreground hover:bg-dark-light cursor-pointer"
+                    className="text-foreground hover:bg-muted cursor-pointer"
                   >
                     <Edit className="w-4 h-4 mr-2" />
                     Editar
                   </DropdownMenuItem>
-                  <DropdownMenuSeparator className="bg-line" />
+                  <DropdownMenuSeparator className="bg-border" />
                   <DropdownMenuItem
                     onClick={() => askDelete(q)}
-                    className="text-red-400 hover:bg-dark-light cursor-pointer"
+                    className="text-red-400 hover:bg-muted cursor-pointer"
                   >
                     <Trash2 className="w-4 h-4 mr-2" />
                     Eliminar
@@ -468,14 +468,14 @@ const QuestionsScreen = () => {
 
     if (viewMode === 'create' || viewMode === 'edit') {
       return (
-        <div className="bg-box border border-line rounded-xl p-6">
+        <div className="bg-card border border-line rounded-xl p-6">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-lg font-semibold text-foreground">
               {viewMode === 'edit' ? 'Editar Pregunta' : 'Nueva Pregunta'}
             </h2>
             <button
               onClick={handleBackToTable}
-              className="px-3 py-2 bg-dark-light border border-line rounded-lg text-muted-foreground hover:bg-dark-light/80 flex items-center gap-2"
+              className="px-3 py-2 bg-muted/50 border border-line rounded-lg text-muted-foreground hover:bg-muted flex items-center gap-2"
             >
               <X className="w-4 h-4" /> Volver
             </button>
@@ -495,14 +495,14 @@ const QuestionsScreen = () => {
 
     if (viewMode === 'import') {
       return (
-        <div className="bg-box border border-line rounded-xl p-6">
+        <div className="bg-card border border-line rounded-xl p-6">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-lg font-semibold text-foreground">
               Importar preguntas
             </h2>
             <button
               onClick={handleBackToTable}
-              className="px-3 py-2 bg-dark-light border border-line rounded-lg text-muted-foreground hover:bg-dark-light/80 flex items-center gap-2"
+              className="px-3 py-2 bg-muted/50 border border-line rounded-lg text-muted-foreground hover:bg-muted flex items-center gap-2"
             >
               <X className="w-4 h-4" /> Volver
             </button>
@@ -524,7 +524,7 @@ const QuestionsScreen = () => {
     return (
       <div className="space-y-6">
         {/* Header con búsqueda y acciones */}
-        <div className="bg-box border border-line rounded-xl p-6">
+        <div className="bg-card border border-line rounded-xl p-6">
           <div className="flex-1">
             <h2 className="text-2xl font-bold text-foreground">
               Gestión de Preguntas
@@ -549,7 +549,7 @@ const QuestionsScreen = () => {
             <div className="flex items-center gap-3">
               <button
                 onClick={() => setShowFilters(!showFilters)}
-                className="px-4 py-2.5 bg-dark-light border border-line rounded-lg hover:bg-dark-light/80 text-muted-foreground flex items-center gap-2 transition-all"
+                className="px-4 py-2.5 bg-muted/50 border border-line rounded-lg hover:bg-muted text-muted-foreground flex items-center gap-2 transition-all"
               >
                 <Filter className="w-4 h-4" />
                 Filtros
@@ -586,7 +586,7 @@ const QuestionsScreen = () => {
                     Tipo
                   </label>
                   {/* <select
-                    className="w-full px-3 py-2 bg-dark-light border border-line rounded-lg text-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50"
+                    className="w-full px-3 py-2 bg-muted/50 border border-line rounded-lg text-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50"
                     value={localFilters.type}
                     onChange={(e) => setLocalFilters({ ...localFilters, type: e.target.value })}
                   >
@@ -781,7 +781,7 @@ const QuestionsScreen = () => {
                   </button>
                   <button
                     onClick={handleClearFilters}
-                    className="px-4 py-2 bg-dark-light border border-line rounded-lg hover:bg-dark-light/80 text-muted-foreground transition-all"
+                    className="px-4 py-2 bg-muted/50 border border-line rounded-lg hover:bg-muted text-muted-foreground transition-all"
                   >
                     Limpiar
                   </button>
@@ -792,7 +792,7 @@ const QuestionsScreen = () => {
         </div>
 
         {/* Tabla */}
-        <div className="bg-box border border-line rounded-xl overflow-hidden">
+        <div className="bg-card border border-line rounded-xl overflow-hidden">
           {loading ? (
             <div className="p-12 text-center">
               <div className="inline-block animate-spin rounded-full h-10 w-10 border-b-2 border-blue-500"></div>
@@ -822,7 +822,7 @@ const QuestionsScreen = () => {
           ) : (
             <>
               <div className="overflow-x-auto">
-                <div className="bg-box border border-line rounded-xl overflow-hidden">
+                <div className="bg-card border border-line rounded-xl overflow-hidden">
                   <CustomizableTable
                     table={table}
                     isLoading={loading}
@@ -848,7 +848,7 @@ const QuestionsScreen = () => {
                       <button
                         onClick={() => changePage(currentPage - 1)}
                         disabled={currentPage === 1}
-                        className="p-2 bg-dark-light border border-line rounded-lg hover:bg-dark-light/80 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                        className="p-2 bg-muted/50 border border-line rounded-lg hover:bg-muted disabled:opacity-50 disabled:cursor-not-allowed transition-all"
                       >
                         <ChevronLeft className="w-4 h-4 text-muted-foreground" />
                       </button>
@@ -875,7 +875,7 @@ const QuestionsScreen = () => {
                                 className={`px-3 py-1 rounded-lg transition-all ${
                                   page === currentPage
                                     ? 'bg-blue-600 text-white'
-                                    : 'bg-dark-light border border-line text-muted-foreground hover:bg-dark-light/80'
+                                    : 'bg-muted/50 border border-line text-muted-foreground hover:bg-muted'
                                 }`}
                               >
                                 {page}
@@ -890,7 +890,7 @@ const QuestionsScreen = () => {
                       <button
                         onClick={() => changePage(currentPage + 1)}
                         disabled={currentPage === totalPages}
-                        className="p-2 bg-dark-light border border-line rounded-lg hover:bg-dark-light/80 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                        className="p-2 bg-muted/50 border border-line rounded-lg hover:bg-muted disabled:opacity-50 disabled:cursor-not-allowed transition-all"
                       >
                         <ChevronRight className="w-4 h-4 text-muted-foreground" />
                       </button>
@@ -907,7 +907,7 @@ const QuestionsScreen = () => {
                   <button
                     onClick={() => changePage(currentPage - 1)}
                     disabled={currentPage === 1}
-                    className="p-2 bg-dark-light border border-line rounded-lg hover:bg-dark-light/80 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                    className="p-2 bg-muted/50 border border-line rounded-lg hover:bg-muted disabled:opacity-50 disabled:cursor-not-allowed transition-all"
                   >
                     <ChevronLeft className="w-4 h-4 text-gray-400" />
                   </button>
@@ -922,7 +922,7 @@ const QuestionsScreen = () => {
                           className={`px-3 py-1 rounded-lg transition-all ${
                             page === currentPage
                               ? "bg-blue-600 text-white"
-                              : "bg-dark-light border border-line text-muted-foreground hover:bg-dark-light/80"
+                              : "bg-muted/50 border border-line text-muted-foreground hover:bg-muted"
                           }`}
                         >
                           {page}
@@ -934,7 +934,7 @@ const QuestionsScreen = () => {
                   <button
                     onClick={() => changePage(currentPage + 1)}
                     disabled={currentPage === totalPages}
-                    className="p-2 bg-dark-light border border-line rounded-lg hover:bg-dark-light/80 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                    className="p-2 bg-muted/50 border border-line rounded-lg hover:bg-muted disabled:opacity-50 disabled:cursor-not-allowed transition-all"
                   >
                     <ChevronRight className="w-4 h-4 text-gray-400" />
                   </button>
@@ -950,14 +950,14 @@ const QuestionsScreen = () => {
             aria-modal="true"
             aria-labelledby="preview-title"
           >
-            <div className="w-full max-w-2xl bg-box border border-line rounded-lg shadow-xl">
+            <div className="w-full max-w-2xl bg-card border border-line rounded-lg shadow-xl">
               <div className="flex items-center justify-between px-4 py-3 border-b border-line">
                 <h3 id="preview-title" className="text-foreground font-semibold">
                   Pregunta completa
                 </h3>
                 <button
                   onClick={() => setPreviewOpen(false)}
-                  className="p-2 rounded hover:bg-dark-light"
+                  className="p-2 rounded hover:bg-muted"
                   aria-label="Cerrar"
                 >
                   <X className="w-4 h-4 text-muted-foreground" />
@@ -978,7 +978,7 @@ const QuestionsScreen = () => {
                       .catch(() => {});
                     toast.success('Copiado al portapapeles');
                   }}
-                  className="px-3 py-2 bg-dark-light border border-line rounded-lg text-muted-foreground hover:bg-dark-light/80"
+                  className="px-3 py-2 bg-muted/50 border border-line rounded-lg text-muted-foreground hover:bg-muted"
                 >
                   Copiar
                 </button>

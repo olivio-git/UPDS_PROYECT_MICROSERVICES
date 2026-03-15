@@ -12,36 +12,28 @@ const AcademicConfigScreen = () => {
       description: "Gestionar niveles del Marco Común Europeo de Referencia",
       icon: BarChart3,
       path: "/levels",
-      color: " ",
-      iconColor: "text-blue-300",
-      borderColor: "border-line"
+      wrapClass: "icon-wrap-blue",
     },
     {
-      title: "Rúbricas de Evaluación", 
+      title: "Rúbricas de Evaluación",
       description: "Crear y gestionar rúbricas por competencias",
       icon: Award,
       path: "/rubrics",
-      color: " ",
-      iconColor: "text-green-300",
-      borderColor: "border-line"
+      wrapClass: "icon-wrap-green",
     },
     {
       title: "Gestión de Preguntas",
       description: "Administrar banco de preguntas y asignaciones",
       icon: HelpCircle,
       path: "/questions",
-      color: " ",
-      iconColor: "text-orange-300",
-      borderColor: "border-line"
+      wrapClass: "icon-wrap-orange",
     },
     {
       title: "Gestión de Exámenes",
       description: "Configurar y administrar exámenes y sesiones",
       icon: BookOpen,
       path: "/exams",
-      color: " ",
-      iconColor: "text-purple-300",
-      borderColor: "border-line"
+      wrapClass: "icon-wrap-purple",
     }
   ];
 
@@ -83,8 +75,8 @@ const AcademicConfigScreen = () => {
                   >
                     <div className="space-y-4">
                       <div className="flex items-center justify-between">
-                        <div className={`p-3 rounded-full bg-gradient-to-br ${option.color} border ${option.borderColor}`}>
-                          <IconComponent className={`h-4 w-4 ${option.iconColor}`} />
+                        <div className={`p-3 rounded-full ${option.wrapClass}`}>
+                          <IconComponent className="h-4 w-4" />
                         </div>
                         <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-300">
                           <svg className="w-5 h-5 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">

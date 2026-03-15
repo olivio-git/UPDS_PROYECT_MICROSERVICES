@@ -130,11 +130,11 @@ const NextExam: React.FC<PropsNextExam> = ({
   const getStatusBadgeClass = (status: string) => {
     switch (status) {
       case 'scheduled':
-        return 'border border-emerald-400/30 bg-emerald-500/10 text-emerald-300';
+        return 'border border-emerald-400/30 bg-emerald-500/10 text-emerald-600';
       case 'active':
-        return 'border border-amber-400/30 bg-amber-500/10 text-amber-300';
+        return 'border border-amber-400/30 bg-amber-500/10 text-amber-600';
       default:
-        return 'border border-gray-400/30 bg-gray-500/10 text-gray-300';
+        return 'border border-border bg-muted/50 text-muted-foreground';
     }
   };
 
@@ -160,9 +160,9 @@ const NextExam: React.FC<PropsNextExam> = ({
 
   if (loading) {
     return ( 
-        <Card className="bg-box backdrop-blur-sm border border-line">
+        <Card className="bg-card backdrop-blur-sm border border-line">
           <CardHeader className="space-y-2 border-b border-line pb-4">
-            <CardTitle className="text-white flex items-center gap-2 font-bold">
+            <CardTitle className="text-foreground flex items-center gap-2 font-bold">
               <Calendar className="h-6 w-6 text-brand-gray bg-muted rounded-full p-1" />
               Próximo Examen
             </CardTitle>
@@ -181,9 +181,9 @@ const NextExam: React.FC<PropsNextExam> = ({
 
   if (error) {
     return ( 
-        <Card className="bg-box backdrop-blur-sm border border-line">
+        <Card className="bg-card backdrop-blur-sm border border-line">
           <CardHeader className="space-y-2 border-b border-line pb-4">
-            <CardTitle className="text-white flex items-center gap-2 font-bold">
+            <CardTitle className="text-foreground flex items-center gap-2 font-bold">
               <Calendar className="h-6 w-6 text-brand-gray bg-muted rounded-full p-1" />
               Próximo Examen
             </CardTitle>
@@ -209,9 +209,9 @@ const NextExam: React.FC<PropsNextExam> = ({
   }
   if (!nextExam) {
     return ( 
-        <Card className="bg-box backdrop-blur-sm border border-line">
+        <Card className="bg-card backdrop-blur-sm border border-line">
           <CardHeader className="space-y-2 border-b border-line pb-4">
-            <CardTitle className="text-white flex items-center gap-2 font-bold">
+            <CardTitle className="text-foreground flex items-center gap-2 font-bold">
               <Calendar className="h-6 w-6 text-brand-gray bg-muted rounded-full p-1" />
               Próximo Examen
             </CardTitle>
@@ -242,10 +242,10 @@ const NextExam: React.FC<PropsNextExam> = ({
   }
 
   return (
-    <Card className="bg-box backdrop-blur-sm border border-line">
+    <Card className="bg-card backdrop-blur-sm border border-line">
       <CardHeader className="space-y-2 border-b border-line pb-4">
-        <CardTitle className="text-white flex items-center gap-2 font-bold">
-          <Calendar className="h-6 w-6 text-brand-gray bg-gray-800 rounded-full p-1" />
+        <CardTitle className="text-foreground flex items-center gap-2 font-bold">
+          <Calendar className="h-6 w-6 text-brand-gray bg-muted rounded-full p-1" />
           Próximo Examen
         </CardTitle>
           <CardDescription className="text-brand-gray text-xs">
@@ -274,13 +274,13 @@ const NextExam: React.FC<PropsNextExam> = ({
           <div className="flex items-center gap-2 mb-4 flex-wrap">
             <Badge
               variant="secondary"
-              className="border border-fuchsia-400/30 bg-fuchsia-500/10 text-fuchsia-300"
+              className="border border-fuchsia-400/30 bg-fuchsia-500/10 text-fuchsia-600"
             >
               Nivel {nextExam.level}
             </Badge>
             <Badge
               variant="secondary"
-              className="border border-sky-400/30 bg-sky-500/10 text-sky-300"
+              className="border border-sky-400/30 bg-sky-500/10 text-sky-600"
             >
               {nextExam.duration}
             </Badge>
@@ -296,8 +296,8 @@ const NextExam: React.FC<PropsNextExam> = ({
           {nextExam.exam && (
             <div className="bg-muted/20 rounded-lg p-3 mb-4 border border-line">
               <div className="flex items-center gap-3">
-                <div className="w-9 h-9 rounded-full bg-gradient-to-br from-blue-900 to-purple-900 flex items-center justify-center shrink-0">
-                  <span className="text-white font-bold text-sm">
+                <div className="w-9 h-9 rounded-full bg-gradient-to-br from-blue-100 to-purple-100 dark:from-blue-900 dark:to-purple-900 border border-blue-200 dark:border-blue-800/30 flex items-center justify-center shrink-0">
+                  <span className="text-blue-700 dark:text-white font-bold text-sm">
                     {nextExam.exam.type?.charAt(0).toUpperCase() || 'E'}
                   </span>
                 </div>
@@ -317,8 +317,8 @@ const NextExam: React.FC<PropsNextExam> = ({
           {nextExam.createdBy && (
             <div className="bg-muted/20 rounded-lg p-3 mb-4 border border-line">
               <div className="flex items-center gap-3">
-                <div className="w-9 h-9 rounded-full bg-gradient-to-br from-green-900 to-emerald-900 flex items-center justify-center shrink-0">
-                  <User className="h-4 w-4 text-white" />
+                <div className="w-9 h-9 rounded-full bg-gradient-to-br from-green-100 to-emerald-100 dark:from-green-900 dark:to-emerald-900 border border-green-200 dark:border-green-800/30 flex items-center justify-center shrink-0">
+                  <User className="h-4 w-4 text-green-700 dark:text-white" />
                 </div>
                 <div className="flex-1">
                   <p className="text-sm font-medium text-foreground">
@@ -351,7 +351,7 @@ const NextExam: React.FC<PropsNextExam> = ({
                         .map((spec, index) => (
                           <span
                             key={index}
-                            className="px-2.5 py-0.5 text-xs font-medium border border-teal-400/30 bg-teal-500/10 text-teal-300 rounded-full"
+                            className="px-2.5 py-0.5 text-xs font-medium border border-teal-400/30 bg-teal-500/10 text-teal-600 rounded-full"
                           >
                             {spec}
                           </span>
@@ -384,7 +384,7 @@ const NextExam: React.FC<PropsNextExam> = ({
               disabled={startingExam || nextExam.status !== 'in_progress'}
               className="w-full font-semibold text-white uppercase tracking-wider transition-all duration-300
                 ease-in-out bg-indigo-600 hover:bg-indigo-500 shadow-md shadow-indigo-500/20 hover:shadow-lg
-                hover:shadow-indigo-500/30 transform hover:-translate-y-0.5 disabled:bg-gray-700 disabled:shadow-none
+                hover:shadow-indigo-500/30 transform hover:-translate-y-0.5 disabled:bg-muted disabled:shadow-none
                 disabled:transform-none disabled:cursor-not-allowed disabled:opacity-50 cursor-pointer"
             >
               {startingExam ? (

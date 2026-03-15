@@ -105,19 +105,19 @@ const UserTable: React.FC<UserTableProps> = ({
 
   // colores por estado (ajusta a tus estados reales)
   const statusBadgeClasses: Record<string, string> = {
-    active:   "bg-green-900/20  text-green-400  border-green-800/30",
-    pending:  "bg-yellow-900/20 text-yellow-400 border-yellow-800/30",
-    suspended:"bg-orange-900/20 text-orange-400 border-orange-800/30",
-    inactive: "bg-muted/50  text-muted-foreground  border-border/50",
-    blocked:  "bg-red-900/20   text-red-400   border-red-800/30",
+    active:    "bg-green-100 text-green-700 border-green-200 dark:bg-green-500/20 dark:text-green-300 dark:border-green-500/30",
+    pending:   "bg-yellow-100 text-yellow-700 border-yellow-200 dark:bg-yellow-500/20 dark:text-yellow-300 dark:border-yellow-500/30",
+    suspended: "bg-orange-100 text-orange-700 border-orange-200 dark:bg-orange-500/20 dark:text-orange-300 dark:border-orange-500/30",
+    inactive:  "bg-muted/50 text-muted-foreground border-border/50",
+    blocked:   "bg-red-100 text-red-700 border-red-200 dark:bg-red-500/20 dark:text-red-300 dark:border-red-500/30",
   };
 
   // colores por rol
   const roleBadgeClasses: Record<string, string> = {
-    admin:    "bg-purple-900/20 text-purple-300 border-purple-800/30",
-    teacher:  "bg-green-900/20  text-green-300  border-green-800/30",
-    proctor:  "bg-orange-900/20 text-orange-300 border-orange-800/30",
-    student:  "bg-blue-900/20   text-blue-300   border-blue-800/30",
+    admin:   "bg-purple-100 text-purple-700 border-purple-200 dark:bg-purple-500/20 dark:text-purple-300 dark:border-purple-500/30",
+    teacher: "bg-green-100 text-green-700 border-green-200 dark:bg-green-500/20 dark:text-green-300 dark:border-green-500/30",
+    proctor: "bg-orange-100 text-orange-700 border-orange-200 dark:bg-orange-500/20 dark:text-orange-300 dark:border-orange-500/30",
+    student: "bg-blue-100 text-blue-700 border-blue-200 dark:bg-blue-500/20 dark:text-blue-300 dark:border-blue-500/30",
   };
 
   const columns = useMemo(() => [
@@ -308,13 +308,13 @@ const UserTable: React.FC<UserTableProps> = ({
         
         return (
           <DropdownMenu>
-            <DropdownMenuTrigger asChild className='bg-box border border-line rounded-md p-1 hover:bg-muted'>
+            <DropdownMenuTrigger asChild className='bg-card border border-line rounded-md p-1 hover:bg-muted'>
               <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
                 <MoreVertical className="h-4 w-4 text-foreground" />
                 <span className="sr-only">Abrir menú</span>
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-48 bg-box border-line text-foreground">
+            <DropdownMenuContent align="end" className="w-48 bg-popover border-line text-foreground">
               {/* Ver detalles */}
               <DropdownMenuItem className='hover:bg-muted' onClick={() => onViewUser(user)}>
                 <Eye className="mr-2 h-4 w-4" />
@@ -408,7 +408,7 @@ const UserTable: React.FC<UserTableProps> = ({
   });
 
   return (
-    <div className="bg-box border border-line rounded-lg shadow-sm overflow-hidden">
+    <div className="bg-card border border-line rounded-lg shadow-sm overflow-hidden">
       <CustomizableTable
         table={table}
         isLoading={isLoading}
@@ -431,7 +431,7 @@ const UserTable: React.FC<UserTableProps> = ({
             <button
               onClick={() => onPageChange(currentPage - 1)}
               disabled={currentPage === 1}
-              className="p-2 bg-dark-light border border-line rounded-lg hover:bg-dark-light/80 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+              className="p-2 bg-muted/50 border border-line rounded-lg hover:bg-muted disabled:opacity-50 disabled:cursor-not-allowed transition-all"
             >
               <ChevronLeft className="w-4 h-4 text-muted-foreground" />
             </button>
@@ -446,7 +446,7 @@ const UserTable: React.FC<UserTableProps> = ({
                     className={`px-3 py-1 rounded-lg transition-all ${
                       page === currentPage
                         ? 'bg-blue-600 text-white'
-                        : 'bg-dark-light border border-line text-muted-foreground hover:bg-dark-light/80'
+                        : 'bg-muted/50 border border-line text-muted-foreground hover:bg-muted'
                     }`}
                   >
                     {page}
@@ -458,7 +458,7 @@ const UserTable: React.FC<UserTableProps> = ({
             <button
               onClick={() => onPageChange(currentPage + 1)}
               disabled={currentPage === totalPages}
-              className="p-2 bg-dark-light border border-line rounded-lg hover:bg-dark-light/80 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+              className="p-2 bg-muted/50 border border-line rounded-lg hover:bg-muted disabled:opacity-50 disabled:cursor-not-allowed transition-all"
             >
               <ChevronRight className="w-4 h-4 text-muted-foreground" />
             </button>

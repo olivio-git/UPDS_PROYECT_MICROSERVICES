@@ -79,7 +79,7 @@ const RubricTable = ({
         variant={isActive ? "default" : "secondary"}
         className={`${
           isActive 
-            ? "bg-green-500/20 text-green-300 border-green-500/30" 
+            ? "bg-green-100 text-green-700 border-green-200 dark:bg-green-500/20 dark:text-green-300 dark:border-green-500/30"
             : "bg-muted/50 text-muted-foreground border-border"
         }`}
       >
@@ -90,12 +90,12 @@ const RubricTable = ({
 
   const getCompetencyBadge = (competency: string) => {
     const colors = {
-      reading: "bg-blue-500/20 text-blue-300 border-blue-500/30",
-      writing: "bg-green-500/20 text-green-300 border-green-500/30",
-      listening: "bg-purple-500/20 text-purple-300 border-purple-500/30",
-      speaking: "bg-orange-500/20 text-orange-300 border-orange-500/30",
-      grammar: "bg-pink-500/20 text-pink-300 border-pink-500/30",
-      vocabulary: "bg-yellow-500/20 text-yellow-300 border-yellow-500/30"
+      reading:    "bg-blue-100 text-blue-700 border-blue-200 dark:bg-blue-500/20 dark:text-blue-300 dark:border-blue-500/30",
+      writing:    "bg-green-100 text-green-700 border-green-200 dark:bg-green-500/20 dark:text-green-300 dark:border-green-500/30",
+      listening:  "bg-purple-100 text-purple-700 border-purple-200 dark:bg-purple-500/20 dark:text-purple-300 dark:border-purple-500/30",
+      speaking:   "bg-orange-100 text-orange-700 border-orange-200 dark:bg-orange-500/20 dark:text-orange-300 dark:border-orange-500/30",
+      grammar:    "bg-pink-100 text-pink-700 border-pink-200 dark:bg-pink-500/20 dark:text-pink-300 dark:border-pink-500/30",
+      vocabulary: "bg-yellow-100 text-yellow-700 border-yellow-200 dark:bg-yellow-500/20 dark:text-yellow-300 dark:border-yellow-500/30",
     };
     
     return (
@@ -113,9 +113,9 @@ const RubricTable = ({
       <Badge
         variant="outline"
         className={
-          scoringType === 'holistic' 
-            ? "bg-indigo-500/20 text-indigo-300 border-indigo-500/30"
-            : "bg-cyan-500/20 text-cyan-300 border-cyan-500/30"
+          scoringType === 'holistic'
+            ? "bg-indigo-100 text-indigo-700 border-indigo-200 dark:bg-indigo-500/20 dark:text-indigo-300 dark:border-indigo-500/30"
+            : "bg-cyan-100 text-cyan-700 border-cyan-200 dark:bg-cyan-500/20 dark:text-cyan-300 dark:border-cyan-500/30"
         }
       >
         {SCORING_TYPE_LABELS[scoringType as keyof typeof SCORING_TYPE_LABELS]}
@@ -128,7 +128,7 @@ const RubricTable = ({
 
   if (isLoading) {
     return (
-      <div className="bg-box/50 backdrop-blur-sm border border-line rounded-xl p-8">
+      <div className="bg-card/50 backdrop-blur-sm border border-line rounded-xl p-8">
         <div className="flex items-center justify-center space-x-2">
           <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-green-500"></div>
           <span className="text-muted-foreground">Cargando rúbricas...</span>
@@ -139,7 +139,7 @@ const RubricTable = ({
 
   if (isError) {
     return (
-      <div className="bg-box/50 backdrop-blur-sm border border-line rounded-xl p-8">
+      <div className="bg-card/50 backdrop-blur-sm border border-line rounded-xl p-8">
         <div className="text-center space-y-3">
           <div className="text-red-400">❌ Error al cargar las rúbricas</div>
           <p className="text-muted-foreground text-sm">{errorMessage}</p>
@@ -150,7 +150,7 @@ const RubricTable = ({
 
   if (rubrics.length === 0) {
     return (
-      <div className="bg-box/50 backdrop-blur-sm border border-line rounded-xl p-8">
+      <div className="bg-card/50 backdrop-blur-sm border border-line rounded-xl p-8">
         <div className="text-center space-y-4">
           <Award className="h-12 w-12 text-muted-foreground mx-auto" />
           <div className="space-y-2">
@@ -164,10 +164,10 @@ const RubricTable = ({
     );
   } 
   return (
-    <div className="bg-box backdrop-blur-sm border border-line rounded-xl overflow-hidden">
+    <div className="bg-card backdrop-blur-sm border border-line rounded-xl overflow-hidden">
       <Table>
         <TableHeader>
-          <TableRow className="border-line hover:bg-line/30">
+          <TableRow className="border-line hover:bg-muted/30">
             <TableHead className="w-12">
               <Checkbox
                 checked={isAllSelected}
@@ -193,7 +193,7 @@ const RubricTable = ({
           {rubrics.map((rubric) => (
             <TableRow 
               key={rubric._id}
-              className="border-line hover:bg-line/20 transition-colors"
+              className="border-line hover:bg-muted/20 transition-colors"
             >
               <TableCell>
                 <Checkbox
@@ -219,7 +219,7 @@ const RubricTable = ({
               <TableCell>
                 <div className="flex items-center space-x-2">
                   <div className="w-6 h-6 rounded-full bg-gradient-to-br from-blue-500/20 to-purple-600/20 border border-blue-500/30 flex items-center justify-center">
-                    <span className="text-blue-300 font-bold text-xs">{rubric.level}</span>
+                    <span className="text-blue-700 dark:text-blue-300 font-bold text-xs">{rubric.level}</span>
                   </div>
                 </div>
               </TableCell>
@@ -259,18 +259,18 @@ const RubricTable = ({
                     <Button 
                       variant="ghost" 
                       size="sm"
-                      className="h-8 w-8 p-0 hover:bg-line/50"
+                      className="h-8 w-8 p-0 hover:bg-muted"
                     >
                       <MoreHorizontal className="h-4 w-4 text-muted-foreground" />
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent 
                     align="end" 
-                    className="bg-box border-line"
+                    className="bg-popover border-line"
                   >
                     <DropdownMenuItem 
                       onClick={() => onViewRubric(rubric)}
-                      className="text-foreground hover:bg-line/50 focus:bg-line/50"
+                      className="text-foreground hover:bg-muted focus:bg-muted"
                     >
                       <Eye className="h-4 w-4 mr-2" />
                       Ver detalles
@@ -278,7 +278,7 @@ const RubricTable = ({
                     
                     <DropdownMenuItem 
                       onClick={() => onEditRubric(rubric)}
-                      className="text-foreground hover:bg-line/50 focus:bg-line/50"
+                      className="text-foreground hover:bg-muted focus:bg-muted"
                     >
                       <Edit className="h-4 w-4 mr-2" />
                       Editar
@@ -292,7 +292,7 @@ const RubricTable = ({
                       Clonar
                     </DropdownMenuItem>
                     
-                    <DropdownMenuSeparator className="bg-line" />
+                    <DropdownMenuSeparator className="bg-border" />
                     
                     {rubric.isActive ? (
                       <DropdownMenuItem 
@@ -312,7 +312,7 @@ const RubricTable = ({
                       </DropdownMenuItem>
                     )}
                     
-                    <DropdownMenuSeparator className="bg-line" />
+                    <DropdownMenuSeparator className="bg-border" />
                     
                     <DropdownMenuItem 
                       onClick={() => onDeleteRubric(rubric)}

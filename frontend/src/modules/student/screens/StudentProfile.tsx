@@ -1,10 +1,11 @@
 import { Badge } from "@/components/atoms/badge";
 import { Button } from "@/components/atoms/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/atoms/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/atoms/card";
 import { Input } from "@/components/atoms/input";
 import { MainLayout } from "@/components/layout";
 import { useAuthStore } from "@/modules/auth/services/authStore";
 import {
+  Bell,
   Camera,
   Edit,
   KeyRound,
@@ -20,744 +21,420 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { ChangePasswordFlow } from "../components/ChangePasswordFlow";
 
-interface StudentProfile {
-  personalInfo: {
-    firstName: string;
-    lastName: string;
-    email: string;
-    phone: string;
-    birthDate: string;
-    nationality: string;
-    address: string;
-    city: string;
-    country: string;
-  };
-  academicInfo: {
-    currentLevel: string;
-    targetLevel: string;
-    enrollmentDate: string;
-    studyGoals: string;
-    previousExperience: string;
-    motivations: string;
-  };
-  preferences: {
-    preferredStudyTime: string;
-    learningStyle: string;
-    interests: string[];
-    notifications: {
-      email: boolean;
-      sms: boolean;
-      examReminders: boolean;
-      progressUpdates: boolean;
-    };
-  };
+interface NotificationPrefs {
+  email: boolean;
+  examReminders: boolean;
+  progressUpdates: boolean;
 }
+
+interface PersonalInfo {
+  phone: string;
+  nationality: string;
+}
+
+const tabs = [
+  { id: "personal", label: "Personal", icon: User },
+  { id: "preferences", label: "Preferencias", icon: Target },
+  { id: "security", label: "Seguridad", icon: Shield },
+];
 
 const StudentProfile = () => {
   const { user } = useAuthStore();
   const [isEditing, setIsEditing] = useState(false);
-  const [activeTab, setActiveTab] = useState('personal');
+  const [activeTab, setActiveTab] = useState("personal");
   const [showChangePassword, setShowChangePassword] = useState(false);
-  // Mock data - En producción vendría de la API
-  const [profile, setProfile] = useState<StudentProfile>({
-    personalInfo: {
-      firstName: user?.firstName || '',
-      lastName: user?.lastName || '',
-      email: user?.email || '',
-      phone: user?.profile?.phone || '',
-      birthDate: '1995-03-15',
-      nationality: 'Boliviana',
-      address: 'Av. Principal 123',
-      city: 'Tarija',
-      country: 'Bolivia'
-    },
-    academicInfo: {
-      currentLevel: 'B1',
-      targetLevel: 'B2',
-      enrollmentDate: '2025-01-15',
-      studyGoals: 'Obtener certificación B2 para estudios universitarios en el extranjero',
-      previousExperience: 'Estudié inglés básico en secundaria. He tomado algunos cursos online.',
-      motivations: 'Quiero estudiar una maestría en Estados Unidos y necesito mejorar mi nivel de inglés académico.'
-    },
-    preferences: {
-      preferredStudyTime: 'evening',
-      learningStyle: 'visual',
-      interests: ['tecnología', 'ciencia', 'viajes', 'música'],
-      notifications: {
-        email: true,
-        sms: false,
-        examReminders: true,
-        progressUpdates: true
-      }
-    }
+
+  const [personalInfo, setPersonalInfo] = useState<PersonalInfo>({
+    phone: user?.profile?.phone || "",
+    nationality: "Boliviana",
+  });
+  const [editedInfo, setEditedInfo] = useState<PersonalInfo>(personalInfo);
+
+  const [notifications, setNotifications] = useState<NotificationPrefs>({
+    email: true,
+    examReminders: true,
+    progressUpdates: true,
   });
 
-  const [editedProfile, setEditedProfile] = useState<StudentProfile>(profile);
+  const firstName = user?.firstName || "";
+  const lastName = user?.lastName || "";
+  const email = user?.email || "";
+  const initials = `${firstName.charAt(0)}${lastName.charAt(0)}`.toUpperCase();
 
   const handleSave = () => {
-    // En producción, esto enviaría los datos a la API
-    setProfile(editedProfile);
+    setPersonalInfo(editedInfo);
     setIsEditing(false);
-    toast.success("Perfil actualizado exitosamente");
+    toast.success("Perfil actualizado");
   };
 
   const handleCancel = () => {
-    setEditedProfile(profile);
+    setEditedInfo(personalInfo);
     setIsEditing(false);
   };
 
-  const updatePersonalInfo = (field: string, value: string) => {
-    setEditedProfile(prev => ({
-      ...prev,
-      personalInfo: {
-        ...prev.personalInfo,
-        [field]: value
-      }
-    }));
-  };
-
-  const updateAcademicInfo = (field: string, value: string) => {
-    setEditedProfile(prev => ({
-      ...prev,
-      academicInfo: {
-        ...prev.academicInfo,
-        [field]: value
-      }
-    }));
-  };
-
-  const updatePreferences = (field: string, value: any) => {
-    setEditedProfile(prev => ({
-      ...prev,
-      preferences: {
-        ...prev.preferences,
-        [field]: value
-      }
-    }));
-  };
-
-  const updateNotifications = (field: string, value: boolean) => {
-    setEditedProfile(prev => ({
-      ...prev,
-      preferences: {
-        ...prev.preferences,
-        notifications: {
-          ...prev.preferences.notifications,
-          [field]: value
-        }
-      }
-    }));
-  };
-
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('es-ES', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric'
-    });
-  };
-
-  const getStudyTimeLabel = (time: string) => {
-    const times = {
-      morning: 'Mañana',
-      afternoon: 'Tarde',
-      evening: 'Noche',
-      flexible: 'Flexible'
-    };
-    return times[time as keyof typeof times] || time;
-  };
-
-  const getLearningStyleLabel = (style: string) => {
-    const styles = {
-      visual: 'Visual',
-      auditory: 'Auditivo',
-      kinesthetic: 'Kinestésico',
-      mixed: 'Mixto'
-    };
-    return styles[style as keyof typeof styles] || style;
-  };
-  // console.log(authSDK.getCurrentUser(),"CURRENT USER IN PROFILE");
   return (
     <MainLayout gradientVariant="primary">
-      <div className="max-w-6xl mx-auto space-y-8 mb-10 ">
-        {/* Header */}
-          <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-          <div>
-            <h1 className="text-3xl font-bold text-white">
-              Mi Perfil
-            </h1>
-          </div>
-        </div>
+      <div className="max-w-5xl mx-auto space-y-6 pb-10">
+        {/* Page title */}
+        <h1 className="text-2xl font-bold text-foreground">Mi Perfil</h1>
 
-        {/* Información Principal */}
-        <Card className="bg-[#0B1422] backdrop-blur-sm border border-gray-700/50">
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-4">
-                <div className="relative">
-                  <div className="w-20 h-20 bg-[#F0003C] rounded-full flex items-center justify-center text-2xl font-bold text-white">
-                    {profile.personalInfo.firstName.charAt(0)}
-                    {profile.personalInfo.lastName.charAt(0)}
-                  </div>
-                  <Button
-                    size="sm"
-                    className="absolute -bottom-2 -right-2 w-8 h-8 rounded-full p-0 bg-gray-600 hover:bg-gray-500"
-                  >
-                    <Camera className="h-3 w-3" />
-                  </Button>
-                </div>
-                <div>
-                  <h2 className="text-2xl font-bold text-white">
-                    {profile.personalInfo.firstName} {profile.personalInfo.lastName}
-                  </h2>
-                  <p className="text-gray-300">{profile.personalInfo.email}</p>
-                  {/* <div className="flex items-center gap-2 mt-2">
-                    <Badge className="bg-blue-500/20 text-blue-300 border border-blue-500/30">
-                      Nivel Actual: {profile.academicInfo.currentLevel}
-                    </Badge>
-                    <Badge className="bg-green-500/20 text-green-300 border border-green-500/30">
-                      Meta: {profile.academicInfo.targetLevel}
-                    </Badge>
-                  </div> */}
-                </div>
-              </div>
-              <div className="flex items-center gap-2">
-                {isEditing ? (
-                  <>
-                    <Button
-                      size={"sm"}
-                      onClick={handleSave}
-                      className="bg-green-600 hover:bg-green-700 text-white"
-                    >
-                      <Save className="h-4 w-4 mr-2" />
-                      Guardar
-                    </Button>
-                    <Button
-                      size={"sm"}
-                      onClick={handleCancel}
-                      variant="outline"
-                      className="text-gray-300 bg-[#0F1A29] hover:bg-gray-800 border border-line"
-                    >
-                      <X className="h-4 w-4 mr-2" />
-                      Cancelar
-                    </Button>
-                  </>
-                ) : (
-                  <Button
-                    size={"sm"}
-                    onClick={() => setIsEditing(true)}
-                    variant="outline"
-                    className="bg-[#0F1A29] hover:bg-gray-800 border border-line text-gray-300"
-                  >
-                    <Edit className="h-4 w-4 mr-2" />
-                    Editar Perfil
-                  </Button>
-                )}
-              </div>
-            </div>
-          </CardHeader>
-        </Card>
-
-        {/* Tabs de Navegación */}
-        <div className="flex space-x-1 bg-gray-800/50 p-1 rounded-lg">
-          <button
-            onClick={() => setActiveTab('personal')}
-            className={`flex-1 py-2 px-4 rounded-md transition-all ${
-              activeTab === 'personal'
-                ? 'bg-blue-600 text-white'
-                : 'text-gray-300 hover:bg-gray-700'
-            }`}
-          >
-            <User className="h-4 w-4 inline mr-2" />
-            Información Personal
-          </button>
-          {/* <button
-            onClick={() => setActiveTab('academic')}
-            className={`flex-1 py-2 px-4 rounded-md transition-all ${
-              activeTab === 'academic'
-                ? 'bg-blue-600 text-white'
-                : 'text-gray-300 hover:bg-gray-700'
-            }`}
-          >
-            <BookOpen className="h-4 w-4 inline mr-2" />
-            Información Académica
-          </button> */}
-          <button
-            onClick={() => setActiveTab('preferences')}
-            className={`flex-1 py-2 px-4 rounded-md transition-all ${
-              activeTab === 'preferences'
-                ? 'bg-blue-600 text-white'
-                : 'text-gray-300 hover:bg-gray-700'
-            }`}
-          >
-            <Target className="h-4 w-4 inline mr-2" />
-            Preferencias
-          </button>
-          <button
-            onClick={() => setActiveTab('security')}
-            className={`flex-1 py-2 px-4 rounded-md transition-all ${
-              activeTab === 'security'
-                ? 'bg-blue-600 text-white'
-                : 'text-gray-300 hover:bg-gray-700'
-            }`}
-          >
-            <Shield className="h-4 w-4 inline mr-2" />
-            Seguridad
-          </button>
-        </div>
-
-        {/* Contenido de las Tabs */}
-        {activeTab === 'personal' && (
-          <Card className="bg-[#0B1422] backdrop-blur-sm border border-gray-700/50">
-            <CardHeader>
-              <CardTitle className="text-white flex items-center gap-2">
-                <User className="h-5 w-5 text-blue-400" />
-                Información Personal
-              </CardTitle>
-              <CardDescription className="text-gray-300">
-                Datos personales y de contacto
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="space-y-2">
-                  <label className="text-sm font-medium text-gray-300">Nombre</label>
-                  {isEditing ? (
-                    <Input
-                      value={editedProfile.personalInfo.firstName}
-                      onChange={(e) => updatePersonalInfo('firstName', e.target.value)}
-                      className="bg-gray-800 border-gray-600 text-white"
-                    />
-                  ) : (
-                    <p className="text-white">{profile.personalInfo.firstName}</p>
-                  )}
-                </div>
-                <div className="space-y-2">
-                  <label className="text-sm font-medium text-gray-300">Apellido</label>
-                  {isEditing ? (
-                    <Input
-                      value={editedProfile.personalInfo.lastName}
-                      onChange={(e) => updatePersonalInfo('lastName', e.target.value)}
-                      className="bg-gray-800 border-gray-600 text-white"
-                    />
-                  ) : (
-                    <p className="text-white">{profile.personalInfo.lastName}</p>
-                  )}
-                </div>
-                <div className="space-y-2">
-                  <label className="text-sm font-medium text-gray-300">Email</label>
-                  <div className="flex items-center gap-2">
-                    <Mail className="h-4 w-4 text-blue-400" />
-                    <p className="text-white">{profile.personalInfo.email}</p>
-                  </div>
-                </div>
-                <div className="space-y-2">
-                  <label className="text-sm font-medium text-gray-300">Teléfono</label>
-                  {isEditing ? (
-                    <Input
-                      value={editedProfile.personalInfo.phone}
-                      onChange={(e) => updatePersonalInfo('phone', e.target.value)}
-                      className="bg-gray-800 border-gray-600 text-white"
-                    />
-                  ) : (
-                    <div className="flex items-center gap-2">
-                      <Phone className="h-4 w-4 text-green-400" />
-                      <p className="text-white">{profile.personalInfo.phone}</p>
+        <div className="flex flex-col md:flex-row gap-6 items-start">
+          {/* ── Left: Profile card ── */}
+          <div className="w-full md:w-64 shrink-0">
+            <Card className="bg-card border border-border">
+              <CardContent className="pt-6 pb-5 px-5 space-y-4">
+                {/* Avatar */}
+                <div className="flex flex-col items-center text-center gap-3">
+                  <div className="relative">
+                    <div className="w-18 h-18 w-[72px] h-[72px] bg-[#F0003C] rounded-full flex items-center justify-center text-xl font-bold text-white select-none">
+                      {initials || <User className="h-7 w-7" />}
                     </div>
-                  )}
-                </div>
-                {/* <div className="space-y-2">
-                  <label className="text-sm font-medium text-gray-300">Fecha de Nacimiento</label>
-                  {isEditing ? (
-                    <Input
-                      type="date"
-                      value={editedProfile.personalInfo.birthDate}
-                      onChange={(e) => updatePersonalInfo('birthDate', e.target.value)}
-                      className="bg-gray-800 border-gray-600 text-white"
-                    />
-                  ) : (
-                    <div className="flex items-center gap-2">
-                      <Calendar className="h-4 w-4 text-purple-400" />
-                      <p className="text-white">{formatDate(profile.personalInfo.birthDate)}</p>
-                    </div>
-                  )}
-                </div> */}
-                <div className="space-y-2">
-                  <label className="text-sm font-medium text-gray-300">Nacionalidad</label>
-                  {isEditing ? (
-                    <Input
-                      value={editedProfile.personalInfo.nationality}
-                      onChange={(e) => updatePersonalInfo('nationality', e.target.value)}
-                      disabled={true}
-                      className="bg-gray-800 border-gray-600 text-white"
-                    />
-                  ) : (
-                    <p className="text-white">{profile.personalInfo.nationality}</p>
-                  )}
-                </div>
-              </div>
-              
-              {/* <div className="space-y-4">
-                <h3 className="text-lg font-medium text-white">Dirección</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium text-gray-300">Dirección</label>
-                    {isEditing ? (
-                      <Input
-                        value={editedProfile.personalInfo.address}
-                        onChange={(e) => updatePersonalInfo('address', e.target.value)}
-                        className="bg-gray-800 border-gray-600 text-white"
-                      />
-                    ) : (
-                      <p className="text-white">{profile.personalInfo.address}</p>
-                    )}
+                    <button className="absolute -bottom-1 -right-1 w-6 h-6 rounded-full bg-muted border border-border flex items-center justify-center hover:bg-muted/80 transition-colors">
+                      <Camera className="h-3 w-3 text-muted-foreground" />
+                    </button>
                   </div>
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium text-gray-300">Ciudad</label>
-                    {isEditing ? (
-                      <Input
-                        value={editedProfile.personalInfo.city}
-                        onChange={(e) => updatePersonalInfo('city', e.target.value)}
-                        className="bg-gray-800 border-gray-600 text-white"
-                      />
-                    ) : (
-                      <div className="flex items-center gap-2">
-                        <MapPin className="h-4 w-4 text-red-400" />
-                        <p className="text-white">{profile.personalInfo.city}, {profile.personalInfo.country}</p>
-                      </div>
-                    )}
+
+                  <div>
+                    <p className="font-semibold text-foreground leading-tight">
+                      {firstName} {lastName}
+                    </p>
+                    <p className="text-xs text-muted-foreground mt-0.5 truncate max-w-[180px]">
+                      {email}
+                    </p>
+                  </div>
+
+                  <Badge variant="secondary" className="text-xs">
+                    Estudiante
+                  </Badge>
+                </div>
+
+                {/* Contact info */}
+                <div className="border-t border-border pt-3 space-y-2">
+                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                    <Mail className="h-3.5 w-3.5 shrink-0" />
+                    <span className="truncate">{email}</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                    <Phone className="h-3.5 w-3.5 shrink-0" />
+                    <span>{personalInfo.phone || "Sin teléfono"}</span>
                   </div>
                 </div>
-              </div> */}
-            </CardContent>
-          </Card>
-        )}
 
-        {/* {activeTab === 'academic' && (
-          <Card className="bg-[#0B1422] backdrop-blur-sm border border-gray-700/50">
-            <CardHeader>
-              <CardTitle className="text-white flex items-center gap-2">
-                <BookOpen className="h-5 w-5 text-green-400" />
-                Información Académica
-              </CardTitle>
-              <CardDescription className="text-gray-300">
-                Nivel actual, objetivos y experiencia previa
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <div className="space-y-2">
-                  <label className="text-sm font-medium text-gray-300">Nivel Actual</label>
+                {/* Actions */}
+                <div className="border-t border-border pt-3 space-y-2">
                   {isEditing ? (
-                    <Select
-                      value={editedProfile.academicInfo.currentLevel}
-                      onValueChange={(value) => updateAcademicInfo('currentLevel', value)}
-                    >
-                      <SelectTrigger className="bg-gray-800 border-gray-600 text-white">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="A1">A1</SelectItem>
-                        <SelectItem value="A2">A2</SelectItem>
-                        <SelectItem value="B1">B1</SelectItem>
-                        <SelectItem value="B2">B2</SelectItem>
-                        <SelectItem value="C1">C1</SelectItem>
-                        <SelectItem value="C2">C2</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  ) : (
-                    <Badge className="bg-blue-500/20 text-blue-300 border border-blue-500/30">
-                      {profile.academicInfo.currentLevel}
-                    </Badge>
-                  )}
-                </div>
-                <div className="space-y-2">
-                  <label className="text-sm font-medium text-gray-300">Nivel Objetivo</label>
-                  {isEditing ? (
-                    <Select
-                      value={editedProfile.academicInfo.targetLevel}
-                      onValueChange={(value) => updateAcademicInfo('targetLevel', value)}
-                    >
-                      <SelectTrigger className="bg-gray-800 border-gray-600 text-white">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="A2">A2</SelectItem>
-                        <SelectItem value="B1">B1</SelectItem>
-                        <SelectItem value="B2">B2</SelectItem>
-                        <SelectItem value="C1">C1</SelectItem>
-                        <SelectItem value="C2">C2</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  ) : (
-                    <Badge className="bg-green-500/20 text-green-300 border border-green-500/30">
-                      {profile.academicInfo.targetLevel}
-                    </Badge>
-                  )}
-                </div>
-                <div className="space-y-2">
-                  <label className="text-sm font-medium text-gray-300">Fecha de Inscripción</label>
-                  <div className="flex items-center gap-2">
-                    <Award className="h-4 w-4 text-yellow-400" />
-                    <p className="text-white">{formatDate(profile.academicInfo.enrollmentDate)}</p>
-                  </div>
-                </div>
-              </div>
-
-              <div className="space-y-4">
-                <div className="space-y-2">
-                  <label className="text-sm font-medium text-gray-300">Objetivos de Estudio</label>
-                  {isEditing ? (
-                    <Textarea
-                      value={editedProfile.academicInfo.studyGoals}
-                      onChange={(e) => updateAcademicInfo('studyGoals', e.target.value)}
-                      className="bg-gray-800 border-gray-600 text-white"
-                      rows={3}
-                    />
-                  ) : (
-                    <p className="text-white bg-gray-800/50 p-3 rounded-lg">
-                      {profile.academicInfo.studyGoals}
-                    </p>
-                  )}
-                </div>
-
-                <div className="space-y-2">
-                  <label className="text-sm font-medium text-gray-300">Experiencia Previa</label>
-                  {isEditing ? (
-                    <Textarea
-                      value={editedProfile.academicInfo.previousExperience}
-                      onChange={(e) => updateAcademicInfo('previousExperience', e.target.value)}
-                      className="bg-gray-800 border-gray-600 text-white"
-                      rows={3}
-                    />
-                  ) : (
-                    <p className="text-white bg-gray-800/50 p-3 rounded-lg">
-                      {profile.academicInfo.previousExperience}
-                    </p>
-                  )}
-                </div>
-
-                <div className="space-y-2">
-                  <label className="text-sm font-medium text-gray-300">Motivaciones</label>
-                  {isEditing ? (
-                    <Textarea
-                      value={editedProfile.academicInfo.motivations}
-                      onChange={(e) => updateAcademicInfo('motivations', e.target.value)}
-                      className="bg-gray-800 border-gray-600 text-white"
-                      rows={3}
-                    />
-                  ) : (
-                    <p className="text-white bg-gray-800/50 p-3 rounded-lg">
-                      {profile.academicInfo.motivations}
-                    </p>
-                  )}
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        )} */}
-
-        {activeTab === 'preferences' && (
-          <div className="space-y-6">
-            {/* <Card className="bg-[#0B1422] backdrop-blur-sm border border-gray-700/50">
-              <CardHeader>
-                <CardTitle className="text-white flex items-center gap-2">
-                  <Target className="h-5 w-5 text-purple-400" />
-                  Preferencias de Estudio
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium text-gray-300">Horario Preferido</label>
-                    {isEditing ? (
-                      <Select
-                        value={editedProfile.preferences.preferredStudyTime}
-                        onValueChange={(value) => updatePreferences('preferredStudyTime', value)}
+                    <>
+                      <Button
+                        size="sm"
+                        className="w-full bg-green-600 hover:bg-green-700 text-white"
+                        onClick={handleSave}
                       >
-                        <SelectTrigger className="bg-gray-800 border-gray-600 text-white">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="morning">Mañana</SelectItem>
-                          <SelectItem value="afternoon">Tarde</SelectItem>
-                          <SelectItem value="evening">Noche</SelectItem>
-                          <SelectItem value="flexible">Flexible</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    ) : (
-                      <p className="text-white">{getStudyTimeLabel(profile.preferences.preferredStudyTime)}</p>
-                    )}
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium text-gray-300">Estilo de Aprendizaje</label>
-                    {isEditing ? (
-                      <Select
-                        value={editedProfile.preferences.learningStyle}
-                        onValueChange={(value) => updatePreferences('learningStyle', value)}
+                        <Save className="h-3.5 w-3.5 mr-1.5" />
+                        Guardar cambios
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="w-full"
+                        onClick={handleCancel}
                       >
-                        <SelectTrigger className="bg-gray-800 border-gray-600 text-white">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="visual">Visual</SelectItem>
-                          <SelectItem value="auditory">Auditivo</SelectItem>
-                          <SelectItem value="kinesthetic">Kinestésico</SelectItem>
-                          <SelectItem value="mixed">Mixto</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    ) : (
-                      <p className="text-white">{getLearningStyleLabel(profile.preferences.learningStyle)}</p>
-                    )}
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <label className="text-sm font-medium text-gray-300">Intereses</label>
-                  <div className="flex flex-wrap gap-2">
-                    {profile.preferences.interests.map((interest, index) => (
-                      <Badge key={index} variant="secondary" className="bg-purple-500/20 text-purple-300">
-                        {interest}
-                      </Badge>
-                    ))}
-                  </div>
-                </div>
-              </CardContent>
-            </Card> */}
-
-            <Card className="bg-[#0B1422] backdrop-blur-sm border border-gray-700/50">
-              <CardHeader>
-                <CardTitle className="text-white">Preferencias de Notificaciones</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-white font-medium">Notificaciones por Email</p>
-                      <p className="text-sm text-gray-400">Recibir actualizaciones por correo electrónico</p>
-                    </div>
-                    <input
-                      type="checkbox"
-                      checked={isEditing ? editedProfile.preferences.notifications.email : profile.preferences.notifications.email}
-                      onChange={(e) => isEditing && updateNotifications('email', e.target.checked)}
-                      disabled={!isEditing}
-                      className="w-4 h-4 text-blue-600 bg-gray-700 border-gray-600 rounded focus:ring-blue-500"
-                    />
-                  </div>
-                  
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-white font-medium">Recordatorios de Exámenes</p>
-                      <p className="text-sm text-gray-400">Recibir recordatorios antes de los exámenes</p>
-                    </div>
-                    <input
-                      type="checkbox"
-                      checked={isEditing ? editedProfile.preferences.notifications.examReminders : profile.preferences.notifications.examReminders}
-                      onChange={(e) => isEditing && updateNotifications('examReminders', e.target.checked)}
-                      disabled={!isEditing}
-                      className="w-4 h-4 text-blue-600 bg-gray-700 border-gray-600 rounded focus:ring-blue-500"
-                    />
-                  </div>
-                  
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-white font-medium">Actualizaciones de Progreso</p>
-                      <p className="text-sm text-gray-400">Recibir reportes de progreso académico</p>
-                    </div>
-                    <input
-                      type="checkbox"
-                      checked={isEditing ? editedProfile.preferences.notifications.progressUpdates : profile.preferences.notifications.progressUpdates}
-                      onChange={(e) => isEditing && updateNotifications('progressUpdates', e.target.checked)}
-                      disabled={!isEditing}
-                      className="w-4 h-4 text-blue-600 bg-gray-700 border-gray-600 rounded focus:ring-blue-500"
-                    />
-                  </div>
+                        <X className="h-3.5 w-3.5 mr-1.5" />
+                        Cancelar
+                      </Button>
+                    </>
+                  ) : (
+                    <>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="w-full"
+                        onClick={() => { setActiveTab("personal"); setIsEditing(true); }}
+                      >
+                        <Edit className="h-3.5 w-3.5 mr-1.5" />
+                        Editar perfil
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="w-full"
+                        onClick={() => { setActiveTab("security"); setShowChangePassword(true); }}
+                      >
+                        <KeyRound className="h-3.5 w-3.5 mr-1.5" />
+                        Cambiar contraseña
+                      </Button>
+                    </>
+                  )}
                 </div>
               </CardContent>
             </Card>
           </div>
-        )}
 
-        {activeTab === 'security' && (
-          <Card className="bg-[#0B1422] backdrop-blur-sm border border-gray-700/50">
-            <CardHeader>
-              <CardTitle className="text-white flex items-center gap-2">
-                <Shield className="h-5 w-5 text-red-400" />
-                Seguridad de la Cuenta
-              </CardTitle>
-              <CardDescription className="text-gray-300">
-                Gestiona la seguridad y contraseña de tu cuenta
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="space-y-4">
-                <h3 className="text-lg font-medium text-white">Contraseña</h3>
-                <div className="flex items-center justify-between p-4 bg-gray-800/50 rounded-lg border border-gray-700">
-                  <div className="flex items-center gap-3">
-                    <KeyRound className="h-5 w-5 text-blue-400" />
-                    <div>
-                      <p className="text-white font-medium">Contraseña de acceso</p>
-                      <p className="text-gray-400 text-sm">
-                        Última actualización: {new Date().toLocaleDateString('es-ES')}
-                      </p>
+          {/* ── Right: Tabbed content ── */}
+          <div className="flex-1 min-w-0 space-y-4">
+            {/* Tab bar */}
+            <div className="flex gap-1 bg-muted/50 p-1 rounded-lg">
+              {tabs.map(({ id, label, icon: Icon }) => (
+                <button
+                  key={id}
+                  onClick={() => setActiveTab(id)}
+                  className={`flex items-center gap-1.5 flex-1 py-1.5 px-3 rounded-md text-sm font-medium transition-all ${
+                    activeTab === id
+                      ? "bg-blue-600 text-white shadow-sm"
+                      : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                  }`}
+                >
+                  <Icon className="h-3.5 w-3.5 shrink-0" />
+                  <span className="hidden sm:inline">{label}</span>
+                </button>
+              ))}
+            </div>
+
+            {/* ── Tab: Personal ── */}
+            {activeTab === "personal" && (
+              <Card className="bg-card border border-border">
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-base text-foreground flex items-center gap-2">
+                    <span className="icon-wrap-blue p-1.5 rounded-md">
+                      <User className="h-3.5 w-3.5" />
+                    </span>
+                    Información Personal
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    {/* Nombre — readonly (viene de auth) */}
+                    <InfoRow
+                      label="Nombre"
+                      value={firstName}
+                      readonly
+                    />
+                    <InfoRow
+                      label="Apellido"
+                      value={lastName}
+                      readonly
+                    />
+                    <InfoRow
+                      label="Email"
+                      value={email}
+                      readonly
+                    />
+
+                    {/* Teléfono — editable */}
+                    <div className="space-y-1">
+                      <p className="text-xs text-muted-foreground">Teléfono</p>
+                      {isEditing ? (
+                        <Input
+                          value={editedInfo.phone}
+                          onChange={(e) =>
+                            setEditedInfo((p) => ({ ...p, phone: e.target.value }))
+                          }
+                          placeholder="Ej. +591 7xxxxxxx"
+                          className="h-8 text-sm"
+                        />
+                      ) : (
+                        <p className="text-sm text-foreground">
+                          {personalInfo.phone || (
+                            <span className="text-muted-foreground italic">Sin teléfono</span>
+                          )}
+                        </p>
+                      )}
+                    </div>
+
+                    {/* Nacionalidad — editable */}
+                    <div className="space-y-1">
+                      <p className="text-xs text-muted-foreground">Nacionalidad</p>
+                      {isEditing ? (
+                        <Input
+                          value={editedInfo.nationality}
+                          onChange={(e) =>
+                            setEditedInfo((p) => ({ ...p, nationality: e.target.value }))
+                          }
+                          className="h-8 text-sm"
+                          disabled
+                        />
+                      ) : (
+                        <p className="text-sm text-foreground">{personalInfo.nationality}</p>
+                      )}
                     </div>
                   </div>
-                  <Button
-                    onClick={() => setShowChangePassword(true)}
-                    className="bg-blue-600 hover:bg-blue-700 text-white"
-                    size="sm"
-                  >
-                    <Shield className="h-4 w-4 mr-2" />
-                    Cambiar Contraseña
-                  </Button>
-                </div>
-              </div>
 
-              <div className="space-y-4">
-                <h3 className="text-lg font-medium text-white">Información de Seguridad</h3>
-                <div className="grid gap-4">
-                  <div className="flex items-center justify-between p-4 bg-gray-800/50 rounded-lg border border-gray-700">
-                    <div className="flex items-center gap-3">
-                      <Mail className="h-5 w-5 text-green-400" />
+                  {!isEditing && (
+                    <div className="pt-2 border-t border-border">
+                      <button
+                        onClick={() => setIsEditing(true)}
+                        className="text-xs text-blue-500 hover:text-blue-600 font-medium transition-colors"
+                      >
+                        Editar información →
+                      </button>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            )}
+
+            {/* ── Tab: Preferences ── */}
+            {activeTab === "preferences" && (
+              <Card className="bg-card border border-border">
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-base text-foreground flex items-center gap-2">
+                    <span className="icon-wrap-purple p-1.5 rounded-md">
+                      <Bell className="h-3.5 w-3.5" />
+                    </span>
+                    Notificaciones
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-1">
+                  {[
+                    {
+                      key: "email" as keyof NotificationPrefs,
+                      label: "Notificaciones por Email",
+                      desc: "Recibir actualizaciones en tu correo",
+                    },
+                    {
+                      key: "examReminders" as keyof NotificationPrefs,
+                      label: "Recordatorios de Exámenes",
+                      desc: "Alerta antes de cada examen programado",
+                    },
+                    {
+                      key: "progressUpdates" as keyof NotificationPrefs,
+                      label: "Actualizaciones de Progreso",
+                      desc: "Reportes periódicos de tu avance",
+                    },
+                  ].map(({ key, label, desc }) => (
+                    <div
+                      key={key}
+                      className="flex items-center justify-between py-3 border-b border-border last:border-0"
+                    >
                       <div>
-                        <p className="text-white font-medium">Email verificado</p>
-                        <p className="text-gray-400 text-sm">{profile.personalInfo.email}</p>
+                        <p className="text-sm font-medium text-foreground">{label}</p>
+                        <p className="text-xs text-muted-foreground">{desc}</p>
+                      </div>
+                      <button
+                        onClick={() =>
+                          setNotifications((p) => ({ ...p, [key]: !p[key] }))
+                        }
+                        className={`relative w-9 h-5 rounded-full transition-colors ${
+                          notifications[key] ? "bg-blue-600" : "bg-muted"
+                        }`}
+                      >
+                        <span
+                          className={`absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform ${
+                            notifications[key] ? "translate-x-4" : "translate-x-0"
+                          }`}
+                        />
+                      </button>
+                    </div>
+                  ))}
+                </CardContent>
+              </Card>
+            )}
+
+            {/* ── Tab: Security ── */}
+            {activeTab === "security" && (
+              <Card className="bg-card border border-border">
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-base text-foreground flex items-center gap-2">
+                    <span className="icon-wrap-red p-1.5 rounded-md">
+                      <Shield className="h-3.5 w-3.5" />
+                    </span>
+                    Seguridad de la Cuenta
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  {/* Contraseña */}
+                  <div className="flex items-center justify-between p-3 bg-muted/30 rounded-lg border border-border">
+                    <div className="flex items-center gap-3">
+                      <span className="icon-wrap-blue p-2 rounded-md">
+                        <KeyRound className="h-4 w-4" />
+                      </span>
+                      <div>
+                        <p className="text-sm font-medium text-foreground">Contraseña</p>
+                        <p className="text-xs text-muted-foreground">
+                          Última actualización: {new Date().toLocaleDateString("es-ES")}
+                        </p>
                       </div>
                     </div>
-                    <Badge className="bg-green-500/20 text-green-300 border border-green-500/30">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => setShowChangePassword(true)}
+                    >
+                      Cambiar
+                    </Button>
+                  </div>
+
+                  {/* Email verificado */}
+                  <div className="flex items-center justify-between p-3 bg-muted/30 rounded-lg border border-border">
+                    <div className="flex items-center gap-3">
+                      <span className="icon-wrap-green p-2 rounded-md">
+                        <Mail className="h-4 w-4" />
+                      </span>
+                      <div>
+                        <p className="text-sm font-medium text-foreground">Email verificado</p>
+                        <p className="text-xs text-muted-foreground truncate max-w-[180px]">
+                          {email}
+                        </p>
+                      </div>
+                    </div>
+                    <Badge className="bg-green-100 text-green-700 border border-green-200 dark:bg-green-500/20 dark:text-green-300 dark:border-green-500/30 text-xs">
                       Verificado
                     </Badge>
                   </div>
 
-                  <div className="flex items-center justify-between p-4 bg-gray-800/50 rounded-lg border border-gray-700">
+                  {/* 2FA */}
+                  <div className="flex items-center justify-between p-3 bg-muted/30 rounded-lg border border-border">
                     <div className="flex items-center gap-3">
-                      <Shield className="h-5 w-5 text-blue-400" />
+                      <span className="icon-wrap-blue p-2 rounded-md">
+                        <Shield className="h-4 w-4" />
+                      </span>
                       <div>
-                        <p className="text-white font-medium">Autenticación de dos factores</p>
-                        <p className="text-gray-400 text-sm">Verificación adicional con OTP por email</p>
+                        <p className="text-sm font-medium text-foreground">
+                          Autenticación de dos factores
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          Verificación OTP por email
+                        </p>
                       </div>
                     </div>
-                    <Badge className="bg-blue-500/20 text-blue-300 border border-blue-500/30">
+                    <Badge className="bg-blue-100 text-blue-700 border border-blue-200 dark:bg-blue-500/20 dark:text-blue-300 dark:border-blue-500/30 text-xs">
                       Activo
                     </Badge>
                   </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        )}
+                </CardContent>
+              </Card>
+            )}
+          </div>
+        </div>
       </div>
 
       <ChangePasswordFlow
         isOpen={showChangePassword}
         onClose={() => setShowChangePassword(false)}
         onSuccess={() => {
-          toast.success('Contraseña actualizada exitosamente');
+          toast.success("Contraseña actualizada exitosamente");
           setShowChangePassword(false);
         }}
       />
     </MainLayout>
   );
 };
+
+// Small helper to render a readonly info row
+const InfoRow = ({
+  label,
+  value,
+  readonly = false,
+}: {
+  label: string;
+  value: string;
+  readonly?: boolean;
+}) => (
+  <div className="space-y-1">
+    <p className="text-xs text-muted-foreground">{label}</p>
+    <p className={`text-sm text-foreground ${readonly ? "opacity-70" : ""}`}>
+      {value || <span className="italic text-muted-foreground">—</span>}
+    </p>
+  </div>
+);
 
 export default StudentProfile;
