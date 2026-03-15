@@ -1,1 +1,0 @@
-sudo chown -R 999:999 ./data/mongodb
