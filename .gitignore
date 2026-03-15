@@ -116,6 +116,23 @@ build/Release
 # DynamoDB Local files
 .dynamodb/
 
+# Claude Code config
+.claude/
+
+# StarUML / DB modeler files
+*.mdj
+*.dmm
+
+# Personal notes
+commandData*
+
+# Thesis PDF
+*.pdf
+
+# Design assets at root
+*.webp
+*.png
+
 # Docker volumes data (persistencia local)
 data/mongodb/*
 data/minio/*
