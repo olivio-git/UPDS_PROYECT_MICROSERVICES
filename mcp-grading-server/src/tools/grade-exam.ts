@@ -5,7 +5,7 @@ import { evaluateWithGroq, generateExamFeedback, generatePerQuestionFeedback } f
 import { evaluateAudio } from '../grading/audio-delegator.js';
 import { sendGradingNotification } from '../services/notification.service.js';
 import { AUTO_GRADABLE_TYPES, AI_GRADABLE_TYPES, AUDIO_TYPES } from '../types/index.js';
-import type { IQuestionResult, ICompetencyScore, IExamResult, QuestionType } from '../types/index.js';
+import type { IQuestionResult, ICompetencyScore, IExamResult, IGradingBreakdown, QuestionType } from '../types/index.js';
 import type { GradeExamResponse } from '../schemas/grading.schemas.js';
 
 class GradingError extends Error {
@@ -84,7 +84,14 @@ export async function gradeExam(attemptId: string, options: { force?: boolean } 
     };
   }
 
-  // 3. Fetch exam info
+  // 3. Start timing
+  const gradingStartedAt = new Date();
+  const t0 = Date.now();
+  let autoGradingMs = 0;
+  let aiGradingMs = 0;
+  let audioGradingMs = 0;
+
+  // 4. Fetch exam info
   const exam = await getExams().findOne({ _id: attempt.examId });
   if (!exam) throw new GradingError(`Exam ${attempt.examId} no encontrado`, 404);
 
@@ -145,7 +152,9 @@ export async function gradeExam(attemptId: string, options: { force?: boolean } 
     let result: IQuestionResult;
 
     if (AUTO_GRADABLE_TYPES.includes(qType)) {
+      const tAuto = Date.now();
       const gradeResult = autoGrade(question, answerData, maxScore);
+      autoGradingMs += Date.now() - tAuto;
       result = {
         questionId: resp.questionId,
         questionType: question.type,
@@ -159,7 +168,9 @@ export async function gradeExam(attemptId: string, options: { force?: boolean } 
         evaluatedAt: new Date(),
       };
     } else if (AI_GRADABLE_TYPES.includes(qType)) {
+      const tAI = Date.now();
       const aiResult = await evaluateWithGroq(question, answerData, maxScore);
+      aiGradingMs += Date.now() - tAI;
       result = {
         questionId: resp.questionId,
         questionType: question.type,
@@ -178,7 +189,9 @@ export async function gradeExam(attemptId: string, options: { force?: boolean } 
         },
       };
     } else if (AUDIO_TYPES.includes(qType)) {
+      const tAudio = Date.now();
       const audioResult = await evaluateAudio(question, answerData, maxScore);
+      audioGradingMs += Date.now() - tAudio;
       result = {
         questionId: resp.questionId,
         questionType: question.type,
@@ -234,10 +247,15 @@ export async function gradeExam(attemptId: string, options: { force?: boolean } 
     }
   }
 
+  const questionsMs = Date.now() - t0;
+
+  let perQuestionFeedbackMs = 0;
   if (autoGradedInputs.length > 0) {
+    const tPQF = Date.now();
     const perQuestionFeedbacks = await generatePerQuestionFeedback(autoGradedInputs).catch(() =>
       autoGradedInputs.map(() => ({ feedback: '', suggestions: [] }))
     );
+    perQuestionFeedbackMs = Date.now() - tPQF;
     for (let k = 0; k < autoGradedIndices.length; k++) {
       const idx = autoGradedIndices[k]!;
       const fb = perQuestionFeedbacks[k];
@@ -359,6 +377,7 @@ export async function gradeExam(attemptId: string, options: { force?: boolean } 
     : 0;
 
   // 11.5. Generate AI overall feedback (best-effort — never blocks completion)
+  const tOverallFeedback = Date.now();
   const aiFeedback = await generateExamFeedback({
     examName: exam.name,
     examLevel: exam.targetLevel,
@@ -377,6 +396,25 @@ export async function gradeExam(attemptId: string, options: { force?: boolean } 
       feedback: qr.feedback,
     })),
   }).catch(() => ({ overallFeedback: '', recommendations: [], competencyFeedback: {} }));
+
+  const overallFeedbackMs = Date.now() - tOverallFeedback;
+  const gradingCompletedAt = new Date();
+  const gradingDurationMs = Date.now() - t0;
+
+  const gradingBreakdown: IGradingBreakdown = {
+    questionsMs,
+    autoGradingMs,
+    aiGradingMs,
+    audioGradingMs,
+    perQuestionFeedbackMs,
+    overallFeedbackMs,
+  };
+
+  console.info(
+    `[Grading] attemptId=${attemptId} | total=${gradingDurationMs}ms | ` +
+    `auto=${autoGradingMs}ms | ai=${aiGradingMs}ms | audio=${audioGradingMs}ms | ` +
+    `perQFeedback=${perQuestionFeedbackMs}ms | overallFeedback=${overallFeedbackMs}ms`
+  );
 
   // 12. Create or update ExamResult
   const examResult: Omit<IExamResult, '_id'> = {
@@ -405,6 +443,10 @@ export async function gradeExam(attemptId: string, options: { force?: boolean } 
     recommendedLevel,
     placementMode,
     levelScores,
+    gradingStartedAt,
+    gradingCompletedAt,
+    gradingDurationMs,
+    gradingBreakdown,
   };
 
   let resultId: string;

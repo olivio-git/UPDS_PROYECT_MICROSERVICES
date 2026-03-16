@@ -77,7 +77,7 @@ const LevelTable = ({
 
   if (isLoading) {
     return (
-      <div className="bg-card/50 backdrop-blur-sm border border-line rounded-xl p-8">
+      <div className="bg-card border border-border rounded-lg p-8">
         <div className="flex items-center justify-center space-x-2">
           <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-500"></div>
           <span className="text-muted-foreground">Cargando niveles...</span>
@@ -88,9 +88,9 @@ const LevelTable = ({
 
   if (isError) {
     return (
-      <div className="bg-card/50 backdrop-blur-sm border border-line rounded-xl p-8">
+      <div className="bg-card border border-border rounded-lg p-8">
         <div className="text-center space-y-3">
-          <div className="text-red-400">❌ Error al cargar los niveles</div>
+          <div className="text-red-400">Error al cargar los niveles</div>
           <p className="text-muted-foreground text-sm">{errorMessage}</p>
         </div>
       </div>
@@ -99,7 +99,7 @@ const LevelTable = ({
 
   if (levels.length === 0) {
     return (
-      <div className="bg-card/50 backdrop-blur-sm border border-line rounded-xl p-8">
+      <div className="bg-card border border-border rounded-lg p-8">
         <div className="text-center space-y-4">
           <BookOpen className="h-12 w-12 text-muted-foreground mx-auto" />
           <div className="space-y-2">
@@ -114,10 +114,10 @@ const LevelTable = ({
   }
 
   return (
-    <div className="bg-card backdrop-blur-sm border border-line rounded-xl overflow-hidden">
+    <div className="bg-card border border-border rounded-lg overflow-hidden">
       <Table>
         <TableHeader>
-          <TableRow className="border-line hover:bg-muted/30">
+          <TableRow className="border-border hover:bg-muted/30">
             <TableHead className="text-muted-foreground font-medium">Nivel</TableHead>
             <TableHead className="text-muted-foreground font-medium">Nombre</TableHead>
             <TableHead className="text-muted-foreground font-medium">Descripción</TableHead>
@@ -129,9 +129,9 @@ const LevelTable = ({
         </TableHeader>
         <TableBody>
           {levels.map((level) => (
-            <TableRow 
+            <TableRow
               key={level._id}
-              className="border-line hover:bg-muted/20 transition-colors"
+              className="border-border hover:bg-muted/20 transition-colors"
             >
               <TableCell>
                 <div className="flex items-center space-x-2">
@@ -184,9 +184,9 @@ const LevelTable = ({
                       <MoreHorizontal className="h-4 w-4 text-muted-foreground" />
                     </Button>
                   </DropdownMenuTrigger>
-                  <DropdownMenuContent 
-                    align="end" 
-                    className="bg-popover border-line"
+                  <DropdownMenuContent
+                    align="end"
+                    className="bg-popover border-border"
                   >
                     <DropdownMenuItem 
                       onClick={() => onViewLevel(level)}

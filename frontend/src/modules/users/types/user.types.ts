@@ -7,6 +7,7 @@ export type UserStatus = 'active' | 'inactive' | 'suspended' | 'pending';
 
 export interface UserProfile {
   avatar?: string;
+  avatarUrl?: string;
   phone?: string;
   address?: string;
   dateOfBirth?: string;
@@ -107,6 +108,8 @@ export interface UserFilters {
   status?: UserStatus;
   sortBy?: 'createdAt' | 'updatedAt' | 'firstName' | 'lastName' | 'email';
   sortOrder?: 'asc' | 'desc';
+  dateFrom?: string;
+  dateTo?: string;
 }
 
 export interface PaginatedUsersResponse {
@@ -181,11 +184,6 @@ export interface FormErrors {
 // ================================
 
 export const USER_ROLES: { value: UserRole; label: string; description: string }[] = [
-  {
-    value: 'admin',
-    label: 'Administrador',
-    description: 'Acceso completo al sistema'
-  },
   {
     value: 'teacher',
     label: 'Profesor',

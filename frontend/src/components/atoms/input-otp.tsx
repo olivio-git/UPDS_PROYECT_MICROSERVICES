@@ -69,7 +69,7 @@ const InputOTPSlot = React.forwardRef<
       ref={ref}
       className={cn(
         // Estilos base: solo borde inferior, sin redondeos
-        "relative flex h-12 w-12 items-center justify-center border-b border-gray-300 text-lg font-medium transition-all",
+        "relative flex h-12 w-12 items-center justify-center border-b border-muted-foreground/40 text-lg font-medium transition-all",
         // Estilo cuando está activo (en foco)
         isActive && "border-b-2 border-blue-500 outline-none ring-0",
         // Clases personalizadas desde las props

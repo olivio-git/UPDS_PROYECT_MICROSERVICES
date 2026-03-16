@@ -42,6 +42,11 @@ export const createNotificationRoutes = (
   );
 
   // In-app notifications
+  router.post(
+    '/inapp',
+    asyncHandler(notificationController.createInApp)
+  );
+
   router.get(
     '/inapp',
     asyncHandler(notificationController.listNotifications)

@@ -4,6 +4,7 @@ import { Attempt } from '../models/attempt.model';
 import { ISession, Session } from '../models/session.model';
 import { User } from '../models/user.model';
 import { env } from '../config/env';
+import { cache } from '../config/redis';
 import { CONSTANTS } from '../utils/constants';
 import { logger } from '../utils/logger';
 import { KafkaService } from './kafka.service';
@@ -67,6 +68,7 @@ export class SessionService {
       //   const redisClient = getRedisClient();
       //   await redisClient.set(`session:${session?._id}:status`, 'in_progress');
       // }
+      cache.del('upcoming_sessions:{}').catch(() => {});
       return session;
     } catch (error) {
       logger.error('Error creating session:', error);
@@ -380,9 +382,24 @@ export class SessionService {
 
   async update(id: string, updateData: Partial<ISession>): Promise<ISession | null> {
     try {
+      // Flatten nested objects to dot notation so $set only touches specific fields
+      // and never overwrites registeredCandidates / proctors
+      const flatUpdate: Record<string, any> = {};
+      for (const [key, value] of Object.entries(updateData)) {
+        if (key === 'participants' && value && typeof value === 'object') {
+          for (const [pKey, pValue] of Object.entries(value as any)) {
+            if (pKey !== 'registeredCandidates' && pKey !== 'proctors' && pKey !== 'candidates') {
+              flatUpdate[`participants.${pKey}`] = pValue;
+            }
+          }
+        } else {
+          flatUpdate[key] = value;
+        }
+      }
+
       const session = await Session.findByIdAndUpdate(
         id,
-        { $set: updateData },
+        { $set: flatUpdate },
         { new: true, runValidators: true }
       );
 
@@ -391,6 +408,7 @@ export class SessionService {
           sessionId: session._id,
           changes: Object.keys(updateData)
         });
+        cache.del('upcoming_sessions:{}').catch(() => {});
       }
 
       return session;
@@ -407,6 +425,16 @@ export class SessionService {
 
       if (session.participants.registeredCandidates.includes(candidateId as any)) {
         throw new Error('Candidate already registered');
+      }
+
+      // Block re-adding a kicked candidate (cancelled attempt = expelled)
+      const kickedAttempt = await Attempt.findOne({
+        sessionId: session._id,
+        candidateId: new Types.ObjectId(candidateId),
+        status: 'cancelled',
+      });
+      if (kickedAttempt) {
+        throw new Error('Candidate was expelled from this session and cannot be re-added');
       }
 
       if (session.participants.registeredCandidates.length >= session.participants.maxCandidates) {
@@ -581,6 +609,7 @@ export class SessionService {
           enrolledCandidateIds: session.participants.registeredCandidates.map(String),
           createdBy: session.createdBy?.toString()
         });
+        cache.del('upcoming_sessions:{}').catch(() => {});
       }
 
       return session;
@@ -725,7 +754,7 @@ export class SessionService {
                   role: '$createdByUser.role',
                   email: '$createdByUser.email',
                   teacherData: '$createdByUser.teacherData',
-
+                  profile: '$createdByUser.profile',
                 },
                 else: null
               }
@@ -779,10 +808,10 @@ export class SessionService {
         },
         { $project: { myAttempt: 0 } },
 
-        // Excluir sesiones donde el candidato ya finalizó su examen
+        // Excluir sesiones donde el candidato ya finalizó o fue expulsado
         {
           $match: {
-            myAttemptStatus: { $ne: 'completed' }
+            myAttemptStatus: { $nin: ['completed', 'cancelled'] }
           }
         }
       ];
@@ -1067,6 +1096,53 @@ export class SessionService {
     }
   }
 
+  async extendTime(sessionId: string, minutes: number): Promise<ISession> {
+    try {
+      const session = await Session.findById(sessionId);
+      if (!session) throw new Error('Session not found');
+
+      if (!['scheduled', 'in_progress'].includes(session.status)) {
+        throw new Error(`No se puede extender una sesion en estado "${session.status}"`);
+      }
+
+      const newEndDate = new Date(session.scheduling.endDate.getTime() + minutes * 60 * 1000);
+
+      const updatedSession = await Session.findByIdAndUpdate(
+        sessionId,
+        { 'scheduling.endDate': newEndDate },
+        { new: true }
+      );
+
+      if (!updatedSession) throw new Error('Session not found after update');
+
+      // Update all in-progress attempts: add extra seconds to their timeAllowedSeconds
+      const extraSeconds = minutes * 60;
+      await Attempt.updateMany(
+        { sessionId: new Types.ObjectId(sessionId), status: 'in_progress' },
+        { $inc: { timeAllowedSeconds: extraSeconds } }
+      );
+
+      // Reschedule the Bull end job
+      await this.sessionSchedulerService.rescheduleEndJob(sessionId, newEndDate);
+
+      // Notify all enrolled candidates via Kafka
+      await this.kafkaService.publishEvent('session.time.extended', {
+        sessionId: String(session._id),
+        sessionName: session.sessionName,
+        extraMinutes: minutes,
+        newEndDate: newEndDate.toISOString(),
+        enrolledCandidateIds: session.participants.registeredCandidates.map(String),
+        extendedBy: session.createdBy?.toString()
+      });
+
+      cache.del('upcoming_sessions:{}').catch(() => {});
+      return updatedSession;
+    } catch (error) {
+      logger.error(`Error extending time for session ${sessionId}:`, error);
+      throw error;
+    }
+  }
+
   async kickCandidate(sessionId: string, candidateId: string): Promise<void> {
     try {
       const attempt = await Attempt.findOne({
@@ -1080,6 +1156,22 @@ export class SessionService {
         await attempt.save();
       }
       logger.info(`Candidate ${candidateId} kicked from session ${sessionId}`);
+
+      // Notify the student via socket (fire-and-forget)
+      // NOTIFICATION_SERVICE_URL already includes /notifications (e.g. http://notification-service:3001/notifications)
+      const notifUrl = process.env.NOTIFICATION_SERVICE_URL || 'http://notification-service:3001/notifications';
+      axios.post(`${notifUrl}/inapp`, {
+        recipientId: candidateId,
+        recipientType: 'candidate',
+        type: 'candidate.kicked',
+        channel: 'in-app',
+        content: {
+          title: 'Has sido expulsado de la sesión',
+          body: 'El administrador te ha removido de la sesión de examen.',
+        },
+        priority: 'high',
+        metadata: { sessionId },
+      }).catch(() => { /* best-effort */ });
     } catch (error) {
       logger.error(`Error kicking candidate ${candidateId} from session ${sessionId}:`, error);
       throw error;

@@ -1,4 +1,5 @@
 import { NextFunction, Request, Response, Router } from 'express';
+import multer from 'multer';
 import { UserController } from '../controllers/UserController';
 import {
   asyncHandler,
@@ -15,6 +16,8 @@ import {
   getUsersQuerySchema,
   idParamsSchema
 } from '../schemas';
+
+const upload = multer({ storage: multer.memoryStorage() });
 
 // ================================
 // USER ROUTES
@@ -73,6 +76,61 @@ router.get('/proctors',
   validateQuery(getUsersQuerySchema),
   asyncHandler(userController.getProctors)
 );
+
+/**
+ * @route GET /users/stats
+ * @desc Obtener estadísticas de usuarios
+ * @access Admin only
+ */
+router.get('/stats',
+  ...middlewareStacks.adminOnly,
+  userPermissions.read,
+  asyncHandler(userController.getUserStats)
+);
+
+/**
+ * @route GET /users/search
+ * @desc Buscar usuarios por criterios
+ * @access Admin, Teacher
+ */
+router.get('/search',
+  ...middlewareStacks.teacherOrAdmin,
+  userPermissions.read,
+  asyncHandler(userController.searchUsers)
+);
+
+/**
+ * @route GET /users/template
+ * @desc Descargar plantilla Excel para importación de usuarios
+ * @access Admin only
+ */
+router.get('/template',
+  ...middlewareStacks.adminOnly,
+  asyncHandler(userController.downloadTemplate)
+);
+
+/**
+ * @route GET /users/export
+ * @desc Exportar usuarios a Excel con filtros opcionales
+ * @access Admin only
+ */
+router.get('/export',
+  ...middlewareStacks.adminOnly,
+  validateQuery(getUsersQuerySchema),
+  asyncHandler(userController.exportUsers)
+);
+
+/**
+ * @route POST /users/import
+ * @desc Importar usuarios desde archivo Excel o CSV
+ * @access Admin only
+ */
+router.post('/import',
+  ...middlewareStacks.adminOnly,
+  upload.single('file'),
+  asyncHandler(userController.importUsers)
+);
+
 /**
  * @route GET /users/:id
  * @desc Obtener usuario por ID
@@ -95,6 +153,27 @@ router.post('/',
   validateBody(CreateUserSchema),
   userPermissions.create,
   asyncHandler(userController.createUser)
+);
+
+/**
+ * @route GET /users/me
+ * @desc Obtener perfil completo del usuario autenticado (por JWT)
+ * @access Own User
+ */
+router.get('/me',
+  ...middlewareStacks.basicAuth,
+  asyncHandler(userController.getMe)
+);
+
+/**
+ * @route PATCH /users/me
+ * @desc Actualizar perfil del usuario autenticado (por JWT)
+ * @access Own User
+ */
+router.patch('/me',
+  ...middlewareStacks.basicAuth,
+  validateBody(UpdateUserSchema.partial()),
+  asyncHandler(userController.updateMe)
 );
 
 /**
@@ -235,26 +314,17 @@ router.get('/:id/permissions',
   asyncHandler(userController.getUserPermissions)
 );
 
-/**
- * @route GET /users/search
- * @desc Buscar usuarios por criterios
- * @access Admin, Teacher
- */
-router.get('/search',
-  ...middlewareStacks.teacherOrAdmin,
-  userPermissions.read,
-  asyncHandler(userController.searchUsers)
-);
 
 /**
- * @route GET /users/stats
- * @desc Obtener estadísticas de usuarios
- * @access Admin only
+ * @route POST /users/:id/avatar
+ * @desc Subir foto de perfil (avatar)
+ * @access Own User, Admin
  */
-router.get('/stats',
-  ...middlewareStacks.adminOnly,
-  userPermissions.read,
-  asyncHandler(userController.getUserStats)
+router.post('/:id/avatar',
+  ...middlewareStacks.basicAuth,
+  validateParams(idParamsSchema),
+  upload.single('avatar'),
+  asyncHandler(userController.uploadAvatar)
 );
 
 /**

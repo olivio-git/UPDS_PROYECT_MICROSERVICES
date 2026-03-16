@@ -49,9 +49,21 @@ export class CandidateRepository {
   async findById(id: string | ObjectId): Promise<CandidateModel | null> {
     try {
       const objectId = typeof id === 'string' ? new ObjectId(id) : id;
-      const candidateData = await this.collection.findOne({ _id: objectId });
-      
-      return candidateData ? CandidateModel.fromDatabase(candidateData) : null;
+      const results = await this.collection.aggregate([
+        { $match: { _id: objectId } },
+        {
+          $lookup: {
+            from: 'users',
+            localField: 'userId',
+            foreignField: '_id',
+            pipeline: [{ $project: { 'profile.avatarUrl': 1 } }],
+            as: 'userInfo',
+          },
+        },
+        { $limit: 1 },
+      ]).toArray();
+
+      return results.length > 0 ? CandidateModel.fromDatabase(results[0]) : null;
     } catch (error) {
       console.error('Error buscando candidato por ID:', error);
       return null;
@@ -202,10 +214,30 @@ export class CandidateRepository {
   ): Promise<{ candidates: CandidateModel[]; total: number }> {
     try {
       const query = this.buildQuery(filters);
-      const options = this.buildFindOptions(pagination);
+      const { page, limit, sortBy, sortOrder } = pagination;
+      const skip = (page - 1) * limit;
+      const sort: Record<string, 1 | -1> = sortBy
+        ? { [sortBy]: sortOrder === 'asc' ? 1 : -1 }
+        : { createdAt: -1 };
+
+      const pipeline: any[] = [
+        { $match: query },
+        { $sort: sort },
+        { $skip: skip },
+        { $limit: limit },
+        {
+          $lookup: {
+            from: 'users',
+            localField: 'userId',
+            foreignField: '_id',
+            pipeline: [{ $project: { 'profile.avatarUrl': 1 } }],
+            as: 'userInfo',
+          },
+        },
+      ];
 
       const [candidates, total] = await Promise.all([
-        this.collection.find(query, options).toArray(),
+        this.collection.aggregate(pipeline).toArray(),
         this.collection.countDocuments(query),
       ]);
 
@@ -257,7 +289,7 @@ export class CandidateRepository {
     pagination: PaginationParams
   ): Promise<{ candidates: CandidateModel[]; total: number }> {
     try {
-      const query = {
+      const matchStage = {
         $or: [
           { 'personalInfo.firstName': { $regex: searchTerm, $options: 'i' } },
           { 'personalInfo.lastName': { $regex: searchTerm, $options: 'i' } },
@@ -266,11 +298,25 @@ export class CandidateRepository {
         ],
       };
 
-      const options = this.buildFindOptions(pagination);
+      const skip = (pagination.page - 1) * pagination.limit;
 
       const [candidates, total] = await Promise.all([
-        this.collection.find(query, options).toArray(),
-        this.collection.countDocuments(query),
+        this.collection.aggregate([
+          { $match: matchStage },
+          { $sort: { [pagination.sortBy || 'createdAt']: pagination.sortOrder === 'asc' ? 1 : -1 } },
+          { $skip: skip },
+          { $limit: pagination.limit },
+          {
+            $lookup: {
+              from: 'users',
+              localField: 'userId',
+              foreignField: '_id',
+              pipeline: [{ $project: { 'profile.avatarUrl': 1 } }],
+              as: 'userInfo',
+            },
+          },
+        ]).toArray(),
+        this.collection.countDocuments(matchStage),
       ]);
 
       return {

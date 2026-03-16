@@ -87,6 +87,28 @@ router.post('/from-user/:userId',
 );
 
 /**
+ * @route GET /candidates/stats
+ * @desc Obtener estadísticas de candidatos
+ * @access Admin, Teacher
+ */
+router.get('/stats',
+  ...middlewareStacks.teacherOrAdmin,
+  candidatePermissions.read,
+  asyncHandler(candidateController.getCandidateStats)
+);
+
+/**
+ * @route GET /candidates/search
+ * @desc Buscar candidatos por criterios
+ * @access Admin, Teacher, Proctor
+ */
+router.get('/search',
+  ...middlewareStacks.basicAuth,
+  candidatePermissions.read,
+  asyncHandler(candidateController.searchCandidates)
+);
+
+/**
  * @route GET /candidates/:id
  * @desc Obtener candidato por ID
  * @access Admin, Teacher, Proctor
@@ -293,27 +315,6 @@ router.get('/:id/target-level',
   asyncHandler(candidateController.calculateTargetLevel)
 );
 
-/**
- * @route GET /candidates/search
- * @desc Buscar candidatos por criterios
- * @access Admin, Teacher, Proctor
- */
-router.get('/search',
-  ...middlewareStacks.basicAuth,
-  candidatePermissions.read,
-  asyncHandler(candidateController.searchCandidates)
-);
-
-/**
- * @route GET /candidates/stats
- * @desc Obtener estadísticas de candidatos
- * @access Admin, Teacher
- */
-router.get('/stats',
-  ...middlewareStacks.teacherOrAdmin,
-  candidatePermissions.read,
-  asyncHandler(candidateController.getCandidateStats)
-);
 
 /**
  * @route POST /candidates/import

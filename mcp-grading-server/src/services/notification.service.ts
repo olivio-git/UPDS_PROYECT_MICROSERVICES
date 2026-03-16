@@ -78,21 +78,10 @@ export async function sendGradingNotification(params: {
     // In-app notification is best-effort
   }
 
-  // Send email if we have the address
+  // Send email via Kafka (lightweight — no PDF in message to stay under Kafka's 1MB limit)
   if (candidateEmail) {
+    console.log(`[grading-service] Publicando exam.graded para: ${candidateEmail}`);
     try {
-      // Try to fetch PDF attachment (best-effort)
-      let pdfBase64: string | null = null;
-      if (examResultId) {
-        pdfBase64 = await fetchExamResultPDF({
-          examResultId,
-          firstName: candidateFirstName,
-          lastName: candidateLastName,
-          email: candidateEmail,
-          candidateId,
-        });
-      }
-
       await publishKafkaEvent('exam.graded', {
         candidateEmail,
         candidateFirstName: candidateFirstName || 'Estudiante',
@@ -104,10 +93,6 @@ export async function sendGradingNotification(params: {
         maxScore,
         percentage: parseFloat(percentage.toFixed(1)),
         status,
-        pdfBase64: pdfBase64 || undefined,
-        pdfFilename: examResultId
-          ? `Resultado_${examName.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.pdf`
-          : undefined,
       });
     } catch {
       // Email is best-effort

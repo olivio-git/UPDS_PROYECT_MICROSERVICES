@@ -229,8 +229,8 @@ const OtpVerificator = ({
             {/* Alerta de intentos restantes */}
             {otp.attemptsRemaining < 3 && (
               <Alert className="border-yellow-500/50 bg-yellow-500/10">
-                <AlertCircle className="h-4 w-4 text-yellow-600" />
-                <AlertDescription className="text-yellow-600">
+                <AlertCircle className="h-4 w-4 text-yellow-600 dark:text-yellow-400" />
+                <AlertDescription className="text-yellow-600 dark:text-yellow-400">
                   Te quedan {otp.attemptsRemaining} intento(s)
                 </AlertDescription>
               </Alert>
@@ -238,8 +238,8 @@ const OtpVerificator = ({
 
             {/* Información sobre el propósito */}
             <Alert className="border-blue-500/50 bg-blue-500/10">
-              <AlertCircle className="h-5 w-5 text-blue-500" /> 
-              <AlertDescription className="text-blue-500">
+              <AlertCircle className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+              <AlertDescription className="text-blue-600 dark:text-blue-400">
                 {getActionText()}
               </AlertDescription>
             </Alert>

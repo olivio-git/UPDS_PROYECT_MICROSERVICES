@@ -140,7 +140,12 @@ export async function generateQuestion(input: GenerateQuestionInput): Promise<Ge
       'The "context" field MUST contain the EXACT transcript provided — do NOT invent, paraphrase, or modify it. ' +
       'Generate questions about what is ACTUALLY said in that transcript. ' +
       'Your questions, options, and correct answers must be grounded ONLY in the transcript content. ' +
-      'Do NOT introduce information that is not present in the transcript.';
+      'Do NOT introduce information that is not present in the transcript. ' +
+      'SPEAKER REFERENCE RULE: Do NOT reference speakers by label (e.g. "Speaker 1", "Speaker 2", "Speaker 3"). ' +
+      'Instead: (1) use the person\'s actual name if it is mentioned in the transcript, ' +
+      '(2) use a descriptive reference based on their role or topic (e.g. "the person who dislikes cooking", "the interviewer"), ' +
+      'or (3) refer generically to "the speaker" or "one of the speakers" if no name or role can be inferred. ' +
+      'The student hears the audio but does not see speaker labels — questions must be answerable from listening alone.';
   }
   if (input.type === 'essay' && (input.competency === 'reading' || input.competency === 'listening')) {
     competencyHint =

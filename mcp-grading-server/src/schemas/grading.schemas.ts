@@ -48,6 +48,10 @@ export const GenerateQuestionRequestSchema = z.object({
   avoidQuestions: z.array(z.string().max(500)).max(30).optional(),
 });
 
+export const FormatTranscriptRequestSchema = z.object({
+  transcript: z.string().min(1).max(8000),
+});
+
 export const TranscribeAudioRequestSchema = z.object({
   audioUrl: z.string().url().optional(),
   audioData: z.string().min(1).optional(), // base64-encoded audio file

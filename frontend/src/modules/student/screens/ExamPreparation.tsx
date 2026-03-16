@@ -4,6 +4,7 @@ import { Progress } from "@/components/atoms/progress";
 import { MainLayout } from "@/components/layout";
 import { cn } from "@/lib/utils";
 import { examService } from "@/services/examService";
+import { notificationSocket } from "@/services/notifications/notificationSocket";
 import { useExamStore } from "@/stores/examStore";
 import {
   AlertCircle,
@@ -36,6 +37,7 @@ import {
   type TechnicalCheck,
   type TechnicalVerificationData,
 } from "../services/technicalVerificationService";
+import { TECH_CHECK_KEY } from "../components/SystemCheckPanel";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -83,24 +85,24 @@ const STATUS_BADGE: Record<
     bg: "bg-transparent",
   },
   checking: {
-    border: "border-blue-500/40",
-    text: "text-blue-400",
-    bg: "bg-blue-500/10",
+    border: "border-blue-200 dark:border-blue-500/40",
+    text: "text-blue-600 dark:text-blue-400",
+    bg: "bg-blue-50 dark:bg-blue-500/10",
   },
   success: {
-    border: "border-green-500/40",
-    text: "text-green-400",
-    bg: "bg-green-500/10",
+    border: "border-green-200 dark:border-green-500/40",
+    text: "text-green-600 dark:text-green-400",
+    bg: "bg-green-50 dark:bg-green-500/10",
   },
   warning: {
-    border: "border-yellow-500/40",
-    text: "text-yellow-400",
-    bg: "bg-yellow-500/10",
+    border: "border-yellow-200 dark:border-yellow-500/40",
+    text: "text-yellow-600 dark:text-yellow-400",
+    bg: "bg-yellow-50 dark:bg-yellow-500/10",
   },
   error: {
-    border: "border-red-500/40",
-    text: "text-red-400",
-    bg: "bg-red-500/10",
+    border: "border-red-200 dark:border-red-500/40",
+    text: "text-red-600 dark:text-red-400",
+    bg: "bg-red-50 dark:bg-red-500/10",
   },
 };
 
@@ -109,15 +111,15 @@ const STATUS_BADGE: Record<
 function CheckStatusIcon({ status }: { status: TechnicalCheck["status"] }) {
   if (status === "pending")
     return (
-      <div className="h-3.5 w-3.5 rounded-full border-2 border-gray-600 flex-shrink-0" />
+      <div className="h-3.5 w-3.5 rounded-full border-2 border-border flex-shrink-0" />
     );
   if (status === "checking")
-    return <Loader2 className="h-3.5 w-3.5 text-blue-400 animate-spin flex-shrink-0" />;
+    return <Loader2 className="h-3.5 w-3.5 text-blue-600 dark:text-blue-400 animate-spin flex-shrink-0" />;
   if (status === "success")
-    return <CheckCircle2 className="h-3.5 w-3.5 text-green-400 flex-shrink-0" />;
+    return <CheckCircle2 className="h-3.5 w-3.5 text-green-600 dark:text-green-400 flex-shrink-0" />;
   if (status === "warning")
-    return <AlertTriangle className="h-3.5 w-3.5 text-yellow-400 flex-shrink-0" />;
-  return <XCircle className="h-3.5 w-3.5 text-red-400 flex-shrink-0" />;
+    return <AlertTriangle className="h-3.5 w-3.5 text-yellow-600 dark:text-yellow-400 flex-shrink-0" />;
+  return <XCircle className="h-3.5 w-3.5 text-red-600 dark:text-red-400 flex-shrink-0" />;
 }
 
 // Multiplicadores para darle forma de onda: los del centro son más altos
@@ -143,6 +145,13 @@ function MicLevelBars({ level }: { level: number }) {
   );
 }
 
+// ─── Constants / types ────────────────────────────────────────────────────────
+
+const PREP_WINDOW_MINUTES = 10; // Periféricos disponibles N min antes del inicio
+const GRACE_PERIOD_MINUTES = 2; // Gracia fija aunque no se permita entrada tardía
+
+type EntryStatus = 'loading' | 'too_early' | 'prep_window' | 'ok' | 'reduced_time' | 'blocked';
+
 // ─── Main component ───────────────────────────────────────────────────────────
 
 const ExamPreparation = () => {
@@ -158,6 +167,11 @@ const ExamPreparation = () => {
   const [error, setError] = useState<string | null>(null);
   const [verificationId, setVerificationId] = useState<string | null>(null);
   const [isStarting, setIsStarting] = useState(false);
+
+  // Entry timing state
+  const [countdown, setCountdown] = useState<number | null>(null);
+  const [entryStatus, setEntryStatus] = useState<EntryStatus>('loading');
+  const [availableMinutes, setAvailableMinutes] = useState<number | null>(null);
 
   // Test states
   const [isTestingInternet, setIsTestingInternet] = useState(false);
@@ -202,6 +216,57 @@ const ExamPreparation = () => {
         .every((c) => c.status === "success" || c.status === "warning"),
     [visibleChecks]
   );
+
+  // ── Entry status computation ──────────────────────────────────────────────
+
+  const computeEntryStatus = useCallback((data: NextExamData): EntryStatus => {
+    const now = new Date();
+    const startDate = new Date(data.rawStartDate);
+    const endDate = new Date(data.rawEndDate);
+    const examDurationSecs = data.examDurationMinutes * 60;
+    const minutesUntilStart = (startDate.getTime() - now.getTime()) / 60000;
+    const minutesLate = (now.getTime() - startDate.getTime()) / 60000;
+    const sessionRemainingSecs = Math.max(0, Math.floor((endDate.getTime() - now.getTime()) / 1000));
+
+    if (data.status === 'scheduled') {
+      if (minutesUntilStart > PREP_WINDOW_MINUTES) {
+        setCountdown(null);
+        setAvailableMinutes(null);
+        return 'too_early';
+      }
+      setCountdown(Math.max(0, Math.floor(minutesUntilStart * 60)));
+      setAvailableMinutes(null);
+      return 'prep_window';
+    }
+
+    if (data.status === 'in_progress') {
+      // If student already has an in-progress attempt, skip late-entry check
+      // (re-entry for connection loss / PC change is always allowed while session is open)
+      const isReEntry = data.myAttemptStatus === 'in_progress';
+      if (!isReEntry) {
+        const lateBlocked = data.allowLateEntry
+          ? minutesLate > data.lateEntryMinutes
+          : minutesLate > GRACE_PERIOD_MINUTES;
+        if (lateBlocked) {
+          setCountdown(null);
+          setAvailableMinutes(null);
+          return 'blocked';
+        }
+      }
+      if (sessionRemainingSecs < examDurationSecs) {
+        setAvailableMinutes(Math.floor(sessionRemainingSecs / 60));
+        setCountdown(null);
+        return 'reduced_time';
+      }
+      setCountdown(null);
+      setAvailableMinutes(null);
+      return 'ok';
+    }
+
+    setCountdown(null);
+    setAvailableMinutes(null);
+    return 'blocked';
+  }, []);
 
   const syncVerification = () => {
     const data = technicalVerificationService.getVerificationState();
@@ -276,31 +341,47 @@ const ExamPreparation = () => {
         }
         setExamData(exam);
 
+        const computedStatus = computeEntryStatus(exam);
+        setEntryStatus(computedStatus);
+
+        // Don't initialize verification for sessions not yet accessible
+        if (computedStatus === 'too_early' || computedStatus === 'blocked') {
+          return;
+        }
+
         const candidateId =
           (await technicalVerificationService.getCandidateId()) ?? "";
 
-        // Si ya completó la verificación técnica, ir directo al examen
+        // Chequear primero si hizo la prueba técnica anticipada desde el dashboard
+        const preChecked = sessionStorage.getItem(TECH_CHECK_KEY(exam.sessionId)) === '1';
+
+        // Si ya completó la verificación técnica (pre-check o backend), ir directo al examen
         const alreadyVerified =
+          preChecked ||
           await technicalVerificationService.technicalVerificationExists(
             exam.sessionId
           );
         if (alreadyVerified) {
           toast.info("Verificación técnica ya completada anteriormente");
+          if (computedStatus === 'prep_window') {
+            return; // Session not started yet, stay on prep page
+          }
           // Iniciar sesión directamente
           const sessionData = {
             sessionId: exam.sessionId,
             examId: exam.examId,
             startTime: new Date().toISOString(),
+            browserLockdown: exam.browserLockdown ?? false,
           };
           setSessionData(sessionData);
           const isAdaptive =
             exam.exam?.type === "placement" &&
             exam.exam?.placementConfig?.mode === "adaptive";
           if (isAdaptive) {
-            navigate(`/student/exam/${exam.sessionId}/adaptive`);
+            navigate(`/student/exam/${exam.sessionId}/adaptive`, { replace: true });
           } else {
             const startResult = await examService.startExam(exam.sessionId);
-            if (startResult?.success) navigate(`/student/exam/${exam.sessionId}`);
+            if (startResult?.success) navigate(`/student/exam/${exam.sessionId}`, { replace: true });
           }
           return;
         }
@@ -329,12 +410,63 @@ const ExamPreparation = () => {
         setLoading(false);
       }
     },
-    [startAutomaticChecks, navigate, setSessionData]
+    [startAutomaticChecks, navigate, setSessionData, computeEntryStatus]
   );
 
   useEffect(() => {
     if (examId) initializeExamPreparation(examId);
   }, [examId]);
+
+  // ── Countdown tick for prep_window ────────────────────────────────────────
+  useEffect(() => {
+    if (entryStatus !== 'prep_window') return;
+    const interval = setInterval(() => {
+      setCountdown(prev => (prev === null || prev <= 0) ? 0 : prev - 1);
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [entryStatus]);
+
+  // Re-fetch when countdown hits 0 to detect session going in_progress
+  useEffect(() => {
+    if (countdown !== 0 || entryStatus !== 'prep_window' || !examId) return;
+    studentExamService.getNextExams().then(exams => {
+      const exam = exams.find(e => e.examId === examId || e.sessionId === examId || e.id === examId) ?? exams[0];
+      if (exam) {
+        setExamData(exam);
+        setEntryStatus(computeEntryStatus(exam));
+      }
+    });
+  }, [countdown, entryStatus, examId, computeEntryStatus]);
+
+  // ── Socket: re-compute on session status change ───────────────────────────
+  useEffect(() => {
+    if (!examData) return;
+    const sessionId = examData.sessionId;
+    const handler = (data: any) => {
+      if (data.sessionId !== sessionId) return;
+      studentExamService.getNextExams().then(exams => {
+        const exam = exams.find(e => e.sessionId === sessionId) ?? exams[0];
+        if (exam) {
+          setExamData(exam);
+          setEntryStatus(computeEntryStatus(exam));
+        }
+      });
+    };
+    notificationSocket.on('session.status.changed', handler);
+
+    const handleKicked = (data: any) => {
+      if (data?.type === 'candidate.kicked') {
+        toast.error('Has sido expulsado de la sesión por el administrador.', { duration: 6000 });
+        navigate('/student/dashboard');
+      }
+    };
+    notificationSocket.on('notification.created', handleKicked);
+
+    return () => {
+      notificationSocket.off('session.status.changed', handler);
+      notificationSocket.off('notification.created', handleKicked);
+    };
+  }, [examData?.sessionId, computeEntryStatus, navigate]);
 
   // ── Manual tests ──────────────────────────────────────────────────────────
 
@@ -477,6 +609,7 @@ const ExamPreparation = () => {
         sessionId,
         examId: examData.examId || examId || "",
         startTime: new Date().toISOString(),
+        browserLockdown: examData.browserLockdown ?? false,
       });
 
       const isAdaptive =
@@ -484,7 +617,7 @@ const ExamPreparation = () => {
         examData.exam?.placementConfig?.mode === "adaptive";
 
       if (isAdaptive) {
-        navigate(`/student/exam/${sessionId}/adaptive`);
+        navigate(`/student/exam/${sessionId}/adaptive`, { replace: true });
         return;
       }
 
@@ -494,7 +627,8 @@ const ExamPreparation = () => {
         return;
       }
 
-      navigate(`/student/exam/${sessionId}`);
+      // replace: true so the back button doesn't return to preparation
+      navigate(`/student/exam/${sessionId}`, { replace: true });
     } catch (err) {
       console.error("Error starting exam:", err);
       toast.error("Error al iniciar el examen");
@@ -567,7 +701,7 @@ const ExamPreparation = () => {
       <MainLayout>
         <div className="min-h-screen flex items-center justify-center">
           <div className="flex flex-col items-center gap-3 text-muted-foreground">
-            <Loader2 className="h-7 w-7 animate-spin text-blue-400" />
+            <Loader2 className="h-7 w-7 animate-spin text-blue-500" />
             <p className="text-sm">Inicializando verificación técnica...</p>
           </div>
         </div>
@@ -591,6 +725,71 @@ const ExamPreparation = () => {
               <ArrowLeft className="h-4 w-4" />
               Volver
             </button>
+          </div>
+        </div>
+      </MainLayout>
+    );
+  }
+
+  // ── Entry status helpers & early returns ─────────────────────────────────
+
+  const formatCountdown = (secs: number) => {
+    const m = Math.floor(secs / 60);
+    const s = secs % 60;
+    return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+  };
+
+  if (entryStatus === 'too_early' && examData) {
+    const startTs = new Date(examData.rawStartDate).toLocaleString('es-ES', {
+      weekday: 'long', day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit',
+    });
+    return (
+      <MainLayout>
+        <div className="max-w-2xl mx-auto px-4 py-8">
+          <button
+            onClick={() => navigate(-1)}
+            className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground mb-6 transition-colors"
+          >
+            <ArrowLeft className="h-4 w-4" /> Volver
+          </button>
+          <div className="rounded-xl border border-blue-200 dark:border-blue-500/30 bg-blue-50 dark:bg-blue-500/10 p-8 text-center">
+            <Clock className="h-10 w-10 text-blue-500 mx-auto mb-3" />
+            <h2 className="text-base font-semibold text-blue-800 dark:text-blue-200 mb-2">
+              Aún no es el momento
+            </h2>
+            <p className="text-sm text-blue-700 dark:text-blue-300 mb-1">
+              La sesión <strong>{examData.name}</strong> inicia el
+            </p>
+            <p className="text-sm font-semibold text-blue-800 dark:text-blue-100 capitalize mb-4">
+              {startTs}
+            </p>
+            <p className="text-xs text-blue-600/70 dark:text-blue-400/60">
+              Vuelve {PREP_WINDOW_MINUTES} minutos antes para verificar tus periféricos.
+            </p>
+          </div>
+        </div>
+      </MainLayout>
+    );
+  }
+
+  if (entryStatus === 'blocked' && examData) {
+    return (
+      <MainLayout>
+        <div className="max-w-2xl mx-auto px-4 py-8">
+          <button
+            onClick={() => navigate(-1)}
+            className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground mb-6 transition-colors"
+          >
+            <ArrowLeft className="h-4 w-4" /> Volver
+          </button>
+          <div className="rounded-xl border border-red-200 dark:border-red-500/30 bg-red-50 dark:bg-red-500/10 p-8 text-center">
+            <XCircle className="h-10 w-10 text-red-500 mx-auto mb-3" />
+            <h2 className="text-base font-semibold text-red-800 dark:text-red-200 mb-2">
+              Acceso no permitido
+            </h2>
+            <p className="text-sm text-red-700 dark:text-red-300">
+              No se permite la entrada tardía a esta sesión. El período de acceso ha finalizado.
+            </p>
           </div>
         </div>
       </MainLayout>
@@ -653,6 +852,38 @@ const ExamPreparation = () => {
                   {examData.createdBy.firstName} {examData.createdBy.lastName}
                 </div>
               )}
+            </div>
+          </div>
+        )}
+
+        {/* Entry status banners */}
+        {entryStatus === 'prep_window' && (
+          <div className="mb-5 rounded-xl border border-yellow-200 dark:border-yellow-500/30 bg-yellow-50 dark:bg-yellow-500/10 p-4 flex items-start gap-3">
+            <Clock className="h-4 w-4 text-yellow-600 dark:text-yellow-400 flex-shrink-0 mt-0.5" />
+            <div>
+              <p className="text-sm font-medium text-yellow-800 dark:text-yellow-200">
+                La sesión inicia en{' '}
+                <span className="font-mono">{countdown !== null ? formatCountdown(countdown) : '--:--'}</span>
+              </p>
+              <p className="text-xs text-yellow-700/70 dark:text-yellow-400/60 mt-0.5">
+                Puedes verificar tus periféricos mientras esperas. El botón de inicio se habilitará cuando comience la sesión.
+              </p>
+            </div>
+          </div>
+        )}
+
+        {entryStatus === 'reduced_time' && examData && (
+          <div className="mb-5 rounded-xl border border-orange-200 dark:border-orange-500/30 bg-orange-50 dark:bg-orange-500/10 p-4 flex items-start gap-3">
+            <AlertTriangle className="h-4 w-4 text-orange-600 dark:text-orange-400 flex-shrink-0 mt-0.5" />
+            <div>
+              <p className="text-sm font-medium text-orange-800 dark:text-orange-200">Tiempo disponible reducido</p>
+              <p className="text-xs text-orange-700/80 dark:text-orange-300/80 mt-0.5">
+                Tendrás <strong>{availableMinutes} min</strong> disponibles — la sesión cierra a las{' '}
+                <strong>
+                  {new Date(examData.rawEndDate).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}
+                </strong>.
+                El tiempo original del examen es <strong>{examData.examDurationMinutes} min</strong>.
+              </p>
             </div>
           </div>
         )}
@@ -734,14 +965,14 @@ const ExamPreparation = () => {
 
           {/* Audio confirmation (inline, aparece tras reproducir tono) */}
           {audioTestStep === "waiting-confirmation" && (
-            <div className="mx-5 mb-4 p-4 rounded-lg bg-blue-500/10 border border-blue-500/25">
-              <p className="text-sm text-blue-200 mb-3">
+            <div className="mx-5 mb-4 p-4 rounded-lg bg-blue-50 border border-blue-200 dark:bg-blue-500/10 dark:border-blue-500/25">
+              <p className="text-sm text-blue-700 dark:text-blue-200 mb-3">
                 Se reprodujo un tono a 440 Hz. ¿Pudiste escucharlo?
               </p>
               <div className="flex gap-2">
                 <button
                   onClick={() => confirmAudioTest(true)}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium bg-green-500/15 hover:bg-green-500/25 text-green-300 border border-green-500/30 transition-colors"
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium bg-green-100 hover:bg-green-200 dark:bg-green-500/15 dark:hover:bg-green-500/25 text-green-700 dark:text-green-300 border border-green-200 dark:border-green-500/30 transition-colors"
                 >
                   <Check className="h-3.5 w-3.5" />
                   Sí, lo escuché
@@ -762,7 +993,7 @@ const ExamPreparation = () => {
         <details className="mb-5 group rounded-xl border border-border bg-card/60 overflow-hidden">
           <summary className="flex items-center justify-between px-5 py-3.5 cursor-pointer list-none select-none">
             <span className="flex items-center gap-2 text-sm font-medium text-foreground/80">
-              <Info className="h-4 w-4 text-blue-400" />
+              <Info className="h-4 w-4 text-blue-500 dark:text-blue-400" />
               Instrucciones importantes
             </span>
             <ChevronDown className="h-4 w-4 text-muted-foreground/60 transition-transform duration-200 group-open:rotate-180" />
@@ -781,7 +1012,7 @@ const ExamPreparation = () => {
                   key={i}
                   className="flex items-start gap-2.5 text-xs text-muted-foreground leading-relaxed"
                 >
-                  <CheckCircle2 className="h-3.5 w-3.5 text-blue-400/50 flex-shrink-0 mt-0.5" />
+                  <CheckCircle2 className="h-3.5 w-3.5 text-blue-500/60 dark:text-blue-400/50 flex-shrink-0 mt-0.5" />
                   {item}
                 </li>
               ))}
@@ -798,23 +1029,34 @@ const ExamPreparation = () => {
           )}
           <Button
             onClick={handleStartExam}
-            disabled={!canProceed || isStarting}
+            disabled={
+              !canProceed ||
+              isStarting ||
+              entryStatus === 'blocked' ||
+              entryStatus === 'too_early' ||
+              entryStatus === 'prep_window'
+            }
             className="w-full h-10 bg-blue-600 hover:bg-blue-500 disabled:opacity-40 disabled:cursor-not-allowed"
           >
             {isStarting ? (
               <>
                 <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                Iniciando examen...
+                {examData?.myAttemptStatus === 'in_progress' ? 'Reconectando...' : 'Iniciando examen...'}
               </>
             ) : (
               <>
                 <Play className="h-4 w-4 mr-2" />
-                Comenzar Examen
+                {examData?.myAttemptStatus === 'in_progress' ? 'Continuar Examen' : 'Comenzar Examen'}
               </>
             )}
           </Button>
-          {canProceed && !isStarting && (
-            <p className="text-xs text-green-400/60 text-center mt-2.5">
+          {entryStatus === 'prep_window' && (
+            <p className="text-xs text-yellow-600/70 dark:text-yellow-400/60 text-center mt-2.5">
+              La sesión aún no ha comenzado
+            </p>
+          )}
+          {canProceed && !isStarting && entryStatus !== 'prep_window' && (
+            <p className="text-xs text-green-600/70 dark:text-green-400/60 text-center mt-2.5">
               Sistema listo — todas las verificaciones completadas
             </p>
           )}

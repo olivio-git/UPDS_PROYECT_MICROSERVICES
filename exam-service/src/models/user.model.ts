@@ -7,6 +7,9 @@ export interface IUser extends Document {
   lastName: string;
   role: string;
   isActive: boolean;
+  profile?: {
+    avatarUrl?: string;
+  };
 }
 
 // Schema mínimo solo para populate/aggregate
@@ -15,7 +18,10 @@ const userSchema = new Schema<IUser>({
   firstName: { type: String, required: true },
   lastName: { type: String, required: true },
   role: { type: String, required: true },
-  isActive: { type: Boolean, default: true }
+  isActive: { type: Boolean, default: true },
+  profile: {
+    avatarUrl: { type: String },
+  },
 }, {
   timestamps: true,
   collection: 'users'

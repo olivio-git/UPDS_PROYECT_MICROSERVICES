@@ -3,6 +3,65 @@ import { config } from '../config';
 import { NotificationService } from '../services/notification.service';
 import { KafkaMessage, Notification, OtpEmailData } from '../types';
 
+async function fetchExamResultPDF(params: {
+  examResultId: string;
+  firstName?: string;
+  lastName?: string;
+  email?: string;
+  candidateId: string;
+}): Promise<string | null> {
+  try {
+    const http = require('http') as typeof import('http');
+    const https = require('https') as typeof import('https');
+    const { examResultId, firstName, lastName, email, candidateId } = params;
+    const baseUrl = config.services.examServiceUrl;
+    const qs = new URLSearchParams({
+      ...(firstName && { firstName }),
+      ...(lastName && { lastName }),
+      ...(email && { email }),
+      candidateId,
+    }).toString();
+    const fullUrl = `${baseUrl}/internal/exam-results/${examResultId}/pdf?${qs}`;
+    const url = new URL(fullUrl);
+    const mod = url.protocol === 'https:' ? https : http;
+    return await new Promise<string | null>((resolve) => {
+      const req = mod.get(fullUrl, (res) => {
+        if (res.statusCode !== 200) { resolve(null); return; }
+        const chunks: Buffer[] = [];
+        res.on('data', (chunk: Buffer) => chunks.push(chunk));
+        res.on('end', () => resolve(Buffer.concat(chunks).toString('base64')));
+      });
+      req.setTimeout(30000, () => { req.destroy(); resolve(null); });
+      req.on('error', () => resolve(null));
+    });
+  } catch {
+    return null;
+  }
+}
+
+async function isEmailNotificationsEnabled(email: string): Promise<boolean> {
+  return new Promise((resolve) => {
+    const url = new URL(`${config.services.userManagementUrl}/internal/preferences`);
+    url.searchParams.set('email', email);
+    const isHttps = url.protocol === 'https:';
+    const mod = isHttps ? require('https') : require('http');
+    const req = mod.get(url.toString(), (res: any) => {
+      let raw = '';
+      res.on('data', (chunk: any) => { raw += chunk; });
+      res.on('end', () => {
+        try {
+          const parsed = JSON.parse(raw);
+          resolve(parsed?.emailNotificationsEnabled !== false);
+        } catch {
+          resolve(true);
+        }
+      });
+    });
+    req.setTimeout(3000, () => { req.destroy(); resolve(true); });
+    req.on('error', () => resolve(true));
+  });
+}
+
 export class KafkaConsumerService {
   constructor(
     private consumer: Consumer,
@@ -250,6 +309,32 @@ export class KafkaConsumerService {
           break;
         }
 
+        case 'session.candidate.removed': {
+          const candidateId = data.candidateId;
+          if (!candidateId) {
+            console.warn('No candidateId in session.candidate.removed event');
+            return;
+          }
+          const notifPayload: Omit<Notification, '_id' | 'createdAt' | 'updatedAt'> = {
+            recipientId: candidateId,
+            recipientType: 'candidate',
+            type: 'session.candidate.removed',
+            channel: 'in-app',
+            content: {
+              title: 'Has sido removido de una sesión',
+              body: `Te han removido de la sesión ${data.sessionId}`,
+            },
+            read: false,
+            priority: 'normal',
+            metadata: { sessionId: data.sessionId },
+          };
+          const created = await this.notificationService.createInAppNotification(notifPayload);
+          if (created) {
+            console.log(`🔔 Notificación de remoción creada para candidate ${candidateId}`);
+          }
+          break;
+        }
+
         case 'session.started':
         case 'session.ended':
         case 'session.cancelled': {
@@ -275,12 +360,50 @@ export class KafkaConsumerService {
           break;
         }
 
+        case 'session.time.extended': {
+          const enrolledCandidateIds: string[] = data.enrolledCandidateIds || [];
+          const extendPayload = {
+            sessionId: String(data.sessionId),
+            sessionName: data.sessionName,
+            extraMinutes: data.extraMinutes,
+            newEndDate: data.newEndDate,
+          };
+          for (const candidateId of enrolledCandidateIds) {
+            this.notificationService.emitToUser(candidateId, 'session.time.extended', extendPayload);
+          }
+          console.log(`session.time.extended emitido a ${enrolledCandidateIds.length} candidatos (+${data.extraMinutes} min)`);
+          break;
+        }
+
         case 'exam.graded': {
           if (!data.candidateEmail) {
             console.warn('⚠️ exam.graded: sin candidateEmail en el evento — omitiendo email');
             break;
           }
+          const emailEnabled = await isEmailNotificationsEnabled(data.candidateEmail);
+          if (!emailEnabled) {
+            console.log(`🔕 exam.graded → notificaciones por email desactivadas para: ${data.candidateEmail}`);
+            break;
+          }
           console.log(`📧 exam.graded → enviando email a: ${data.candidateEmail}`);
+
+          // Fetch PDF from exam-service (best-effort) — done here so Kafka messages stay small
+          let pdfBase64: string | undefined;
+          let pdfFilename: string | undefined;
+          if (data.examResultId) {
+            const pdf = await fetchExamResultPDF({
+              examResultId: String(data.examResultId),
+              firstName: data.candidateFirstName,
+              lastName: data.candidateLastName,
+              email: data.candidateEmail,
+              candidateId: String(data.candidateId || ''),
+            });
+            if (pdf) {
+              pdfBase64 = pdf;
+              pdfFilename = `Resultado_${String(data.examName || 'Examen').replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.pdf`;
+            }
+          }
+
           await this.notificationService.sendExamGradedEmail({
             email: data.candidateEmail,
             firstName: data.candidateFirstName || 'Estudiante',
@@ -290,8 +413,8 @@ export class KafkaConsumerService {
             maxScore: Number(data.maxScore) || 0,
             percentage: Number(data.percentage) || 0,
             status: data.status || 'completed',
-            pdfBase64: data.pdfBase64 || undefined,
-            pdfFilename: data.pdfFilename || undefined,
+            pdfBase64,
+            pdfFilename,
           });
           break;
         }

@@ -20,10 +20,11 @@ export class CandidateModel implements Candidate {
   status: CandidateStatus;
   registeredBy: ObjectId;
   notes?: string;
+  avatarUrl?: string;
   createdAt: Date;
   updatedAt: Date;
 
-  constructor(data: Partial<Candidate>) {
+  constructor(data: Partial<CandidateModel>) {
     this._id = data._id ?? undefined;
     this.userId = data.userId!;
     this.personalInfo = data.personalInfo || {} as PersonalInfo;
@@ -33,6 +34,7 @@ export class CandidateModel implements Candidate {
     this.status = data.status || 'registered';
     this.registeredBy = data.registeredBy || new ObjectId();
     this.notes = data.notes ?? undefined;
+    this.avatarUrl = data.avatarUrl;
     this.createdAt = data.createdAt || new Date();
     this.updatedAt = data.updatedAt || new Date();
   }
@@ -195,8 +197,8 @@ export class CandidateModel implements Candidate {
   // SERIALIZACIÓN
   // ================================
 
-  public toJSON(): Candidate {
-    const result: Candidate = {
+  public toJSON(): any {
+    const result: any = {
       _id: this._id,
       userId: this.userId,
       personalInfo: this.personalInfo,
@@ -208,11 +210,10 @@ export class CandidateModel implements Candidate {
       createdAt: this.createdAt,
       updatedAt: this.updatedAt,
     };
-    
-    if (this.notes !== undefined) {
-      result.notes = this.notes;
-    }
-    
+
+    if (this.notes !== undefined) result.notes = this.notes;
+    if (this.avatarUrl !== undefined) result.avatarUrl = this.avatarUrl;
+
     return result;
   }
 
@@ -231,6 +232,7 @@ export class CandidateModel implements Candidate {
       status: data.status,
       registeredBy: data.registeredBy,
       notes: data.notes,
+      avatarUrl: data.userInfo?.[0]?.profile?.avatarUrl || data.avatarUrl,
       createdAt: data.createdAt,
       updatedAt: data.updatedAt,
     });

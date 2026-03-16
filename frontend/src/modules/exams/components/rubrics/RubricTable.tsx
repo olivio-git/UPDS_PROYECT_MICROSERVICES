@@ -94,8 +94,6 @@ const RubricTable = ({
       writing:    "bg-green-100 text-green-700 border-green-200 dark:bg-green-500/20 dark:text-green-300 dark:border-green-500/30",
       listening:  "bg-purple-100 text-purple-700 border-purple-200 dark:bg-purple-500/20 dark:text-purple-300 dark:border-purple-500/30",
       speaking:   "bg-orange-100 text-orange-700 border-orange-200 dark:bg-orange-500/20 dark:text-orange-300 dark:border-orange-500/30",
-      grammar:    "bg-pink-100 text-pink-700 border-pink-200 dark:bg-pink-500/20 dark:text-pink-300 dark:border-pink-500/30",
-      vocabulary: "bg-yellow-100 text-yellow-700 border-yellow-200 dark:bg-yellow-500/20 dark:text-yellow-300 dark:border-yellow-500/30",
     };
     
     return (
@@ -128,7 +126,7 @@ const RubricTable = ({
 
   if (isLoading) {
     return (
-      <div className="bg-card/50 backdrop-blur-sm border border-line rounded-xl p-8">
+      <div className="bg-card border border-border rounded-lg p-8">
         <div className="flex items-center justify-center space-x-2">
           <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-green-500"></div>
           <span className="text-muted-foreground">Cargando rúbricas...</span>
@@ -139,9 +137,9 @@ const RubricTable = ({
 
   if (isError) {
     return (
-      <div className="bg-card/50 backdrop-blur-sm border border-line rounded-xl p-8">
+      <div className="bg-card border border-border rounded-lg p-8">
         <div className="text-center space-y-3">
-          <div className="text-red-400">❌ Error al cargar las rúbricas</div>
+          <div className="text-red-400">Error al cargar las rúbricas</div>
           <p className="text-muted-foreground text-sm">{errorMessage}</p>
         </div>
       </div>
@@ -150,7 +148,7 @@ const RubricTable = ({
 
   if (rubrics.length === 0) {
     return (
-      <div className="bg-card/50 backdrop-blur-sm border border-line rounded-xl p-8">
+      <div className="bg-card border border-border rounded-lg p-8">
         <div className="text-center space-y-4">
           <Award className="h-12 w-12 text-muted-foreground mx-auto" />
           <div className="space-y-2">
@@ -162,12 +160,12 @@ const RubricTable = ({
         </div>
       </div>
     );
-  } 
+  }
   return (
-    <div className="bg-card backdrop-blur-sm border border-line rounded-xl overflow-hidden">
+    <div className="bg-card border border-border rounded-lg overflow-hidden">
       <Table>
         <TableHeader>
-          <TableRow className="border-line hover:bg-muted/30">
+          <TableRow className="border-border hover:bg-muted/30">
             <TableHead className="w-12">
               <Checkbox
                 checked={isAllSelected}
@@ -191,9 +189,9 @@ const RubricTable = ({
         </TableHeader>
         <TableBody>
           {rubrics.map((rubric) => (
-            <TableRow 
+            <TableRow
               key={rubric._id}
-              className="border-line hover:bg-muted/20 transition-colors"
+              className="border-border hover:bg-muted/20 transition-colors"
             >
               <TableCell>
                 <Checkbox
@@ -264,9 +262,9 @@ const RubricTable = ({
                       <MoreHorizontal className="h-4 w-4 text-muted-foreground" />
                     </Button>
                   </DropdownMenuTrigger>
-                  <DropdownMenuContent 
-                    align="end" 
-                    className="bg-popover border-line"
+                  <DropdownMenuContent
+                    align="end"
+                    className="bg-popover border-border"
                   >
                     <DropdownMenuItem 
                       onClick={() => onViewRubric(rubric)}

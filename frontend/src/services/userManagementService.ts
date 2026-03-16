@@ -1,5 +1,6 @@
 import axios from 'axios';
 import { toast } from 'sonner';
+import { authSDK } from './sdk-simple-auth';
 
 export interface CreateUserRequest {
   email: string;
@@ -37,10 +38,56 @@ class UserManagementService {
   private baseUrl = import.meta.env.VITE_USER_MANAGEMENT_URL || 'http://localhost:3002';
 
   private getAuthHeaders() {
-    // Por ahora sin token de admin, pero podrías implementarlo más tarde
+    const token = authSDK.getAccessToken();
     return {
       'Content-Type': 'application/json',
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
     };
+  }
+
+  async uploadAvatar(userId: string, file: File): Promise<ApiResponse<{ avatarUrl: string }>> {
+    try {
+      const token = authSDK.getAccessToken();
+      const formData = new FormData();
+      formData.append('avatar', file);
+      const response = await axios.post(
+        `${this.baseUrl}/api/v1/users/${userId}/avatar`,
+        formData,
+        { headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}) } }
+      );
+      return { success: true, message: response.data.message || 'Avatar actualizado', data: response.data.data };
+    } catch (error: any) {
+      return this.handleError(error, 'Error subiendo avatar');
+    }
+  }
+
+  async getMe(): Promise<ApiResponse<{ user: any }>> {
+    try {
+      const response = await axios.get(
+        `${this.baseUrl}/api/v1/users/me`,
+        { headers: this.getAuthHeaders() }
+      );
+      return { success: true, message: 'OK', data: response.data.data };
+    } catch (error: any) {
+      return this.handleError(error, 'Error obteniendo perfil');
+    }
+  }
+
+  async updateProfile(data: { profile?: { phone?: string; address?: string; dateOfBirth?: string; bio?: string; nationality?: string; preferences?: { notifications?: { email?: boolean; push?: boolean; sms?: boolean } } } }): Promise<ApiResponse> {
+    try {
+      const response = await axios.patch(
+        `${this.baseUrl}/api/v1/users/me`,
+        data,
+        { headers: this.getAuthHeaders() }
+      );
+      return {
+        success: true,
+        message: response.data.message || 'Perfil actualizado',
+        data: response.data.data,
+      };
+    } catch (error: any) {
+      return this.handleError(error, 'Error actualizando perfil');
+    }
   }
 
   /**

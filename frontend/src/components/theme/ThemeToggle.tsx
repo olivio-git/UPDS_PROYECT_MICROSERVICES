@@ -28,13 +28,13 @@ export function ThemeToggle({ className = '', size = 'md' }: ThemeToggleProps) {
       size="icon"
       onClick={toggleTheme}
       className={`
-        ${sizeClasses[size]} 
-        border-border
-        bg-background/80 
-        backdrop-blur-sm 
-        hover:bg-accent 
-        transition-all 
-        duration-300 
+        ${sizeClasses[size]}
+        border border-border
+        bg-card
+        backdrop-blur-sm
+        hover:bg-muted
+        transition-all
+        duration-300
         group
         ${className}
       `}
@@ -48,7 +48,7 @@ export function ThemeToggle({ className = '', size = 'md' }: ThemeToggleProps) {
       ) : (
         <Sun 
           size={iconSizes[size]} 
-          className="transition-transform duration-300 group-hover:rotate-12 text-white" 
+          className="transition-transform duration-300 group-hover:rotate-12 text-foreground" 
         />
       )}
       <span className="sr-only">Cambiar tema</span>

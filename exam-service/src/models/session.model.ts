@@ -24,8 +24,8 @@ export interface ISession extends Document {
   };
   settings: {
     requireProctor: boolean;
-    enableRecording: boolean;
-    enableLockdown: boolean;
+    recordSession: boolean;
+    browserLockdown: boolean;
     allowLateEntry: boolean;
     autoStart: boolean;
     lateEntryMinutes: number;
@@ -102,9 +102,10 @@ const sessionSchema = new Schema<ISession>({
   },
   settings: {
     requireProctor: { type: Boolean, default: true },
-    enableRecording: { type: Boolean, default: false },
-    enableLockdown: { type: Boolean, default: false },
+    recordSession: { type: Boolean, default: false },
+    browserLockdown: { type: Boolean, default: false },
     allowLateEntry: { type: Boolean, default: false },
+    autoStart: { type: Boolean, default: true },
     lateEntryMinutes: { type: Number, default: 0 }
   },
   status: {

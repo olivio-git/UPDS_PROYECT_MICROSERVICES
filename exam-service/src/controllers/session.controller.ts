@@ -2,6 +2,7 @@ import { NextFunction, Request, Response } from 'express';
 import { SessionService } from '../services/session.service';
 import { ExamResult } from '../models/examResult.model';
 import { logger } from '../utils/logger';
+import { auditLog } from '../services/audit-client.service';
 
 export class SessionController {
   private sessionService: SessionService;
@@ -17,6 +18,12 @@ export class SessionController {
         createdBy: req.user.id
       }; 
       const session = await this.sessionService.create(sessionData);
+
+      auditLog({
+        action: 'session.created',
+        target: { type: 'session', id: String(session._id ?? ''), name: (session as any).name },
+        actor: { userId: req.user?.id, email: req.user?.email, role: req.user?.role },
+      });
 
       return res.status(201).json({
         success: true,
@@ -139,6 +146,12 @@ export class SessionController {
         });
       }
 
+      auditLog({
+        action: 'session.updated',
+        target: { type: 'session', id: req.params.id!, name: (session as any).name },
+        actor: { userId: req.user?.id, email: req.user?.email, role: req.user?.role },
+      });
+
       return res.json({
         success: true,
         message: 'Sesión actualizada exitosamente',
@@ -174,6 +187,13 @@ export class SessionController {
           message: 'Sesión no encontrada'
         });
       }
+
+      auditLog({
+        action: 'session.candidate_added',
+        target: { type: 'session', id: req.params.id!, name: (session as any).name },
+        actor: { userId: req.user?.id, email: req.user?.email, role: req.user?.role },
+        details: candidateIds ? { candidateIds } : { candidateId },
+      });
 
       return res.json({
         success: true,
@@ -211,6 +231,13 @@ export class SessionController {
           message: 'Sesión no encontrada'
         });
       }
+
+      auditLog({
+        action: 'session.candidate_removed',
+        target: { type: 'session', id: req.params.id!, name: (session as any).name },
+        actor: { userId: req.user?.id, email: req.user?.email, role: req.user?.role },
+        details: candidateIds ? { candidateIds } : { candidateId },
+      });
 
       return res.json({
         success: true,
@@ -272,6 +299,12 @@ export class SessionController {
         });
       }
 
+      auditLog({
+        action: 'session.started',
+        target: { type: 'session', id: req.params.id!, name: (session as any).name },
+        actor: { userId: req.user?.id, email: req.user?.email, role: req.user?.role },
+      });
+
       return res.json({
         success: true,
         message: 'Sesión iniciada exitosamente',
@@ -294,6 +327,12 @@ export class SessionController {
           message: 'Sesión no encontrada'
         });
       }
+
+      auditLog({
+        action: 'session.ended',
+        target: { type: 'session', id: req.params.id!, name: (session as any).name },
+        actor: { userId: req.user?.id, email: req.user?.email, role: req.user?.role },
+      });
 
       return res.json({
         success: true,
@@ -318,6 +357,12 @@ export class SessionController {
         });
       }
 
+      auditLog({
+        action: 'session.cancelled',
+        target: { type: 'session', id: req.params.id!, name: (session as any).name },
+        actor: { userId: req.user?.id, email: req.user?.email, role: req.user?.role },
+      });
+
       return res.json({
         success: true,
         message: 'Sesión cancelada exitosamente',
@@ -334,17 +379,17 @@ export class SessionController {
   getMySessions = async (req: Request, res: Response, next: NextFunction) => {
     try {
       const authServiceUserId = req.user.id; // Este es el ID del auth-service
-      const { status, limit = 10, page = 1, justLast = true, includePast = false } = req.query;
+      const { status, limit = 10, page = 1, justLast, includePast = false } = req.query;
       const authHeader = req.headers.authorization as string | undefined;
       const token = authHeader && authHeader.startsWith('Bearer ') ? authHeader.substring(7) : authHeader;
 
       const filters = {
-        candidateId: authServiceUserId, // Pasar el authServiceUserId
+        candidateId: authServiceUserId,
         status,
         page: Number(page),
         limit: Number(limit),
-        justLast,
-        includePast: includePast === 'true', // Nuevo parámetro para incluir sesiones pasadas
+        justLast: justLast === undefined ? true : justLast === 'true',
+        includePast: includePast === 'true',
         authToken: token
       };
 
@@ -438,6 +483,14 @@ export class SessionController {
   kickCandidate = async (req: Request, res: Response, next: NextFunction) => {
     try {
       await this.sessionService.kickCandidate(req.params.id!, req.params.candidateId!);
+
+      auditLog({
+        action: 'session.candidate_kicked',
+        target: { type: 'session', id: req.params.id! },
+        actor: { userId: req.user?.id, email: req.user?.email, role: req.user?.role },
+        details: { candidateId: req.params.candidateId },
+      });
+
       return res.json({ success: true, message: 'Candidato expulsado de la sesión' });
     } catch (error) {
       logger.error('Error kicking candidate:', error);
@@ -446,9 +499,50 @@ export class SessionController {
     }
   };
 
+  extendSession = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const { minutes } = req.body;
+      if (!minutes || typeof minutes !== 'number' || minutes < 1 || minutes > 120) {
+        return res.status(400).json({
+          success: false,
+          message: 'minutes debe ser un numero entre 1 y 120'
+        });
+      }
+
+      const session = await this.sessionService.extendTime(req.params.id!, minutes);
+
+      auditLog({
+        action: 'session.time_extended',
+        target: { type: 'session', id: req.params.id!, name: (session as any).sessionName },
+        actor: { userId: req.user?.id, email: req.user?.email, role: req.user?.role },
+        details: { minutes }
+      });
+
+      return res.json({
+        success: true,
+        message: `Tiempo extendido por ${minutes} minuto(s) exitosamente`,
+        data: session
+      });
+    } catch (error: any) {
+      logger.error('Error extending session time:', error);
+      if (error.message?.includes('estado')) {
+        return res.status(400).json({ success: false, message: error.message });
+      }
+      next(error);
+      return;
+    }
+  };
+
   regradeSession = async (req: Request, res: Response, next: NextFunction) => {
     try {
       const result = await this.sessionService.regradeSession(req.params.id!);
+      auditLog({
+        action: 'session.regraded',
+        target: { type: 'session', id: req.params.id! },
+        actor: { userId: req.user?.id, email: req.user?.email, role: req.user?.role },
+        details: { queued: result.queued, total: result.total },
+      });
+
       return res.json({
         success: true,
         message: `Recalificación iniciada: ${result.queued}/${result.total} intentos procesados`,

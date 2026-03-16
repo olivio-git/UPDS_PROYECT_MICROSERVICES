@@ -103,8 +103,8 @@ export const RouteGuard: React.FC<RouteGuardProps> = ({
     if (!hasRequiredRole) {
       const defaultPaths = {
         admin: '/dashboard',
-        teacher: '/teacher/dashboard',
-        proctor: '/proctor/dashboard',
+        teacher: '/sessions',
+        proctor: '/sessions',
         student: '/student/dashboard'
       };
 

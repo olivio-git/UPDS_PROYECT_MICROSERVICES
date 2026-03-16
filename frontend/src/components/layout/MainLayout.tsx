@@ -5,31 +5,32 @@ interface MainLayoutProps {
   children: any;
   showGradient?: boolean;
   gradientVariant?: any;
-  // gradientVariant?: GradientVariant; 
+  // gradientVariant?: GradientVariant;
   className?: string;
+  hideHeader?: boolean;
 }
 
-const MainLayout = ({ 
-  children, 
-  showGradient = true, 
+const MainLayout = ({
+  children,
+  showGradient = true,
   // gradientVariant = 'primary',
-  className = '' 
+  className = '',
+  hideHeader = false
 }: MainLayoutProps) => {
   return (
-    <div className="min-h-screen relative"> 
+    <div className="min-h-screen relative">
       {showGradient && (
-        <GradientBackground 
+        <GradientBackground
           grid={false}
           lights={true}
           size='md'
         />
       )}
-      
-      {/* Header */}
-      <Header />
-      
+
+      {!hideHeader && <Header />}
+
       {/* Main Content */}
-      <main className={`pt-20 px-4 ${className}`}>
+      <main className={`${hideHeader ? '' : 'pt-20'} px-4 ${className}`}>
         {children}
       </main>
     </div>

@@ -17,6 +17,10 @@ const authSDK = new AuthSDK({
         tokenKey: "sessionKey",
         refreshTokenKey: "refreshKey",
         userKey: "userKey",
+        encryption:{
+            enabled: true,
+            secret: "cba_tarija_2025"
+        }
     },
     tokenRefresh: {
         enabled: true,
@@ -29,31 +33,5 @@ const authSDK = new AuthSDK({
         maxInactivityTime: 1800 // 30 minutes
     },
 });
-
-// // Debug habilitado para ver qué está pasando
-// console.log('🔧 [SDK] Configuración del SDK:', {
-//     authServiceUrl: import.meta.env.VITE_AUTH_SERVICE_URL || "http://localhost:3000",
-//     storageType: "indexedDB",
-//     dbName: "cba_authDB"
-// });
-
-// // Verificar estado inicial del SDK
-// const checkInitialState = async () => {
-//     try {
-//         const currentUser = authSDK.getCurrentUser();
-//         const isAuth = await authSDK.isAuthenticated();
-
-//         console.log('🔍 [SDK] Estado inicial:', {
-//             hasUser: !!currentUser,
-//             isAuthenticated: isAuth,
-//             user: currentUser
-//         });
-//     } catch (error) {
-//         console.error('❌ [SDK] Error verificando estado inicial:', error);
-//     }
-// };
-
-// // Ejecutar verificación inicial
-// checkInitialState();
 
 export { authSDK };

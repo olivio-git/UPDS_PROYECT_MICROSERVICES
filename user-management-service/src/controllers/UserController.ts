@@ -1,6 +1,8 @@
 import { NextFunction, Request, Response } from 'express';
+import * as XLSX from 'xlsx';
 import { createError } from '../middleware/error.middleware';
 import { UserService } from '../services/user.service';
+import { auditLog } from '../services/audit.service';
 import { JWTPayload } from '../types/index';
 
 export class UserController {
@@ -24,10 +26,12 @@ export class UserController {
       const status = query.status;
       const sortBy = query.sortBy || 'createdAt';
       const sortOrder = query.sortOrder || 'desc';
+      const dateFrom = query.dateFrom ? new Date(query.dateFrom) : undefined;
+      const dateTo = query.dateTo ? new Date(`${query.dateTo}T23:59:59.999Z`) : undefined;
 
       // Separar parámetros de paginación y filtros
       const pagination = { page, limit, sortBy, sortOrder };
-      const filters = { search, role, status };
+      const filters = { search, role, status, dateFrom, dateTo };
 
       const result = await this.userService.getUsers(pagination, filters);
 
@@ -106,8 +110,9 @@ export class UserController {
       const currentUser = req.user as JWTPayload;
 
       const result = await this.userService.createUser(userData, currentUser.userId);
-      
+
       if (result.success) {
+        auditLog('user.created', { type: 'user', name: `${userData.firstName} ${userData.lastName}`, id: result.data?.user?._id }, { req, details: { email: userData.email, role: userData.role } });
         res.status(201).json(result);
       } else {
         res.status(400).json(result);
@@ -136,7 +141,57 @@ export class UserController {
       }
 
       const result = await this.userService.updateUser(id, updates);
-      
+
+      if (result.success) {
+        auditLog('user.updated', { type: 'user', id, name: result.data?.user ? `${result.data.user.firstName} ${result.data.user.lastName}` : id }, { req, details: { fields: Object.keys(updates) } });
+        res.status(200).json(result);
+      } else {
+        res.status(400).json(result);
+      }
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  // ================================
+  // UPDATE CURRENT USER (by JWT)
+  // ================================
+
+  getMe = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const jwtUser = req.user as JWTPayload;
+      if (!jwtUser?.userId) {
+        res.status(401).json({ success: false, message: 'No autenticado', error: 'UNAUTHORIZED' });
+        return;
+      }
+
+      const existingUser = await this.userService.getUserByAuthServiceId(jwtUser.userId);
+      if (!existingUser) {
+        res.status(404).json({ success: false, message: 'Usuario no encontrado', error: 'USER_NOT_FOUND' });
+        return;
+      }
+
+      res.status(200).json({ success: true, data: { user: existingUser } });
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  updateMe = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const jwtUser = req.user as JWTPayload;
+      if (!jwtUser?.userId) {
+        res.status(401).json({ success: false, message: 'No autenticado', error: 'UNAUTHORIZED' });
+        return;
+      }
+
+      const existingUser = await this.userService.getUserByAuthServiceId(jwtUser.userId);
+      if (!existingUser) {
+        res.status(404).json({ success: false, message: 'Usuario no encontrado', error: 'USER_NOT_FOUND' });
+        return;
+      }
+
+      const result = await this.userService.updateUser(existingUser._id!.toString(), req.body);
       if (result.success) {
         res.status(200).json(result);
       } else {
@@ -150,7 +205,7 @@ export class UserController {
   // ================================
   // PATCH USER
   // ================================
-  
+
   patchUser = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const { id } = req.params;
@@ -195,8 +250,9 @@ export class UserController {
       }
 
       const result = await this.userService.deleteUser(id);
-      
+
       if (result.success) {
+        auditLog('user.deleted', { type: 'user', id }, { req });
         res.status(200).json(result);
       } else {
         res.status(400).json(result);
@@ -224,8 +280,9 @@ export class UserController {
       }
 
       const result = await this.userService.activateUser(id);
-      
+
       if (result.success) {
+        auditLog('user.activated', { type: 'user', id, name: result.data?.user ? `${result.data.user.firstName} ${result.data.user.lastName}` : id }, { req });
         res.status(200).json(result);
       } else {
         res.status(400).json(result);
@@ -253,8 +310,9 @@ export class UserController {
       }
 
       const result = await this.userService.deactivateUser(id);
-      
+
       if (result.success) {
+        auditLog('user.deactivated', { type: 'user', id, name: result.data?.user ? `${result.data.user.firstName} ${result.data.user.lastName}` : id }, { req });
         res.status(200).json(result);
       } else {
         res.status(400).json(result);
@@ -635,8 +693,9 @@ export class UserController {
       }
 
       const result = await this.userService.generateTemporaryPassword(id, sendByEmail);
-      
+
       if (result.success) {
+        auditLog('user.password_reset', { type: 'user', id }, { req, details: { sentByEmail: sendByEmail } });
         res.status(200).json(result);
       } else {
         res.status(400).json(result);
@@ -672,12 +731,175 @@ export class UserController {
   };
 
   // ================================
+  // IMPORT / EXPORT / TEMPLATE
+  // ================================
+
+  downloadTemplate = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const templateData = [
+        { firstName: 'Juan', lastName: 'Pérez', email: 'juan.perez@ejemplo.com', role: 'teacher', isActive: true },
+        { firstName: 'María', lastName: 'García', email: 'maria.garcia@ejemplo.com', role: 'proctor', isActive: true },
+      ];
+
+      const wb = XLSX.utils.book_new();
+      const ws = XLSX.utils.json_to_sheet(templateData);
+      ws['!cols'] = [{ wch: 15 }, { wch: 15 }, { wch: 30 }, { wch: 10 }, { wch: 10 }];
+      XLSX.utils.book_append_sheet(wb, ws, 'Usuarios');
+
+      const buffer = XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' });
+      res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+      res.setHeader('Content-Disposition', 'attachment; filename="plantilla_usuarios.xlsx"');
+      res.send(buffer);
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  exportUsers = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const query = req.query as any;
+      const result = await this.userService.getUsers(
+        { page: 1, limit: 10000, sortBy: 'createdAt', sortOrder: 'desc' },
+        { search: query.search, role: query.role, status: query.status }
+      );
+
+      if (!result.success || !result.data) {
+        res.status(400).json({ success: false, message: 'Error obteniendo usuarios para exportar' });
+        return;
+      }
+
+      const users: any[] = (result.data as any).users || [];
+      const exportData = users.map((u: any) => ({
+        firstName: u.firstName,
+        lastName: u.lastName,
+        email: u.email,
+        role: u.role,
+        isActive: u.isActive,
+        createdAt: u.createdAt ? new Date(u.createdAt).toLocaleDateString('es-BO') : '',
+      }));
+
+      const wb = XLSX.utils.book_new();
+      const ws = XLSX.utils.json_to_sheet(exportData);
+      ws['!cols'] = [{ wch: 15 }, { wch: 15 }, { wch: 30 }, { wch: 10 }, { wch: 10 }, { wch: 15 }];
+      XLSX.utils.book_append_sheet(wb, ws, 'Usuarios');
+
+      const buffer = XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' });
+      const filename = `usuarios_${new Date().toISOString().split('T')[0]}.xlsx`;
+      res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+      res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+      res.send(buffer);
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  importUsers = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      if (!req.file) {
+        res.status(400).json({ success: false, message: 'No se proporcionó ningún archivo', error: 'NO_FILE' });
+        return;
+      }
+
+      const wb = XLSX.read(req.file.buffer, { type: 'buffer' });
+      const firstSheet = wb.SheetNames[0];
+      if (!firstSheet) {
+        res.status(400).json({ success: false, message: 'El archivo no contiene hojas de datos', error: 'NO_SHEET' });
+        return;
+      }
+      const ws = wb.Sheets[firstSheet]!;
+      const rows: any[] = XLSX.utils.sheet_to_json(ws);
+
+      if (rows.length === 0) {
+        res.status(400).json({ success: false, message: 'El archivo está vacío o no tiene el formato correcto', error: 'EMPTY_FILE' });
+        return;
+      }
+
+      const validRoles = ['admin', 'teacher', 'proctor', 'student'];
+      let created = 0;
+      let failed = 0;
+      const details: any[] = [];
+
+      for (const row of rows) {
+        const email = row.email?.toString().trim();
+        const firstName = row.firstName?.toString().trim();
+        const lastName = row.lastName?.toString().trim();
+        const role = row.role?.toString().trim().toLowerCase();
+        const isActive = row.isActive === false || row.isActive === 'false' ? false : true;
+
+        if (!email || !firstName || !lastName) {
+          failed++;
+          details.push({ email: email || '(sin email)', status: 'failed', error: 'Faltan campos requeridos: email, firstName, lastName' });
+          continue;
+        }
+
+        if (!validRoles.includes(role)) {
+          failed++;
+          details.push({ email, status: 'failed', error: `Rol inválido: "${role}". Use: admin, teacher, proctor, student` });
+          continue;
+        }
+
+        const result = await this.userService.createUser({ email, firstName, lastName, role: role as any, status: isActive ? 'active' : 'inactive' });
+        if (result.success) {
+          created++;
+          details.push({ email, status: 'created' });
+        } else {
+          failed++;
+          details.push({ email, status: 'failed', error: result.message });
+        }
+      }
+
+      auditLog('user.bulk_import', { type: 'user' }, { req, details: { created, failed, total: rows.length } });
+      res.status(200).json({
+        success: true,
+        message: `Importación completada: ${created} creados, ${failed} fallidos de ${rows.length} total`,
+        data: { created, failed, total: rows.length, details }
+      });
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  // ================================
   // SERVICE HEALTH CHECKS
   // ================================
 
   /**
    * Verificar estado de conexiones con servicios externos
    */
+  // ================================
+  // AVATAR UPLOAD
+  // ================================
+
+  uploadAvatar = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      if (!req.file) {
+        res.status(400).json({ success: false, message: 'No se envió ningún archivo', error: 'NO_FILE' });
+        return;
+      }
+
+      // Buscar el usuario por authServiceUserId (del JWT) para obtener el _id real de UMS
+      const jwtUser = req.user as JWTPayload;
+      if (!jwtUser?.userId) {
+        res.status(401).json({ success: false, message: 'No autenticado', error: 'UNAUTHORIZED' });
+        return;
+      }
+
+      const existingUser = await this.userService.getUserByAuthServiceId(jwtUser.userId);
+      if (!existingUser) {
+        res.status(404).json({ success: false, message: 'Usuario no encontrado', error: 'USER_NOT_FOUND' });
+        return;
+      }
+
+      const umsId = existingUser._id!.toString();
+      const { uploadAvatar } = await import('../services/storage.service');
+      const avatarUrl = await uploadAvatar(req.file, umsId);
+      await this.userService.updateUser(umsId, { profile: { avatarUrl } } as any);
+      res.json({ success: true, message: 'Avatar actualizado', data: { avatarUrl } });
+    } catch (error) {
+      next(error);
+    }
+  };
+
   healthCheck = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const authServiceStatus = await this.userService.checkAuthServiceConnection();

@@ -1,11 +1,12 @@
 import { useAuthPersistence } from "@/hooks/useAuthPersistence";
-import { Route, Routes } from "react-router-dom";
+import { Route, Routes, useNavigate } from "react-router-dom";
 import { protectedRoutes } from "./Protected.Route";
 import { publicRoutes } from "./Public.Route";
 import RouteRenderer from "./RouteRenderer";
 
 const Navigation = () => {
   const { isReady, isAuthenticated, user } = useAuthPersistence();
+  const navigate = useNavigate();
 
   // Mostrar loading mientras se inicializa la persistencia
   if (!isReady) {
@@ -46,25 +47,33 @@ const Navigation = () => {
         />
       ))}
 
-      <Route 
-        path="*" 
+      <Route
+        path="*"
         element={
           <div className="min-h-screen flex items-center justify-center bg-gray-50">
             <div className="text-center space-y-4">
               <h1 className="text-4xl font-bold text-gray-800">404</h1>
               <p className="text-gray-600">Página no encontrada</p>
-              <a 
-                href={isAuthenticated && user ? 
-                  (user.role === "admin" ? "/dashboard" : `/${user.role}/dashboard`) 
-                  : "/"
-                } 
-                className="inline-block px-4 py-2 bg-black text-white rounded hover:bg-gray-800 transition-colors"
-              >
-                {isAuthenticated ? 'Volver al Dashboard' : 'Volver al inicio'}
-              </a>
+              <div className="flex items-center justify-center gap-2">
+                <button
+                  onClick={() => navigate(-1)}
+                  className="px-4 py-2 rounded border border-gray-300 text-gray-700 hover:bg-gray-100 transition-colors text-sm"
+                >
+                  ← Volver
+                </button>
+                <a
+                  href={isAuthenticated && user ?
+                    ({ admin: "/dashboard", teacher: "/sessions", proctor: "/sessions", student: "/student/dashboard" }[user.role] ?? "/dashboard")
+                    : "/"
+                  }
+                  className="px-4 py-2 bg-black text-white rounded hover:bg-gray-800 transition-colors text-sm"
+                >
+                  {isAuthenticated ? 'Ir al Dashboard' : 'Ir al inicio'}
+                </a>
+              </div>
             </div>
           </div>
-        } 
+        }
       />
     </Routes>
   );

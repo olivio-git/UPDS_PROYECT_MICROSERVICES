@@ -12,11 +12,7 @@ const DashboardScreen = () => {
   
   // Escuchar eventos de cambio de autenticación
   useEffect(() => {
-    const handleAuthChange = () => {
-      // console.log('🔄 [DashboardScreen] Evento auth-state-changed recibido');
-      // setForceUpdate(prev => prev + 1);
-    };
-    
+    const handleAuthChange = () => {};
     window.addEventListener('auth-state-changed', handleAuthChange);
     return () => window.removeEventListener('auth-state-changed', handleAuthChange);
   }, []);

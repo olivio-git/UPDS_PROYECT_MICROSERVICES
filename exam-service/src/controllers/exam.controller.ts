@@ -1,4 +1,5 @@
 import { NextFunction, Request, Response } from 'express';
+import { auditLog } from '../services/audit-client.service';
 import { ExamService } from '../services/exam.service';
 import { logger } from '../utils/logger';
 
@@ -17,6 +18,12 @@ export class ExamController {
       };
       console.log(examData, '  <--- EXAM DATA')
       const exam = await this.examService.create(examData);
+
+      auditLog({
+        action: 'exam.created',
+        target: { type: 'exam', id: String((exam as any)._id ?? ''), name: (exam as any).name },
+        actor: { userId: req.user?.id, email: req.user?.email, role: req.user?.role },
+      });
 
       res.status(201).json({
         success: true,
@@ -87,6 +94,12 @@ export class ExamController {
         });
       }
 
+      auditLog({
+        action: 'exam.updated',
+        target: { type: 'exam', id: req.params.id as string, name: (exam as any)?.name },
+        actor: { userId: req.user?.id, email: req.user?.email, role: req.user?.role },
+      });
+
       res.json({
         success: true,
         message: 'Examen actualizado exitosamente',
@@ -109,6 +122,12 @@ export class ExamController {
         });
       }
 
+      auditLog({
+        action: 'exam.deleted',
+        target: { type: 'exam', id: req.params.id as string },
+        actor: { userId: req.user?.id, email: req.user?.email, role: req.user?.role },
+      });
+
       res.json({
         success: true,
         message: 'Examen eliminado exitosamente'
@@ -125,6 +144,13 @@ export class ExamController {
         req.params.id as string,
         req.user.id
       );
+
+      auditLog({
+        action: 'exam.cloned',
+        target: { type: 'exam', id: String((clonedExam as any)._id ?? ''), name: (clonedExam as any).name },
+        actor: { userId: req.user?.id, email: req.user?.email, role: req.user?.role },
+        details: { sourceId: req.params.id },
+      });
 
       res.status(201).json({
         success: true,

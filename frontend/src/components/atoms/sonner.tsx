@@ -1,28 +1,27 @@
 'use client';
 
 import { Toaster as Sonner } from 'sonner';
+import { useTheme } from '@/context/ThemeContext';
 
 type ToasterProps = React.ComponentProps<typeof Sonner>;
 
 const Toaster = ({ ...props }: ToasterProps) => {
+  const { theme } = useTheme();
+
   return (
     <Sonner
+      theme={theme}
       className="toaster group"
       toastOptions={{
         classNames: {
           toast:
-            'group toast group-[.toaster]:bg-background group-[.toaster]:text-foreground group-[.toaster]:border-border group-[.toaster]:shadow-lg',
+            'group toast group-[.toaster]:bg-card group-[.toaster]:text-foreground group-[.toaster]:border-border group-[.toaster]:shadow-lg',
           description: 'group-[.toast]:text-muted-foreground',
           actionButton:
             'group-[.toast]:bg-primary group-[.toast]:text-primary-foreground',
           cancelButton:
             'group-[.toast]:bg-muted group-[.toast]:text-muted-foreground',
-            icon: 'group-[.toast]:text-foreground',
-        },
-        style: {
-          backgroundColor: '#1E293B', // use surface color variable
-          color: '#E2E8F0', // use text color variable
-          border: '.5px solid #111c2d', // use border color variable
+          icon: 'group-[.toast]:text-foreground',
         },
       }}
       {...props}

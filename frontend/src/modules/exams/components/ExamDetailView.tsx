@@ -36,8 +36,6 @@ const ExamDetailView: React.FC<ExamDetailViewProps> = ({ exam, onBack, onEdit })
       writing: "Expresión Escrita",
       listening: "Comprensión Auditiva",
       speaking: "Expresión Oral",
-      grammar: "Gramática",
-      vocabulary: "Vocabulario"
     };
     return labels[competency] || competency;
   };
@@ -161,16 +159,6 @@ const ExamDetailView: React.FC<ExamDetailViewProps> = ({ exam, onBack, onEdit })
         </div>
 
         <div className="bg-box border border-line rounded-xl p-6 text-center">
-          <div className="w-12 h-12 bg-purple-900/20 rounded-full flex items-center justify-center mx-auto mb-3">
-            <Award className="w-6 h-6 text-purple-400" />
-          </div>
-          <div className="text-2xl font-bold text-foreground mb-1">
-            {exam.structure.totalPoints || 0}
-          </div>
-          <div className="text-sm text-muted-foreground">Puntos Totales</div>
-        </div>
-
-        <div className="bg-box border border-line rounded-xl p-6 text-center">
           <div className="w-12 h-12 bg-yellow-900/20 rounded-full flex items-center justify-center mx-auto mb-3">
             <Clock className="w-6 h-6 text-yellow-400" />
           </div>
@@ -207,10 +195,6 @@ const ExamDetailView: React.FC<ExamDetailViewProps> = ({ exam, onBack, onEdit })
                 <div>
                   <span className="text-muted-foreground">Preguntas:</span>
                   <p className="text-foreground font-medium">{section.questionCount}</p>
-                </div>
-                <div>
-                  <span className="text-muted-foreground">Puntos:</span>
-                  <p className="text-foreground font-medium">{section.points}</p>
                 </div>
                 <div>
                   <span className="text-muted-foreground">Duración:</span>

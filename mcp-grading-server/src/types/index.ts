@@ -207,6 +207,15 @@ export interface ICompetencyScore {
   pendingEvaluationCount: number;
 }
 
+export interface IGradingBreakdown {
+  questionsMs: number;       // Total time grading all questions (auto + AI + audio)
+  autoGradingMs: number;     // Time on auto-gradable questions
+  aiGradingMs: number;       // Time on essay/open_text GROQ calls
+  audioGradingMs: number;    // Time on audio (Whisper + GROQ)
+  perQuestionFeedbackMs: number; // Batch feedback call for auto-graded
+  overallFeedbackMs: number; // Overall exam feedback GROQ call
+}
+
 export interface IExamResult {
   _id?: ObjectId;
   attemptId: ObjectId;
@@ -232,6 +241,11 @@ export interface IExamResult {
   recommendedLevel?: string;
   placementMode?: 'static' | 'adaptive';
   levelScores?: Array<{ level: string; totalScore: number; maxScore: number; percentage: number; questionCount: number }>;
+  // Grading performance tracking
+  gradingStartedAt?: Date;
+  gradingCompletedAt?: Date;
+  gradingDurationMs?: number;
+  gradingBreakdown?: IGradingBreakdown;
 }
 
 // Grading result types

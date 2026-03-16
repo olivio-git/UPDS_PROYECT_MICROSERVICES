@@ -8,19 +8,28 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/atoms/card';
+import {
+  HoverCard,
+  HoverCardContent,
+  HoverCardTrigger,
+} from '@/components/atoms/hover-card';
 import { useToast } from '@/hooks/use-toast';
+import { UserAvatar } from '@/components/atoms/UserAvatar';
 import {
   AlertCircle,
+  BookOpen,
   Calendar,
   Clock,
   GraduationCap,
   Loader2,
+  Mail,
+  MonitorCheck,
   Play,
-  User,
 } from 'lucide-react';
 import { notificationSocket } from '@/services/notifications/notificationSocket';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { studentExamService, type NextExamData } from '../services/examService';
+import SystemCheckPanel from './SystemCheckPanel';
 
 interface PropsNextExam {
   formatDate?: (date: string) => string;
@@ -40,20 +49,56 @@ const NextExam: React.FC<PropsNextExam> = ({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [startingExam, setStartingExam] = useState(false);
+  const [now, setNow] = useState(() => Date.now());
+  const [showSystemCheck, setShowSystemCheck] = useState(false);
   const { toast } = useToast();
+
+  // Tick cada 30 segundos para actualizar countdown/elapsed
+  useEffect(() => {
+    const id = setInterval(() => setNow(Date.now()), 30_000);
+    return () => clearInterval(id);
+  }, []);
+
+  const formatCountdown = useCallback((targetIso: string): string => {
+    const diff = new Date(targetIso).getTime() - now;
+    if (diff <= 0) return 'en breve';
+    const totalMin = Math.floor(diff / 60_000);
+    const days = Math.floor(totalMin / 1440);
+    const hours = Math.floor((totalMin % 1440) / 60);
+    const mins = totalMin % 60;
+    if (days > 0) return `${days}d ${hours}h ${mins}m`;
+    if (hours > 0) return `${hours}h ${mins}m`;
+    if (mins === 0) return 'en breve';
+    return `${mins} min`;
+  }, [now]);
+
+  const formatElapsed = useCallback((startIso: string): string => {
+    const diff = now - new Date(startIso).getTime();
+    if (diff < 0) return 'hace un momento';
+    const totalMin = Math.floor(diff / 60_000);
+    const hours = Math.floor(totalMin / 60);
+    const mins = totalMin % 60;
+    if (hours > 0) return `hace ${hours}h ${mins}m`;
+    if (mins === 0) return 'hace un momento';
+    return `hace ${mins} min`;
+  }, [now]);
 
   useEffect(() => {
     loadNextExam();
 
     // Recargar cuando cambie el estado de la sesión o cuando nos agreguen a una
+    // Usar background=true para no desmontar SystemCheckPanel durante la recarga
     const onStatusChanged = (data: any) => {
       console.log('🔄 [NextExam] session.status.changed:', data);
-      loadNextExam();
+      loadNextExam(true);
     };
     const onNotificationCreated = (data: any) => {
       if (data?.type === 'session.candidate.added') {
         console.log('🔔 [NextExam] Agregado a sesión, recargando...');
-        loadNextExam();
+        loadNextExam(true);
+      } else if (data?.type === 'candidate.kicked' || data?.type === 'session.candidate.removed') {
+        console.log('🚫 [NextExam] Removido/expulsado de sesión, recargando...');
+        loadNextExam(true);
       }
     };
 
@@ -68,22 +113,25 @@ const NextExam: React.FC<PropsNextExam> = ({
     };
   }, []);
 
-  const loadNextExam = async () => {
+  // background=true → actualiza datos sin flash de loading (no desmonta hijos como SystemCheckPanel)
+  const loadNextExam = async (background = false) => {
     try {
-      setLoading(true);
+      if (!background) setLoading(true);
       setError(null);
       const exams = await studentExamService.getNextExams();
       const nextExamData = exams && exams.length > 0 ? exams[0] : null;
       setNextExam(nextExamData);
     } catch (error) {
       console.error('❌ Error loading next exam:', error);
-      setError(
-        error instanceof Error
-          ? error.message
-          : 'Error al cargar el próximo examen'
-      );
+      if (!background) {
+        setError(
+          error instanceof Error
+            ? error.message
+            : 'Error al cargar el próximo examen'
+        );
+      }
     } finally {
-      setLoading(false);
+      if (!background) setLoading(false);
     }
   };
   const handleStartExam = async () => {
@@ -160,7 +208,7 @@ const NextExam: React.FC<PropsNextExam> = ({
 
   if (loading) {
     return ( 
-        <Card className="bg-card backdrop-blur-sm border border-line">
+        <Card className="bg-card backdrop-blur-sm border border-line shadow-none">
           <CardHeader className="space-y-2 border-b border-line pb-4">
             <CardTitle className="text-foreground flex items-center gap-2 font-bold">
               <Calendar className="h-6 w-6 text-brand-gray bg-muted rounded-full p-1" />
@@ -181,7 +229,7 @@ const NextExam: React.FC<PropsNextExam> = ({
 
   if (error) {
     return ( 
-        <Card className="bg-card backdrop-blur-sm border border-line">
+        <Card className="bg-card backdrop-blur-sm border border-line shadow-none">
           <CardHeader className="space-y-2 border-b border-line pb-4">
             <CardTitle className="text-foreground flex items-center gap-2 font-bold">
               <Calendar className="h-6 w-6 text-brand-gray bg-muted rounded-full p-1" />
@@ -198,8 +246,8 @@ const NextExam: React.FC<PropsNextExam> = ({
             </Alert>
             <Button
               onClick={loadNextExam}
-              variant="outline"
-              className="mt-4 w-full bg-muted hover:bg-muted/80 text-foreground"
+              variant="secondary"
+              className="mt-4 w-full"
             >
               Reintentar
             </Button>
@@ -209,7 +257,7 @@ const NextExam: React.FC<PropsNextExam> = ({
   }
   if (!nextExam) {
     return ( 
-        <Card className="bg-card backdrop-blur-sm border border-line">
+        <Card className="bg-card backdrop-blur-sm border border-line shadow-none">
           <CardHeader className="space-y-2 border-b border-line pb-4">
             <CardTitle className="text-foreground flex items-center gap-2 font-bold">
               <Calendar className="h-6 w-6 text-brand-gray bg-muted rounded-full p-1" />
@@ -230,8 +278,8 @@ const NextExam: React.FC<PropsNextExam> = ({
               </p>
               <Button
                 onClick={loadNextExam}
-                variant="outline"
-                className="mt-2 bg-muted hover:bg-muted/80 text-foreground w-full"
+                variant="default"
+                className="mt-2 w-full"
               >
                 Actualizar
               </Button>
@@ -242,15 +290,26 @@ const NextExam: React.FC<PropsNextExam> = ({
   }
 
   return (
-    <Card className="bg-card backdrop-blur-sm border border-line">
+    <Card className="bg-card backdrop-blur-sm border border-line shadow-none">
       <CardHeader className="space-y-2 border-b border-line pb-4">
-        <CardTitle className="text-foreground flex items-center gap-2 font-bold">
-          <Calendar className="h-6 w-6 text-brand-gray bg-muted rounded-full p-1" />
-          Próximo Examen
-        </CardTitle>
+        <div className="flex items-center justify-between gap-2">
+          <CardTitle className="text-foreground flex items-center gap-2 font-bold">
+            <Calendar className="h-6 w-6 text-brand-gray bg-muted rounded-full p-1" />
+            Próximo Examen
+          </CardTitle>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => setShowSystemCheck((v) => !v)}
+            className="h-8 gap-1.5 text-xs border-border text-muted-foreground hover:text-foreground hover:bg-muted shrink-0"
+          >
+            <MonitorCheck className="h-3.5 w-3.5" />
+            {showSystemCheck ? 'Cerrar prueba' : 'Prueba técnica'}
+          </Button>
+        </div>
           <CardDescription className="text-brand-gray text-xs">
             Tu siguiente evaluación programada
-          </CardDescription> 
+          </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6 transition-all py-6">
         <div className="border border-line rounded-lg p-4 transition-colors thin-border">
@@ -262,7 +321,7 @@ const NextExam: React.FC<PropsNextExam> = ({
           <div className="grid grid-cols-2 gap-4 text-sm text-foreground/80 mb-4">
             <div className="flex items-center gap-2 font-light">
               <Calendar className="h-4 w-4 text-muted-foreground" />
-              {formatDate(nextExam.date)}
+              {formatDate(nextExam.rawStartDate)}
             </div>
             <div className="flex items-center gap-2 font-light">
               <Clock className="h-4 w-4 text-muted-foreground" />
@@ -292,92 +351,142 @@ const NextExam: React.FC<PropsNextExam> = ({
             </Badge>
           </div>
 
-          {/* --- Información del examen --- */}
-          {nextExam.exam && (
-            <div className="bg-muted/20 rounded-lg p-3 mb-4 border border-line">
-              <div className="flex items-center gap-3">
-                <div className="w-9 h-9 rounded-full bg-gradient-to-br from-blue-100 to-purple-100 dark:from-blue-900 dark:to-purple-900 border border-blue-200 dark:border-blue-800/30 flex items-center justify-center shrink-0">
-                  <span className="text-blue-700 dark:text-white font-bold text-sm">
-                    {nextExam.exam.type?.charAt(0).toUpperCase() || 'E'}
-                  </span>
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-foreground">
-                    {nextExam.exam.name}
-                  </p>
-                  <p className="text-xs text-muted-foreground">
-                    Tipo: {nextExam.exam.type || 'Evaluación'}
-                  </p>
-                </div>
-              </div>
-            </div>
-          )}
 
           {/* --- Información del creador --- */}
           {nextExam.createdBy && (
-            <div className="bg-muted/20 rounded-lg p-3 mb-4 border border-line">
-              <div className="flex items-center gap-3">
-                <div className="w-9 h-9 rounded-full bg-gradient-to-br from-green-100 to-emerald-100 dark:from-green-900 dark:to-emerald-900 border border-green-200 dark:border-green-800/30 flex items-center justify-center shrink-0">
-                  <User className="h-4 w-4 text-green-700 dark:text-white" />
-                </div>
-                <div className="flex-1">
-                  <p className="text-sm font-medium text-foreground">
-                    {nextExam.createdBy.firstName} {nextExam.createdBy.lastName}
-                  </p>
-                  <p className="text-xs text-muted-foreground">
-                    {getRoleDisplayName(nextExam.createdBy.role)}
-                  </p>
-                </div>
-                {nextExam.createdBy.teacherData && (
-                  <div className="text-right">
-                    <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                      <GraduationCap className="h-4 w-4" />
-                      <span>{nextExam.createdBy.teacherData.department}</span>
+            <HoverCard openDelay={200} closeDelay={100}>
+              <HoverCardTrigger asChild>
+                <div className="bg-muted/20 rounded-lg p-3 mb-4 border border-line cursor-pointer hover:bg-muted/40 hover:border-muted-foreground/20 transition-colors group">
+                  <div className="flex items-center gap-3">
+                    <UserAvatar
+                      avatarUrl={nextExam.createdBy.avatarUrl}
+                      firstName={nextExam.createdBy.firstName}
+                      lastName={nextExam.createdBy.lastName}
+                      size="sm"
+                    />
+                    <div className="flex-1">
+                      <p className="text-sm font-medium text-foreground group-hover:text-indigo-500 transition-colors">
+                        {nextExam.createdBy.firstName} {nextExam.createdBy.lastName}
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        {getRoleDisplayName(nextExam.createdBy.role)}
+                      </p>
                     </div>
+                    {nextExam.createdBy.teacherData && (
+                      <div className="text-right">
+                        <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                          <GraduationCap className="h-4 w-4" />
+                          <span>{nextExam.createdBy.teacherData.department}</span>
+                        </div>
+                      </div>
+                    )}
                   </div>
-                )}
-              </div>
+                </div>
+              </HoverCardTrigger>
 
-              {/* --- Especializaciones del profesor --- */}
-              {nextExam.createdBy.teacherData?.specialization &&
-                nextExam.createdBy.teacherData.specialization.length > 0 && (
-                  <div className="mt-3 pt-3 border-t border-border/50">
-                    <p className="text-xs text-muted-foreground mb-2">
-                      Especializaciones:
-                    </p>
-                    <div className="flex flex-wrap gap-1.5">
-                      {nextExam.createdBy.teacherData.specialization
-                        .slice(0, 3)
-                        .map((spec, index) => (
-                          <span
-                            key={index}
-                            className="px-2.5 py-0.5 text-xs font-medium border border-teal-400/30 bg-teal-500/10 text-teal-600 rounded-full"
-                          >
-                            {spec}
+              <HoverCardContent
+                side="top"
+                align="start"
+                className="w-80 p-0 overflow-hidden border border-line bg-card shadow-xl"
+              >
+                {/* Header con avatar y nombre */}
+                <div className="relative bg-gradient-to-br from-indigo-500/10 via-purple-500/5 to-transparent p-4 border-b border-line">
+                  <div className="flex items-center gap-3">
+                    <UserAvatar
+                      avatarUrl={nextExam.createdBy.avatarUrl}
+                      firstName={nextExam.createdBy.firstName}
+                      lastName={nextExam.createdBy.lastName}
+                      size="lg"
+                    />
+                    <div className="flex-1 min-w-0">
+                      <p className="font-semibold text-foreground truncate">
+                        {nextExam.createdBy.firstName} {nextExam.createdBy.lastName}
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        {getRoleDisplayName(nextExam.createdBy.role)}
+                      </p>
+                      {nextExam.createdBy.teacherData?.department && (
+                        <div className="flex items-center gap-1 mt-1">
+                          <GraduationCap className="h-3 w-3 text-indigo-500 shrink-0" />
+                          <span className="text-xs text-indigo-500 font-medium truncate">
+                            {nextExam.createdBy.teacherData.department}
                           </span>
-                        ))}
-                      {nextExam.createdBy.teacherData.specialization.length >
-                        3 && (
-                        <span className="px-2.5 py-0.5 text-xs bg-muted/40 text-muted-foreground rounded-full">
-                          +
-                          {nextExam.createdBy.teacherData.specialization
-                            .length - 3}{' '}
-                          más
-                        </span>
+                        </div>
                       )}
                     </div>
                   </div>
-                )}
-            </div>
+                </div>
+
+                {/* Cuerpo con detalles */}
+                <div className="p-4 space-y-3">
+                  {/* Email si existe */}
+                  {nextExam.createdBy.email && (
+                    <div className="flex items-center gap-2 text-xs">
+                      <Mail className="h-3.5 w-3.5 shrink-0 text-muted-foreground/60" />
+                      <a
+                        href={`mailto:${nextExam.createdBy.email}`}
+                        onClick={(e) => {
+                          e.preventDefault();
+                          navigator.clipboard.writeText(nextExam.createdBy!.email);
+                        }}
+                        title="Clic para copiar"
+                        className="truncate text-sky-500 hover:text-sky-400 hover:underline cursor-pointer transition-colors"
+                      >
+                        {nextExam.createdBy.email}
+                      </a>
+                    </div>
+                  )}
+
+                  {/* Especializaciones */}
+                  {nextExam.createdBy.teacherData?.specialization &&
+                    nextExam.createdBy.teacherData.specialization.length > 0 && (
+                      <div>
+                        <div className="flex items-center gap-1.5 mb-2">
+                          <BookOpen className="h-3.5 w-3.5 text-muted-foreground/60" />
+                          <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                            Especializaciones
+                          </p>
+                        </div>
+                        <div className="flex flex-wrap gap-1.5">
+                          {nextExam.createdBy.teacherData.specialization.map((spec, index) => (
+                            <span
+                              key={index}
+                              className="px-2.5 py-0.5 text-xs font-medium border border-teal-400/30 bg-teal-500/10 text-teal-600 rounded-full"
+                            >
+                              {spec}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                  {/* Sin datos extra */}
+                  {!nextExam.createdBy.email &&
+                    (!nextExam.createdBy.teacherData?.specialization ||
+                      nextExam.createdBy.teacherData.specialization.length === 0) && (
+                      <p className="text-xs text-muted-foreground/60 text-center py-1">
+                        Sin información adicional
+                      </p>
+                    )}
+                </div>
+              </HoverCardContent>
+            </HoverCard>
           )}
 
           {/* --- Botón para iniciar examen --- */}
           {nextExam.status === 'scheduled' ? (
-            <div className="w-full flex items-center justify-center gap-2 py-2 px-4 rounded-md bg-muted/40 border border-border text-muted-foreground text-sm">
-              <Clock className="h-4 w-4 text-yellow-400" />
-              <span>En espera — el examen aún no ha iniciado</span>
+            <div className="w-full flex items-center justify-center gap-1.5 py-2 text-sm text-muted-foreground">
+              <Clock className="h-3.5 w-3.5 shrink-0" />
+              <span>Inicia en <span className="font-semibold text-foreground">{formatCountdown(nextExam.rawStartDate)}</span></span>
             </div>
           ) : (
+            <>
+              {nextExam.status === 'in_progress' && !nextExam.myAttemptStatus && (
+                <div className="w-full flex items-center justify-center gap-1.5 py-1 text-xs text-muted-foreground mb-2">
+                  <Clock className="h-3 w-3 shrink-0" />
+                  <span>Inició <span className="font-semibold text-foreground">{formatElapsed(nextExam.rawStartDate)}</span></span>
+                </div>
+              )}
             <Button
               onClick={handleStartExam}
               size="sm"
@@ -404,7 +513,10 @@ const NextExam: React.FC<PropsNextExam> = ({
                 </>
               )}
             </Button>
+            </>
           )}
+
+          {showSystemCheck && <SystemCheckPanel key={nextExam.sessionId} sessionId={nextExam.sessionId} />}
         </div>
       </CardContent>
     </Card>

@@ -8,6 +8,7 @@ import {
   GenerateQuestionRequestSchema,
   SaveQuestionRequestSchema,
   TranscribeAudioRequestSchema,
+  FormatTranscriptRequestSchema,
   RegradeSessionSchema,
   RegradeAttemptSchema,
 } from '../schemas/grading.schemas.js';
@@ -18,6 +19,8 @@ import { getPendingExams } from '../tools/get-pending-exams.js';
 import { generateQuestion } from '../tools/generate-question.js';
 import { transcribeAudio, transcribeAudioBuffer } from '../grading/audio-delegator.js';
 import { autoGrade } from '../grading/auto-grader.js';
+import Groq from 'groq-sdk';
+import { config } from '../config.js';
 import { ObjectId } from 'mongodb';
 import { getQuestions, getExamResults } from '../db/collections.js';
 import { AUTO_GRADABLE_TYPES } from '../types/index.js';
@@ -134,6 +137,76 @@ gradingRouter.post(
       res.status(error.statusCode || 500).json({
         success: false,
         error: error.message || 'Error al transcribir audio',
+      });
+    }
+  }
+);
+
+/**
+ * POST /api/v1/grading/format-transcript
+ * Detecta si una transcripción es un diálogo o monólogo y la formatea con
+ * etiquetas de hablante (Speaker 1: / Speaker 2: / nombres reales si se detectan).
+ * Si es monólogo, devuelve el texto con puntuación corregida sin modificar estructura.
+ */
+gradingRouter.post(
+  '/format-transcript',
+  validateBody(FormatTranscriptRequestSchema),
+  async (req: Request, res: Response): Promise<void> => {
+    try {
+      const { transcript } = req.body as { transcript: string };
+      const groq = new Groq({ apiKey: config.groq.apiKey });
+
+      const completion = await groq.chat.completions.create({
+        model: config.groq.model,
+        messages: [
+          {
+            role: 'system',
+            content: `You are a transcript formatter for English language audio recordings used in educational exams.
+Your task: analyze a raw Whisper transcription and determine if it's a DIALOGUE or MONOLOGUE.
+
+DIALOGUE rules (2+ speakers taking turns):
+- Format each turn on its own line: "SpeakerName: text"
+- Use real names if clearly mentioned in the transcript, otherwise "Speaker 1:", "Speaker 2:", etc.
+- Fix punctuation and capitalization within each turn
+- Do NOT add content that isn't there
+
+MONOLOGUE rules (one person speaking, narration, instructions, story):
+- Return the text with proper punctuation and paragraph breaks
+- Do NOT add speaker labels
+
+CRITICAL:
+- NEVER translate — keep the exact original language
+- NEVER add, remove, or change the meaning of any words
+- Return ONLY valid JSON: {"formatted": "...", "isDialogue": boolean, "speakersDetected": number}
+- speakersDetected = 1 for monologue, 2+ for dialogue`,
+          },
+          {
+            role: 'user',
+            content: `Format this transcript:\n\n${transcript}`,
+          },
+        ],
+        temperature: 0.1,
+        max_tokens: 2000,
+        response_format: { type: 'json_object' },
+      });
+
+      const content = completion.choices[0]?.message?.content;
+      if (!content) throw new Error('No response from GROQ');
+
+      let parsed: { formatted: string; isDialogue: boolean; speakersDetected: number };
+      try {
+        parsed = JSON.parse(content);
+      } catch {
+        // Fallback: return original transcript untouched
+        res.json({ success: true, data: { formatted: transcript, isDialogue: false, speakersDetected: 1 } });
+        return;
+      }
+
+      res.json({ success: true, data: parsed });
+    } catch (error: any) {
+      res.status(error.statusCode || 500).json({
+        success: false,
+        error: error.message || 'Error al formatear transcript',
       });
     }
   }

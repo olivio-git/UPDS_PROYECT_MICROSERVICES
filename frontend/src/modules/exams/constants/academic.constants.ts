@@ -7,9 +7,7 @@ export const COMPETENCIES = [
   'reading', 
   'writing', 
   'listening', 
-  'speaking', 
-  'grammar', 
-  'vocabulary'
+  'speaking',
 ] as const;
 export type Competency = typeof COMPETENCIES[number];
 
@@ -18,8 +16,6 @@ export const COMPETENCY_LABELS: Record<Competency, string> = {
   writing: 'Expresión Escrita', 
   listening: 'Comprensión Auditiva',
   speaking: 'Expresión Oral',
-  grammar: 'Gramática',
-  vocabulary: 'Vocabulario'
 };
 
 export const MCER_LEVEL_DESCRIPTIONS: Record<MCERLevel, string> = {

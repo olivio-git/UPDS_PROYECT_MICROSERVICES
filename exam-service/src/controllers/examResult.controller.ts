@@ -186,6 +186,8 @@ export class ExamResultController {
           duration: result.examDuration,
           timeAllowed: result.timeAllowed,
           totalQuestions: result.questionResults.length,
+          gradingDurationMs: (result as any).gradingDurationMs,
+          gradingBreakdown: (result as any).gradingBreakdown,
           details: result
         }
       });

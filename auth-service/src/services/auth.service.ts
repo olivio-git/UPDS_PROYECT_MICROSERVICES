@@ -289,4 +289,13 @@ export class AuthService {
     const { password, ...sanitizedUser } = user;
     return sanitizedUser;
   }
+
+  async syncUserFields(userId: string, fields: Partial<Pick<User, 'role' | 'firstName' | 'lastName' | 'email'>>): Promise<User | null> {
+    const updated = await this.userRepository.updateUser(userId, fields);
+    if (updated) {
+      // Invalida caché para que el próximo refresh de token tome el rol nuevo
+      await this.cacheRepository.invalidateUserCache(userId);
+    }
+    return updated;
+  }
 }

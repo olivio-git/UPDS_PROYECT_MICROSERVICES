@@ -6,6 +6,7 @@ interface AudioPlayerProps {
   src: string;
   title?: string;
   artist?: string;
+  knownDuration?: number; // seconds — use when src is a blob (MediaRecorder duration is Infinity)
   variant?: 'default' | 'compact' | 'minimal' | 'wave';
   showControls?: {
     volume?: boolean;
@@ -26,6 +27,7 @@ const AudioPlayer: React.FC<AudioPlayerProps> = ({
   src,
   title,
   artist,
+  knownDuration,
   variant = 'default',
   showControls = {
     volume: true,
@@ -45,7 +47,7 @@ const AudioPlayer: React.FC<AudioPlayerProps> = ({
   const progressRef = useRef<HTMLDivElement>(null);
   
   const [isPlaying, setIsPlaying] = useState(false);
-  const [duration, setDuration] = useState(0);
+  const [duration, setDuration] = useState(knownDuration ?? 0);
   const [currentTime, setCurrentTime] = useState(0);
   const [volume, setVolume] = useState(1);
   const [isMuted, setIsMuted] = useState(false);
@@ -58,8 +60,17 @@ const AudioPlayer: React.FC<AudioPlayerProps> = ({
     if (!audio) return;
 
     const handleLoadedData = () => {
-      setDuration(audio.duration);
+      if (isFinite(audio.duration) && audio.duration > 0) {
+        setDuration(audio.duration);
+      }
+      // If Infinity (MediaRecorder blob), keep knownDuration if provided
       setIsLoading(false);
+    };
+
+    const handleDurationChange = () => {
+      if (isFinite(audio.duration) && audio.duration > 0) {
+        setDuration(audio.duration);
+      }
     };
 
     const handleTimeUpdate = () => {
@@ -82,6 +93,7 @@ const AudioPlayer: React.FC<AudioPlayerProps> = ({
     };
 
     audio.addEventListener('loadeddata', handleLoadedData);
+    audio.addEventListener('durationchange', handleDurationChange);
     audio.addEventListener('timeupdate', handleTimeUpdate);
     audio.addEventListener('ended', handleEnded);
     audio.addEventListener('error', handleError);
@@ -89,6 +101,7 @@ const AudioPlayer: React.FC<AudioPlayerProps> = ({
 
     return () => {
       audio.removeEventListener('loadeddata', handleLoadedData);
+      audio.removeEventListener('durationchange', handleDurationChange);
       audio.removeEventListener('timeupdate', handleTimeUpdate);
       audio.removeEventListener('ended', handleEnded);
       audio.removeEventListener('error', handleError);
@@ -182,8 +195,7 @@ const AudioPlayer: React.FC<AudioPlayerProps> = ({
   };
 
   const formatTime = (time: number) => {
-    if (isNaN(time)) return '0:00';
-    
+    if (!isFinite(time) || isNaN(time)) return '--:--';
     const minutes = Math.floor(time / 60);
     const seconds = Math.floor(time % 60);
     return `${minutes}:${seconds.toString().padStart(2, '0')}`;
@@ -193,43 +205,33 @@ const AudioPlayer: React.FC<AudioPlayerProps> = ({
 
   if (error) {
     return (
-      <div className={cn(
-        "flex items-center gap-3 p-4 bg-red-900/20 border border-red-800/30 rounded-lg",
-        className
-      )}>
-        <VolumeX className="w-5 h-5 text-red-400" />
-        <span className="text-red-300 text-sm">{error}</span>
+      <div className={cn("flex items-center gap-2.5 px-3 py-2.5 bg-card border border-border rounded-lg", className)}>
+        <VolumeX className="w-4 h-4 text-destructive shrink-0" />
+        <span className="text-destructive text-sm">{error}</span>
       </div>
     );
   }
 
   if (variant === 'minimal') {
     return (
-      <div className={cn(
-        "flex items-center gap-3 p-2 bg-gray-800/50 rounded-lg border border-gray-700/50",
-        className
-      )}>
+      <div className={cn("flex items-center gap-2.5 px-2.5 py-2 bg-card border border-border rounded-lg", className)}>
         <audio ref={audioRef} src={src} preload="metadata" loop={loop} />
-        
         <button
           onClick={togglePlay}
           disabled={isLoading}
-          type='button'
-          className="flex items-center justify-center w-8 h-8 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 disabled:cursor-not-allowed rounded-full transition-all duration-200"
+          type="button"
+          className="flex items-center justify-center w-7 h-7 bg-foreground hover:opacity-80 disabled:opacity-30 disabled:cursor-not-allowed rounded-full transition-opacity"
         >
           {isLoading ? (
-            <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+            <div className="w-3 h-3 border-2 border-background border-t-transparent rounded-full animate-spin" />
           ) : isPlaying ? (
-            <Pause className="w-4 h-4 text-white" />
+            <Pause className="w-3 h-3 text-background" />
           ) : (
-            <Play className="w-4 h-4 text-white ml-0.5" />
+            <Play className="w-3 h-3 text-background ml-0.5" />
           )}
         </button>
-
         {showControls.time && (
-          <span className="text-xs text-gray-400 min-w-0 tabular-nums">
-            {formatTime(currentTime)}
-          </span>
+          <span className="text-xs text-muted-foreground tabular-nums">{formatTime(currentTime)}</span>
         )}
       </div>
     );
@@ -237,188 +239,150 @@ const AudioPlayer: React.FC<AudioPlayerProps> = ({
 
   if (variant === 'compact') {
     return (
-      <div className={cn(
-        "flex items-center gap-3 p-3 bg-gray-800/50 rounded-lg border border-gray-700/50",
-        className
-      )}>
+      <div className={cn("flex items-center gap-3 px-3 py-2.5 bg-card border border-border rounded-lg", className)}>
         <audio ref={audioRef} src={src} preload="metadata" loop={loop} />
-        
         <button
           onClick={togglePlay}
           disabled={isLoading}
-          type='button'
-          className="flex items-center justify-center w-10 h-10 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 disabled:cursor-not-allowed rounded-full transition-all duration-200"
+          type="button"
+          className="flex items-center justify-center w-8 h-8 bg-foreground hover:opacity-80 disabled:opacity-30 disabled:cursor-not-allowed rounded-full transition-opacity shrink-0"
         >
           {isLoading ? (
-            <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+            <div className="w-4 h-4 border-2 border-background border-t-transparent rounded-full animate-spin" />
           ) : isPlaying ? (
-            <Pause className="w-5 h-5 text-white" />
+            <Pause className="w-4 h-4 text-background" />
           ) : (
-            <Play className="w-5 h-5 text-white ml-0.5" />
+            <Play className="w-4 h-4 text-background ml-0.5" />
           )}
         </button>
-
         {showControls.seek && (
           <div className="flex-1 min-w-0">
             <div
               ref={progressRef}
               onClick={handleSeek}
-              className="w-full h-2 bg-gray-700 rounded-full cursor-pointer relative overflow-hidden"
+              className="w-full h-1 bg-border rounded-full cursor-pointer relative group"
             >
+              <div className="h-full bg-foreground rounded-full transition-all duration-150" style={{ width: `${progress}%` }} />
               <div
-                className="h-full bg-gradient-to-r from-blue-500 to-blue-600 rounded-full transition-all duration-150"
-                style={{ width: `${progress}%` }}
-              />
-              <div
-                className="absolute top-0 h-full w-1 bg-white rounded-full shadow-lg transition-all duration-150"
-                style={{ left: `${Math.max(0, progress - 0.5)}%` }}
+                className="absolute top-1/2 -translate-y-1/2 w-2.5 h-2.5 bg-foreground rounded-full shadow-sm opacity-0 group-hover:opacity-100 transition-opacity duration-150"
+                style={{ left: `${Math.max(0, progress - 1)}%` }}
               />
             </div>
           </div>
         )}
-
         {showControls.time && (
-          <span className="text-sm text-gray-400 min-w-0 tabular-nums">
-            {formatTime(currentTime)} / {formatTime(duration)}
+          <span className="text-xs text-muted-foreground tabular-nums shrink-0">
+            {formatTime(currentTime)} / {duration > 0 ? formatTime(duration) : '--:--'}
           </span>
         )}
       </div>
     );
   }
 
-  // Variant 'default' - reproductor completo
+  // Variant 'default'
   return (
-    <div className={cn(
-      "bg-gradient-to-br from-gray-900/90 to-gray-800/90 border border-gray-700/50 rounded-xl p-6 backdrop-blur-sm",
-      className
-    )}>
+    <div className={cn("bg-card border border-border rounded-xl p-4", className)}>
       <audio ref={audioRef} src={src} preload="metadata" loop={loop} />
-      
-      {/* Header con información */}
+
       {(title || artist) && (
-        <div className="mb-4">
-          {title && (
-            <h3 className="text-white font-medium text-lg truncate">{title}</h3>
-          )}
-          {artist && (
-            <p className="text-gray-400 text-sm truncate">{artist}</p>
-          )}
+        <div className="mb-3">
+          {title && <p className="text-sm font-medium text-foreground truncate">{title}</p>}
+          {artist && <p className="text-xs text-muted-foreground truncate">{artist}</p>}
         </div>
       )}
 
-      {/* Barra de progreso */}
+      {/* Progress bar */}
       {showControls.seek && (
-        <div className="mb-4">
+        <div className="mb-3">
           <div
             ref={progressRef}
             onClick={handleSeek}
-            className="w-full h-3 bg-gray-700/50 rounded-full cursor-pointer relative overflow-hidden group"
+            className="w-full h-1 bg-border rounded-full cursor-pointer relative group"
           >
+            <div className="h-full bg-foreground rounded-full transition-all duration-150" style={{ width: `${progress}%` }} />
             <div
-              className="h-full bg-gradient-to-r from-blue-500 to-blue-600 rounded-full transition-all duration-150"
-              style={{ width: `${progress}%` }}
-            />
-            <div
-              className="absolute top-1/2 transform -translate-y-1/2 w-4 h-4 bg-white rounded-full shadow-lg transition-all duration-150 opacity-0 group-hover:opacity-100"
-              style={{ left: `${Math.max(0, progress - 2)}%` }}
+              className="absolute top-1/2 -translate-y-1/2 w-3 h-3 bg-foreground rounded-full shadow-sm opacity-0 group-hover:opacity-100 transition-opacity duration-150"
+              style={{ left: `${Math.max(0, progress - 1.5)}%` }}
             />
           </div>
-          
           {showControls.time && (
-            <div className="flex justify-between text-xs text-gray-400 mt-1 tabular-nums">
+            <div className="flex justify-between text-xs text-muted-foreground mt-1.5 tabular-nums">
               <span>{formatTime(currentTime)}</span>
-              <span>{formatTime(duration)}</span>
+              <span>{duration > 0 ? formatTime(duration) : '--:--'}</span>
             </div>
           )}
         </div>
       )}
 
-      {/* Controles principales */}
-      <div className="flex items-center justify-center gap-4 mb-4">
+      {/* Main controls */}
+      <div className="flex items-center justify-center gap-3 mb-3">
         <button
           onClick={() => skip(-10)}
           type="button"
-          className="p-2 text-gray-400 hover:text-white hover:bg-gray-700/50 rounded-full transition-all duration-200"
+          className="p-1.5 text-muted-foreground hover:text-foreground rounded-full transition-colors"
           title="Retroceder 10s"
         >
-          <Rewind className="w-5 h-5" />
+          <Rewind className="w-4 h-4" />
         </button>
-
         <button
           onClick={reset}
-          type='button'
-          className="p-2 text-gray-400 hover:text-white hover:bg-gray-700/50 rounded-full transition-all duration-200"
+          type="button"
+          className="p-1.5 text-muted-foreground hover:text-foreground rounded-full transition-colors"
           title="Reiniciar"
         >
-          <RotateCcw className="w-5 h-5" />
+          <RotateCcw className="w-4 h-4" />
         </button>
-
         <button
           onClick={togglePlay}
           disabled={isLoading}
-          type='button'
-          className="flex items-center justify-center w-14 h-14 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 disabled:cursor-not-allowed rounded-full transition-all duration-200 shadow-lg"
+          type="button"
+          className="flex items-center justify-center w-10 h-10 bg-foreground hover:opacity-80 disabled:opacity-30 disabled:cursor-not-allowed rounded-full transition-opacity"
         >
           {isLoading ? (
-            <div className="w-6 h-6 border-2 border-white border-t-transparent rounded-full animate-spin" />
+            <div className="w-5 h-5 border-2 border-background border-t-transparent rounded-full animate-spin" />
           ) : isPlaying ? (
-            <Pause className="w-6 h-6 text-white" />
+            <Pause className="w-5 h-5 text-background" />
           ) : (
-            <Play className="w-6 h-6 text-white ml-1" />
+            <Play className="w-5 h-5 text-background ml-0.5" />
           )}
         </button>
-
         <button
           onClick={() => skip(10)}
-          type='button'
-          className="p-2 text-gray-400 hover:text-white hover:bg-gray-700/50 rounded-full transition-all duration-200"
+          type="button"
+          className="p-1.5 text-muted-foreground hover:text-foreground rounded-full transition-colors"
           title="Avanzar 10s"
         >
-          <FastForward className="w-5 h-5" />
+          <FastForward className="w-4 h-4" />
         </button>
       </div>
 
-      {/* Controles adicionales */}
+      {/* Secondary controls */}
       <div className="flex items-center justify-between">
-        {/* Control de volumen */}
         {showControls.volume && (
-          <div className="flex items-center gap-2">
-            <button
-              onClick={toggleMute}
-              type='button'
-              className="p-1 text-gray-400 hover:text-white rounded transition-colors"
-            >
-              {isMuted || volume === 0 ? (
-                <VolumeX className="w-4 h-4" />
-              ) : (
-                <Volume2 className="w-4 h-4" />
-              )}
+          <div className="flex items-center gap-1.5">
+            <button onClick={toggleMute} type="button" className="p-1 text-muted-foreground hover:text-foreground rounded transition-colors">
+              {isMuted || volume === 0 ? <VolumeX className="w-3.5 h-3.5" /> : <Volume2 className="w-3.5 h-3.5" />}
             </button>
             <input
-              type="range"
-              min="0"
-              max="1"
-              step="0.05"
+              type="range" min="0" max="1" step="0.05"
               value={isMuted ? 0 : volume}
               onChange={handleVolumeChange}
-              className="w-20 h-1 bg-gray-700 rounded-full appearance-none cursor-pointer slider"
+              className="w-16 h-0.5 bg-border rounded-full appearance-none cursor-pointer audio-slider"
             />
           </div>
         )}
-
-        {/* Control de velocidad */}
         {showControls.speed && (
-          <div className="flex items-center gap-1">
+          <div className="flex items-center gap-0.5">
             {[0.75, 1, 1.25, 1.5].map((rate) => (
               <button
                 key={rate}
                 onClick={() => changePlaybackRate(rate)}
-                type='button'
+                type="button"
                 className={cn(
-                  "px-2 py-1 text-xs rounded transition-all duration-200",
+                  "px-1.5 py-0.5 text-xs rounded transition-colors",
                   playbackRate === rate
-                    ? "bg-blue-600 text-white"
-                    : "text-gray-400 hover:text-white hover:bg-gray-700/50"
+                    ? "bg-foreground text-background"
+                    : "text-muted-foreground hover:text-foreground"
                 )}
               >
                 {rate}x
@@ -429,25 +393,19 @@ const AudioPlayer: React.FC<AudioPlayerProps> = ({
       </div>
 
       <style>{`
-        .slider::-webkit-slider-thumb {
+        .audio-slider::-webkit-slider-thumb {
           appearance: none;
-          width: 16px;
-          height: 16px;
+          width: 10px; height: 10px;
           border-radius: 50%;
-          background: #3b82f6;
+          background: hsl(var(--foreground));
           cursor: pointer;
-          border: 2px solid #ffffff;
-          box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
         }
-        
-        .slider::-moz-range-thumb {
-          width: 16px;
-          height: 16px;
+        .audio-slider::-moz-range-thumb {
+          width: 10px; height: 10px;
           border-radius: 50%;
-          background: #3b82f6;
+          background: hsl(var(--foreground));
           cursor: pointer;
-          border: 2px solid #ffffff;
-          box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+          border: none;
         }
       `}</style>
     </div>

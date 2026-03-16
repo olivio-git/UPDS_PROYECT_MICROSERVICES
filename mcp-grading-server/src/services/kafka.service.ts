@@ -30,20 +30,20 @@ export async function publishKafkaEvent(
   try {
     const p = await getProducer();
     if (!p) return;
+    const payload = JSON.stringify({
+      type,
+      data,
+      timestamp: new Date().toISOString(),
+      service: 'grading-service',
+    });
+    console.log(`[grading-service] Publicando Kafka event '${type}' (${payload.length} bytes) al topic '${config.kafka.topic}'`);
     await p.send({
       topic: config.kafka.topic,
-      messages: [{
-        key: type,
-        value: JSON.stringify({
-          type,
-          data,
-          timestamp: new Date().toISOString(),
-          service: 'grading-service',
-        }),
-      }],
+      messages: [{ key: type, value: payload }],
     });
-  } catch {
-    // Kafka publish es best-effort — nunca bloquea el grading
+    console.log(`[grading-service] Kafka event '${type}' publicado exitosamente`);
+  } catch (err: any) {
+    console.error(`[grading-service] Error publicando Kafka event '${type}':`, err?.message);
   }
 }
 

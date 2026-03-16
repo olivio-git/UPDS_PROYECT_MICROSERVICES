@@ -4,6 +4,7 @@ import { authSDK } from './sdk-simple-auth';
 
 export interface Candidate {
   _id: string;
+  avatarUrl?: string;
   personalInfo: {
     firstName: string;
     lastName: string;
@@ -289,7 +290,7 @@ class CandidateService {
   async searchCandidates(query: string): Promise<ApiResponse<Candidate[]>> {
     try {
       const response = await this.api.get('/candidates/search', {
-        params: { q: query }
+        params: { query }
       });
       return response.data;
     } catch (error) {

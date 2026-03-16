@@ -18,10 +18,9 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/atoms/dialog";
-import GradientWrapper from "@/components/background/GrandWrapperSection";
 import { MainLayout } from "@/components/layout";
 import type { SortingState } from "@tanstack/react-table";
-import { Upload, Download, FileText, Users2 } from "lucide-react";
+import { Upload, Download, FileText } from "lucide-react";
 import { useState, useRef } from "react";
 import { toast } from "sonner";
 import UserForm from "../components/UserForm";
@@ -35,6 +34,18 @@ import type {
   User,
   ViewMode,
 } from "../types/user.types";
+
+const roleLabels: Record<string, string> = {
+  teacher: "Profesor",
+  proctor: "Supervisor",
+  student: "Estudiante",
+};
+
+const ASSIGNABLE_ROLES = [
+  { value: "teacher", label: "Profesor" },
+  { value: "proctor", label: "Supervisor" },
+  { value: "student", label: "Estudiante" },
+];
 
 const UsersScreen = () => {
   // Estados de UI
@@ -50,6 +61,12 @@ const UsersScreen = () => {
   const [isImporting, setIsImporting] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Estado modal asignar rol
+  const [isAssignRoleOpen, setIsAssignRoleOpen] = useState(false);
+  const [userToAssignRole, setUserToAssignRole] = useState<User | null>(null);
+  const [selectedRole, setSelectedRole] = useState<string>("");
+  const [isAssigningRole, setIsAssigningRole] = useState(false);
 
   // Hook de usuarios
   const {
@@ -194,14 +211,22 @@ const UsersScreen = () => {
     }
   };
 
-  const handleAssignRole = () => {
-    // Por implementar: Modal para asignar rol
-    toast.info("Función de asignar rol por implementar");
+  const handleAssignRole = (user: User) => {
+    setUserToAssignRole(user);
+    setSelectedRole(user.role);
+    setIsAssignRoleOpen(true);
   };
 
-  const handleSendEmail = () => {
-    // Por implementar: Modal para enviar email
-    toast.info("Función de enviar email por implementar");
+  const confirmAssignRole = async () => {
+    if (!userToAssignRole || !selectedRole) return;
+    setIsAssigningRole(true);
+    const result = await userService.updateUser(userToAssignRole._id, { role: selectedRole as any });
+    setIsAssigningRole(false);
+    if (result.success) {
+      toast.success(`Rol actualizado a ${roleLabels[selectedRole] ?? selectedRole}`);
+      setIsAssignRoleOpen(false);
+      refreshUsers();
+    }
   };
 
   // Manejadores de exportación/importación
@@ -344,8 +369,7 @@ const UsersScreen = () => {
 
     // Vista de tabla (por defecto)
     return (
-      <div className="space-y-6">
-        {/* Header con filtros */}
+      <div className="flex flex-col gap-3">
         <UserTableHeader
           filters={filters}
           onFiltersChange={handleFiltersChange}
@@ -357,56 +381,41 @@ const UsersScreen = () => {
           totalCount={totalUsers}
           isLoading={isLoading}
         />
-        {/* Tabla de usuarios */}
-        <UserTable
-          users={users}
-          selectedUsers={selectedUsers}
-          onSelectUser={selectUser}
-          onSelectAllUsers={selectAllUsers}
-          onEditUser={handleEditUser}
-          onDeleteUser={handleDeleteUser}
-          onViewUser={handleViewUser}
-          onActivateUser={handleActivateUser}
-          onDeactivateUser={handleDeactivateUser}
-          onGeneratePassword={handleGeneratePassword}
-          onAssignRole={handleAssignRole}
-          onSendEmail={handleSendEmail}
-          isLoading={isLoading}
-          isFetching={isFetching}
-          isError={isError}
-          errorMessage={errorMessage}
-          sorting={sorting}
-          setSorting={handleSortingChange}
-          // Props de paginación
-          currentPage={pagination?.page}
-          totalPages={pagination?.totalPages}
-          totalItems={pagination?.total}
-          itemsPerPage={pagination?.limit}
-          onPageChange={handlePageChange}
-        />
+        <div className="bg-card border border-border rounded-lg overflow-hidden">
+          <UserTable
+            users={users}
+            selectedUsers={selectedUsers}
+            onSelectUser={selectUser}
+            onSelectAllUsers={selectAllUsers}
+            onEditUser={handleEditUser}
+            onDeleteUser={handleDeleteUser}
+            onViewUser={handleViewUser}
+            onActivateUser={handleActivateUser}
+            onDeactivateUser={handleDeactivateUser}
+            onGeneratePassword={handleGeneratePassword}
+            onAssignRole={handleAssignRole}
+            isLoading={isLoading}
+            isFetching={isFetching}
+            isError={isError}
+            errorMessage={errorMessage}
+            sorting={sorting}
+            setSorting={handleSortingChange}
+            // Props de paginación
+            currentPage={pagination?.page}
+            totalPages={pagination?.totalPages}
+            totalItems={pagination?.total}
+            itemsPerPage={pagination?.limit}
+            onPageChange={handlePageChange}
+          />
+        </div>
       </div>
     );
   };
 
   return (
-    <MainLayout gradientVariant="aurora">
-      <div className="max-w-7xl mx-auto space-y-8 epilogue-uniquifier">
-        <div className="text-center space-y-3 mb-5">
-            <div className="flex justify-center">
-                <div className="p-2.5 rounded-full bg-gradient-to-br from-blue-500/15 to-purple-600/15 border border-blue-500/20">
-                <Users2 className="h-3.5 w-3.5 text-blue-300" />
-                </div>
-            </div> 
-        </div>
-        <GradientWrapper
-          intensity="low"
-          size="xl"
-          position="right"
-          animate={false}
-          variant="cosmic"
-        >
-          <div className="min-h-screen">{renderContent()}</div>
-        </GradientWrapper>
+    <MainLayout>
+      <div className="flex flex-col gap-3 p-4 max-w-5xl mx-auto w-full">
+        {renderContent()}
       </div>
 
       {/* Dialog para eliminar usuario individual */}
@@ -415,7 +424,7 @@ const UsersScreen = () => {
         // isDeleteDialogOpen
         onOpenChange={setIsDeleteDialogOpen}
       >
-        <AlertDialogContent className="bg-box">
+        <AlertDialogContent className="bg-card">
           <AlertDialogHeader>
             <AlertDialogTitle className="text-foreground">Confirmar eliminación</AlertDialogTitle>
             <AlertDialogDescription className="text-muted-foreground">
@@ -427,7 +436,7 @@ const UsersScreen = () => {
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel className="bg-transparent text-foreground border border-line focus:outline-none">Cancelar</AlertDialogCancel>
+            <AlertDialogCancel className="bg-transparent text-foreground border border-border focus:outline-none">Cancelar</AlertDialogCancel>
             <AlertDialogAction
               onClick={confirmDeleteUser}
               className="bg-red-600 hover:bg-red-700 text-white"
@@ -443,19 +452,19 @@ const UsersScreen = () => {
         open={isDeleteMultipleDialogOpen}
         onOpenChange={setIsDeleteMultipleDialogOpen}
       >
-        <AlertDialogContent className="bg-red-50 border border-red-200 text-red-800">
+        <AlertDialogContent className="bg-card border border-border">
           <AlertDialogHeader>
-            <AlertDialogTitle>Confirmar eliminación múltiple</AlertDialogTitle>
-            <AlertDialogDescription>
+            <AlertDialogTitle className="text-foreground">Confirmar eliminación múltiple</AlertDialogTitle>
+            <AlertDialogDescription className="text-muted-foreground">
               ¿Estás seguro de que deseas eliminar {selectedUsers.length}{" "}
               usuario(s) seleccionado(s)? Esta acción no se puede deshacer.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogCancel className="bg-transparent text-foreground border border-border">Cancelar</AlertDialogCancel>
             <AlertDialogAction
               onClick={confirmDeleteSelectedUsers}
-              className="bg-red-600 hover:bg-red-700"
+              className="bg-red-600 hover:bg-red-700 text-white"
             >
               Eliminar {selectedUsers.length} usuario(s)
             </AlertDialogAction>
@@ -465,90 +474,110 @@ const UsersScreen = () => {
 
       {/* Dialog para importar usuarios */}
       <Dialog open={isImportDialogOpen} onOpenChange={setIsImportDialogOpen}>
-        <DialogContent className="bg-card border border-border text-foreground">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Upload className="w-5 h-5" />
+        <DialogContent className="bg-card border border-border text-foreground sm:max-w-md">
+          <DialogHeader className="pb-2">
+            <DialogTitle className="flex items-center gap-2.5 text-foreground">
+              <div className="p-1.5 rounded-md bg-green-100 dark:bg-green-900/30">
+                <Upload className="w-4 h-4 text-green-600 dark:text-green-400" />
+              </div>
               Importar Usuarios
             </DialogTitle>
-            <DialogDescription className="text-muted-foreground">
-              Importa usuarios desde un archivo Excel (.xlsx, .xls) o CSV
+            <DialogDescription className="text-muted-foreground text-sm">
+              Sube un archivo Excel (.xlsx, .xls) o CSV con la lista de usuarios
             </DialogDescription>
           </DialogHeader>
 
-          <div className="space-y-4">
-            {/* Botón para descargar plantilla */}
-            <div className="bg-blue-900/20 border border-blue-700/30 rounded-lg p-4">
-              <div className="flex items-center gap-3">
-                <FileText className="w-5 h-5 text-blue-400" />
-                <div className="flex-1">
-                  <h4 className="text-sm font-medium text-blue-300">
-                    ¿Primera vez importando?
-                  </h4>
-                  <p className="text-xs text-muted-foreground">
-                    Descarga la plantilla de Excel para ver el formato correcto
-                  </p>
-                </div>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleDownloadTemplate}
-                  className="border-blue-600 text-blue-300 hover:bg-blue-900/30"
-                >
-                  <Download className="w-4 h-4 mr-1" />
-                  Plantilla
-                </Button>
+          <div className="space-y-4 py-1">
+            {/* Plantilla banner */}
+            <div className="flex items-center gap-3 rounded-lg border border-blue-200 bg-blue-50 dark:border-blue-800/50 dark:bg-blue-950/30 p-3">
+              <div className="shrink-0 p-1.5 rounded-md bg-blue-100 dark:bg-blue-900/40">
+                <FileText className="w-4 h-4 text-blue-600 dark:text-blue-400" />
               </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium text-blue-800 dark:text-blue-300">
+                  ¿Primera vez importando?
+                </p>
+                <p className="text-xs text-blue-600/80 dark:text-blue-400/70 mt-0.5">
+                  Descarga la plantilla con el formato requerido
+                </p>
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleDownloadTemplate}
+                className="shrink-0 h-8 border-blue-300 bg-white text-blue-700 hover:bg-blue-50 dark:border-blue-700/50 dark:bg-blue-900/20 dark:text-blue-300 dark:hover:bg-blue-900/40"
+              >
+                <Download className="w-3.5 h-3.5 mr-1" />
+                Plantilla
+              </Button>
             </div>
 
-            {/* Selector de archivo */}
+            {/* File picker */}
             <div className="space-y-2">
-              <label className="text-sm font-medium text-muted-foreground">
+              <label className="text-sm font-medium text-foreground">
                 Seleccionar archivo
               </label>
-              <Input
-                ref={fileInputRef}
-                type="file"
-                accept=".xlsx,.xls,.csv"
-                onChange={handleFileSelect}
-                className="bg-muted border-border text-foreground file:bg-muted file:text-foreground file:border-0 file:mr-4 file:py-2 file:px-4 file:rounded-md file:text-sm"
-              />
-              {selectedFile && (
-                <div className="flex items-center gap-2 text-sm text-green-400">
-                  <FileText className="w-4 h-4" />
-                  {selectedFile.name} ({(selectedFile.size / 1024).toFixed(1)} KB)
+              <div className="relative">
+                <Input
+                  ref={fileInputRef}
+                  type="file"
+                  accept=".xlsx,.xls,.csv"
+                  onChange={handleFileSelect}
+                  className="bg-muted/50 border-border text-foreground cursor-pointer
+                    file:mr-3 file:py-1 file:px-3 file:rounded-md file:border-0
+                    file:text-xs file:font-medium
+                    file:bg-muted file:text-foreground
+                    hover:file:bg-muted/80"
+                />
+              </div>
+              {selectedFile ? (
+                <div className="flex items-center gap-2 text-sm text-green-700 dark:text-green-400 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800/40 rounded-md px-3 py-2">
+                  <FileText className="w-3.5 h-3.5 shrink-0" />
+                  <span className="truncate font-medium">{selectedFile.name}</span>
+                  <span className="shrink-0 text-green-600/70 dark:text-green-500/70">
+                    ({(selectedFile.size / 1024).toFixed(1)} KB)
+                  </span>
                 </div>
+              ) : (
+                <p className="text-xs text-muted-foreground">Formatos: .xlsx, .xls, .csv — máximo 10 MB</p>
               )}
             </div>
 
-            {/* Información sobre el formato */}
-            <div className="bg-muted/50 border border-border rounded-lg p-3">
-              <h4 className="text-sm font-medium text-muted-foreground mb-2">
-                Formato requerido:
-              </h4>
-              <ul className="text-xs text-muted-foreground space-y-1">
-                <li>• firstName: Nombre del usuario</li>
-                <li>• lastName: Apellido del usuario</li>
-                <li>• email: Email único del usuario</li>
-                <li>• role: admin, teacher, proctor, o student</li>
-                <li>• isActive: true o false (opcional, por defecto true)</li>
-              </ul>
+            {/* Column guide */}
+            <div className="rounded-lg border border-border bg-muted/30 p-3">
+              <p className="text-xs font-semibold text-foreground mb-2 uppercase tracking-wide">
+                Columnas requeridas
+              </p>
+              <div className="grid grid-cols-2 gap-x-4 gap-y-1">
+                {[
+                  ['firstName', 'Nombre'],
+                  ['lastName', 'Apellido'],
+                  ['email', 'Email único'],
+                  ['role', 'admin / teacher / proctor / student'],
+                  ['isActive', 'true o false (opcional)'],
+                ].map(([col, desc]) => (
+                  <div key={col} className="flex items-start gap-1.5">
+                    <code className="text-[11px] font-mono text-blue-600 dark:text-blue-400 shrink-0">{col}</code>
+                    <span className="text-[11px] text-muted-foreground leading-tight">{desc}</span>
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
 
-          <DialogFooter>
+          <DialogFooter className="pt-2 gap-2">
             <Button
               variant="outline"
               onClick={handleCancelImport}
               disabled={isImporting}
-              className="border-border text-muted-foreground hover:bg-muted"
+              className="border-border text-foreground hover:bg-muted"
             >
               Cancelar
             </Button>
             <Button
               onClick={handleConfirmImport}
               disabled={!selectedFile || isImporting}
-              className="bg-green-600 hover:bg-green-700 text-white"
+              className="bg-green-600 hover:bg-green-700 text-white dark:bg-green-700 dark:hover:bg-green-600"
             >
               {isImporting ? (
                 <>
@@ -557,10 +586,61 @@ const UsersScreen = () => {
                 </>
               ) : (
                 <>
-                  <Upload className="w-4 h-4 mr-2" />
+                  <Upload className="w-4 h-4 mr-1.5" />
                   Importar Usuarios
                 </>
               )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      {/* Modal: Asignar Rol */}
+      <Dialog open={isAssignRoleOpen} onOpenChange={setIsAssignRoleOpen}>
+        <DialogContent className="sm:max-w-sm bg-card border-border">
+          <DialogHeader>
+            <DialogTitle className="text-foreground">Asignar rol</DialogTitle>
+            <DialogDescription className="text-muted-foreground">
+              {userToAssignRole && (
+                <>Cambia el rol de <span className="font-medium text-foreground">{userToAssignRole.firstName} {userToAssignRole.lastName}</span>.</>
+              )}
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="py-2 space-y-2">
+            {ASSIGNABLE_ROLES.map(({ value, label }) => (
+              <button
+                key={value}
+                onClick={() => setSelectedRole(value)}
+                className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg border text-sm font-medium transition-all ${
+                  selectedRole === value
+                    ? "border-blue-500 bg-blue-50 text-blue-700 dark:bg-blue-500/10 dark:text-blue-300 dark:border-blue-500/50"
+                    : "border-border bg-muted/30 text-foreground hover:bg-muted"
+                }`}
+              >
+                <span className={`w-4 h-4 rounded-full border-2 flex items-center justify-center shrink-0 ${
+                  selectedRole === value ? "border-blue-500" : "border-muted-foreground"
+                }`}>
+                  {selectedRole === value && (
+                    <span className="w-2 h-2 rounded-full bg-blue-500" />
+                  )}
+                </span>
+                {label}
+                {userToAssignRole?.role === value && (
+                  <span className="ml-auto text-xs text-muted-foreground">Actual</span>
+                )}
+              </button>
+            ))}
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsAssignRoleOpen(false)}>
+              Cancelar
+            </Button>
+            <Button
+              onClick={confirmAssignRole}
+              disabled={isAssigningRole || selectedRole === userToAssignRole?.role}
+            >
+              {isAssigningRole ? "Guardando..." : "Confirmar"}
             </Button>
           </DialogFooter>
         </DialogContent>

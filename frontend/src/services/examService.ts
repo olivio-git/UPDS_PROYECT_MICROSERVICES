@@ -471,6 +471,16 @@ class ExamService {
     }
   }
 
+  async extendSession(sessionId: string, minutes: number): Promise<any> {
+    try {
+      const response = await this.api.post(`/sessions/${sessionId}/extend`, { minutes });
+      return response.data;
+    } catch (error) {
+      console.error('Error extending session time:', error);
+      throw error;
+    }
+  }
+
   // Obtener sesión por ID
   async getSessionById(id: string): Promise<ApiResponse<ExamSession>> {
     try {

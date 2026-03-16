@@ -1,8 +1,12 @@
 import { Button } from '@/components/atoms/button';
-import { Input } from '@/components/atoms/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/atoms/select';
-import { Filter, Search, Trash2, Upload, UserPlus, X } from 'lucide-react';
+import { Calendar } from '@/components/atoms/calendar';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/atoms/popover';
+import { cn } from '@/lib/utils';
+import { format } from 'date-fns';
+import { es } from 'date-fns/locale';
+import { CalendarIcon, Search, Trash2, Upload, UserPlus, X } from 'lucide-react';
 import React, { useState } from 'react';
+import type { DateRange } from 'react-day-picker';
 import type { UserFilters, UserRole, UserStatus } from '../types/user.types';
 import { USER_ROLES, USER_STATUSES } from '../types/user.types';
 
@@ -23,257 +27,185 @@ const UserTableHeader: React.FC<UserTableHeaderProps> = ({
   onFiltersChange,
   onCreateUser,
   onDeleteSelected,
-  onExportUsers,
   onImportUsers,
   selectedCount = 0,
   totalCount = 0,
-  isLoading = false
+  isLoading = false,
 }) => {
-  const [showFilters, setShowFilters] = useState(true);
+  const [dateRange, setDateRange] = useState<DateRange | undefined>(
+    filters.dateFrom
+      ? { from: new Date(filters.dateFrom), to: filters.dateTo ? new Date(filters.dateTo) : undefined }
+      : undefined
+  );
 
   const handleSearchChange = (value: string) => {
-    onFiltersChange({
-      ...filters,
-      search: value || undefined,
-      page: 1 // Reset a la primera página al buscar
-    });
+    onFiltersChange({ ...filters, search: value || undefined, page: 1 });
   };
 
   const handleRoleChange = (value: string) => {
-    onFiltersChange({
-      ...filters,
-      role: value === 'all' ? undefined : (value as UserRole),
-      page: 1
-    });
+    onFiltersChange({ ...filters, role: value === 'all' ? undefined : (value as UserRole), page: 1 });
   };
 
   const handleStatusChange = (value: string) => {
+    onFiltersChange({ ...filters, status: value === 'all' ? undefined : (value as UserStatus), page: 1 });
+  };
+
+  const handleDateRangeChange = (range: DateRange | undefined) => {
+    setDateRange(range);
     onFiltersChange({
       ...filters,
-      status: value === 'all' ? undefined : (value as UserStatus),
-      page: 1
-    });
-  };
-
-  const clearFilters = () => {
-    onFiltersChange({
+      dateFrom: range?.from ? format(range.from, 'yyyy-MM-dd') : undefined,
+      dateTo: range?.to ? format(range.to, 'yyyy-MM-dd') : undefined,
       page: 1,
-      limit: filters.limit,
-      sortBy: 'createdAt',
-      sortOrder: 'desc'
     });
-    setShowFilters(false);
   };
 
-  const hasActiveFilters = filters.search || filters.role || filters.status;
+  const handleClear = () => {
+    setDateRange(undefined);
+    onFiltersChange({ page: 1, limit: filters.limit, sortBy: 'createdAt', sortOrder: 'desc' });
+  };
+
+  const hasActiveFilters = filters.search || filters.role || filters.status || filters.dateFrom;
 
   return (
-    <div className="space-y-4 bg-box border border-line rounded-lg p-4 text-foreground">
-      {/* Header principal */}
-      <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between p-2">
-        <div className="flex-1">
-          <h2 className="text-2xl font-bold text-foreground">
-            Gestión de Usuarios
-          </h2>
-          <p className="text-sm text-muted-foreground mt-1">
-            {totalCount > 0 ? (
-              <>
-                Mostrando {totalCount} usuario{totalCount !== 1 ? 's' : ''}
-                {selectedCount > 0 && (
-                  <span className="text-blue-600 font-medium ml-2">
-                    ({selectedCount} seleccionado{selectedCount !== 1 ? 's' : ''})
-                  </span>
-                )}
-              </>
-            ) : (
-              'Cargando usuarios...'
+    <div className="flex flex-col gap-3 shrink-0">
+
+      {/* Header row */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-xl font-bold text-foreground">Usuarios</h1>
+          <p className="text-xs text-muted-foreground">
+            {totalCount > 0 ? `${totalCount} usuario${totalCount !== 1 ? 's' : ''}` : 'Cargando...'}
+            {selectedCount > 0 && (
+              <span className="text-blue-400 ml-1.5">· {selectedCount} seleccionado{selectedCount !== 1 ? 's' : ''}</span>
             )}
           </p>
         </div>
-
-        <div className="flex gap-2">
-          {/* Acciones de selección múltiple */}
-          {selectedCount > 0 && (
-            <>
-              {onDeleteSelected && (
-                <Button
-                  variant="destructive"
-                  size="sm"
-                  onClick={onDeleteSelected}
-                  className="gap-1"
-                >
-                  <Trash2 className="w-4 h-4" />
-                  Eliminar ({selectedCount})
-                </Button>
-              )}
-            </>
+        <div className="flex items-center gap-2">
+          {selectedCount > 0 && onDeleteSelected && (
+            <Button
+              variant="destructive"
+              size="sm"
+              onClick={onDeleteSelected}
+              className="h-8 text-xs gap-1"
+            >
+              <Trash2 className="h-3.5 w-3.5" />
+              Eliminar ({selectedCount})
+            </Button>
           )}
-
-          {/* Acciones generales */}
           {onImportUsers && (
             <Button
               variant="outline"
               size="sm"
               onClick={onImportUsers}
-              className="w-full bg-gradient-to-r from-green-500/10 to-emerald-600/30 border border-green-500/30 text-green-300 hover:from-green-500/30 hover:to-emerald-600/30"
-
+              className="h-8 text-xs gap-1 border-border text-foreground hover:bg-muted"
             >
-              <Upload className="w-4 h-4" />
+              <Upload className="h-3.5 w-3.5" />
               Importar
             </Button>
           )}
-{/* 
-          {onExportUsers && (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={onExportUsers}
-              className="bg-yellow-700/10 border-yellow-500/40 text-yellow-300 hover:bg-yellow-700/30"
-
-            >
-              <Download className="w-4 h-4" />
-              Exportar
-            </Button>
-          )} */}
-
           <Button
             onClick={onCreateUser}
             size="sm"
-            className="gap-1 bg-blue-600 hover:bg-blue-700 text-white"
             disabled={isLoading}
+            className="h-8 text-xs gap-1 bg-blue-600 hover:bg-blue-700 text-white"
           >
-            <UserPlus className="w-4 h-4" />
-            Nuevo Usuario
+            <UserPlus className="h-3.5 w-3.5" />
+            Nuevo usuario
           </Button>
         </div>
       </div>
 
-      {/* Barra de búsqueda y filtros */}
-      <div className="flex flex-col sm:flex-row gap-1 rounded-lg items-center justify-between px-1">
-        {/* Búsqueda */}
-        <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4 focus:outline-none " />
-          <Input
-            placeholder="Buscar por nombre, email..."
+      {/* Filter bar — audit-logs style */}
+      <div className="bg-card border border-border rounded-lg px-3 py-2 flex flex-wrap items-center gap-2">
+
+        {/* Search */}
+        <div className="relative">
+          <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3 w-3 text-muted-foreground pointer-events-none" />
+          <input
+            type="text"
+            placeholder="Buscar nombre, email..."
             value={filters.search || ''}
-            onChange={(e) => handleSearchChange(e.target.value)}
-            className="pl-10 pr-3 w-full bg-muted/50 border-border text-foreground placeholder:text-muted-foreground"
+            onChange={e => handleSearchChange(e.target.value)}
+            className="h-7 pl-6 pr-2 text-xs bg-muted/60 border border-border rounded text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring w-48"
           />
         </div>
 
-        {/* Botón de filtros */}
-        <Button
-          variant="outline"
-          onClick={() => setShowFilters(!showFilters)}
-          className={`gap-1 bg-transparent border ${hasActiveFilters ? ' border text-foreground border-line' : 'text-foreground border-line'}`}
+        <div className="w-px h-5 bg-border shrink-0" />
+
+        {/* Role */}
+        <select
+          value={filters.role || 'all'}
+          onChange={e => handleRoleChange(e.target.value)}
+          className="h-7 text-xs bg-muted/60 border border-border rounded px-2 text-foreground focus:outline-none focus:ring-1 focus:ring-ring"
         >
-          <Filter className="w-4 h-4" />
-          Filtros
-          {hasActiveFilters && (
-            <span className="bg-blue-600 text-white text-xs px-1.5 py-0.5 rounded-full ml-1">
-              {[filters.search, filters.role, filters.status].filter(Boolean).length}
-            </span>
-          )}
-        </Button>
+          <option value="all">Todos los roles</option>
+          {USER_ROLES.map(r => (
+            <option key={r.value} value={r.value}>{r.label}</option>
+          ))}
+        </select>
+
+        {/* Status */}
+        <select
+          value={filters.status || 'all'}
+          onChange={e => handleStatusChange(e.target.value)}
+          className="h-7 text-xs bg-muted/60 border border-border rounded px-2 text-foreground focus:outline-none focus:ring-1 focus:ring-ring"
+        >
+          <option value="all">Todos los estados</option>
+          {USER_STATUSES.map(s => (
+            <option key={s.value} value={s.value}>{s.label}</option>
+          ))}
+        </select>
+
+        <div className="w-px h-5 bg-border shrink-0" />
+
+        {/* Date range */}
+        <Popover>
+          <PopoverTrigger asChild>
+            <button className={cn(
+              'h-7 flex items-center gap-1.5 px-2 text-xs rounded border border-border bg-muted/60 text-foreground hover:bg-muted transition-colors whitespace-nowrap',
+              !dateRange?.from && 'text-muted-foreground'
+            )}>
+              <CalendarIcon className="h-3 w-3 shrink-0 text-muted-foreground" />
+              {dateRange?.from ? (
+                dateRange.to
+                  ? <>{format(dateRange.from, 'd MMM', { locale: es })} — {format(dateRange.to, 'd MMM yyyy', { locale: es })}</>
+                  : format(dateRange.from, 'd MMM yyyy', { locale: es })
+              ) : 'Fecha registro'}
+              {dateRange?.from && (
+                <span
+                  role="button"
+                  onClick={e => { e.stopPropagation(); handleDateRangeChange(undefined); }}
+                  className="ml-1 text-muted-foreground hover:text-foreground"
+                >
+                  <X className="h-3 w-3" />
+                </span>
+              )}
+            </button>
+          </PopoverTrigger>
+          <PopoverContent className="w-auto p-0" align="start">
+            <Calendar
+              mode="range"
+              selected={dateRange}
+              onSelect={handleDateRangeChange}
+              numberOfMonths={2}
+              initialFocus
+            />
+          </PopoverContent>
+        </Popover>
+
+        {/* Clear */}
+        {hasActiveFilters && (
+          <Button
+            onClick={handleClear}
+            variant="ghost"
+            size="sm"
+            className="h-7 text-xs text-muted-foreground hover:text-foreground hover:bg-muted px-2 ml-auto"
+          >
+            Limpiar
+          </Button>
+        )}
       </div>
-
-      {/* Panel de filtros expandido */}
-      {showFilters && (
-        <div className="border border-border rounded-lg p-4 space-y-4 text-foreground">
-          <div className="flex items-center justify-between">
-            <h3 className="text-sm font-medium ">Filtros Avanzados</h3>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setShowFilters(false)}
-              className="h-6 w-6 p-0"
-            >
-              <X className="w-4 h-4" />
-            </Button>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {/* Filtro por rol */}
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-muted-foreground">Rol</label>
-              <Select value={filters.role || 'all'} onValueChange={handleRoleChange}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Todos los roles" />
-                </SelectTrigger>
-                <SelectContent className='bg-card border border-line'>
-                  <SelectItem value="all">Todos los roles</SelectItem>
-                  {USER_ROLES.map((role) => (
-                    <SelectItem className="hover:bg-muted" key={role.value} value={role.value}>
-                      {role.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            {/* Filtro por estado */}
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-muted-foreground">Estado</label>
-              <Select value={filters.status || 'all'} onValueChange={handleStatusChange}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Todos los estados" />
-                </SelectTrigger>
-                <SelectContent className='bg-card border border-line'>
-                  <SelectItem value="all">Todos los estados</SelectItem>
-                  {USER_STATUSES.map((status) => (
-                    <SelectItem className="hover:bg-muted" key={status.value} value={status.value}>
-                      {status.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            {/* Ordenamiento */}
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-muted-foreground">Ordenar por</label>
-              <Select 
-                value={`${filters.sortBy || 'createdAt'}-${filters.sortOrder || 'desc'}`} 
-                onValueChange={(value) => {
-                  const [sortBy, sortOrder] = value.split('-');
-                  onFiltersChange({
-                    ...filters,
-                    sortBy: sortBy as UserFilters['sortBy'],
-                    sortOrder: sortOrder as 'asc' | 'desc'
-                  });
-                }}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="createdAt-desc">Más reciente</SelectItem>
-                  <SelectItem value="createdAt-asc">Más antiguo</SelectItem>
-                  <SelectItem value="firstName-asc">Nombre A-Z</SelectItem>
-                  <SelectItem value="firstName-desc">Nombre Z-A</SelectItem>
-                  <SelectItem value="email-asc">Email A-Z</SelectItem>
-                  <SelectItem value="email-desc">Email Z-A</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-
-          {/* Acciones de filtros */}
-          {hasActiveFilters && (
-            <div className="flex justify-end pt-2 border-t border-line">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={clearFilters}
-                className="gap-1"
-              >
-                <X className="w-4 h-4" />
-                Limpiar filtros
-              </Button>
-            </div>
-          )}
-        </div>
-      )}
     </div>
   );
 };

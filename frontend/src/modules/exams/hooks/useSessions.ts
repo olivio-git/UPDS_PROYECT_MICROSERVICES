@@ -150,7 +150,6 @@ export const useSessions = (initialFilters?: SessionFilters) => {
         return response.data;
       }
     } catch (error: any) {
-      toast.error(error.message || 'Error al agregar candidatos');
       throw error;
     }
   };

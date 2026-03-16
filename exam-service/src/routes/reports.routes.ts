@@ -20,7 +20,10 @@ const reportFiltersSchema = z.object({
   candidateIds: z.union([z.string(), z.array(z.string())]).optional(),
   minScore: z.string().transform(val => parseFloat(val)).optional(),
   maxScore: z.string().transform(val => parseFloat(val)).optional(),
-  status: z.union([z.string(), z.array(z.string())]).optional()
+  status: z.union([z.string(), z.array(z.string())]).optional(),
+  sessionId: z.string().optional(),
+  gestion: z.string().optional(),
+  semestre: z.enum(['H1', 'H2']).optional(),
 });
 
 const trendsQuerySchema = z.object({
@@ -54,6 +57,18 @@ router.get(
   requireRole('admin', 'teacher'),
   validateQuery(reportFiltersSchema),
   reportsController.getCompetencyAnalysis.bind(reportsController)
+);
+
+/**
+ * Lista paginada de estudiantes con métricas individuales
+ * GET /reports/students/list?page=1&limit=20&search=
+ * Acceso: admin, teacher
+ */
+router.get(
+  '/students/list',
+  requireRole('admin', 'teacher'),
+  validateQuery(reportFiltersSchema),
+  reportsController.getStudentList.bind(reportsController)
 );
 
 /**

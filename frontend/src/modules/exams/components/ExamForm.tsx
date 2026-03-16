@@ -4,7 +4,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Switch } from '@/components/atoms/switch';
 import { Textarea } from '@/components/atoms/textarea';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Plus, Save, Trash2, X } from 'lucide-react';
+import { Plus, RotateCcw, Save, Trash2, X } from 'lucide-react';
 import React, { useCallback, useEffect, useState } from 'react';
 import { Controller, useFieldArray, useForm } from 'react-hook-form';
 import { toast } from 'sonner';
@@ -59,6 +59,18 @@ interface ExamFormProps {
   onSaved: () => void;
 }
 
+// ─── Instrucciones predeterminadas por competencia ────────────────────────────
+const DEFAULT_INSTRUCTIONS: Record<string, string> = {
+  reading:
+    'Lee atentamente cada texto antes de responder las preguntas. Puedes releer los pasajes cuantas veces necesites. Responde únicamente en base a la información proporcionada en los textos.',
+  writing:
+    'Responde cada pregunta de forma clara y organizada. Cuida la gramática, el vocabulario y la coherencia en tu escritura. Lee bien las instrucciones de cada ejercicio antes de comenzar.',
+  listening:
+    'Escucha con atención cada audio antes de responder. Usa auriculares para una mejor experiencia. Los audios se reproducen automáticamente; asegúrate de tener el volumen adecuado antes de iniciar.',
+  speaking:
+    'Habla con claridad y a un ritmo natural al responder. Asegúrate de que tu micrófono esté funcionando antes de comenzar. Responde de forma completa y fluida dentro del tiempo indicado.',
+};
+
 const PLACEMENT_LEVELS = ['A1', 'A2', 'B1', 'B2', 'C1', 'C2'] as const;
 
 interface PlacementConfig {
@@ -103,7 +115,7 @@ const ExamForm: React.FC<ExamFormProps> = ({ exam, onCancel, onSaved }) => {
             id: '1',
             name: 'Sección 1',
             competency: 'reading',
-            instructions: '',
+            instructions: DEFAULT_INSTRUCTIONS.reading,
             questionCount: 10,
             questionTypes: ['multiple_choice'],
             points: 10,
@@ -246,7 +258,7 @@ const ExamForm: React.FC<ExamFormProps> = ({ exam, onCancel, onSaved }) => {
       id: Date.now().toString(),
       name: `Sección ${fields.length + 1}`,
       competency: 'reading',
-      instructions: '',
+      instructions: DEFAULT_INSTRUCTIONS.reading,
       questionCount: 10,
       questionTypes: ['multiple_choice'],
       points: 10,
@@ -402,11 +414,11 @@ const ExamForm: React.FC<ExamFormProps> = ({ exam, onCancel, onSaved }) => {
                 <SelectTrigger className={baseInputClass}>
                   <SelectValue placeholder="Selecciona el tipo" />
                 </SelectTrigger>
-                <SelectContent className="bg-popover border border-border">
-                  <SelectItem className='hover:bg-muted focus:bg-muted' value="placement">Colocación</SelectItem>
-                  <SelectItem className='hover:bg-muted focus:bg-muted' value="progress">Progreso</SelectItem>
-                  <SelectItem className='hover:bg-muted focus:bg-muted' value="final">Final</SelectItem>
-                  <SelectItem className='hover:bg-muted focus:bg-muted' value="practice">Práctica</SelectItem>
+                <SelectContent>
+                  <SelectItem value="placement">Colocación</SelectItem>
+                  <SelectItem value="progress">Progreso</SelectItem>
+                  <SelectItem value="final">Final</SelectItem>
+                  <SelectItem value="practice">Práctica</SelectItem>
                 </SelectContent>
               </Select>
             )}
@@ -428,13 +440,12 @@ const ExamForm: React.FC<ExamFormProps> = ({ exam, onCancel, onSaved }) => {
                 <SelectTrigger className={baseInputClass}>
                   <SelectValue placeholder={isLoadingLevels ? "Cargando niveles..." : "Selecciona el nivel"} />
                 </SelectTrigger>
-                <SelectContent className="bg-popover border border-border">
+                <SelectContent>
                   {levels
                     .filter(level => level.isActive)
                     .map((level) => (
                       <SelectItem
                         key={level._id}
-                        className="hover:bg-muted focus:bg-muted"
                         value={level.code}
                       >
                         <div className="flex items-center space-x-2">
@@ -497,8 +508,8 @@ const ExamForm: React.FC<ExamFormProps> = ({ exam, onCancel, onSaved }) => {
 
       {/* Configuración de Nivelación (solo para type=placement) */}
       {watchedType === 'placement' && (
-        <div className="bg-blue-900/10 border border-blue-800/30 rounded-lg p-6 space-y-5">
-          <h3 className="text-lg font-semibold text-blue-200">Configuración de Examen de Nivelación</h3>
+        <div className="bg-blue-50 border border-blue-200 dark:bg-blue-900/10 dark:border-blue-800/30 rounded-lg p-6 space-y-5">
+          <h3 className="text-lg font-semibold text-blue-700 dark:text-blue-200">Configuración de Examen de Nivelación</h3>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
             <div className="space-y-2">
@@ -521,7 +532,7 @@ const ExamForm: React.FC<ExamFormProps> = ({ exam, onCancel, onSaved }) => {
                         id: Date.now().toString(),
                         name: 'Sección 1',
                         competency: 'reading',
-                        instructions: '',
+                        instructions: DEFAULT_INSTRUCTIONS.reading,
                         questionCount: 10,
                         questionTypes: ['multiple_choice'],
                         points: 10,
@@ -535,9 +546,9 @@ const ExamForm: React.FC<ExamFormProps> = ({ exam, onCancel, onSaved }) => {
                 <SelectTrigger className={baseInputClass}>
                   <SelectValue />
                 </SelectTrigger>
-                <SelectContent className="bg-popover border border-border">
-                  <SelectItem className="hover:bg-muted focus:bg-muted" value="static">Estático (secciones fijas)</SelectItem>
-                  <SelectItem className="hover:bg-muted focus:bg-muted" value="adaptive">Adaptativo (CAT)</SelectItem>
+                <SelectContent>
+                  <SelectItem value="static">Estático (secciones fijas)</SelectItem>
+                  <SelectItem value="adaptive">Adaptativo (CAT)</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -567,9 +578,9 @@ const ExamForm: React.FC<ExamFormProps> = ({ exam, onCancel, onSaved }) => {
                     <SelectTrigger className={baseInputClass}>
                       <SelectValue />
                     </SelectTrigger>
-                    <SelectContent className="bg-popover border border-border">
+                    <SelectContent>
                       {PLACEMENT_LEVELS.map(l => (
-                        <SelectItem key={l} className="hover:bg-muted focus:bg-muted" value={l}>{l}</SelectItem>
+                        <SelectItem key={l} value={l}>{l}</SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
@@ -619,7 +630,7 @@ const ExamForm: React.FC<ExamFormProps> = ({ exam, onCancel, onSaved }) => {
           </div>
 
           {placementConfig.mode === 'adaptive' && (
-            <div className="bg-yellow-900/10 border border-yellow-700/30 rounded-lg p-4 text-sm text-yellow-300">
+            <div className="bg-yellow-50 border border-yellow-200 dark:bg-yellow-900/10 dark:border-yellow-700/30 rounded-lg p-4 text-sm text-yellow-700 dark:text-yellow-300">
               En modo adaptativo, el sistema selecciona preguntas dinámicamente. No es necesario configurar secciones (se ignorarán).
             </div>
           )}
@@ -696,6 +707,11 @@ const ExamForm: React.FC<ExamFormProps> = ({ exam, onCancel, onSaved }) => {
                       value={field.value}
                       onValueChange={(value) => {
                         field.onChange(value);
+                        // Auto-rellenar instrucciones si están vacías
+                        const currentInstructions = getValues(`structure.sections.${index}.instructions`);
+                        if (!currentInstructions?.trim() && DEFAULT_INSTRUCTIONS[value]) {
+                          setValue(`structure.sections.${index}.instructions`, DEFAULT_INSTRUCTIONS[value]);
+                        }
                         // Trigger validation when competency changes
                         if (value && watchedTargetLevel && watchedSections[index]?.questionCount) {
                           validateSectionQuestions(index, value, watchedSections[index].questionCount, watchedTargetLevel);
@@ -705,13 +721,11 @@ const ExamForm: React.FC<ExamFormProps> = ({ exam, onCancel, onSaved }) => {
                       <SelectTrigger className={baseInputClass}>
                         <SelectValue />
                       </SelectTrigger>
-                      <SelectContent className="bg-popover border border-border">
-                        <SelectItem className='hover:bg-muted focus:bg-muted' value="reading">Comprensión Lectora</SelectItem>
-                        <SelectItem className='hover:bg-muted focus:bg-muted' value="writing">Expresión Escrita</SelectItem>
-                        <SelectItem className='hover:bg-muted focus:bg-muted' value="listening">Comprensión Auditiva</SelectItem>
-                        <SelectItem className='hover:bg-muted focus:bg-muted' value="speaking">Expresión Oral</SelectItem>
-                        <SelectItem className='hover:bg-muted focus:bg-muted' value="grammar">Gramática</SelectItem>
-                        <SelectItem className='hover:bg-muted focus:bg-muted' value="vocabulary">Vocabulario</SelectItem>
+                      <SelectContent>
+                        <SelectItem value="reading">Comprensión Lectora</SelectItem>
+                        <SelectItem value="writing">Expresión Escrita</SelectItem>
+                        <SelectItem value="listening">Comprensión Auditiva</SelectItem>
+                        <SelectItem value="speaking">Expresión Oral</SelectItem>
                       </SelectContent>
                     </Select>
                   )}
@@ -772,25 +786,6 @@ const ExamForm: React.FC<ExamFormProps> = ({ exam, onCancel, onSaved }) => {
 
               <div className="space-y-2">
                 <label className="block text-sm font-medium text-muted-foreground">
-                  Puntos *
-                </label>
-                <Controller
-                  name={`structure.sections.${index}.points`}
-                  control={control}
-                  render={({ field }) => (
-                    <Input
-                      {...field}
-                      type="number"
-                      min="1"
-                      onChange={(e) => field.onChange(parseInt(e.target.value) || 0)}
-                      className={baseInputClass}
-                    />
-                  )}
-                />
-              </div>
-
-              <div className="space-y-2">
-                <label className="block text-sm font-medium text-muted-foreground">
                   Duración (min) *
                 </label>
                 <Controller
@@ -810,9 +805,24 @@ const ExamForm: React.FC<ExamFormProps> = ({ exam, onCancel, onSaved }) => {
             </div>
 
             <div className="mt-4 space-y-2">
-              <label className="block text-sm font-medium text-muted-foreground">
-                Instrucciones *
-              </label>
+              <div className="flex items-center justify-between">
+                <label className="block text-sm font-medium text-muted-foreground">
+                  Instrucciones *
+                </label>
+                {DEFAULT_INSTRUCTIONS[watchedSections[index]?.competency] && (
+                  <button
+                    type="button"
+                    onClick={() => setValue(
+                      `structure.sections.${index}.instructions`,
+                      DEFAULT_INSTRUCTIONS[watchedSections[index].competency]
+                    )}
+                    className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
+                  >
+                    <RotateCcw className="h-3 w-3" />
+                    Usar predeterminada
+                  </button>
+                )}
+              </div>
               <Controller
                 name={`structure.sections.${index}.instructions`}
                 control={control}
@@ -825,22 +835,23 @@ const ExamForm: React.FC<ExamFormProps> = ({ exam, onCancel, onSaved }) => {
                   />
                 )}
               />
+              {errors.structure?.sections?.[index]?.instructions && (
+                <p className="text-red-400 text-sm">
+                  {errors.structure.sections[index]?.instructions?.message}
+                </p>
+              )}
             </div>
           </div>
         ))}
       </div>
 
       {/* Resumen de totales */}
-      <div className="bg-blue-900/20 border border-blue-800/30 rounded-lg p-4">
-        <h4 className="font-medium text-blue-200 mb-3">Resumen del Examen</h4>
+      <div className="bg-blue-50 border border-blue-200 dark:bg-blue-900/20 dark:border-blue-800/30 rounded-lg p-4">
+        <h4 className="font-medium text-blue-700 dark:text-blue-200 mb-3">Resumen del Examen</h4>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
           <div>
             <span className="text-muted-foreground">Total Preguntas:</span>
             <p className="text-foreground font-medium">{watch('structure.totalQuestions')}</p>
-          </div>
-          <div>
-            <span className="text-muted-foreground">Total Puntos:</span>
-            <p className="text-foreground font-medium">{watch('structure.totalPoints')}</p>
           </div>
           <div>
             <span className="text-muted-foreground">Duración Total:</span>
@@ -870,7 +881,7 @@ const ExamForm: React.FC<ExamFormProps> = ({ exam, onCancel, onSaved }) => {
                 control={control}
                 render={({ field }) => (
                   <Switch
-                    className="bg-muted border border-line"
+                    className="bg-muted border border-border"
                     checked={field.value}
                   disabled={true}
                     onCheckedChange={field.onChange}
@@ -888,7 +899,7 @@ const ExamForm: React.FC<ExamFormProps> = ({ exam, onCancel, onSaved }) => {
                 control={control}
                 render={({ field }) => (
                   <Switch
-                    className="bg-muted border border-line"
+                    className="bg-muted border border-border"
                     checked={field.value}
                     disabled={true}
                     onCheckedChange={field.onChange}
@@ -906,7 +917,7 @@ const ExamForm: React.FC<ExamFormProps> = ({ exam, onCancel, onSaved }) => {
                 control={control}
                 render={({ field }) => (
                   <Switch
-                    className="bg-muted border border-line"
+                    className="bg-muted border border-border"
                     checked={field.value}
                     disabled={true}
                     onCheckedChange={field.onChange}
@@ -926,7 +937,7 @@ const ExamForm: React.FC<ExamFormProps> = ({ exam, onCancel, onSaved }) => {
                 control={control}
                 render={({ field }) => (
                   <Switch
-                    className="bg-muted border border-line"
+                    className="bg-muted border border-border"
                     checked={field.value}
                     disabled={true}
                     onCheckedChange={field.onChange}
@@ -965,7 +976,7 @@ const ExamForm: React.FC<ExamFormProps> = ({ exam, onCancel, onSaved }) => {
                 control={control}
                 render={({ field }) => (
                   <Switch
-                    className="bg-muted border border-line"
+                    className="bg-muted border border-border"
                     checked={field.value}
                     disabled={true}
                     onCheckedChange={field.onChange}
@@ -983,7 +994,7 @@ const ExamForm: React.FC<ExamFormProps> = ({ exam, onCancel, onSaved }) => {
                 control={control}
                 render={({ field }) => (
                   <Switch
-                    className="bg-muted border border-line"
+                    className="bg-muted border border-border"
                     checked={field.value}
                     onCheckedChange={field.onChange}
                   />
@@ -1018,7 +1029,7 @@ const ExamForm: React.FC<ExamFormProps> = ({ exam, onCancel, onSaved }) => {
           type="button"
           onClick={onCancel}
           variant="outline"
-          className="border-border bg-box border-line text-foreground/80 hover:bg-muted"
+          className="border-border bg-card text-foreground/80 hover:bg-muted"
         >
           <X className="w-4 h-4 mr-2" />
           Cancelar

@@ -3,6 +3,8 @@ import { fallbackPDFService } from './pdf-fallback.service';
 import { llmInterpretationService, DataInterpretation } from './llm-interpretation.service';
 import { logger } from '../utils/logger';
 import axios from 'axios';
+import fs from 'fs';
+import path from 'path';
 import { ExamResult } from '../models/examResult.model';
 import { Question } from '../models/question.model';
 import { Types } from 'mongoose';
@@ -170,7 +172,8 @@ export class ExamResultPDFService {
       // 3. Intentar generar PDF profesional con Puppeteer
       try {
         logger.info('Intentando generación profesional con Puppeteer');
-        const html = this.generateExamResultHTML(pdfData, options);
+        const logoDataUrl = this.getLogoDataUrl();
+        const html = this.generateExamResultHTML(pdfData, options, logoDataUrl);
         return await this.generatePDFFromHTML(html, options);
       } catch (puppeteerError) {
         logger.warn('Puppeteer no disponible, usando fallback PDFKit:', {
@@ -379,10 +382,29 @@ export class ExamResultPDFService {
     }
   }
 
+  private getLogoDataUrl(): string | null {
+    try {
+      const candidates = [
+        path.join(process.cwd(), 'src/assets/logocba-color.webp'),
+        path.join(process.cwd(), 'dist/assets/logocba-color.webp'),
+        path.join(__dirname, '../assets/logocba-color.webp'),
+      ];
+      for (const logoPath of candidates) {
+        if (fs.existsSync(logoPath)) {
+          const buf = fs.readFileSync(logoPath);
+          return `data:image/webp;base64,${buf.toString('base64')}`;
+        }
+      }
+    } catch (error) {
+      logger.warn('No se pudo cargar el logo:', error);
+    }
+    return null;
+  }
+
   /**
    * Genera HTML profesional para el resultado del examen
    */
-  private generateExamResultHTML(data: ExamResultPDFData, options: ExamResultPDFOptions): string {
+  private generateExamResultHTML(data: ExamResultPDFData, options: ExamResultPDFOptions, logoDataUrl: string | null = null): string {
     const isSpanish = options.language !== 'english';
     const companyName = options.companyName || (isSpanish ? 'Sistema de Evaluación Académica' : 'Academic Evaluation System');
 
@@ -428,11 +450,14 @@ export class ExamResultPDFService {
         <div class="container">
           <!-- Header -->
           <div class="header">
-            <div class="company-info">
-              <span>${companyName}</span>
-              <span>${formattedDate}</span>
+            <div class="header-brand">
+              ${logoDataUrl ? `<img src="${logoDataUrl}" alt="CBA Logo" class="brand-logo" />` : ''}
+              <div class="brand-text">
+                <span class="brand-company">${companyName}</span>
+                <span class="brand-date">${formattedDate}</span>
+              </div>
             </div>
-            <h1>${isSpanish ? '📋 Resultado de Examen' : '📋 Exam Result'}</h1>
+            <h1>${isSpanish ? 'Resultado de Examen' : 'Exam Result'}</h1>
             <div class="subtitle">${isSpanish ? 'Reporte Individual de Evaluación' : 'Individual Assessment Report'}</div>
           </div>
 
@@ -519,34 +544,10 @@ export class ExamResultPDFService {
             </table>
           </div>
 
-          <!-- Feedback and Recommendations -->
-          ${data.result.feedback || (data.result.recommendations && data.result.recommendations.length > 0) ? `
-            <div class="feedback-section">
-              <h2>${isSpanish ? 'Retroalimentación y Recomendaciones' : 'Feedback and Recommendations'}</h2>
-
-              ${data.result.feedback ? `
-                <div class="feedback-card">
-                  <h3>${isSpanish ? 'Comentarios Generales' : 'General Feedback'}</h3>
-                  <p>${data.result.feedback}</p>
-                </div>
-              ` : ''}
-
-              ${data.result.recommendations && data.result.recommendations.length > 0 ? `
-                <div class="recommendations-card">
-                  <h3>${isSpanish ? 'Recomendaciones para Mejorar' : 'Recommendations for Improvement'}</h3>
-                  <ul>
-                    ${data.result.recommendations.map(rec => `<li>${rec}</li>`).join('')}
-                  </ul>
-                </div>
-              ` : ''}
-            </div>
-          ` : ''}
-
           <!-- LLM Interpretation Section -->
           ${data.llmInterpretation ? `
             <div class="llm-interpretation-section">
-              <h2>${isSpanish ? '🤖 Análisis Inteligente Personalizado' : '🤖 Personalized AI Analysis'}</h2>
-              <p class="llm-intro">${isSpanish ? 'Análisis generado por inteligencia artificial basado en tu desempeño específico' : 'AI-generated analysis based on your specific performance'}</p>
+              <h2>${isSpanish ? 'Análisis de Desempeño' : 'Performance Analysis'}</h2>
 
               <div class="llm-summary-card">
                 <h3>${isSpanish ? 'Resumen' : 'Summary'}</h3>
@@ -555,7 +556,7 @@ export class ExamResultPDFService {
 
               ${data.llmInterpretation.keyInsights && data.llmInterpretation.keyInsights.length > 0 ? `
                 <div class="llm-insights-card">
-                  <h3>${isSpanish ? '💡 Insights Clave' : '💡 Key Insights'}</h3>
+                  <h3>${isSpanish ? 'Observaciones' : 'Key Observations'}</h3>
                   <ul>
                     ${data.llmInterpretation.keyInsights.map(insight => `<li>${insight}</li>`).join('')}
                   </ul>
@@ -564,7 +565,7 @@ export class ExamResultPDFService {
 
               ${data.llmInterpretation.recommendations && data.llmInterpretation.recommendations.length > 0 ? `
                 <div class="llm-recommendations-card">
-                  <h3>${isSpanish ? '📚 Recomendaciones Personalizadas' : '📚 Personalized Recommendations'}</h3>
+                  <h3>${isSpanish ? 'Recomendaciones' : 'Recommendations'}</h3>
                   <ul>
                     ${data.llmInterpretation.recommendations.map(rec => `<li>${rec}</li>`).join('')}
                   </ul>
@@ -573,7 +574,7 @@ export class ExamResultPDFService {
 
               ${data.llmInterpretation.trends && data.llmInterpretation.trends.length > 0 ? `
                 <div class="llm-trends-card">
-                  <h3>${isSpanish ? '📈 Tendencias Identificadas' : '📈 Identified Trends'}</h3>
+                  <h3>${isSpanish ? 'Tendencias' : 'Trends'}</h3>
                   <ul>
                     ${data.llmInterpretation.trends.map(trend => `<li>${trend}</li>`).join('')}
                   </ul>
@@ -582,7 +583,7 @@ export class ExamResultPDFService {
 
               ${data.llmInterpretation.concerns && data.llmInterpretation.concerns.length > 0 ? `
                 <div class="llm-concerns-card">
-                  <h3>${isSpanish ? '⚠️ Áreas de Atención' : '⚠️ Areas of Attention'}</h3>
+                  <h3>${isSpanish ? 'Áreas de Atención' : 'Areas of Attention'}</h3>
                   <ul>
                     ${data.llmInterpretation.concerns.map(concern => `<li>${concern}</li>`).join('')}
                   </ul>
@@ -621,9 +622,17 @@ export class ExamResultPDFService {
                 }
                 case 'fill_blank':
                 case 'fill_blanks': {
-                  const txt = r.text || (Array.isArray(r.blanks) ? r.blanks.map((b: any, i: number) => `${i+1}. "${b.value || b.text || ''}"`) .join('  ') : '');
-                  if (!txt) return '';
-                  return `<div class="student-response"><span class="response-label">${label}</span><div class="response-text">"${txt}"</div></div>`;
+                  if (r.text) {
+                    return `<div class="student-response"><span class="response-label">${label}</span><div class="response-text">${r.text}</div></div>`;
+                  }
+                  if (Array.isArray(r.blanks) && r.blanks.length > 0) {
+                    const blanksHtml = r.blanks.map((b: any, i: number) => {
+                      const val = typeof b === 'string' ? b : (b?.value || b?.text || '');
+                      return `<span style="display:inline-block;margin-right:12px"><span style="color:#6b7280;font-size:11px">${i+1}.</span> <span style="background:#f3f4f6;border:1px solid #d1d5db;border-radius:3px;padding:1px 6px;font-family:monospace">${val || '—'}</span></span>`;
+                    }).join('');
+                    return `<div class="student-response"><span class="response-label">${label}</span><div style="margin-top:2px">${blanksHtml}</div></div>`;
+                  }
+                  return '';
                 }
                 case 'essay':
                 case 'open_text': {
@@ -697,7 +706,6 @@ export class ExamResultPDFService {
 
                   ${q.aiAnalysis?.feedback ? `
                     <div class="question-ai-analysis">
-                      <strong>${isSpanish ? '🤖 Análisis de IA:' : '🤖 AI Analysis:'}</strong>
                       <p>${q.aiAnalysis.feedback}</p>
                       ${q.aiAnalysis.suggestions && q.aiAnalysis.suggestions.length > 0 ? `
                         <ul class="ai-suggestions">
@@ -708,7 +716,7 @@ export class ExamResultPDFService {
                   ` : ''}
 
                   ${q.evaluatedAt ? `
-                    <div class="question-meta">🕐 ${isSpanish ? 'Evaluado' : 'Evaluated'}: ${new Date(q.evaluatedAt).toLocaleDateString(isSpanish ? 'es-ES' : 'en-US', { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</div>
+                    <div class="question-meta">${isSpanish ? 'Evaluado' : 'Evaluated'}: ${new Date(q.evaluatedAt).toLocaleDateString(isSpanish ? 'es-ES' : 'en-US', { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</div>
                   ` : ''}
                 </div>
               `}).join('')}
@@ -767,12 +775,38 @@ export class ExamResultPDFService {
           text-align: center;
         }
 
-        .header .company-info {
+        .header-brand {
           display: flex;
-          justify-content: space-between;
           align-items: center;
-          margin-bottom: 20px;
-          font-size: 12px;
+          gap: 16px;
+          margin-bottom: 16px;
+        }
+
+        .brand-logo {
+          height: 52px;
+          width: auto;
+          background: white;
+          border-radius: 6px;
+          padding: 5px 10px;
+          box-shadow: 0 2px 6px rgba(0,0,0,0.25);
+          flex-shrink: 0;
+        }
+
+        .brand-text {
+          display: flex;
+          flex-direction: column;
+          gap: 3px;
+        }
+
+        .brand-company {
+          font-size: 13px;
+          font-weight: 600;
+          color: rgba(255,255,255,0.95);
+        }
+
+        .brand-date {
+          font-size: 11px;
+          color: rgba(255,255,255,0.75);
         }
 
         /* Student Info Card */
@@ -928,52 +962,6 @@ export class ExamResultPDFService {
         .status-good { background: #dbeafe; color: #1d4ed8; }
         .status-satisfactory { background: #fef3c7; color: #92400e; }
         .status-needs-improvement { background: #fecaca; color: #991b1b; }
-
-        /* Feedback Section */
-        .feedback-section {
-          margin: 30px 0;
-        }
-
-        .feedback-section h2 {
-          color: #1e40af;
-          font-size: 18px;
-          margin-bottom: 20px;
-        }
-
-        .feedback-card,
-        .recommendations-card {
-          background: #f0f9ff;
-          border: 1px solid #0ea5e9;
-          border-radius: 8px;
-          padding: 20px;
-          margin: 15px 0;
-        }
-
-        .feedback-card h3,
-        .recommendations-card h3 {
-          color: #0c4a6e;
-          font-size: 14px;
-          margin-bottom: 10px;
-        }
-
-        .recommendations-card ul {
-          list-style: none;
-          padding: 0;
-        }
-
-        .recommendations-card li {
-          padding: 5px 0;
-          padding-left: 20px;
-          position: relative;
-        }
-
-        .recommendations-card li:before {
-          content: "→";
-          position: absolute;
-          left: 0;
-          color: #0ea5e9;
-          font-weight: bold;
-        }
 
         /* Questions Section */
         .questions-section {
@@ -1161,7 +1149,7 @@ export class ExamResultPDFService {
         }
 
         .ai-suggestions li:before {
-          content: "💡";
+          content: "•";
           position: absolute;
           left: 0;
           font-size: 10px;
@@ -1241,29 +1229,17 @@ export class ExamResultPDFService {
           line-height: 1.4;
         }
 
-        .llm-insights-card li:before {
-          content: "💡";
-          position: absolute;
-          left: 0;
-          font-size: 10px;
-        }
-
-        .llm-recommendations-card li:before {
-          content: "📚";
-          position: absolute;
-          left: 0;
-          font-size: 10px;
-        }
-
+        .llm-insights-card li:before,
+        .llm-recommendations-card li:before,
         .llm-trends-card li:before {
-          content: "📈";
+          content: "•";
           position: absolute;
           left: 0;
           font-size: 10px;
         }
 
         .llm-concerns-card li:before {
-          content: "⚠️";
+          content: "–";
           position: absolute;
           left: 0;
           font-size: 10px;

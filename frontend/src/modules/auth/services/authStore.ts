@@ -47,6 +47,9 @@ interface AuthStore {
   resetPassword: (email: string, newPassword: string) => Promise<boolean>;
 
   getCandidateId: () => Promise<string | null>;
+
+  // Update local user profile without re-login
+  patchLocalUser: (updates: Partial<any>) => void;
 }
 
 export const useAuthStore = create<AuthStore>((set, get) => ({
@@ -385,7 +388,24 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
         isLoading: false,
         isInitialized: true
       });
-      
+
+      // PASO 2.5: Si hay usuario autenticado, traer perfil completo desde user-management-service
+      // (el auth-service retorna profile: {} sin avatarUrl ni otros campos extendidos)
+      if (currentUser && isAuth) {
+        try {
+          const { userManagementService } = await import('@/services/userManagementService');
+          const profileResult = await userManagementService.getMe();
+          if (profileResult.success && profileResult.data?.user?.profile) {
+            const freshProfile = profileResult.data.user.profile;
+            set((state) => ({
+              user: state.user ? { ...state.user, profile: { ...state.user.profile, ...freshProfile } } : state.user
+            }));
+          }
+        } catch {
+          // silencioso — no bloquear la inicialización si user-management falla
+        }
+      }
+
       // PASO 3: Suscribirse a cambios de estado del SDK
       const unsubscribe = authService.onAuthStateChanged((state) => {
         // console.log('🔔 [AuthStore] Cambio de estado del SDK:', {
@@ -456,6 +476,19 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
     } catch (error) {
       console.error('❌ Error obteniendo ID de candidato:', error);
       return null;
+    }
+  },
+
+  patchLocalUser: (updates: Partial<any>) => {
+    const current = get().user;
+    if (!current) return;
+    const updated = { ...current, ...updates, profile: { ...current.profile, ...(updates.profile || {}) } };
+    set({ user: updated });
+    // Persist to IndexedDB so changes survive page refresh
+    try {
+      (authSDK as any).storageManager?.storeUser(updated);
+    } catch {
+      // non-critical — Zustand state already updated
     }
   },
 

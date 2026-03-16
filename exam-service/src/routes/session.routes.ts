@@ -132,6 +132,14 @@ router.post(
   sessionController.kickCandidate
 );
 
+// Extend session time
+router.post(
+  '/:id/extend',
+  requireRole('admin', 'teacher', 'proctor'),
+  validateParams(sessionSchema.params),
+  sessionController.extendSession
+);
+
 // Recalculate grades for all completed attempts in a session
 router.post(
   '/:id/regrade',

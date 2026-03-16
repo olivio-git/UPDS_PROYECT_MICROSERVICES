@@ -165,12 +165,6 @@ function getSuggestedTags(formData: Partial<Question>): string[] {
     case 'speaking':
       suggestions.push('pronunciación', 'conversación', 'oral');
       break;
-    case 'grammar':
-      suggestions.push('gramática', 'estructura', 'reglas');
-      break;
-    case 'vocabulary':
-      suggestions.push('vocabulario', 'palabras', 'léxico');
-      break;
   }
   
   // Basado en nivel

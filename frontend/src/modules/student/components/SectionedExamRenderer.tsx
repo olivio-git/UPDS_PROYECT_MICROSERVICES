@@ -1,8 +1,8 @@
 import { Button } from '@/components/atoms/button';
 import { Card, CardContent } from '@/components/atoms/card';
 import type { Question } from '@/modules/exams/types';
-import { AlertTriangle, Loader2, Save } from 'lucide-react';
-import React, { useCallback, useEffect, useState } from 'react';
+import { AlertTriangle, CheckCircle2, Loader2, PanelLeftClose, PanelLeftOpen, Save } from 'lucide-react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
 import type {
   SectionProgress
@@ -64,6 +64,8 @@ const SectionedExamRenderer: React.FC<SectionedExamRendererProps> = ({
   const [currentSectionId, setCurrentSectionId] = useState<string>('');
   const [sectionProgress, setSectionProgress] = useState<{ [sectionId: string]: SectionProgress }>({});
   const [sectionTimeRemaining, setSectionTimeRemaining] = useState<{ [sectionId: string]: number }>({});
+  const [showFinishConfirm, setShowFinishConfirm] = useState(false);
+  const saveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Initialize progress when sections change
   useEffect(() => {
@@ -119,7 +121,8 @@ const SectionedExamRenderer: React.FC<SectionedExamRendererProps> = ({
             answers[questionId].selectedOptions?.length ||
             answers[questionId].answer !== undefined ||
             answers[questionId].file ||
-            answers[questionId].audioBlob
+            answers[questionId].audioBlob ||
+            answers[questionId].audioUrl
           )) {
             completed++;
           }
@@ -138,15 +141,85 @@ const SectionedExamRenderer: React.FC<SectionedExamRendererProps> = ({
   // Get current section
   const currentSection = sections.find(s => s.id === currentSectionId);
   const currentSectionProgress = sectionProgress[currentSectionId];
+  const currentSectionIndex = sections.findIndex(s => s.id === currentSectionId);
+
+  // Compute navigator sections with per-question states (no intermediate state lag)
+  const navigatorSections = React.useMemo(() => {
+    console.log('🗂️ [SectionedExamRenderer] sections:', sections.map(s => ({ id: s.id, competency: s.competency, qCount: s.questions?.length, questionCount: s.questionCount })));
+    return sections.map(section => {
+    const questionStates = section.questions.map(question => {
+      const questionId = question._id || question.id;
+      const ans = answers[questionId];
+      return {
+        id: questionId,
+        answered: !!(ans && (
+          ans.text ||
+          ans.selectedOptions?.length ||
+          ans.answer !== undefined ||
+          ans.file ||
+          ans.audioBlob ||
+          ans.audioUrl
+        )),
+      };
+    });
+    const completed = questionStates.filter(q => q.answered).length;
+    console.log(`  → section "${section.competency}": questionStates.length=${questionStates.length}, questionCount=${section.questionCount}`);
+    return {
+      id: section.id,
+      name: section.section,
+      competency: section.competency,
+      answered: completed,
+      total: section.questionCount,
+      progress: section.questionCount > 0 ? completed / section.questionCount : 0,
+      questionStates,
+    };
+  });
+  }, [sections, answers]);
+
+  const [sidebarOpen, setSidebarOpen] = useState(true);
+
+  // Jump directly to a specific question in a specific section
+  const handleQuestionJump = useCallback((sectionIdx: number, questionIdx: number) => {
+    const targetSection = sections[sectionIdx];
+    if (!targetSection) return;
+    setCurrentSectionId(targetSection.id);
+    setSectionProgress(prev => ({
+      ...prev,
+      [targetSection.id]: { ...prev[targetSection.id], currentQuestionIndex: questionIdx },
+    }));
+  }, [sections]);
+
+  // Auto-save on each answer — debounced 1.5s after last change
+  const handleAnswerChange = useCallback((questionId: string, answer: any) => {
+    onAnswerChange(questionId, answer);
+    if (onSave) {
+      if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
+      saveTimeoutRef.current = setTimeout(() => { onSave(); }, 1500);
+    }
+  }, [onAnswerChange, onSave]);
+
+  // Cleanup debounce on unmount
+  useEffect(() => {
+    return () => { if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current); };
+  }, []);
+
+  // Navigate to specific question within current section
+  const handleQuestionSelect = useCallback((questionIndex: number) => {
+    setSectionProgress(prev => ({
+      ...prev,
+      [currentSectionId]: { ...prev[currentSectionId], currentQuestionIndex: questionIndex },
+    }));
+  }, [currentSectionId]);
 
   // Handle section change
-  const handleSectionChange = useCallback((sectionId: string) => {
+  const handleSectionChange = useCallback((sectionIndex: number) => {
     if (!allowSectionJumping && disabled) {
       toast.error('No puedes cambiar de sección en este momento');
       return;
     }
-    setCurrentSectionId(sectionId);
-  }, [allowSectionJumping, disabled]);
+    const section = sections[sectionIndex];
+    if (section) setCurrentSectionId(section.id);
+  }, [allowSectionJumping, disabled, sections]);
 
   // Handle question navigation within section
   const handleQuestionNavigation = useCallback((direction: 'prev' | 'next') => {
@@ -179,18 +252,6 @@ const SectionedExamRenderer: React.FC<SectionedExamRendererProps> = ({
       }));
     }
   }, [currentSection, currentSectionProgress, sections, currentSectionId]);
-
-  // Handle manual save
-  const handleManualSave = useCallback(async () => {
-    if (onSave) {
-      try {
-        await onSave();
-        toast.success('Progreso guardado correctamente');
-      } catch (error) {
-        toast.error('Error al guardar el progreso');
-      }
-    }
-  }, [onSave]);
 
   // Handle exam finish
   const handleFinishExam = useCallback(async () => {
@@ -248,10 +309,10 @@ const SectionedExamRenderer: React.FC<SectionedExamRendererProps> = ({
   // Loading state
   if (loading) {
     return (
-      <Card className="bg-gray-800/20 border-gray-700/30">
+      <Card>
         <CardContent className="text-center py-12">
-          <Loader2 className="animate-spin mx-auto mb-4" />
-          <p className="text-gray-300">Cargando examen...</p>
+          <Loader2 className="animate-spin mx-auto mb-4 text-muted-foreground" />
+          <p className="text-muted-foreground">Cargando examen...</p>
         </CardContent>
       </Card>
     );
@@ -260,87 +321,124 @@ const SectionedExamRenderer: React.FC<SectionedExamRendererProps> = ({
   // Empty state
   if (!sections.length) {
     return (
-      <Card className="bg-gray-800/20 border-gray-700/30">
+      <Card>
         <CardContent className="text-center py-12">
-          <AlertTriangle className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-          <p className="text-gray-300">No hay preguntas disponibles para este examen</p>
+          <AlertTriangle className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+          <p className="text-muted-foreground">No hay preguntas disponibles para este examen</p>
         </CardContent>
       </Card>
     );
   }
 
   return (
-    <div className="space-y-6">
-      {/* Action Bar */}
+    <div className="space-y-3">
+      {/* Action bar */}
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          <h2 className="text-2xl font-bold text-white">Examen por Secciones</h2>
+        <div className="flex items-center gap-2">
+          {/* Sidebar toggle */}
+          {showSectionOverview && (
+            <button
+              onClick={() => setSidebarOpen(v => !v)}
+              className="p-1.5 rounded-lg hover:bg-muted transition-colors text-muted-foreground hover:text-foreground"
+              title={sidebarOpen ? 'Ocultar panel' : 'Mostrar panel'}
+            >
+              {sidebarOpen
+                ? <PanelLeftClose className="w-4 h-4" />
+                : <PanelLeftOpen className="w-4 h-4" />
+              }
+            </button>
+          )}
           <AutoSaveIndicator />
+          {autoSaveStatus === 'idle' && (
+            <span className="text-xs text-muted-foreground hidden sm:inline">Guardado automático</span>
+          )}
         </div>
-        
-        <div className="flex items-center gap-3">
-          {onSave && (
+
+        <div className="flex items-center gap-2">
+          {onSave && !showFinishConfirm && (
             <Button
-              onClick={handleManualSave}
+              onClick={async () => { if (onSave) await onSave(); }}
               disabled={autoSaveStatus === 'saving' || disabled}
               variant="outline"
               size="sm"
-              className="gap-2"
+              className="gap-1.5"
             >
-              {autoSaveStatus === 'saving' ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <Save className="h-4 w-4" />
-              )}
-              Guardar
+              {autoSaveStatus === 'saving'
+                ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                : <Save className="h-3.5 w-3.5" />
+              }
+              Guardar avance
             </Button>
           )}
-          
-          {onFinish && (
+          {!showFinishConfirm ? (
             <Button
-              onClick={handleFinishExam}
+              onClick={() => setShowFinishConfirm(true)}
               disabled={loading || disabled}
-              variant="destructive"
               size="sm"
-              className="gap-2 text-white min-w-[140px]"
+              className="bg-red-600 hover:bg-red-700 text-white gap-2 px-5"
             >
-              {loading ? (
-                <>
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                  Enviando...
-                </>
-              ) : (
-                'Finalizar Examen'
-              )}
+              {loading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : null}
+              Entregar Examen
             </Button>
+          ) : (
+            <div className="flex items-center gap-2 bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/30 rounded-lg px-3 py-1.5">
+              <span className="text-xs font-medium text-red-700 dark:text-red-400 hidden sm:inline">
+                ¿Seguro?
+              </span>
+              <Button
+                onClick={handleFinishExam}
+                disabled={loading}
+                size="sm"
+                className="bg-red-600 hover:bg-red-700 text-white h-7 px-3 text-xs gap-1"
+              >
+                {loading
+                  ? <Loader2 className="h-3 w-3 animate-spin" />
+                  : <CheckCircle2 className="h-3 w-3" />
+                }
+                Sí, entregar
+              </Button>
+              <button
+                onClick={() => setShowFinishConfirm(false)}
+                className="text-xs text-muted-foreground hover:text-foreground underline"
+              >
+                Cancelar
+              </button>
+            </div>
           )}
         </div>
       </div>
 
-      {/* Section Navigator */}
-      {showSectionOverview && (
-        <SectionNavigator
-          sections={sections}
-          currentSection={currentSectionId}
-          progress={sectionProgress}
-          onSectionChange={handleSectionChange}
-          timeRemaining={timeRemaining}
-          disabled={disabled}
-        />
-      )}
+      {/* Main layout: sidebar + question area */}
+      <div className="flex flex-col md:flex-row gap-3 items-start">
+        {/* Sidebar — section navigator with accordion questions */}
+        {showSectionOverview && sidebarOpen && (
+          <div className="w-full md:w-52 md:shrink-0 md:sticky md:top-4">
+            <SectionNavigator
+              sections={navigatorSections}
+              currentSectionIndex={currentSectionIndex}
+              currentQuestionIndex={currentSectionProgress?.currentQuestionIndex ?? 0}
+              onSectionChange={handleSectionChange}
+              onQuestionJump={handleQuestionJump}
+            />
+          </div>
+        )}
 
-      {/* Current Section Question Renderer */}
-      {currentSection && currentSectionProgress && (
-        <SectionedQuestionRenderer
-          section={currentSection}
-          progress={currentSectionProgress}
-          answers={answers}
-          onAnswerChange={onAnswerChange}
-          onNavigateQuestion={handleQuestionNavigation}
-          sectionTimeRemaining={sectionTimeRemaining[currentSectionId]}
-          disabled={disabled}
-        />
-      )}
+        {/* Question area */}
+        <div className="flex-1 min-w-0 space-y-3">
+          {currentSection && currentSectionProgress && (
+            <SectionedQuestionRenderer
+              section={currentSection}
+              progress={currentSectionProgress}
+              answers={answers}
+              onAnswerChange={handleAnswerChange}
+              onNavigateQuestion={handleQuestionNavigation}
+              onQuestionSelect={handleQuestionSelect}
+              sectionTimeRemaining={sectionTimeRemaining[currentSectionId]}
+              disabled={disabled}
+            />
+          )}
+        </div>
+      </div>
     </div>
   );
 };

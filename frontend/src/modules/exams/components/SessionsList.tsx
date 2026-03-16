@@ -1,9 +1,8 @@
-import { Button } from '@/components/atoms/button';
-import { Input } from '@/components/atoms/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/atoms/select';
-import GradientWrapper from '@/components/background/GrandWrapperSection';
+import { Calendar } from '@/components/atoms/calendar';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/atoms/popover';
 import CustomizableTable from '@/components/common/CustomizableTable';
 import { MainLayout } from '@/components/layout';
+import { cn } from '@/lib/utils';
 import { notificationSocket } from '@/services/notifications/notificationSocket';
 import { authSDK } from '@/services/sdk-simple-auth';
 import {
@@ -13,17 +12,18 @@ import {
   useReactTable,
   type SortingState,
 } from '@tanstack/react-table';
+import { format } from 'date-fns';
+import { es } from 'date-fns/locale';
 import {
   Activity,
-  BookOpen,
   CheckCircle,
   ChevronLeft,
   ChevronRight,
   Clock,
   Edit,
   Eye,
-  Filter,
   Loader2,
+  MoreHorizontal,
   Play,
   Plus,
   RefreshCw,
@@ -36,8 +36,9 @@ import {
   WifiOff,
   XCircle,
 } from 'lucide-react';
+import type { DateRange } from 'react-day-picker';
 import React, { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { toast } from 'sonner';
 import { useSessions } from '../hooks/useSessions';
 import type { ExamSession } from '../types';
@@ -80,16 +81,14 @@ const SessionsList: React.FC = () => {
   } = useSessions();
 
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
 
   // Navegación / vistas
   const [viewMode, setViewMode] = useState<ViewMode>('table');
-  const [selectedSession, setSelectedSession] = useState<ExamSession | null>(
-    null
-  );
+  const [selectedSession, setSelectedSession] = useState<ExamSession | null>(null);
 
   // UI state
   const [searchTerm, setSearchTerm] = useState('');
-  const [showFilters, setShowFilters] = useState(false);
 
   // Estados para WebSocket
   const [socketConnected, setSocketConnected] = useState(false);
@@ -103,6 +102,9 @@ const SessionsList: React.FC = () => {
 
   // Estado para recalificación
   const [regradingId, setRegradingId] = useState<string | null>(null);
+
+  // Estado para rango de fechas del date picker
+  const [dateRange, setDateRange] = useState<DateRange | undefined>(undefined);
 
   // Filtros locales
   const [localFilters, setLocalFilters] = useState({
@@ -190,6 +192,24 @@ const SessionsList: React.FC = () => {
       setIsRetrying(false);
     }
   };
+
+  // Auto-abrir sesión si viene ?sessionId= en la URL
+  useEffect(() => {
+    const targetId = searchParams.get('sessionId');
+    if (!targetId || !sessions.length || viewMode !== 'table') return;
+    const match = sessions.find(s => s._id === targetId);
+    if (match) {
+      setSelectedSession(match);
+      setViewMode('detail');
+    }
+  }, [sessions, searchParams]);
+
+  // Auto-abrir formulario de creación si viene ?action=create en la URL
+  useEffect(() => {
+    if (searchParams.get('action') === 'create' && viewMode === 'table') {
+      setViewMode('create');
+    }
+  }, [searchParams]);
 
   // Handlers de navegación
   const goTable = () => {
@@ -319,6 +339,7 @@ const SessionsList: React.FC = () => {
   };
 
   const handleClearFilters = () => {
+    setDateRange(undefined);
     setLocalFilters({
       status: 'all',
       examId: '',
@@ -329,6 +350,15 @@ const SessionsList: React.FC = () => {
     });
     setSearchTerm('');
     clearFilters();
+  };
+
+  const handleDateRangeChange = (range: DateRange | undefined) => {
+    setDateRange(range);
+    setLocalFilters(prev => ({
+      ...prev,
+      startDate: range?.from ? format(range.from, 'yyyy-MM-dd') : '',
+      endDate: range?.to ? format(range.to, 'yyyy-MM-dd') : '',
+    }));
   };
 
   const formatDate = (date: string) => {
@@ -393,233 +423,189 @@ const SessionsList: React.FC = () => {
   // Definición de columnas (sin lobby)
   const columns = [
     columnHelper.accessor('sessionName', {
-      header: () => (
-        <div className="flex items-center">
-          {/* <Square className="h-4 w-4 mr-2 text-gray-400" /> */}
-          Sesión
-        </div>
-      ),
+      header: 'Sesión',
       size: 200,
       cell: info => (
-        <div>
-          <div className="text-sm font-medium text-foreground">
-            {info.getValue()}
-          </div>
-          <div className="text-xs text-muted-foreground">
-            ID: {info.row.original._id}
-          </div>
-        </div>
+        <span className="text-sm font-medium text-foreground">{info.getValue()}</span>
       ),
     }),
     columnHelper.accessor(row => (row as any).examId?.name || row.exam?.name, {
       id: 'exam',
-      header: () => (
-        <div className="flex items-center">
-          <BookOpen className="h-4 w-4 mr-2 text-muted-foreground" />
-          Examen
-        </div>
-      ),
-      size: 180,
+      header: 'Examen',
+      size: 200,
       cell: info => {
         const session = info.row.original;
+        const name = (session as any).examId?.name || session.exam?.name || 'Sin examen';
+        const level = (session as any).examId?.targetLevel || session.exam?.targetLevel;
         return (
-          <div>
-            <div className="text-sm text-foreground">
-              {(session as any).examId?.name ||
-                session.exam?.name ||
-                'Examen no disponible'}
-            </div>
-            <div className="text-xs text-muted-foreground">
-              {(session as any).examId?.type || session.exam?.type || 'N/A'} -
-              {(session as any).examId?.targetLevel ||
-                session.exam?.targetLevel ||
-                'N/A'}
-            </div>
-          </div>
+          <span className="inline-flex items-center gap-1.5 text-sm text-foreground truncate max-w-full">
+            <span className="truncate">{name}</span>
+            {level && (
+              <span className="shrink-0 text-[10px] font-medium px-1.5 py-0.5 rounded bg-muted text-muted-foreground border border-border leading-none">
+                {level}
+              </span>
+            )}
+          </span>
         );
       },
     }),
     columnHelper.accessor('scheduling.startDate', {
-      header: () => (
-        <div className="flex items-center">
-          <Clock className="h-4 w-4 mr-2 text-muted-foreground" />
-          Fecha y Hora
-        </div>
-      ),
-      size: 160,
+      header: 'Fecha y Hora',
+      size: 170,
       cell: info => {
         const session = info.row.original;
+        const start = new Date(session.scheduling.startDate);
+        const end = new Date(session.scheduling.endDate);
+        const durationMs = end.getTime() - start.getTime();
+        const durationMin = Math.round(durationMs / 60000);
+        const durationLabel = durationMin >= 60
+          ? `${Math.floor(durationMin / 60)}h${durationMin % 60 > 0 ? ` ${durationMin % 60}min` : ''}`
+          : `${durationMin}min`;
+        const dateStr = start.toLocaleString('es-BO', {
+          timeZone: 'America/La_Paz',
+          day: 'numeric',
+          month: 'short',
+          hour: '2-digit',
+          minute: '2-digit',
+          hour12: false,
+        });
         return (
-          <div>
-            <div className="text-sm text-foreground">
-              {formatDate(session.scheduling.startDate)}
-            </div>
-            <div className="text-xs text-muted-foreground">
-              hasta{' '}
-              {new Date(session.scheduling.endDate).toLocaleTimeString(
-                'es-BO',
-                {
-                  timeZone: 'America/La_Paz',
-                  hour: '2-digit',
-                  minute: '2-digit',
-                  hour12: false,
-                }
-              )}
-            </div>
-          </div>
+          <span className="text-sm text-foreground whitespace-nowrap">
+            {dateStr}
+            <span className="text-muted-foreground ml-1.5">· {durationLabel}</span>
+          </span>
         );
       },
     }),
     columnHelper.accessor('participants', {
-      header: () => (
-        <div className="flex items-center">
-          <Users className="h-4 w-4 mr-2 text-muted-foreground" />
-          Participantes
-        </div>
-      ),
-      size: 120,
+      header: 'Candidatos',
+      size: 100,
       cell: info => {
         const participants = info.getValue();
         const registered = participants.registeredCandidates?.length || 0;
         const max = participants.maxCandidates || 1;
         const fillPercentage = registered / max;
 
-        // Dynamic color based on fill percentage
-        let iconColor = 'text-muted-foreground'; // Empty state
-        if (fillPercentage > 0.7) {
-          iconColor = 'text-red-600 dark:text-red-400'; // High occupancy
-        } else if (fillPercentage > 0.4) {
-          iconColor = 'text-orange-600 dark:text-orange-400'; // Medium occupancy
-        } else if (fillPercentage > 0) {
-          iconColor = 'text-cyan-600 dark:text-cyan-400'; // Low occupancy
-        }
-        
+        let color = 'text-muted-foreground';
+        if (fillPercentage > 0.7) color = 'text-red-500 dark:text-red-400';
+        else if (fillPercentage > 0.4) color = 'text-orange-500 dark:text-orange-400';
+        else if (fillPercentage > 0) color = 'text-cyan-600 dark:text-cyan-400';
+
         return (
-          <div>
-            <div className="flex items-center text-sm text-foreground">
-              <Users className={`h-4 w-4 mr-1 ${iconColor}`} />
-              {registered} / {max}
-            </div>
-            <div className="text-xs text-muted-foreground">
-              {participants.proctors?.length || 0} proctores
-            </div>
-          </div>
+          <span className={`inline-flex items-center gap-1 text-sm font-medium whitespace-nowrap ${color}`}>
+            <Users className="w-3.5 h-3.5 shrink-0" />
+            {registered} / {max}
+          </span>
         );
       },
     }),
     columnHelper.accessor('status', {
-      header: () => (
-        <div className="flex items-center">
-          <Wifi className="h-4 w-4 mr-2 text-muted-foreground" />
-          Estado
-        </div>
-      ),
+      header: 'Estado',
       size: 120,
       cell: info => getStatusBadge(info.getValue()),
     }),
     columnHelper.display({
       id: 'actions',
-      header: () => (
-        <div className="flex items-center">
-          <Edit className="h-4 w-4 mr-2 text-muted-foreground" />
-          Acciones
-        </div>
-      ),
-      size: 100,
+      header: '',
+      size: 48,
       cell: info => {
         const session = info.row.original;
+        const isInProgress = session.status === 'in_progress';
+
+        const menuItems: { icon: React.ReactNode; label: string; onClick: () => void; className?: string }[] = [];
+
+        menuItems.push({
+          icon: <Eye className="h-3.5 w-3.5" />,
+          label: 'Ver detalles',
+          onClick: () => goDetail(session),
+        });
+
+        if (isInProgress) {
+          menuItems.push({
+            icon: <Activity className="h-3.5 w-3.5" />,
+            label: 'Monitorear',
+            onClick: () => navigate(`/sessions/${session._id}/monitor`),
+            className: 'text-cyan-600 dark:text-cyan-400',
+          });
+        }
+
+        if (session.status === 'scheduled' && canManageSession(session) && !isSessionStartTimeInPast(session)) {
+          menuItems.push({
+            icon: <Edit className="h-3.5 w-3.5" />,
+            label: 'Editar',
+            onClick: () => goEdit(session),
+          });
+        }
+
+        if (canManageSession(session)) {
+          menuItems.push({
+            icon: <UserPlus className="h-3.5 w-3.5" />,
+            label: 'Gestionar candidatos',
+            onClick: () => goCandidates(session),
+          });
+          menuItems.push({
+            icon: <User2 className="h-3.5 w-3.5" />,
+            label: 'Gestionar proctores',
+            onClick: () => goProctors(session),
+          });
+        }
+
+        if (canStartSession(session) && canManageSession(session)) {
+          menuItems.push({
+            icon: <Play className="h-3.5 w-3.5" />,
+            label: 'Iniciar sesión',
+            onClick: () => handleStartSession(session._id!),
+            className: 'text-green-600 dark:text-green-400',
+          });
+        }
+
+        if (canEndSession(session) && canManageSession(session)) {
+          menuItems.push({
+            icon: <Square className="h-3.5 w-3.5" />,
+            label: 'Finalizar sesión',
+            onClick: () => handleEndSession(session._id!),
+            className: 'text-red-600 dark:text-red-400',
+          });
+        }
+
+        if (session.status === 'completed') {
+          menuItems.push({
+            icon: regradingId === session._id
+              ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              : <RefreshCw className="h-3.5 w-3.5" />,
+            label: 'Recalificar',
+            onClick: () => handleRegrade(session),
+            className: 'text-purple-600 dark:text-purple-400',
+          });
+        }
+
         return (
-          <div className="grid grid-cols-3 gap-2 max-w-[120px]">
-            {/* Botón Ver detalles */}
-            <button
-              onClick={() => goDetail(session)}
-              className="p-2 text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 hover:bg-blue-100 dark:hover:bg-blue-400/10 rounded-md transition-all duration-200 flex items-center justify-center"
-              title="Ver detalles"
-            >
-              <Eye className="h-4 w-4" />
-            </button>
-
-            {/* Botón Monitorear (solo sesiones activas) */}
-            {session.status === 'in_progress' && (
+          <Popover>
+            <PopoverTrigger asChild>
               <button
-                onClick={() => navigate(`/sessions/${session._id}/monitor`)}
-                className="p-2 text-cyan-600 dark:text-cyan-400 hover:text-cyan-700 dark:hover:text-cyan-300 hover:bg-cyan-100 dark:hover:bg-cyan-400/10 rounded-md transition-all duration-200 flex items-center justify-center"
-                title="Monitorear en tiempo real"
+                className={`p-1.5 rounded-md transition-colors hover:bg-muted/60 ${
+                  isInProgress
+                    ? 'text-cyan-500 dark:text-cyan-400 hover:bg-cyan-500/10'
+                    : 'text-muted-foreground hover:text-foreground'
+                }`}
+                title="Acciones"
               >
-                <Activity className="h-4 w-4" />
+                <MoreHorizontal className="h-4 w-4" />
               </button>
-            )}
-
-            {/* Botón Editar */}
-            {session.status === 'scheduled' &&
-              canManageSession(session) &&
-              !isSessionStartTimeInPast(session) && (
+            </PopoverTrigger>
+            <PopoverContent align="end" className="w-44 p-1">
+              {menuItems.map((item, i) => (
                 <button
-                  onClick={() => goEdit(session)}
-                  className="p-2 text-foreground/80 hover:text-foreground hover:bg-muted/40 rounded-md transition-all duration-200 flex items-center justify-center"
-                  title="Editar"
+                  key={i}
+                  onClick={item.onClick}
+                  className={`w-full flex items-center gap-2 px-2.5 py-1.5 text-xs rounded hover:bg-muted transition-colors text-left ${item.className || 'text-foreground'}`}
                 >
-                  <Edit className="h-4 w-4" />
+                  {item.icon}
+                  {item.label}
                 </button>
-              )}
-
-            {/* Botón Gestionar proctores */}
-            {canManageSession(session) && (
-              <button
-                onClick={() => goProctors(session)}
-                className="p-2 text-orange-600 dark:text-orange-400 hover:text-orange-700 dark:hover:text-orange-300 hover:bg-orange-100 dark:hover:bg-orange-400/10 rounded-md transition-all duration-200 flex items-center justify-center"
-                title="Gestionar proctores"
-              >
-                <User2 className="h-4 w-4" />
-              </button>
-            )}
-
-            {/* Botón Gestionar candidatos */}
-            {canManageSession(session) && (
-              <button
-                onClick={() => goCandidates(session)}
-                className="p-2 text-green-600 dark:text-green-400 hover:text-green-700 dark:hover:text-green-300 hover:bg-green-100 dark:hover:bg-green-400/10 rounded-md transition-all duration-200 flex items-center justify-center"
-                title="Gestionar candidatos"
-              >
-                <UserPlus className="h-4 w-4" />
-              </button>
-            )}
-
-            {/* Acciones de sesión */}
-            {canStartSession(session) && canManageSession(session) && (
-              <button
-                onClick={() => handleStartSession(session._id!)}
-                className="p-2 text-green-600 dark:text-green-400 hover:text-green-700 dark:hover:text-green-300 hover:bg-green-100 dark:hover:bg-green-400/10 rounded-md transition-all duration-200 flex items-center justify-center"
-                title="Iniciar sesión"
-              >
-                <Play className="h-4 w-4" />
-              </button>
-            )}
-
-            {canEndSession(session) && canManageSession(session) && (
-              <button
-                onClick={() => handleEndSession(session._id!)}
-                className="p-2 text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 hover:bg-red-100 dark:hover:bg-red-400/10 rounded-md transition-all duration-200 flex items-center justify-center"
-                title="Finalizar sesión"
-              >
-                <Square className="h-4 w-4" />
-              </button>
-            )}
-
-            {/* Botón Recalificar (solo sesiones completadas) */}
-            {session.status === 'completed' && (
-              <button
-                onClick={() => handleRegrade(session)}
-                disabled={regradingId === session._id}
-                className="p-2 text-purple-600 dark:text-purple-400 hover:text-purple-700 dark:hover:text-purple-300 hover:bg-purple-100 dark:hover:bg-purple-400/10 rounded-md transition-all duration-200 flex items-center justify-center disabled:opacity-50"
-                title="Recalificar examen"
-              >
-                {regradingId === session._id
-                  ? <Loader2 className="h-4 w-4 animate-spin" />
-                  : <RefreshCw className="h-4 w-4" />}
-              </button>
-            )}
-          </div>
+              ))}
+            </PopoverContent>
+          </Popover>
         );
       },
     }),
@@ -653,14 +639,14 @@ const SessionsList: React.FC = () => {
 
     if (viewMode === 'create' || viewMode === 'edit') {
       return (
-        <div className="bg-card border border-line rounded-xl p-6">
+        <div className="bg-card border border-border rounded-xl p-6">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-lg font-semibold text-foreground">
               {viewMode === 'edit' ? 'Editar Sesión' : 'Nueva Sesión'}
             </h2>
             <button
               onClick={goTable}
-              className="px-3 py-2 bg-muted/50 border border-line rounded-lg text-foreground/80 hover:bg-muted flex items-center gap-2"
+              className="px-3 py-2 bg-muted/50 border border-border rounded-lg text-foreground/80 hover:bg-muted flex items-center gap-2"
             >
               <XCircle className="w-4 h-4" /> Volver
             </button>
@@ -680,7 +666,7 @@ const SessionsList: React.FC = () => {
 
     if (viewMode === 'candidates' && selectedSession) {
       return (
-        <div className="bg-card border border-line rounded-xl p-6">
+        <div className="bg-card border border-border rounded-xl p-6">
           <CandidateAssignmentView
             session={selectedSession}
             onClose={goTable}
@@ -695,7 +681,7 @@ const SessionsList: React.FC = () => {
     }
     if (viewMode === 'proctors' && selectedSession) {
       return (
-        <div className="bg-card border border-line rounded-xl p-6">
+        <div className="bg-card border border-border rounded-xl p-6">
           <ProctorAssignmentModal
             session={selectedSession}
             onClose={goTable}
@@ -709,12 +695,9 @@ const SessionsList: React.FC = () => {
       );
     }
     // Tabla (vista por defecto "table")
-    const baseInputClass =
-      'bg-muted/50 border-border text-foreground placeholder:text-muted-foreground border-[0.5px] focus:border-blue-500 focus:ring-0 rounded-lg';
-
     if (loading) {
       return (
-        <div className="bg-card border border-line rounded-xl p-12 text-center">
+        <div className="bg-card border border-border rounded-xl p-12 text-center">
           <div className="inline-block animate-spin rounded-full h-10 w-10 border-b-2 border-blue-500"></div>
           <p className="mt-4 text-muted-foreground">Cargando sesiones...</p>
         </div>
@@ -723,7 +706,7 @@ const SessionsList: React.FC = () => {
 
     if (error) {
       return (
-        <div className="bg-card border border-line rounded-xl p-12 text-center">
+        <div className="bg-card border border-border rounded-xl p-12 text-center">
           <p className="text-red-400 mb-4">{error}</p>
           <button
             onClick={() => loadSessions()}
@@ -736,222 +719,157 @@ const SessionsList: React.FC = () => {
     }
 
     return (
-      <div className="space-y-6">
-        {/* Header con búsqueda y acciones */}
-        <div className="bg-card border border-line rounded-xl p-6">
-          <div className="flex-1">
-            <div className="flex items-center gap-3">
-              <h2 className="text-2xl font-bold text-foreground">
-                Sesiones de Examen
-              </h2>
+      <div className="flex flex-col gap-3">
 
-              {/* Indicador de conexión WebSocket */}
-              <div className="flex items-center gap-2">
-                <div
-                  className={`flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium ${
-                    socketConnected
-                      ? 'bg-green-500/20 text-green-300 border border-green-500/30'
-                      : 'bg-red-500/20 text-red-300 border border-red-500/30'
-                  }`}
-                >
-                  {socketConnected ? (
-                    <>
-                      <Wifi className="w-3 h-3" /> Servidor Conectado
-                    </>
-                  ) : (
-                    <>
-                      <WifiOff className="w-3 h-3" /> Servidor Desconectado
-                    </>
-                  )}
-                </div>
-                
-                {/* Botón de reintento cuando está desconectado */}
-                {!socketConnected && (
-                  <button
-                    onClick={handleRetryConnection}
-                    disabled={isRetrying}
-                    className="flex items-center gap-1 px-2 py-1 rounded-md bg-blue-600/20 text-blue-400 border border-blue-600/30 hover:bg-blue-600/30 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed text-xs font-medium"
-                    title="Reintentar conexión"
-                  >
-                    <RefreshCw className={`w-3 h-3 ${isRetrying ? 'animate-spin' : ''}`} />
-                    {isRetrying ? 'Conectando...' : 'Reintentar'}
-                  </button>
-                )}
-              </div>
-            </div>
-            <p className="text-muted-foreground mt-1">
-              Gestiona y programa sesiones de evaluación
+        {/* Header row */}
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-xl font-bold text-foreground">Sesiones</h1>
+            <p className="text-xs text-muted-foreground mt-0.5 flex items-center gap-2">
+              Gestión y programación de evaluaciones
+              <span className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[10px] font-medium border ${
+                socketConnected
+                  ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
+                  : 'bg-red-500/10 text-red-400 border-red-500/20'
+              }`}>
+                {socketConnected ? <Wifi className="w-2.5 h-2.5" /> : <WifiOff className="w-2.5 h-2.5" />}
+                {socketConnected ? 'Conectado' : 'Desconectado'}
+              </span>
             </p>
           </div>
-
-          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 mt-4">
-            {/* Búsqueda */}
-            <div className="flex-1 max-w-xl">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground w-5 h-5" />
-                <Input
-                  placeholder="Buscar por nombre de sesión..."
-                  value={searchTerm}
-                  onChange={e => setSearchTerm(e.target.value)}
-                  onKeyDown={e => e.key === 'Enter' && handleSearch()}
-                  className="pl-10 pr-3 w-full bg-muted/50 border-border text-foreground placeholder-muted-foreground"
-                />
-              </div>
-            </div>
-
-            {/* Acciones */}
-            <div className="flex items-center gap-3"> 
-              <Button
-                size={"sm"}
-                className='px-4 py-2.5 bg-muted/50 border border-line rounded-lg hover:bg-muted text-foreground/80 flex items-center gap-2 transition-all'
-                onClick={() => setShowFilters(!showFilters)}
+          <div className="flex items-center gap-2">
+            {!socketConnected && (
+              <button
+                onClick={handleRetryConnection}
+                disabled={isRetrying}
+                className="h-7 flex items-center gap-1.5 px-2 text-xs rounded border border-border bg-muted/60 text-foreground hover:bg-muted transition-colors disabled:opacity-50"
               >
-                <Filter className="w-4 h-4" />
-                Filtros 
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={goCreate}
-                className="gap-1 bg-blue-600 hover:bg-blue-700 text-white"
-              >
-                <Plus className="w-4 h-4" />
-                Nueva Sesión
-              </Button>
-            </div>
+                <RefreshCw className={`w-3 h-3 ${isRetrying ? 'animate-spin' : ''}`} />
+                {isRetrying ? 'Conectando...' : 'Reintentar'}
+              </button>
+            )}
+            <button
+              onClick={goCreate}
+              className="h-8 flex items-center gap-1.5 px-3 text-xs rounded-md bg-blue-600 hover:bg-blue-700 text-white transition-colors"
+            >
+              <Plus className="w-3.5 h-3.5" />
+              Nueva Sesión
+            </button>
+          </div>
+        </div>
+
+        {/* Filter bar */}
+        <div className="bg-card border border-border rounded-lg px-3 py-2 flex flex-wrap items-center gap-2">
+
+          {/* Search */}
+          <div className="relative">
+            <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3 w-3 text-muted-foreground pointer-events-none" />
+            <input
+              type="text"
+              placeholder="Buscar sesión..."
+              value={searchTerm}
+              onChange={e => setSearchTerm(e.target.value)}
+              onKeyDown={e => e.key === 'Enter' && handleSearch()}
+              className="h-7 pl-6 pr-2 text-xs bg-muted/60 border border-border rounded text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring w-44"
+            />
           </div>
 
-          {/* Filtros expandidos */}
-          {showFilters && (
-            <div className="mt-6 pt-6 border-t border-line">
-              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-muted-foreground mb-2">
-                    Estado
-                  </label>
-                  <Select
-                    value={localFilters.status}
-                    onValueChange={(value) =>
-                      setLocalFilters(prev => ({
-                        ...prev,
-                        status: value,
-                      }))
-                    }
+          <div className="w-px h-5 bg-border shrink-0" />
+
+          {/* Estado */}
+          <select
+            value={localFilters.status}
+            onChange={e => setLocalFilters(prev => ({ ...prev, status: e.target.value }))}
+            className="h-7 text-xs bg-muted/60 border border-border rounded px-2 text-foreground focus:outline-none focus:ring-1 focus:ring-ring"
+          >
+            <option value="all">Todos los estados</option>
+            <option value="scheduled">Programada</option>
+            <option value="in_progress">En Progreso</option>
+            <option value="completed">Completada</option>
+            <option value="cancelled">Cancelada</option>
+            <option value="expired">Expirada</option>
+          </select>
+
+          <div className="w-px h-5 bg-border shrink-0" />
+
+          {/* Date range */}
+          <Popover>
+            <PopoverTrigger asChild>
+              <button className={cn(
+                'h-7 flex items-center gap-1.5 px-2 text-xs rounded border border-border bg-muted/60 text-foreground hover:bg-muted transition-colors whitespace-nowrap',
+                !dateRange?.from && 'text-muted-foreground'
+              )}>
+                <Clock className="h-3 w-3 shrink-0 text-muted-foreground" />
+                {dateRange?.from ? (
+                  dateRange.to
+                    ? <>{format(dateRange.from, 'd MMM', { locale: es })} — {format(dateRange.to, 'd MMM yy', { locale: es })}</>
+                    : format(dateRange.from, 'd MMM yyyy', { locale: es })
+                ) : 'Rango de fechas'}
+                {dateRange?.from && (
+                  <span
+                    role="button"
+                    onClick={e => { e.stopPropagation(); handleDateRangeChange(undefined); }}
+                    className="ml-1 text-muted-foreground hover:text-foreground"
                   >
-                    <SelectTrigger className={`w-full px-3 py-2 text-sm ${baseInputClass}`}>
-                      <SelectValue placeholder="Todos" />
-                    </SelectTrigger>
-                    <SelectContent className="bg-popover border border-border">
-                      <SelectItem className="hover:bg-muted" value="all">Todos</SelectItem>
-                      <SelectItem className="hover:bg-muted" value="scheduled">Programada</SelectItem>
-                      <SelectItem className="hover:bg-muted" value="in_progress">En Progreso</SelectItem>
-                      <SelectItem className="hover:bg-muted" value="completed">Completada</SelectItem>
-                      <SelectItem className="hover:bg-muted" value="cancelled">Cancelada</SelectItem>
-                      <SelectItem className="hover:bg-muted" value="expired">Expirada</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-muted-foreground mb-2">
-                    Fecha Inicio
-                  </label>
-                  <input
-                    type="date"
-                    value={localFilters.startDate}
-                    onChange={e =>
-                      setLocalFilters(prev => ({
-                        ...prev,
-                        startDate: e.target.value,
-                      }))
-                    }
-                    className={`w-full px-3 py-2 text-sm ${baseInputClass}`}
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-muted-foreground mb-2">
-                    Fecha Fin
-                  </label>
-                  <input
-                    type="date"
-                    value={localFilters.endDate}
-                    onChange={e =>
-                      setLocalFilters(prev => ({
-                        ...prev,
-                        endDate: e.target.value,
-                      }))
-                    }
-                    className={`w-full px-3 py-2 text-sm ${baseInputClass}`}
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-muted-foreground mb-2">
-                    Ordenar por
-                  </label>
-                  <Select
-                    value={localFilters.sortBy}
-                    onValueChange={(value) =>
-                      setLocalFilters(prev => ({
-                        ...prev,
-                        sortBy: value,
-                      }))
-                    }
-                  >
-                    <SelectTrigger className={`w-full px-3 py-2 text-sm ${baseInputClass}`}>
-                      <SelectValue placeholder="Selecciona ordenamiento" />
-                    </SelectTrigger>
-                    <SelectContent className="bg-popover border border-border">
-                      <SelectItem className="hover:bg-muted" value="startDate">Fecha Inicio</SelectItem>
-                      <SelectItem className="hover:bg-muted" value="endDate">Fecha Fin</SelectItem>
-                      <SelectItem className="hover:bg-muted" value="sessionName">Nombre</SelectItem>
-                      <SelectItem className="hover:bg-muted" value="status">Estado</SelectItem>
-                      <SelectItem className="hover:bg-muted" value="createdAt">Fecha Creación</SelectItem>
-                      <SelectItem className="hover:bg-muted" value="candidatesCount">Núm. Candidatos</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-muted-foreground mb-2">
-                    Orden
-                  </label>
-                  <Select
-                    value={localFilters.sortOrder}
-                    onValueChange={(value) =>
-                      setLocalFilters(prev => ({
-                        ...prev,
-                        sortOrder: value as 'asc' | 'desc',
-                      }))
-                    }
-                  >
-                    <SelectTrigger className={`w-full px-3 py-2 text-sm ${baseInputClass}`}>
-                      <SelectValue placeholder="Selecciona orden" />
-                    </SelectTrigger>
-                    <SelectContent className="bg-popover border border-border">
-                      <SelectItem className="hover:bg-muted" value="desc">Descendente</SelectItem>
-                      <SelectItem className="hover:bg-muted" value="asc">Ascendente</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="flex items-end gap-2">
-                  <button
-                    onClick={handleSearch}
-                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-all"
-                  >
-                    Aplicar
-                  </button>
-                  <button
-                    onClick={handleClearFilters}
-                    className="px-4 py-2 bg-muted/50 border border-line rounded-lg hover:bg-muted text-foreground/80 transition-all"
-                  >
-                    Limpiar
-                  </button>
-                </div>
-              </div>
-            </div>
-          )}
+                    <XCircle className="h-3 w-3" />
+                  </span>
+                )}
+              </button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0" align="start">
+              <Calendar
+                mode="range"
+                selected={dateRange}
+                onSelect={handleDateRangeChange}
+                numberOfMonths={2}
+                initialFocus
+              />
+            </PopoverContent>
+          </Popover>
+
+          <div className="w-px h-5 bg-border shrink-0" />
+
+          {/* Ordenar por */}
+          <select
+            value={localFilters.sortBy}
+            onChange={e => setLocalFilters(prev => ({ ...prev, sortBy: e.target.value }))}
+            className="h-7 text-xs bg-muted/60 border border-border rounded px-2 text-foreground focus:outline-none focus:ring-1 focus:ring-ring"
+          >
+            <option value="startDate">Fecha inicio</option>
+            <option value="endDate">Fecha fin</option>
+            <option value="sessionName">Nombre</option>
+            <option value="status">Estado</option>
+            <option value="createdAt">Creación</option>
+            <option value="candidatesCount">Candidatos</option>
+          </select>
+
+          {/* Orden */}
+          <select
+            value={localFilters.sortOrder}
+            onChange={e => setLocalFilters(prev => ({ ...prev, sortOrder: e.target.value as 'asc' | 'desc' }))}
+            className="h-7 text-xs bg-muted/60 border border-border rounded px-2 text-foreground focus:outline-none focus:ring-1 focus:ring-ring"
+          >
+            <option value="desc">Descendente</option>
+            <option value="asc">Ascendente</option>
+          </select>
+
+          <button
+            onClick={handleSearch}
+            className="h-7 px-2.5 text-xs rounded bg-blue-600 hover:bg-blue-700 text-white transition-colors"
+          >
+            Aplicar
+          </button>
+
+          <button
+            onClick={handleClearFilters}
+            className="h-7 px-2 text-xs rounded text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+          >
+            Limpiar
+          </button>
         </div>
 
         {/* Tabla */}
-        <div className="bg-card border border-line rounded-xl overflow-hidden">
+        <div className="bg-card border border-border rounded-lg overflow-hidden">
           <CustomizableTable
             table={table}
             isLoading={loading}
@@ -964,46 +882,37 @@ const SessionsList: React.FC = () => {
 
           {/* Paginación */}
           {totalPages > 1 && (
-            <div className="px-6 py-4 border-t border-line flex flex-col sm:flex-row items-center justify-between gap-4">
-              <div className="text-sm text-muted-foreground">
-                Mostrando {(currentPage - 1) * 10 + 1} a{' '}
-                {Math.min(currentPage * 10, totalItems)} de {totalItems}{' '}
-                sesiones
-              </div>
-              <div className="flex items-center gap-2">
+            <div className="px-4 py-3 border-t border-border flex items-center justify-between">
+              <span className="text-xs text-muted-foreground">
+                {(currentPage - 1) * 10 + 1}–{Math.min(currentPage * 10, totalItems)} de {totalItems} sesiones
+              </span>
+              <div className="flex items-center gap-1">
                 <button
                   onClick={() => changePage(currentPage - 1)}
                   disabled={currentPage === 1}
-                  className="p-2 bg-muted/50 border border-line rounded-lg hover:bg-muted disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                  className="p-1.5 bg-muted/50 border border-border rounded hover:bg-muted disabled:opacity-40 disabled:cursor-not-allowed transition-all"
                 >
-                  <ChevronLeft className="w-4 h-4 text-muted-foreground" />
+                  <ChevronLeft className="w-3.5 h-3.5 text-muted-foreground" />
                 </button>
-
-                <div className="flex gap-1">
-                  {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-                    const page = i + 1;
-                    return (
-                      <button
-                        key={page}
-                        onClick={() => changePage(page)}
-                        className={`px-3 py-1 rounded-lg transition-all ${
-                          page === currentPage
-                            ? 'bg-blue-600 text-white'
-                            : 'bg-muted/50 border border-line text-muted-foreground hover:bg-muted'
-                        }`}
-                      >
-                        {page}
-                      </button>
-                    );
-                  })}
-                </div>
-
+                {Array.from({ length: Math.min(5, totalPages) }, (_, i) => i + 1).map(page => (
+                  <button
+                    key={page}
+                    onClick={() => changePage(page)}
+                    className={`px-2.5 py-1 text-xs rounded transition-all ${
+                      page === currentPage
+                        ? 'bg-blue-600 text-white'
+                        : 'bg-muted/50 border border-border text-muted-foreground hover:bg-muted'
+                    }`}
+                  >
+                    {page}
+                  </button>
+                ))}
                 <button
                   onClick={() => changePage(currentPage + 1)}
                   disabled={currentPage === totalPages}
-                  className="p-2 bg-muted/50 border border-line rounded-lg hover:bg-muted disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                  className="p-1.5 bg-muted/50 border border-border rounded hover:bg-muted disabled:opacity-40 disabled:cursor-not-allowed transition-all"
                 >
-                  <ChevronRight className="w-4 h-4 text-muted-foreground" />
+                  <ChevronRight className="w-3.5 h-3.5 text-muted-foreground" />
                 </button>
               </div>
             </div>
@@ -1014,25 +923,9 @@ const SessionsList: React.FC = () => {
   };
 
   return (
-    <MainLayout gradientVariant="aurora">
-      <div className="max-w-7xl mx-auto space-y-8 epilogue-uniquifier">
-        <div className="text-center space-y-3 mb-5">
-          <div className="flex justify-center">
-            <div className="p-2.5 rounded-full bg-gradient-to-br from-blue-500/15 to-purple-600/15 border border-blue-500/20">
-              <BookOpen className="h-3.5 w-3.5 text-blue-300" />
-            </div>
-          </div>
-        </div>
-
-        <GradientWrapper
-          intensity="low"
-          size="xl"
-          position="right"
-          animate={false}
-          variant="cosmic"
-        >
-          <div className="min-h-screen">{renderView()}</div>
-        </GradientWrapper>
+    <MainLayout>
+      <div className="flex flex-col gap-3 p-4 max-w-5xl mx-auto w-full">
+        {renderView()}
       </div>
     </MainLayout>
   );

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import { authSDK } from "@/services/sdk-simple-auth";
 import {
   ArrowLeft,
@@ -7,13 +7,13 @@ import {
   BookOpen,
   Calendar,
   CheckCircle,
-  ChevronDown,
-  ChevronRight,
   Clock,
   DoorOpen,
   Edit,
+  Eye,
   Loader2,
   Lock,
+  Plus,
   RefreshCw,
   RotateCcw,
   Settings,
@@ -29,6 +29,7 @@ import type { ExamSession } from "../types";
 import { Button } from "@/components/atoms/button";
 import { candidateService } from "@/services/candidateService";
 import { examService } from "@/services/examService";
+import { toast } from "sonner";
 
 // ── Tipos locales ────────────────────────────────────────────────────────────
 
@@ -133,12 +134,10 @@ const typeLabel: Record<string, string> = {
 };
 
 const competencyColor: Record<string, string> = {
-  reading: "bg-blue-900/30 text-blue-300 border-blue-700/40",
-  writing: "bg-purple-900/30 text-purple-300 border-purple-700/40",
-  listening: "bg-orange-900/30 text-orange-300 border-orange-700/40",
-  speaking: "bg-green-900/30 text-green-300 border-green-700/40",
-  grammar: "bg-teal-900/30 text-teal-300 border-teal-700/40",
-  vocabulary: "bg-teal-900/30 text-teal-300 border-teal-700/40",
+  reading: "bg-blue-100 text-blue-700 border-blue-200 dark:bg-blue-900/30 dark:text-blue-300 dark:border-blue-700/40",
+  writing: "bg-purple-100 text-purple-700 border-purple-200 dark:bg-purple-900/30 dark:text-purple-300 dark:border-purple-700/40",
+  listening: "bg-orange-100 text-orange-700 border-orange-200 dark:bg-orange-900/30 dark:text-orange-300 dark:border-orange-700/40",
+  speaking: "bg-green-100 text-green-700 border-green-200 dark:bg-green-900/30 dark:text-green-300 dark:border-green-700/40",
 };
 
 const competencyBarColor: Record<string, string> = {
@@ -146,8 +145,6 @@ const competencyBarColor: Record<string, string> = {
   writing: "bg-purple-500",
   listening: "bg-orange-500",
   speaking: "bg-green-500",
-  grammar: "bg-teal-500",
-  vocabulary: "bg-teal-500",
 };
 
 function getCompetencyColor(competency: string): string {
@@ -170,7 +167,7 @@ function renderMedia(questionData?: QuestionResult["questionData"]): React.React
 
   if (type === "audio") {
     return (
-      <div className="bg-muted/40 border border-line rounded-lg p-2">
+      <div className="bg-muted/40 border border-border rounded-lg p-2">
         <p className="text-xs text-muted-foreground mb-1.5 flex items-center gap-1">
           <span>🔊</span> Audio
         </p>
@@ -182,7 +179,7 @@ function renderMedia(questionData?: QuestionResult["questionData"]): React.React
   }
   if (type === "video") {
     return (
-      <div className="bg-muted/40 border border-line rounded-lg p-2">
+      <div className="bg-muted/40 border border-border rounded-lg p-2">
         <p className="text-xs text-muted-foreground mb-1.5">🎬 Video</p>
         <video controls className="w-full rounded max-h-48">
           <source src={url} />
@@ -191,7 +188,7 @@ function renderMedia(questionData?: QuestionResult["questionData"]): React.React
     );
   }
   return (
-    <div className="bg-muted/40 border border-line rounded-lg p-2">
+    <div className="bg-muted/40 border border-border rounded-lg p-2">
       <img src={url} alt="Imagen de la pregunta" className="max-h-40 rounded object-contain" />
     </div>
   );
@@ -214,17 +211,17 @@ function renderResponse(qr: QuestionResult): React.ReactNode {
             {options.map((opt) => {
               const isSelected = selected.includes(String(opt.id));
               const isCorrect = !!opt.isCorrect;
-              let cls = "border border-line bg-muted/40 text-muted-foreground";
-              if (isSelected && isCorrect) cls = "border border-emerald-600/50 bg-emerald-900/20 text-emerald-300";
-              else if (isSelected && !isCorrect) cls = "border border-red-600/50 bg-red-900/20 text-red-300";
-              else if (!isSelected && isCorrect) cls = "border border-emerald-600/30 bg-emerald-900/10 text-emerald-400/60";
+              let cls = "border border-border bg-muted/40 text-muted-foreground";
+              if (isSelected && isCorrect) cls = "border border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-600/50 dark:bg-emerald-900/20 dark:text-emerald-300";
+              else if (isSelected && !isCorrect) cls = "border border-red-200 bg-red-50 text-red-700 dark:border-red-600/50 dark:bg-red-900/20 dark:text-red-300";
+              else if (!isSelected && isCorrect) cls = "border border-emerald-200/70 bg-emerald-50/60 text-emerald-600/70 dark:border-emerald-600/30 dark:bg-emerald-900/10 dark:text-emerald-600/60 dark:text-emerald-400/60";
               return (
                 <div key={opt.id} className={`flex items-center gap-2 px-3 py-2 rounded-lg text-xs ${cls}`}>
                   <span className={`w-4 h-4 rounded-full flex items-center justify-center shrink-0 text-xs font-bold ${isSelected ? "bg-current/20" : "bg-muted"}`}>
                     {isSelected ? "●" : "○"}
                   </span>
                   <span>{opt.text}</span>
-                  {isCorrect && <span className="ml-auto text-emerald-400/70 text-xs">✓ correcta</span>}
+                  {isCorrect && <span className="ml-auto text-emerald-600/70 dark:text-emerald-400/70 text-xs">✓ correcta</span>}
                 </div>
               );
             })}
@@ -247,10 +244,10 @@ function renderResponse(qr: QuestionResult): React.ReactNode {
             const isThisTrue = label === "Verdadero";
             const isSelected = isThisTrue ? userTrue : userFalse;
             const isCorrect = isThisTrue ? correctIsTrue : !correctIsTrue;
-            let cls = "border border-line bg-muted/40 text-muted-foreground";
-            if (isSelected && isCorrect) cls = "border border-emerald-600/50 bg-emerald-900/20 text-emerald-300 font-semibold";
-            else if (isSelected && !isCorrect) cls = "border border-red-600/50 bg-red-900/20 text-red-300 font-semibold";
-            else if (!isSelected && isCorrect) cls = "border border-emerald-600/30 bg-emerald-900/10 text-emerald-400/60";
+            let cls = "border border-border bg-muted/40 text-muted-foreground";
+            if (isSelected && isCorrect) cls = "border border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-600/50 dark:bg-emerald-900/20 dark:text-emerald-300 font-semibold";
+            else if (isSelected && !isCorrect) cls = "border border-red-200 bg-red-50 text-red-700 dark:border-red-600/50 dark:bg-red-900/20 dark:text-red-300 font-semibold";
+            else if (!isSelected && isCorrect) cls = "border border-emerald-200/70 bg-emerald-50/60 text-emerald-600/70 dark:border-emerald-600/30 dark:bg-emerald-900/10 dark:text-emerald-400/60";
             return (
               <div key={label} className={`px-4 py-2 rounded-lg text-xs ${cls}`}>
                 {label}
@@ -273,16 +270,16 @@ function renderResponse(qr: QuestionResult): React.ReactNode {
               ? correctAnswers.some(c => c.trim().toLowerCase() === b.trim().toLowerCase())
               : null;
             const cls = isOk === true
-              ? "bg-emerald-900/20 border-emerald-600/40 text-emerald-300"
+              ? "bg-emerald-50 border-emerald-200 text-emerald-700 dark:bg-emerald-900/20 dark:border-emerald-600/40 dark:text-emerald-300"
               : isOk === false
-              ? "bg-red-900/20 border-red-600/40 text-red-300"
-              : "bg-muted/40 border-line text-foreground/80";
+              ? "bg-red-50 border-red-200 text-red-700 dark:bg-red-900/20 dark:border-red-600/40 dark:text-red-300"
+              : "bg-muted/40 border-border text-foreground/80";
             return (
               <span key={i} className={`inline-flex items-center gap-1 px-2.5 py-1 rounded border text-xs ${cls}`}>
                 <span className="text-muted-foreground">[{i+1}]</span>
                 <span className="font-medium">{b || "—"}</span>
                 {isOk === false && correctAnswers.length > 0 && (
-                  <span className="text-emerald-400/70 ml-1">✓ {correctAnswers[0]}</span>
+                  <span className="text-emerald-600/70 dark:text-emerald-400/70 ml-1">✓ {correctAnswers[0]}</span>
                 )}
               </span>
             );
@@ -301,11 +298,11 @@ function renderResponse(qr: QuestionResult): React.ReactNode {
             const item = items.find(i => i.id === k);
             const isOk = item?.matchingPair === v;
             return (
-              <div key={k} className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs border ${isOk ? "border-emerald-600/40 bg-emerald-900/10 text-emerald-300" : "border-red-600/40 bg-red-900/10 text-red-300"}`}>
+              <div key={k} className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs border ${isOk ? "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-600/40 dark:bg-emerald-900/10 dark:text-emerald-300" : "border-red-200 bg-red-50 text-red-700 dark:border-red-600/40 dark:bg-red-900/10 dark:text-red-300"}`}>
                 <span className="font-medium">{item?.content ?? k}</span>
                 <span className="text-muted-foreground">→</span>
                 <span>{v}</span>
-                {!isOk && item?.matchingPair && <span className="ml-auto text-emerald-400/60">✓ {item.matchingPair}</span>}
+                {!isOk && item?.matchingPair && <span className="ml-auto text-emerald-600/60 dark:text-emerald-400/60">✓ {item.matchingPair}</span>}
               </div>
             );
           })}
@@ -324,10 +321,10 @@ function renderResponse(qr: QuestionResult): React.ReactNode {
             const correctPos = item?.correctPosition;
             const isOk = correctPos !== undefined ? correctPos === idx : null;
             return (
-              <div key={id} className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs border ${isOk === true ? "border-emerald-600/40 bg-emerald-900/10 text-emerald-300" : isOk === false ? "border-red-600/40 bg-red-900/10 text-red-300" : "border-line bg-muted/40 text-foreground/80"}`}>
+              <div key={id} className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs border ${isOk === true ? "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-600/40 dark:bg-emerald-900/10 dark:text-emerald-300" : isOk === false ? "border-red-200 bg-red-50 text-red-700 dark:border-red-600/40 dark:bg-red-900/10 dark:text-red-300" : "border-border bg-muted/40 text-foreground/80"}`}>
                 <span className="text-muted-foreground font-mono">#{idx+1}</span>
                 <span>{item?.content ?? id}</span>
-                {isOk === false && correctPos !== undefined && <span className="ml-auto text-emerald-400/60 text-xs">✓ pos {correctPos+1}</span>}
+                {isOk === false && correctPos !== undefined && <span className="ml-auto text-emerald-600/60 dark:text-emerald-400/60 text-xs">✓ pos {correctPos+1}</span>}
               </div>
             );
           })}
@@ -354,10 +351,10 @@ function renderResponse(qr: QuestionResult): React.ReactNode {
                 : null;
             const cls =
               isOk === true
-                ? "border-emerald-600/40 bg-emerald-900/10 text-emerald-300"
+                ? "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-600/40 dark:bg-emerald-900/10 dark:text-emerald-300"
                 : isOk === false
-                ? "border-red-600/40 bg-red-900/10 text-red-300"
-                : "border-line bg-muted/40 text-foreground/80";
+                ? "border-red-200 bg-red-50 text-red-700 dark:border-red-600/40 dark:bg-red-900/10 dark:text-red-300"
+                : "border-border bg-muted/40 text-foreground/80";
             return (
               <div
                 key={itemId}
@@ -368,7 +365,7 @@ function renderResponse(qr: QuestionResult): React.ReactNode {
                 </span>
                 <span className="flex-1">{item?.content ?? `Item ${itemId}`}</span>
                 {isOk === false && item?.correctPosition !== undefined && (
-                  <span className="ml-auto text-emerald-400/60 shrink-0">
+                  <span className="ml-auto text-emerald-600/60 dark:text-emerald-400/60 shrink-0">
                     ✓ Zona {item.correctPosition + 1}
                   </span>
                 )}
@@ -393,7 +390,7 @@ function renderResponse(qr: QuestionResult): React.ReactNode {
       return (
         <div className="space-y-2">
           {audioUrl && (
-            <div className="bg-muted/40 border border-line rounded-lg p-2.5">
+            <div className="bg-muted/40 border border-border rounded-lg p-2.5">
               <p className="text-xs text-muted-foreground mb-1.5 flex items-center gap-1">
                 🔊 Audio del candidato
               </p>
@@ -404,7 +401,7 @@ function renderResponse(qr: QuestionResult): React.ReactNode {
             </div>
           )}
           {transcription && (
-            <div className="bg-muted/40 border border-line rounded-lg px-3 py-2">
+            <div className="bg-muted/40 border border-border rounded-lg px-3 py-2">
               <p className="text-xs text-muted-foreground mb-1">Transcripción</p>
               <p className="text-xs text-foreground/80 whitespace-pre-wrap leading-relaxed">{transcription}</p>
             </div>
@@ -422,7 +419,7 @@ function renderResponse(qr: QuestionResult): React.ReactNode {
           href={fileUrl}
           target="_blank"
           rel="noopener noreferrer"
-          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs border border-blue-700/40 bg-blue-900/20 text-blue-300 hover:bg-blue-900/40 transition-colors"
+          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs border border-blue-200 bg-blue-50 text-blue-700 hover:bg-blue-100 dark:border-blue-700/40 dark:bg-blue-900/20 dark:text-blue-300 dark:hover:bg-blue-900/40 transition-colors"
         >
           📎 Ver archivo adjunto
         </a>
@@ -433,7 +430,7 @@ function renderResponse(qr: QuestionResult): React.ReactNode {
     case "open_text": {
       const text = typeof response === "string" ? response : response?.text ?? response?.answer ?? response?.essay ?? "";
       return (
-        <div className="bg-muted/40 border border-line rounded-lg px-3 py-2.5">
+        <div className="bg-muted/40 border border-border rounded-lg px-3 py-2.5">
           <p className="text-xs text-foreground/80 whitespace-pre-wrap leading-relaxed">{String(text) || "Sin texto"}</p>
         </div>
       );
@@ -442,7 +439,7 @@ function renderResponse(qr: QuestionResult): React.ReactNode {
     default: {
       const str = typeof response === "string" ? response : JSON.stringify(response);
       return (
-        <div className="bg-muted/40 border border-line rounded-lg px-3 py-2">
+        <div className="bg-muted/40 border border-border rounded-lg px-3 py-2">
           <p className="text-xs text-muted-foreground font-mono">{str.length > 200 ? str.slice(0, 200) + "…" : str}</p>
         </div>
       );
@@ -465,6 +462,9 @@ const SessionDetailView: React.FC<Props> = ({
   const [resultsFetched, setResultsFetched] = useState(false);
   const [candidateNames, setCandidateNames] = useState<Record<string, string>>({});
   const [regrading, setRegrading] = useState(false);
+  const [extendingSession, setExtendingSession] = useState(false);
+  const [showExtendMenu, setShowExtendMenu] = useState(false);
+  const extendMenuRef = useRef<HTMLDivElement>(null);
 
   // ── Estado para panel de detalle expandible ───────────────────────────────
   const [selectedResultId, setSelectedResultId] = useState<string | null>(null);
@@ -497,14 +497,14 @@ const SessionDetailView: React.FC<Props> = ({
   const statusInfo = (() => {
     const m = {
       scheduled: {
-        color: "bg-blue-900/20 text-blue-300 border-blue-800/30",
-        dot: "bg-blue-400",
+        color: "bg-blue-100 text-blue-700 border-blue-200 dark:bg-blue-900/20 dark:text-blue-300 dark:border-blue-800/30",
+        dot: "bg-blue-500 dark:bg-blue-400",
         icon: Clock,
         text: "Programada",
       },
       in_progress: {
-        color: "bg-green-900/20 text-green-300 border-green-800/30",
-        dot: "bg-green-400",
+        color: "bg-green-100 text-green-700 border-green-200 dark:bg-green-900/20 dark:text-green-300 dark:border-green-800/30",
+        dot: "bg-green-500 dark:bg-green-400",
         icon: Clock,
         text: "En Progreso",
       },
@@ -515,14 +515,14 @@ const SessionDetailView: React.FC<Props> = ({
         text: "Completada",
       },
       cancelled: {
-        color: "bg-red-900/20 text-red-300 border-red-800/30",
-        dot: "bg-red-400",
+        color: "bg-red-100 text-red-700 border-red-200 dark:bg-red-900/20 dark:text-red-300 dark:border-red-800/30",
+        dot: "bg-red-500 dark:bg-red-400",
         icon: X,
         text: "Cancelada",
       },
       expired: {
-        color: "bg-orange-900/20 text-orange-300 border-orange-800/30",
-        dot: "bg-orange-400",
+        color: "bg-orange-100 text-orange-700 border-orange-200 dark:bg-orange-900/20 dark:text-orange-300 dark:border-orange-800/30",
+        dot: "bg-orange-500 dark:bg-orange-400",
         icon: X,
         text: "Expirada",
       },
@@ -548,29 +548,29 @@ const SessionDetailView: React.FC<Props> = ({
 
   const occupancyColor =
     occupancyPct > 90
-      ? { bar: "bg-red-500", text: "text-red-400" }
+      ? { bar: "bg-red-500", text: "text-red-600 dark:text-red-400" }
       : occupancyPct >= 70
-      ? { bar: "bg-orange-500", text: "text-orange-400" }
-      : { bar: "bg-emerald-500", text: "text-emerald-400" };
+      ? { bar: "bg-orange-500", text: "text-orange-600 dark:text-orange-400" }
+      : { bar: "bg-emerald-500", text: "text-emerald-600 dark:text-emerald-400" };
 
   const isReadOnly =
     session.status === "completed" || session.status === "cancelled";
 
   // ── Badges de tipo y nivel ────────────────────────────────────────────────
   const examTypeBadge: Record<string, string> = {
-    placement: "bg-purple-900/30 text-purple-300 border-purple-700/40",
-    progress: "bg-blue-900/30 text-blue-300 border-blue-700/40",
-    final: "bg-orange-900/30 text-orange-300 border-orange-700/40",
-    practice: "bg-teal-900/30 text-teal-300 border-teal-700/40",
+    placement: "bg-purple-100 text-purple-700 border-purple-200 dark:bg-purple-900/30 dark:text-purple-300 dark:border-purple-700/40",
+    progress: "bg-blue-100 text-blue-700 border-blue-200 dark:bg-blue-900/30 dark:text-blue-300 dark:border-blue-700/40",
+    final: "bg-orange-100 text-orange-700 border-orange-200 dark:bg-orange-900/30 dark:text-orange-300 dark:border-orange-700/40",
+    practice: "bg-teal-100 text-teal-700 border-teal-200 dark:bg-teal-900/30 dark:text-teal-300 dark:border-teal-700/40",
   };
 
   const levelBadge: Record<string, string> = {
     A1: "bg-muted text-muted-foreground border-border",
     A2: "bg-muted text-muted-foreground border-border",
-    B1: "bg-blue-900/30 text-blue-300 border-blue-700/40",
-    B2: "bg-blue-900/30 text-blue-300 border-blue-700/40",
-    C1: "bg-purple-900/30 text-purple-300 border-purple-700/40",
-    C2: "bg-purple-900/30 text-purple-300 border-purple-700/40",
+    B1: "bg-blue-100 text-blue-700 border-blue-200 dark:bg-blue-900/30 dark:text-blue-300 dark:border-blue-700/40",
+    B2: "bg-blue-100 text-blue-700 border-blue-200 dark:bg-blue-900/30 dark:text-blue-300 dark:border-blue-700/40",
+    C1: "bg-purple-100 text-purple-700 border-purple-200 dark:bg-purple-900/30 dark:text-purple-300 dark:border-purple-700/40",
+    C2: "bg-purple-100 text-purple-700 border-purple-200 dark:bg-purple-900/30 dark:text-purple-300 dark:border-purple-700/40",
   };
 
   // ── Fetch de resultados ───────────────────────────────────────────────────
@@ -637,14 +637,40 @@ const SessionDetailView: React.FC<Props> = ({
     }
   };
 
-  // ── Handler para expandir detalle de un resultado ────────────────────────
-  const handleSelectResult = async (result: SessionResult) => {
-    // Toggle off si se hace click en la misma fila
-    if (selectedResultId === result.id) {
-      setSelectedResultId(null);
-      setDetailData(null);
-      return;
+  // ── Extender tiempo ──────────────────────────────────────────────────────
+  const handleExtendSession = useCallback(async (minutes: number) => {
+    if (extendingSession) return;
+    setShowExtendMenu(false);
+    setExtendingSession(true);
+    try {
+      await examService.extendSession(session._id as string, minutes);
+      toast.success(`Tiempo extendido por ${minutes} minutos`);
+    } catch {
+      toast.error('Error al extender el tiempo de la sesión');
+    } finally {
+      setExtendingSession(false);
     }
+  }, [session._id, extendingSession]);
+
+  useEffect(() => {
+    if (!showExtendMenu) return;
+    const handleClick = (e: MouseEvent) => {
+      if (extendMenuRef.current && !extendMenuRef.current.contains(e.target as Node)) {
+        setShowExtendMenu(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClick);
+    return () => document.removeEventListener('mousedown', handleClick);
+  }, [showExtendMenu]);
+
+  // ── Handler para abrir modal de detalle ──────────────────────────────────
+  const closeModal = () => {
+    setSelectedResultId(null);
+    setDetailData(null);
+    setDetailError(null);
+  };
+
+  const handleSelectResult = async (result: SessionResult) => {
     setSelectedResultId(result.id);
     setDetailData(null);
     setDetailError(null);
@@ -672,10 +698,10 @@ const SessionDetailView: React.FC<Props> = ({
   // ── Helpers de tabla de resultados ───────────────────────────────────────
   const getScoreColor = (pct: number) =>
     pct >= 70
-      ? "text-emerald-400"
+      ? "text-emerald-600 dark:text-emerald-400"
       : pct >= 50
-      ? "text-orange-400"
-      : "text-red-400";
+      ? "text-orange-600 dark:text-orange-400"
+      : "text-red-600 dark:text-red-400";
 
   const getScoreBarColor = (pct: number) =>
     pct >= 70 ? "bg-emerald-500" : pct >= 50 ? "bg-orange-500" : "bg-red-500";
@@ -686,15 +712,15 @@ const SessionDetailView: React.FC<Props> = ({
   > = {
     completed: {
       label: "Completado",
-      cls: "bg-emerald-900/30 text-emerald-300 border-emerald-700/40",
+      cls: "bg-emerald-100 text-emerald-700 border-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-300 dark:border-emerald-700/40",
     },
     partial: {
       label: "Parcial",
-      cls: "bg-orange-900/30 text-orange-300 border-orange-700/40",
+      cls: "bg-orange-100 text-orange-700 border-orange-200 dark:bg-orange-900/30 dark:text-orange-300 dark:border-orange-700/40",
     },
     pending_ai_review: {
       label: "Revisión IA",
-      cls: "bg-yellow-900/30 text-yellow-300 border-yellow-700/40",
+      cls: "bg-yellow-100 text-yellow-700 border-yellow-200 dark:bg-yellow-900/30 dark:text-yellow-300 dark:border-yellow-700/40",
     },
   };
 
@@ -709,7 +735,7 @@ const SessionDetailView: React.FC<Props> = ({
             onClick={onBack}
             variant="outline"
             size="sm"
-            className="mt-0.5 shrink-0 border-line text-muted-foreground hover:text-foreground hover:bg-muted"
+            className="mt-0.5 shrink-0 border-border text-muted-foreground hover:text-foreground hover:bg-muted"
             aria-label="Volver atrás"
           >
             <ArrowLeft className="w-4 h-4" />
@@ -737,11 +763,40 @@ const SessionDetailView: React.FC<Props> = ({
         </div>
 
         {!isReadOnly && (
-          <div className="flex gap-2 shrink-0 pl-10 sm:pl-0">
+          <div className="flex gap-2 shrink-0 pl-10 sm:pl-0 flex-wrap">
+            {(session.status === 'in_progress' || session.status === 'scheduled') && (
+              <div className="relative" ref={extendMenuRef}>
+                <Button
+                  onClick={() => setShowExtendMenu(v => !v)}
+                  disabled={extendingSession}
+                  size="sm"
+                  className="bg-emerald-600 hover:bg-emerald-700 text-white"
+                >
+                  {extendingSession
+                    ? <Loader2 className="w-4 h-4 mr-1.5 animate-spin" />
+                    : <Plus className="w-4 h-4 mr-1.5" />
+                  }
+                  {extendingSession ? 'Extendiendo...' : 'Extender'}
+                </Button>
+                {showExtendMenu && (
+                  <div className="absolute right-0 top-full mt-1 z-50 bg-card border border-border rounded-lg shadow-xl py-1 min-w-[140px]">
+                    {[15, 30, 45, 60].map((min) => (
+                      <button
+                        key={min}
+                        onClick={() => handleExtendSession(min)}
+                        className="w-full text-left px-4 py-2 text-sm text-foreground hover:bg-muted transition-colors"
+                      >
+                        +{min} minutos
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
             <Button
               onClick={onManageCandidates}
               size="sm"
-              className="bg-emerald-600 hover:bg-emerald-700 text-white"
+              className="bg-brand-blue hover:bg-brand-blue/90 text-white"
               aria-label="Gestionar candidatos"
             >
               <UserPlus className="w-4 h-4 mr-1.5" />
@@ -763,9 +818,9 @@ const SessionDetailView: React.FC<Props> = ({
       {/* ══ Fila 2: 4 metric cards compactas ════════════════════════════════ */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         {/* Capacidad */}
-        <div className="bg-box border border-line rounded-xl p-3 flex items-center gap-2.5">
-          <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-blue-900/30 shrink-0">
-            <Users className="w-4 h-4 text-blue-400" />
+        <div className="bg-card border border-border rounded-xl p-3 flex items-center gap-2.5">
+          <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-blue-100 dark:bg-blue-900/30 shrink-0">
+            <Users className="w-4 h-4 text-blue-600 dark:text-blue-400" />
           </div>
           <div className="min-w-0">
             <p className="text-xl font-bold text-foreground leading-none">
@@ -776,9 +831,9 @@ const SessionDetailView: React.FC<Props> = ({
         </div>
 
         {/* Registrados */}
-        <div className="bg-box border border-line rounded-xl p-3 flex items-center gap-2.5">
-          <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-emerald-900/30 shrink-0">
-            <UserPlus className="w-4 h-4 text-emerald-400" />
+        <div className="bg-card border border-border rounded-xl p-3 flex items-center gap-2.5">
+          <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-emerald-100 dark:bg-emerald-900/30 shrink-0">
+            <UserPlus className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
           </div>
           <div className="min-w-0">
             <p className="text-xl font-bold text-foreground leading-none">
@@ -789,9 +844,9 @@ const SessionDetailView: React.FC<Props> = ({
         </div>
 
         {/* Duración de sesión */}
-        <div className="bg-box border border-line rounded-xl p-3 flex items-center gap-2.5">
-          <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-orange-900/30 shrink-0">
-            <Clock className="w-4 h-4 text-orange-400" />
+        <div className="bg-card border border-border rounded-xl p-3 flex items-center gap-2.5">
+          <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-orange-100 dark:bg-orange-900/30 shrink-0">
+            <Clock className="w-4 h-4 text-orange-600 dark:text-orange-400" />
           </div>
           <div className="min-w-0">
             <p className="text-base font-bold text-foreground leading-none">
@@ -802,9 +857,9 @@ const SessionDetailView: React.FC<Props> = ({
         </div>
 
         {/* Promedio */}
-        <div className="bg-box border border-line rounded-xl p-3 flex items-center gap-2.5">
-          <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-purple-900/30 shrink-0">
-            <BarChart3 className="w-4 h-4 text-purple-400" />
+        <div className="bg-card border border-border rounded-xl p-3 flex items-center gap-2.5">
+          <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-purple-100 dark:bg-purple-900/30 shrink-0">
+            <BarChart3 className="w-4 h-4 text-purple-600 dark:text-purple-400" />
           </div>
           <div className="min-w-0">
             <p className="text-xl font-bold text-foreground leading-none">
@@ -821,8 +876,8 @@ const SessionDetailView: React.FC<Props> = ({
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
 
         {/* Columna izquierda (col-span-2): Programación + Configuración en una sola card */}
-        <div className="lg:col-span-2 bg-box border border-line rounded-xl p-4">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:divide-x sm:divide-line">
+        <div className="lg:col-span-2 bg-card border border-border rounded-xl p-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:divide-x sm:divide-border">
 
             {/* Programación */}
             <div className="space-y-3">
@@ -852,7 +907,7 @@ const SessionDetailView: React.FC<Props> = ({
               </div>
 
               {/* Barra de ocupación */}
-              <div className="pt-2 border-t border-line space-y-1.5">
+              <div className="pt-2 border-t border-border space-y-1.5">
                 <div className="flex items-center justify-between text-xs">
                   <span className="text-muted-foreground">Ocupación</span>
                   <span className={`font-semibold ${occupancyColor.text}`}>
@@ -873,7 +928,7 @@ const SessionDetailView: React.FC<Props> = ({
                   />
                 </div>
                 {occupancyPct > 90 && (
-                  <p className="text-xs text-red-400 flex items-center gap-1">
+                  <p className="text-xs text-red-600 dark:text-red-400 flex items-center gap-1">
                     <AlertTriangle className="w-3 h-3" />
                     Capacidad casi agotada
                   </p>
@@ -888,101 +943,77 @@ const SessionDetailView: React.FC<Props> = ({
                 Configuración
               </h2>
 
-              <div className="grid grid-cols-2 gap-2">
+              <div className="space-y-1.5">
                 {/* Proctor */}
-                <div className="flex items-center gap-1.5 bg-muted/40 border border-line rounded-lg px-2.5 py-2">
-                  <Shield
-                    className={`w-3.5 h-3.5 shrink-0 ${
-                      session.settings.requireProctor
-                        ? "text-emerald-400"
-                        : "text-muted-foreground/40"
-                    }`}
-                  />
-                  <div className="min-w-0">
-                    <p className="text-xs text-muted-foreground leading-none">Proctor</p>
-                    <span
-                      className={`text-xs font-medium px-1 py-0.5 rounded ${
-                        session.settings.requireProctor
-                          ? "text-emerald-300"
-                          : "text-red-400"
-                      }`}
-                    >
-                      {session.settings.requireProctor ? "Si" : "No"}
-                    </span>
+                <div className="flex items-center justify-between px-3 py-2 rounded-lg bg-muted/30 border border-border">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <Shield className={`w-3.5 h-3.5 shrink-0 ${session.settings.requireProctor ? "text-blue-500" : "text-muted-foreground/40"}`} />
+                    <div className="min-w-0">
+                      <p className="text-xs font-medium text-foreground leading-none">Proctor</p>
+                      <p className="text-[10px] text-muted-foreground mt-0.5">Supervisor presente</p>
+                    </div>
                   </div>
-                </div>
-
-                {/* Entrada tardía */}
-                <div className="flex items-center gap-1.5 bg-muted/40 border border-line rounded-lg px-2.5 py-2">
-                  <DoorOpen
-                    className={`w-3.5 h-3.5 shrink-0 ${
-                      session.settings.allowLateEntry
-                        ? "text-emerald-400"
-                        : "text-muted-foreground/40"
-                    }`}
-                  />
-                  <div className="min-w-0">
-                    <p className="text-xs text-muted-foreground leading-none">
-                      Tardía
-                    </p>
-                    {session.settings.allowLateEntry ? (
-                      <span className="text-xs font-medium text-emerald-300">
-                        +{session.settings.lateEntryMinutes ?? 0}min
-                      </span>
-                    ) : (
-                      <span className="text-xs font-medium text-red-400">No</span>
-                    )}
-                  </div>
+                  <span className={`text-xs font-semibold px-2 py-0.5 rounded-full border shrink-0 ${
+                    session.settings.requireProctor
+                      ? "bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-900/20 dark:text-blue-300 dark:border-blue-800/30"
+                      : "bg-muted text-muted-foreground border-border"
+                  }`}>
+                    {session.settings.requireProctor ? "Sí" : "No"}
+                  </span>
                 </div>
 
                 {/* Auto-inicio */}
-                <div className="flex items-center gap-1.5 bg-muted/40 border border-line rounded-lg px-2.5 py-2">
-                  <Zap
-                    className={`w-3.5 h-3.5 shrink-0 ${
-                      session.settings.autoStart
-                        ? "text-emerald-400"
-                        : "text-muted-foreground/40"
-                    }`}
-                  />
-                  <div className="min-w-0">
-                    <p className="text-xs text-muted-foreground leading-none">
-                      Auto-inicio
-                    </p>
-                    <span
-                      className={`text-xs font-medium ${
-                        session.settings.autoStart
-                          ? "text-emerald-300"
-                          : "text-red-400"
-                      }`}
-                    >
-                      {session.settings.autoStart ? "Si" : "No"}
-                    </span>
+                <div className="flex items-center justify-between px-3 py-2 rounded-lg bg-muted/30 border border-border">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <Zap className={`w-3.5 h-3.5 shrink-0 ${session.settings.autoStart ? "text-green-500" : "text-muted-foreground/40"}`} />
+                    <div className="min-w-0">
+                      <p className="text-xs font-medium text-foreground leading-none">Inicio automático</p>
+                      <p className="text-[10px] text-muted-foreground mt-0.5">Inicia solo a la hora programada</p>
+                    </div>
                   </div>
+                  <span className={`text-xs font-semibold px-2 py-0.5 rounded-full border shrink-0 ${
+                    session.settings.autoStart
+                      ? "bg-green-50 text-green-700 border-green-200 dark:bg-green-900/20 dark:text-green-300 dark:border-green-800/30"
+                      : "bg-muted text-muted-foreground border-border"
+                  }`}>
+                    {session.settings.autoStart ? "Sí" : "No"}
+                  </span>
                 </div>
 
-                {/* Bloqueo */}
-                <div className="flex items-center gap-1.5 bg-muted/40 border border-line rounded-lg px-2.5 py-2">
-                  <Lock
-                    className={`w-3.5 h-3.5 shrink-0 ${
-                      session.settings.browserLockdown
-                        ? "text-emerald-400"
-                        : "text-muted-foreground/40"
-                    }`}
-                  />
-                  <div className="min-w-0">
-                    <p className="text-xs text-muted-foreground leading-none">
-                      Bloqueo
-                    </p>
-                    <span
-                      className={`text-xs font-medium ${
-                        session.settings.browserLockdown
-                          ? "text-emerald-300"
-                          : "text-red-400"
-                      }`}
-                    >
-                      {session.settings.browserLockdown ? "Activo" : "No"}
-                    </span>
+                {/* Entrada tardía */}
+                <div className="flex items-center justify-between px-3 py-2 rounded-lg bg-muted/30 border border-border">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <DoorOpen className={`w-3.5 h-3.5 shrink-0 ${session.settings.allowLateEntry ? "text-orange-500" : "text-muted-foreground/40"}`} />
+                    <div className="min-w-0">
+                      <p className="text-xs font-medium text-foreground leading-none">Entrada tardía</p>
+                      <p className="text-[10px] text-muted-foreground mt-0.5">
+                        {session.settings.allowLateEntry
+                          ? `Tolerancia de ${session.settings.lateEntryMinutes ?? 0} min`
+                          : "No permitida"}
+                      </p>
+                    </div>
                   </div>
+                  <span className={`text-xs font-semibold px-2 py-0.5 rounded-full border shrink-0 ${
+                    session.settings.allowLateEntry
+                      ? "bg-orange-50 text-orange-700 border-orange-200 dark:bg-orange-900/20 dark:text-orange-300 dark:border-orange-800/30"
+                      : "bg-muted text-muted-foreground border-border"
+                  }`}>
+                    {session.settings.allowLateEntry ? `+${session.settings.lateEntryMinutes ?? 0}min` : "No"}
+                  </span>
+                </div>
+
+                {/* Bloqueo de navegador — no disponible en web */}
+                <div className="flex items-center justify-between px-3 py-2 rounded-lg bg-muted/30 border border-border opacity-50">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <Lock className="w-3.5 h-3.5 shrink-0 text-muted-foreground/40" />
+                    <div className="min-w-0">
+                      <p className="text-xs font-medium text-foreground leading-none">Bloqueo de navegador</p>
+                      <p className="text-[10px] text-muted-foreground mt-0.5">No disponible en navegadores web</p>
+                    </div>
+                  </div>
+                  <span className="text-xs font-semibold px-2 py-0.5 rounded-full border shrink-0 bg-muted text-muted-foreground border-border">
+                    N/D
+                  </span>
                 </div>
               </div>
             </div>
@@ -990,12 +1021,12 @@ const SessionDetailView: React.FC<Props> = ({
         </div>
 
         {/* Columna derecha (col-span-1): Examen vinculado + Stats */}
-        <div className="lg:col-span-1 bg-box border border-line rounded-xl p-4 space-y-4">
+        <div className="lg:col-span-1 bg-card border border-border rounded-xl p-4 space-y-4">
 
           {/* Examen vinculado */}
           <div className="space-y-2.5">
             <h2 className="text-xs font-semibold text-muted-foreground flex items-center gap-1.5">
-              <BookOpen className="w-3.5 h-3.5 text-purple-400" />
+              <BookOpen className="w-3.5 h-3.5 text-purple-600 dark:text-purple-400" />
               Examen vinculado
             </h2>
 
@@ -1030,7 +1061,7 @@ const SessionDetailView: React.FC<Props> = ({
                 </div>
 
                 {session.exam.structure && (
-                  <div className="grid grid-cols-2 gap-2 pt-1 border-t border-line">
+                  <div className="grid grid-cols-2 gap-2 pt-1 border-t border-border">
                     <div className="text-xs">
                       <span className="text-muted-foreground flex items-center gap-1">
                         <Clock className="w-3 h-3" />
@@ -1059,31 +1090,31 @@ const SessionDetailView: React.FC<Props> = ({
 
           {/* Stats — solo si existen */}
           {session.stats && (
-            <div className="space-y-2 pt-3 border-t border-line">
+            <div className="space-y-2 pt-3 border-t border-border">
               <h2 className="text-xs font-semibold text-muted-foreground flex items-center gap-1.5">
-                <BarChart3 className="w-3.5 h-3.5 text-blue-400" />
+                <BarChart3 className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
                 Estadísticas
               </h2>
 
               <div className="grid grid-cols-2 gap-2">
                 {/* Registrados */}
-                <div className="bg-blue-900/15 border border-blue-800/30 rounded-lg p-2">
-                  <p className="text-base font-bold text-blue-300 leading-none">
+                <div className="bg-blue-50 border border-blue-200 dark:bg-blue-900/15 dark:border-blue-800/30 rounded-lg p-2">
+                  <p className="text-base font-bold text-blue-700 dark:text-blue-300 leading-none">
                     {session.stats.totalRegistered ?? 0}
                   </p>
-                  <p className="text-xs text-blue-400 mt-0.5">Registrados</p>
-                  <div className="mt-1.5 h-px rounded-full bg-blue-900/40 overflow-hidden">
+                  <p className="text-xs text-blue-500 dark:text-blue-400 mt-0.5">Registrados</p>
+                  <div className="mt-1.5 h-px rounded-full bg-blue-200 dark:bg-blue-900/40 overflow-hidden">
                     <div className="h-full bg-blue-500 rounded-full" style={{ width: "100%" }} />
                   </div>
                 </div>
 
                 {/* Completados */}
-                <div className="bg-emerald-900/15 border border-emerald-800/30 rounded-lg p-2">
-                  <p className="text-base font-bold text-emerald-300 leading-none">
+                <div className="bg-emerald-50 border border-emerald-200 dark:bg-emerald-900/15 dark:border-emerald-800/30 rounded-lg p-2">
+                  <p className="text-base font-bold text-emerald-700 dark:text-emerald-300 leading-none">
                     {session.stats.totalCompleted ?? 0}
                   </p>
-                  <p className="text-xs text-emerald-400 mt-0.5">Completados</p>
-                  <div className="mt-1.5 h-px rounded-full bg-emerald-900/40 overflow-hidden">
+                  <p className="text-xs text-emerald-600 dark:text-emerald-400 mt-0.5">Completados</p>
+                  <div className="mt-1.5 h-px rounded-full bg-emerald-200 dark:bg-emerald-900/40 overflow-hidden">
                     <div
                       className="h-full bg-emerald-500 rounded-full"
                       style={{
@@ -1102,12 +1133,12 @@ const SessionDetailView: React.FC<Props> = ({
                 </div>
 
                 {/* Abandonados */}
-                <div className="bg-red-900/15 border border-red-800/30 rounded-lg p-2">
-                  <p className="text-base font-bold text-red-300 leading-none">
+                <div className="bg-red-50 border border-red-200 dark:bg-red-900/15 dark:border-red-800/30 rounded-lg p-2">
+                  <p className="text-base font-bold text-red-700 dark:text-red-300 leading-none">
                     {session.stats.totalAbandoned ?? 0}
                   </p>
-                  <p className="text-xs text-red-400 mt-0.5">Abandonados</p>
-                  <div className="mt-1.5 h-px rounded-full bg-red-900/40 overflow-hidden">
+                  <p className="text-xs text-red-500 dark:text-red-400 mt-0.5">Abandonados</p>
+                  <div className="mt-1.5 h-px rounded-full bg-red-200 dark:bg-red-900/40 overflow-hidden">
                     <div
                       className="h-full bg-red-500 rounded-full"
                       style={{
@@ -1126,15 +1157,15 @@ const SessionDetailView: React.FC<Props> = ({
                 </div>
 
                 {/* Promedio */}
-                <div className="bg-purple-900/15 border border-purple-800/30 rounded-lg p-2">
-                  <p className="text-base font-bold text-purple-300 leading-none">
+                <div className="bg-purple-50 border border-purple-200 dark:bg-purple-900/15 dark:border-purple-800/30 rounded-lg p-2">
+                  <p className="text-base font-bold text-purple-700 dark:text-purple-300 leading-none">
                     {session.stats.averageScore != null
                       ? `${session.stats.averageScore.toFixed(1)}%`
                       : "—"}
                   </p>
-                  <p className="text-xs text-purple-400 mt-0.5">Promedio</p>
+                  <p className="text-xs text-purple-500 dark:text-purple-400 mt-0.5">Promedio</p>
                   {session.stats.averageScore != null && (
-                    <div className="mt-1.5 h-px rounded-full bg-purple-900/40 overflow-hidden">
+                    <div className="mt-1.5 h-px rounded-full bg-purple-200 dark:bg-purple-900/40 overflow-hidden">
                       <div
                         className="h-full bg-purple-500 rounded-full"
                         style={{
@@ -1151,16 +1182,16 @@ const SessionDetailView: React.FC<Props> = ({
       </div>
 
       {/* ══ Fila 4: Tabla de resultados (full width) ════════════════════════ */}
-      <div className="bg-box border border-line rounded-xl overflow-hidden">
+      <div className="bg-card border border-border rounded-xl overflow-hidden">
         {/* Card header */}
-        <div className="flex items-center justify-between px-4 py-3 border-b border-line">
+        <div className="flex items-center justify-between px-4 py-3 border-b border-border">
           <div className="flex items-center gap-2">
             <BarChart3 className="w-4 h-4 text-blue-400" />
             <h2 className="text-sm font-semibold text-muted-foreground">
               Resultados de candidatos
             </h2>
             {session.status === "completed" && !resultsLoading && (
-              <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-muted text-muted-foreground border border-line">
+              <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-muted text-muted-foreground border border-border">
                 {results.length}
               </span>
             )}
@@ -1214,7 +1245,7 @@ const SessionDetailView: React.FC<Props> = ({
             <p className="text-sm text-red-400 text-center">{resultsError}</p>
             <button
               onClick={fetchResults}
-              className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg bg-muted hover:bg-muted/80 text-foreground/80 border border-line transition-colors"
+              className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg bg-muted hover:bg-muted/80 text-foreground/80 border border-border transition-colors"
             >
               <RefreshCw className="w-3.5 h-3.5" />
               Reintentar
@@ -1233,9 +1264,9 @@ const SessionDetailView: React.FC<Props> = ({
           <div className="overflow-x-auto">
             <table className="w-full text-xs" role="table" aria-label="Resultados de candidatos">
               <thead>
-                <tr className="border-b border-line">
+                <tr className="border-b border-border">
                   {/* Chevron column */}
-                  <th className="px-2 py-2.5 w-6" aria-label="Expandir" />
+                  <th className="px-2 py-2.5 w-6" aria-label="Ver detalle" />
                   <th className="px-3 py-2.5 text-left text-muted-foreground font-medium w-8">#</th>
                   <th className="px-3 py-2.5 text-left text-muted-foreground font-medium">
                     Candidato
@@ -1274,24 +1305,15 @@ const SessionDetailView: React.FC<Props> = ({
                   const topCompetencies = result.competencyScores.slice(0, 3);
                   const remaining =
                     result.competencyScores.length - topCompetencies.length;
-                  const isExpanded = selectedResultId === result.id;
-
                   return (
                     <React.Fragment key={result.id}>
                       <tr
                         onClick={() => handleSelectResult(result)}
-                        className={`border-b border-line/60 hover:bg-muted/30 transition-colors cursor-pointer${
-                          isExpanded ? " bg-blue-900/10" : ""
-                        }`}
-                        aria-expanded={isExpanded}
+                        className="border-b border-border/60 hover:bg-muted/30 transition-colors cursor-pointer"
                       >
-                        {/* Chevron */}
+                        {/* Ícono ver detalle */}
                         <td className="px-2 py-2.5 text-muted-foreground">
-                          {isExpanded ? (
-                            <ChevronDown className="w-3.5 h-3.5 text-blue-400" />
-                          ) : (
-                            <ChevronRight className="w-3.5 h-3.5" />
-                          )}
+                          <Eye className="w-3.5 h-3.5 text-muted-foreground/50 group-hover:text-muted-foreground transition-colors" />
                         </td>
 
                         {/* # */}
@@ -1349,13 +1371,13 @@ const SessionDetailView: React.FC<Props> = ({
                             {topCompetencies.map((c) => (
                               <span
                                 key={c.competency}
-                                className="inline-flex items-center px-1.5 py-0.5 rounded text-xs bg-muted text-muted-foreground border border-line"
+                                className="inline-flex items-center px-1.5 py-0.5 rounded text-xs bg-muted text-muted-foreground border border-border"
                               >
                                 {c.competency} {c.percentage.toFixed(0)}%
                               </span>
                             ))}
                             {remaining > 0 && (
-                              <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs bg-muted text-muted-foreground border border-line">
+                              <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs bg-muted text-muted-foreground border border-border">
                                 +{remaining}
                               </span>
                             )}
@@ -1365,7 +1387,7 @@ const SessionDetailView: React.FC<Props> = ({
                         {/* Tiempo */}
                         <td className="px-3 py-2.5">
                           <span
-                            className={`font-medium ${timeOverUsed ? "text-orange-400" : "text-foreground/80"}`}
+                            className={`font-medium ${timeOverUsed ? "text-orange-600 dark:text-orange-400" : "text-foreground/80"}`}
                           >
                             {durationMin}min
                           </span>
@@ -1374,7 +1396,7 @@ const SessionDetailView: React.FC<Props> = ({
                         {/* Nivel recomendado */}
                         <td className="px-3 py-2.5">
                           {result.recommendedLevel ? (
-                            <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-xs font-medium bg-muted text-muted-foreground border border-line">
+                            <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-xs font-medium bg-muted text-muted-foreground border border-border">
                               {result.recommendedLevel}
                             </span>
                           ) : (
@@ -1383,27 +1405,72 @@ const SessionDetailView: React.FC<Props> = ({
                         </td>
                       </tr>
 
-                      {/* ── Panel de detalle expandible ─────────────────── */}
-                      {isExpanded && (
-                        <tr key={`detail-${result.id}`}>
-                          <td colSpan={9} className="px-0 py-0 bg-card border-b border-line">
-                            <div className="p-4 space-y-4">
+                    </React.Fragment>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
 
-                              {/* Estado: cargando detalle */}
-                              {detailLoading && (
-                                <div className="flex items-center gap-2 py-6">
-                                  <Loader2 className="w-4 h-4 text-blue-400 animate-spin" />
-                                  <span className="text-sm text-muted-foreground">
-                                    Cargando detalle del examen...
-                                  </span>
-                                </div>
-                              )}
+      {/* ══ Modal de detalle de resultado ════════════════════════════════════ */}
+      {selectedResultId && (() => {
+        const modalResult = results.find(r => r.id === selectedResultId);
+        const statusPill = modalResult ? (resultStatusPill[modalResult.status] ?? resultStatusPill.completed) : null;
+        return (
+          <div
+            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm"
+            onClick={closeModal}
+          >
+            <div
+              className="relative w-full max-w-2xl max-h-[85vh] flex flex-col bg-card border border-border rounded-xl shadow-2xl"
+              onClick={e => e.stopPropagation()}
+            >
+              {/* Header sticky */}
+              <div className="flex items-center justify-between gap-3 px-4 py-3 border-b border-border shrink-0">
+                <div className="flex items-center gap-2.5 flex-wrap min-w-0">
+                  <span className="text-sm font-semibold text-foreground">Detalle del resultado</span>
+                  {modalResult && (
+                    <>
+                      <span className="text-muted-foreground/40">·</span>
+                      <span className="text-sm text-foreground/70 font-medium truncate max-w-[180px]">
+                        {candidateNames[modalResult.candidateId] ?? `...${modalResult.candidateId.slice(-8)}`}
+                      </span>
+                      <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold ${getScoreColor(modalResult.percentage)}`}>
+                        {modalResult.percentage.toFixed(1)}%
+                      </span>
+                      {statusPill && (
+                        <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border ${statusPill.cls}`}>
+                          {statusPill.label}
+                        </span>
+                      )}
+                    </>
+                  )}
+                </div>
+                <Button variant="ghost" size="sm" onClick={closeModal} className="shrink-0 h-7 w-7 p-0">
+                  <X className="w-4 h-4" />
+                </Button>
+              </div>
+
+              {/* Body scrollable */}
+              <div className="overflow-y-auto p-4 space-y-4">
+
+                {/* Estado: cargando detalle */}
+                {detailLoading && (
+                  <div className="flex items-center gap-2 py-6">
+                    <Loader2 className="w-4 h-4 text-blue-600 dark:text-blue-400 animate-spin" />
+                    <span className="text-sm text-muted-foreground">
+                      Cargando detalle del examen...
+                    </span>
+                  </div>
+                )}
 
                               {/* Estado: error al cargar detalle */}
                               {!detailLoading && detailError && (
                                 <div className="flex items-center gap-2 py-4">
-                                  <AlertTriangle className="w-4 h-4 text-red-400" />
-                                  <span className="text-sm text-red-400">{detailError}</span>
+                                  <AlertTriangle className="w-4 h-4 text-red-600 dark:text-red-400" />
+                                  <span className="text-sm text-red-600 dark:text-red-400">{detailError}</span>
                                 </div>
                               )}
 
@@ -1420,7 +1487,7 @@ const SessionDetailView: React.FC<Props> = ({
                                         {detailData.competencyScores.map((cs) => (
                                           <div
                                             key={cs.competency}
-                                            className="bg-muted/50 border border-line rounded-lg px-3 py-2 space-y-1"
+                                            className="bg-muted/50 border border-border rounded-lg px-3 py-2 space-y-1"
                                           >
                                             <div className="flex items-center justify-between gap-2">
                                               <span className="text-xs text-foreground/80 capitalize truncate">
@@ -1450,7 +1517,7 @@ const SessionDetailView: React.FC<Props> = ({
                                             <div className="flex items-center gap-2 text-xs text-muted-foreground">
                                               <span>{cs.totalScore}/{cs.maxScore} pts</span>
                                               {cs.pendingEvaluationCount > 0 && (
-                                                <span className="text-yellow-500">
+                                                <span className="text-yellow-600 dark:text-yellow-500">
                                                   {cs.pendingEvaluationCount} pend.
                                                 </span>
                                               )}
@@ -1463,7 +1530,7 @@ const SessionDetailView: React.FC<Props> = ({
 
                                   {/* Sección 2: Feedback general */}
                                   {detailData.overallFeedback && (
-                                    <div className="bg-muted/40 border border-line rounded-lg px-3 py-2.5">
+                                    <div className="bg-muted/40 border border-border rounded-lg px-3 py-2.5">
                                       <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1">
                                         Retroalimentación general
                                       </p>
@@ -1480,7 +1547,7 @@ const SessionDetailView: React.FC<Props> = ({
                                         <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
                                           Preguntas
                                         </p>
-                                        <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-xs font-medium bg-muted text-muted-foreground border border-line">
+                                        <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-xs font-medium bg-muted text-muted-foreground border border-border">
                                           {detailData.questionResults.length}
                                         </span>
                                       </div>
@@ -1491,18 +1558,18 @@ const SessionDetailView: React.FC<Props> = ({
                                         const methodCls = qr.evaluationMethod === "automatic"
                                           ? "bg-muted/60 text-muted-foreground border-border/40"
                                           : qr.evaluationMethod === "ai_grading"
-                                          ? "bg-blue-900/40 text-blue-300 border-blue-700/40"
-                                          : "bg-orange-900/40 text-orange-300 border-orange-700/40";
+                                          ? "bg-blue-100 text-blue-700 border-blue-200 dark:bg-blue-900/40 dark:text-blue-300 dark:border-blue-700/40"
+                                          : "bg-orange-100 text-orange-700 border-orange-200 dark:bg-orange-900/40 dark:text-orange-300 dark:border-orange-700/40";
                                         const scoreCls = qr.isCorrect === true
-                                          ? "bg-emerald-900/30 text-emerald-300 border-emerald-700/40"
+                                          ? "bg-emerald-100 text-emerald-700 border-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-300 dark:border-emerald-700/40"
                                           : qr.isCorrect === false
-                                          ? "bg-red-900/30 text-red-300 border-red-700/40"
-                                          : "bg-blue-900/30 text-blue-300 border-blue-700/40";
+                                          ? "bg-red-100 text-red-700 border-red-200 dark:bg-red-900/30 dark:text-red-300 dark:border-red-700/40"
+                                          : "bg-blue-100 text-blue-700 border-blue-200 dark:bg-blue-900/30 dark:text-blue-300 dark:border-blue-700/40";
 
                                         return (
-                                          <div key={qr.questionId} className="bg-muted/30 border border-line rounded-xl overflow-hidden">
+                                          <div key={qr.questionId} className="bg-muted/30 border border-border rounded-xl overflow-hidden">
                                             {/* Question header */}
-                                            <div className="flex items-start justify-between gap-3 px-4 py-3 border-b border-line/50">
+                                            <div className="flex items-start justify-between gap-3 px-4 py-3 border-b border-border/50">
                                               <div className="flex items-center gap-2.5 flex-wrap min-w-0">
                                                 <span className="bg-muted text-foreground px-2.5 py-0.5 rounded-full text-xs font-medium shrink-0">
                                                   #{qIdx + 1}
@@ -1518,8 +1585,8 @@ const SessionDetailView: React.FC<Props> = ({
                                                 </span>
                                                 {qr.isCorrect !== undefined && (
                                                   qr.isCorrect
-                                                    ? <CheckCircle className="w-4 h-4 text-emerald-400 shrink-0" />
-                                                    : <X className="w-4 h-4 text-red-400 shrink-0" />
+                                                    ? <CheckCircle className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                                                    : <X className="w-4 h-4 text-red-600 dark:text-red-400 shrink-0" />
                                                 )}
                                               </div>
                                               <span className={`inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-bold border shrink-0 ${scoreCls}`}>
@@ -1531,7 +1598,7 @@ const SessionDetailView: React.FC<Props> = ({
                                             <div className="px-4 py-3 space-y-3">
                                               {/* Context */}
                                               {qr.questionData?.context && (
-                                                <div className="bg-card border border-line rounded-lg px-3 py-2">
+                                                <div className="bg-card border border-border rounded-lg px-3 py-2">
                                                   <p className="text-xs text-muted-foreground italic leading-relaxed">{qr.questionData.context}</p>
                                                 </div>
                                               )}
@@ -1565,31 +1632,31 @@ const SessionDetailView: React.FC<Props> = ({
 
                                               {/* Feedback */}
                                               {qr.feedback && (
-                                                <div className="bg-blue-900/20 border border-blue-700/30 rounded-lg px-3 py-2.5">
-                                                  <p className="text-xs text-blue-300 font-medium mb-0.5">Retroalimentación</p>
-                                                  <p className="text-xs text-blue-200 leading-relaxed">{qr.feedback}</p>
+                                                <div className="bg-blue-50 border border-blue-200 dark:bg-blue-900/20 dark:border-blue-700/30 rounded-lg px-3 py-2.5">
+                                                  <p className="text-xs text-blue-700 dark:text-blue-300 font-medium mb-0.5">Retroalimentación</p>
+                                                  <p className="text-xs text-blue-600 dark:text-blue-200 leading-relaxed">{qr.feedback}</p>
                                                 </div>
                                               )}
 
                                               {/* AI Analysis */}
                                               {qr.aiAnalysis && (qr.aiAnalysis.feedback || (qr.aiAnalysis.suggestions?.length ?? 0) > 0) && (
-                                                <div className="bg-purple-900/20 border border-purple-700/30 rounded-lg px-3 py-2.5 space-y-2">
-                                                  <p className="text-xs text-purple-300 font-medium">Análisis IA</p>
+                                                <div className="bg-purple-50 border border-purple-200 dark:bg-purple-900/20 dark:border-purple-700/30 rounded-lg px-3 py-2.5 space-y-2">
+                                                  <p className="text-xs text-purple-700 dark:text-purple-300 font-medium">Análisis IA</p>
                                                   {qr.aiAnalysis.feedback && (
-                                                    <p className="text-xs text-purple-200 leading-relaxed">{qr.aiAnalysis.feedback}</p>
+                                                    <p className="text-xs text-purple-600 dark:text-purple-200 leading-relaxed">{qr.aiAnalysis.feedback}</p>
                                                   )}
                                                   {qr.aiAnalysis?.criteria && Object.keys(qr.aiAnalysis.criteria).length > 0 && (
                                                     <div className="flex flex-wrap gap-x-3 gap-y-1">
                                                       {Object.entries(qr.aiAnalysis.criteria).map(([key, val]) => (
-                                                        <span key={key} className="text-xs text-purple-300">
-                                                          <span className="capitalize text-purple-400">{key}:</span>{" "}
+                                                        <span key={key} className="text-xs text-purple-700 dark:text-purple-300">
+                                                          <span className="capitalize text-purple-500 dark:text-purple-400">{key}:</span>{" "}
                                                           <span className="font-medium">{typeof val === "number" ? val.toFixed(1) : String(val)}</span>
                                                         </span>
                                                       ))}
                                                     </div>
                                                   )}
                                                   {(qr.aiAnalysis.suggestions?.length ?? 0) > 0 && (
-                                                    <ul className="space-y-0.5 text-xs text-purple-200 list-disc list-inside">
+                                                    <ul className="space-y-0.5 text-xs text-purple-600 dark:text-purple-200 list-disc list-inside">
                                                       {qr.aiAnalysis.suggestions.map((s, i) => <li key={i}>{s}</li>)}
                                                     </ul>
                                                   )}
@@ -1604,17 +1671,10 @@ const SessionDetailView: React.FC<Props> = ({
                                 </>
                               )}
                             </div>
-                          </td>
-                        </tr>
-                      )}
-                    </React.Fragment>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </div>
+                          </div>
+                        </div>
+                      );
+                    })()}
 
       {/* ══ Fila 5: Metadata footer ══════════════════════════════════════════ */}
       <div className="flex flex-wrap gap-x-6 gap-y-1.5 text-xs text-muted-foreground px-1">
@@ -1638,14 +1698,14 @@ const SessionDetailView: React.FC<Props> = ({
         )}
         {session.createdAt && (
           <span className="flex items-center gap-1.5">
-            <span className="text-gray-600">Creacion</span>
-            <span className="text-gray-400">{formatDate(session.createdAt)}</span>
+            <span className="text-muted-foreground/60">Creacion</span>
+            <span className="text-muted-foreground">{formatDate(session.createdAt)}</span>
           </span>
         )}
         {session.updatedAt && (
           <span className="flex items-center gap-1.5">
-            <span className="text-gray-600">Actualizacion</span>
-            <span className="text-gray-400">{formatDate(session.updatedAt)}</span>
+            <span className="text-muted-foreground/60">Actualizacion</span>
+            <span className="text-muted-foreground">{formatDate(session.updatedAt)}</span>
           </span>
         )}
       </div>

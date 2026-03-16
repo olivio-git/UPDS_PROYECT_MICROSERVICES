@@ -5,15 +5,17 @@ import {
   CardContent,
   CardHeader
 } from '@/components/atoms/card';
-import { Progress } from '@/components/atoms/progress';
 import GradientWrapper from '@/components/background/GrandWrapperSection';
 import { MainLayout } from '@/components/layout';
 import { useExamSessionHTTP } from '@/hooks/useExamSessionHTTP';
 import { examResultService } from '@/services/examResultService';
 import { examService } from '@/services/examService';
+import { notificationSocket } from '@/services/notifications/notificationSocket';
 import {
   AlertCircle,
   AlertTriangle,
+  Bookmark,
+  BookmarkCheck,
   CheckCircle,
   ChevronLeft,
   ChevronRight,
@@ -43,6 +45,17 @@ const ExamRunnerHTTP: React.FC = () => {
   // Track which questions are uploading audio
   const [uploadingAudio, setUploadingAudio] = useState<Record<string, boolean>>({});
   const uploadingRef = useRef<Record<string, boolean>>({});
+  // Preguntas marcadas para revisar (solo frontend, no persiste)
+  const [flaggedQuestions, setFlaggedQuestions] = useState<Set<string>>(new Set());
+
+  const toggleFlag = useCallback((questionId: string) => {
+    setFlaggedQuestions(prev => {
+      const next = new Set(prev);
+      if (next.has(questionId)) next.delete(questionId);
+      else next.add(questionId);
+      return next;
+    });
+  }, []);
 
   // Use the new HTTP-only hook with sections support
   const {
@@ -90,6 +103,7 @@ const ExamRunnerHTTP: React.FC = () => {
     goToPreviousQuestion,
 
     performManualSave,
+    addTime,
     formatTime
   } = useExamSessionHTTP({
     sessionId,
@@ -126,9 +140,25 @@ const ExamRunnerHTTP: React.FC = () => {
       }
     },
     onTimeWarning: (minutes) => {
-      toast.warning(`⏰ Quedan ${minutes} minutos`, {
-        duration: 5000,
-      });
+      if (minutes <= 1) {
+        toast.error('Menos de 1 minuto restante', {
+          description: 'Entrega tu examen ahora.',
+          duration: 8000,
+          icon: React.createElement(Timer, { className: 'h-4 w-4' }),
+        });
+      } else if (minutes <= 2) {
+        toast.error(`${minutes} minutos restantes`, {
+          description: 'Termina y entrega tu examen.',
+          duration: 7000,
+          icon: React.createElement(Timer, { className: 'h-4 w-4' }),
+        });
+      } else {
+        toast.warning(`${minutes} minutos restantes`, {
+          description: 'Revisa tus respuestas antes de entregar.',
+          duration: 6000,
+          icon: React.createElement(Timer, { className: 'h-4 w-4' }),
+        });
+      }
     }
   });
 
@@ -216,6 +246,28 @@ const ExamRunnerHTTP: React.FC = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sessionId]); // SOLO sessionId para evitar loops
 
+  // Ensure notificationSocket is connected (Header is hidden during exam, so it must be connected here)
+  useEffect(() => {
+    notificationSocket.connect().catch(() => {});
+  }, []);
+
+  // Listen for admin time extensions via socket
+  useEffect(() => {
+    const handleTimeExtended = (data: any) => {
+      if (data?.sessionId && data.sessionId !== sessionId) return;
+      const extra = Number(data?.extraMinutes) || 0;
+      if (extra > 0) {
+        addTime(extra * 60);
+        toast.success(
+          `El administrador extendió el tiempo por ${extra} minuto${extra !== 1 ? 's' : ''}.`,
+          { duration: 6000 }
+        );
+      }
+    };
+    notificationSocket.on('session.time.extended', handleTimeExtended);
+    return () => { notificationSocket.off('session.time.extended', handleTimeExtended); };
+  }, [sessionId, addTime]);
+
   const handleAnswerChange = useCallback(async (questionIdOrAnswer: any, answer?: any) => {
     if (!currentQuestion) return;
 
@@ -275,7 +327,7 @@ const ExamRunnerHTTP: React.FC = () => {
   // Completion state - show completion UI
   if (examCompleting || sessionStatus === 'completed') {
     return (
-      <MainLayout>
+      <MainLayout hideHeader>
         <div className="min-h-screen flex items-center justify-center">
           <GradientWrapper intensity="medium" size="lg">
             <Card className="w-full max-w-md bg-box backdrop-blur-sm border border-line">
@@ -305,7 +357,7 @@ const ExamRunnerHTTP: React.FC = () => {
   // Loading state during initialization
   if (initializingExam || (loading && !isActive)) {
     return (
-      <MainLayout>
+      <MainLayout hideHeader>
         <div className="min-h-screen flex items-center justify-center">
           <GradientWrapper intensity="medium" size="lg">
             <Card className="w-full max-w-md bg-box backdrop-blur-sm border border-line">
@@ -330,7 +382,7 @@ const ExamRunnerHTTP: React.FC = () => {
   // Error state
   if (error) {
     return (
-      <MainLayout>
+      <MainLayout hideHeader>
         <div className="min-h-screen flex items-center justify-center">
           <GradientWrapper intensity="medium" size="lg">
             <Card className="w-full max-w-md bg-box backdrop-blur-sm border border-line">
@@ -356,7 +408,7 @@ const ExamRunnerHTTP: React.FC = () => {
   // Not active state (shouldn't happen with proper initialization)
   if (!isActive) {
     return (
-      <MainLayout>
+      <MainLayout hideHeader>
         <div className="min-h-screen flex items-center justify-center">
           <GradientWrapper intensity="medium" size="lg">
             <Card className="w-full max-w-md bg-box backdrop-blur-sm border border-line">
@@ -384,15 +436,15 @@ const ExamRunnerHTTP: React.FC = () => {
 
   // Main exam interface
   return (
-    <MainLayout>
+    <MainLayout hideHeader>
       {/* ── Finish Exam confirmation modal ─────────────────────────────────── */}
       {showFinishConfirm && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
           <div className="bg-card border border-border rounded-2xl shadow-2xl w-full max-w-sm p-6 space-y-4">
             <div className="flex items-start justify-between">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-emerald-900/40 border border-emerald-700/50 flex items-center justify-center">
-                  <Flag className="h-5 w-5 text-emerald-400" />
+                <div className="w-10 h-10 rounded-full bg-emerald-50 dark:bg-emerald-900/40 border border-emerald-200 dark:border-emerald-700/50 flex items-center justify-center">
+                  <Flag className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
                 </div>
                 <div>
                   <h3 className="text-base font-semibold text-foreground">Finalizar examen</h3>
@@ -419,8 +471,14 @@ const ExamRunnerHTTP: React.FC = () => {
                 />
               </div>
               {answeredCount < totalQuestions && (
-                <p className="text-xs text-amber-400 pt-1">
+                <p className="text-xs text-amber-600 dark:text-amber-400 pt-1">
                   Tienes {totalQuestions - answeredCount} pregunta{totalQuestions - answeredCount !== 1 ? "s" : ""} sin responder. Las preguntas omitidas cuentan como 0 puntos.
+                </p>
+              )}
+              {flaggedQuestions.size > 0 && (
+                <p className="text-xs text-amber-600 dark:text-amber-400 pt-1 flex items-center gap-1.5">
+                  <Bookmark className="h-3 w-3 shrink-0" />
+                  Tienes {flaggedQuestions.size} pregunta{flaggedQuestions.size !== 1 ? 's' : ''} marcada{flaggedQuestions.size !== 1 ? 's' : ''} para revisar.
                 </p>
               )}
             </div>
@@ -454,9 +512,17 @@ const ExamRunnerHTTP: React.FC = () => {
               {/* Section Navigator - Top on mobile/tablet, sidebar on desktop */}
               <div className="xl:col-span-1 order-2 xl:order-1">
                 <SectionNavigator
-                  sections={sectionStats}
+                  sections={sectionStats.map(section => ({
+                    ...section,
+                    questionStates: section.questionStates.map(q => ({
+                      ...q,
+                      flagged: flaggedQuestions.has(q.id),
+                    })),
+                  }))}
                   currentSectionIndex={currentSectionIndex}
+                  currentQuestionIndex={currentQuestionIndex}
                   onSectionChange={navigateToSection}
+                  onQuestionJump={navigateToQuestionInSection}
                   className="xl:sticky xl:top-4"
                 />
               </div>
@@ -470,36 +536,47 @@ const ExamRunnerHTTP: React.FC = () => {
                 <div className="flex items-center justify-between">
                   {/* Timer */}
                   <div className="flex items-center gap-3">
-                    <div className={`flex items-center gap-2 px-3 py-1.5 rounded-xl border font-mono text-base font-semibold ${
+                    <div className={`flex items-center gap-2 px-3 py-2 rounded-xl border font-mono text-sm font-bold tabular-nums tracking-wider transition-all duration-500 ${
                       timeRemaining && timeRemaining < 300
-                        ? 'border-red-700/60 bg-red-900/20 text-red-300'
+                        ? 'border-red-500 bg-red-500 text-white animate-pulse'
                         : timeRemaining && timeRemaining < 600
-                        ? 'border-amber-700/60 bg-amber-900/20 text-amber-300'
-                        : 'border-line bg-muted/50 text-foreground'
+                        ? 'border-amber-400 dark:border-amber-500 bg-amber-400 dark:bg-amber-500 text-white'
+                        : 'border-border bg-muted/60 text-foreground'
                     }`}>
-                      <Timer className="h-4 w-4 opacity-70" />
-                      {timeRemaining ? formatTime(timeRemaining) : '--:--'}
+                      <Timer className={`h-4 w-4 shrink-0 ${timeRemaining && timeRemaining < 300 ? 'opacity-100' : 'opacity-60'}`} />
+                      <span>{timeRemaining ? formatTime(timeRemaining) : '--:--'}</span>
                     </div>
 
-                    {/* Autosave indicator */}
-                    {autoSaveStatus === 'saving' && (
-                      <div className="flex items-center gap-1 text-blue-400 text-xs">
-                        <Loader2 className="h-3 w-3 animate-spin" />
-                        Guardando...
-                      </div>
-                    )}
-                    {autoSaveStatus === 'saved' && (
-                      <div className="flex items-center gap-1 text-emerald-400 text-xs">
-                        <CheckCircle className="h-3 w-3" />
-                        Guardado
-                      </div>
-                    )}
-                    {autoSaveStatus === 'error' && (
-                      <div className="flex items-center gap-1 text-red-400 text-xs">
-                        <AlertCircle className="h-3 w-3" />
-                        Error al guardar
-                      </div>
-                    )}
+                    {/* Autosave indicator — estilo Google Docs */}
+                    <div className="flex items-center gap-1.5 text-xs w-[100px]">
+                      {autoSaveStatus === 'dirty' && (
+                        <>
+                          <span className="relative flex h-2 w-2 shrink-0">
+                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75" />
+                            <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-400" />
+                          </span>
+                          <span className="text-amber-400/80">Sin guardar</span>
+                        </>
+                      )}
+                      {autoSaveStatus === 'saving' && (
+                        <>
+                          <Loader2 className="h-3 w-3 animate-spin text-muted-foreground shrink-0" />
+                          <span className="text-muted-foreground">Guardando...</span>
+                        </>
+                      )}
+                      {autoSaveStatus === 'saved' && (
+                        <>
+                          <CheckCircle className="h-3 w-3 text-emerald-400 shrink-0" />
+                          <span className="text-emerald-400">Guardado</span>
+                        </>
+                      )}
+                      {autoSaveStatus === 'error' && (
+                        <>
+                          <AlertCircle className="h-3 w-3 text-red-400 shrink-0" />
+                          <span className="text-red-400">Error al guardar</span>
+                        </>
+                      )}
+                    </div>
                   </div>
 
                   {/* Right: progress count + save button */}
@@ -513,45 +590,25 @@ const ExamRunnerHTTP: React.FC = () => {
                       onClick={handleManualSave}
                       variant="outline"
                       size="sm"
-                      disabled={autoSaveStatus === 'saving'}
+                      disabled={autoSaveStatus === 'saving' || autoSaveStatus === 'idle'}
                       className='text-foreground/80 bg-transparent border-line hover:bg-muted hover:text-foreground disabled:opacity-40 disabled:cursor-not-allowed gap-1.5'
                     >
                       <Save className="h-3.5 w-3.5" />
-                      Guardar
+                      Guardar avance
                     </Button>
                   </div>
                 </div>
 
-                {/* Progress bars */}
-                <div className="mt-4 space-y-2.5">
-                  {/* Overall progress */}
-                  <div>
-                    <div className="flex items-center justify-between mb-1.5">
-                      <span className="text-xs text-muted-foreground">
-                        Pregunta {currentQuestionIndex + 1} de {totalQuestions}
-                      </span>
-                      <span className="text-xs text-muted-foreground">
-                        {Math.round(overallProgress * 100)}% completado
-                      </span>
-                    </div>
-                    <Progress value={overallProgress * 100} className="h-1.5" />
+                {/* Section + question indicator */}
+                {currentSection && (
+                  <div className="mt-3 flex items-center gap-1.5 text-xs text-muted-foreground">
+                    <span className="font-medium text-foreground/70">{currentSection.name}</span>
+                    <span>·</span>
+                    <span>Pregunta {currentQuestionIndex + 1} de {currentSection.questions.length}</span>
+                    <span className="mx-1 text-border">|</span>
+                    <span>{answeredCount} de {totalQuestions} respondidas</span>
                   </div>
-
-                  {/* Current section progress */}
-                  {currentSection && (
-                    <div>
-                      <div className="flex items-center justify-between mb-1.5">
-                        <span className="text-xs text-blue-400/80">
-                          {currentSection.name} · {currentSection.competency}
-                        </span>
-                        <span className="text-xs text-blue-400/80">
-                          {Math.round(sectionProgress * 100)}% de sección
-                        </span>
-                      </div>
-                      <Progress value={sectionProgress * 100} className="h-1 bg-blue-900/30" />
-                    </div>
-                  )}
-                </div>
+                )}
               </CardHeader>
             </Card>
 
@@ -559,22 +616,41 @@ const ExamRunnerHTTP: React.FC = () => {
             <Card className="mb-6 bg-box border border-line">
               <CardContent className="p-6">
                 {currentQuestion ? (
-                  <QuestionRenderer
-                    key={currentQuestion._id as string}
-                    question={currentQuestion}
-                    answer={answers[currentQuestion._id]}
-                    onChange={handleAnswerChange}
-                    showQuestionNumber={true}
-                    questionNumber={currentQuestionIndex + 1}
-                    totalQuestions={totalQuestions}
-                    isUploadingAudio={uploadingAudio[currentQuestion._id as string] ?? false}
-                    sectionInfo={currentSection ? {
-                      name: currentSection.name,
-                      competency: currentSection.competency,
-                      questionIndex: currentQuestionIndex - sections.slice(0, currentSectionIndex).reduce((sum, section) => sum + section.questions.length, 0),
-                      totalQuestionsInSection: currentSection.questions.length
-                    } : undefined}
-                  />
+                  <div key={currentQuestion._id as string} className="question-enter">
+                    {/* Flag button */}
+                    <div className="flex justify-end mb-3">
+                      <button
+                        onClick={() => toggleFlag(currentQuestion._id as string)}
+                        className={[
+                          'flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all border',
+                          flaggedQuestions.has(currentQuestion._id as string)
+                            ? 'border-amber-400 dark:border-amber-500 text-amber-600 dark:text-amber-400 hover:bg-muted'
+                            : 'border-border text-muted-foreground hover:bg-muted hover:text-foreground',
+                        ].join(' ')}
+                      >
+                        {flaggedQuestions.has(currentQuestion._id as string)
+                          ? <><BookmarkCheck className="h-3.5 w-3.5 text-amber-500 fill-amber-500/20" /><span>Marcada para revisar</span></>
+                          : <><Bookmark className="h-3.5 w-3.5" /><span>Marcar para revisar</span></>
+                        }
+                      </button>
+                    </div>
+                    <QuestionRenderer
+                      key={currentQuestion._id as string}
+                      question={currentQuestion}
+                      answer={answers[currentQuestion._id]}
+                      onChange={handleAnswerChange}
+                      showQuestionNumber={true}
+                      questionNumber={currentQuestionIndex + 1}
+                      totalQuestions={totalQuestions}
+                      isUploadingAudio={uploadingAudio[currentQuestion._id as string] ?? false}
+                      sectionInfo={currentSection ? {
+                        name: currentSection.name,
+                        competency: currentSection.competency,
+                        questionIndex: currentQuestionIndex - sections.slice(0, currentSectionIndex).reduce((sum, section) => sum + section.questions.length, 0),
+                        totalQuestionsInSection: currentSection.questions.length
+                      } : undefined}
+                    />
+                  </div>
                 ) : (
                   <div className="text-center py-8">
                     <AlertCircle className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
