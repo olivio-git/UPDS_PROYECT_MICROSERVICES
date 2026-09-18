@@ -8,7 +8,6 @@ export { default as QuestionRenderer } from './QuestionRenderer';
 export { default as SectionNavigator } from './SectionNavigator';
 export { default as SectionedQuestionRenderer } from './SectionedQuestionRenderer';
 export { default as SectionedExamRenderer } from './SectionedExamRenderer';
-export { default as SectionedExamExample } from './SectionedExamExample';
 
 // Export types
 export type { 

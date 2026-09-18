@@ -2,7 +2,6 @@
 // import { Home, Users, TestTube, BookOpen, Palette, Zap, HelpCircle, FileText, Settings, BarChart3, Award } from "lucide-react";
 // import DashboardScreen from "@/modules/dashboard/screens/DashboardScreen";
 // import TestingScreen from "@/modules/testing/screens/TestingScreen";
-// import GradientShowcaseScreen from "@/modules/examples/GradientShowcaseScreen";
 // import GradientTestScreen from "@/modules/testing/screens/GradientTestScreen";
 // import QuestionsScreen from "@/modules/exams/screens/QuestionsScreen";
 // import ExamsScreen from "@/modules/exams/screens/ExamsScreen";
