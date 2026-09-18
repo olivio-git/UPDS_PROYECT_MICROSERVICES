@@ -18,11 +18,16 @@ const firstString = (...values: unknown[]): string => {
   return '';
 };
 
-/** Older records stored the response as a JSON string. */
+/**
+ * Older records stored structured responses as a JSON string. Only accept the
+ * parse when it yields an object: a free-text answer such as "42" or "true" is
+ * valid JSON too, and must stay the text the candidate wrote.
+ */
 function parseResponse(raw: unknown): unknown {
   if (typeof raw !== 'string') return raw;
   try {
-    return JSON.parse(raw);
+    const parsed: unknown = JSON.parse(raw);
+    return parsed !== null && typeof parsed === 'object' ? parsed : raw;
   } catch {
     return raw;
   }
@@ -178,8 +183,10 @@ const ordering: Renderer = (response, data) => {
 
 const dragDrop: Renderer = (response, data) => {
   // positions: { [itemId]: zoneIndex }
+  // Zone indexes may be stored as numbers or numeric strings.
   const positions = Object.entries(asRecord(asRecord(response).positions))
-    .filter((entry): entry is [string, number] => typeof entry[1] === 'number')
+    .map(([itemId, zone]) => [itemId, Number(zone)] as const)
+    .filter(([, zone]) => Number.isInteger(zone))
     .sort(([, a], [, b]) => a - b);
   if (positions.length === 0) return <Empty />;
   const items = data?.items ?? [];
@@ -234,7 +241,7 @@ const audio: Renderer = (response) => {
       {url && (
         <div className="bg-muted/40 border border-border rounded-lg p-2.5">
           <p className="text-xs text-muted-foreground mb-1.5">🔊 Audio del candidato</p>
-          <audio controls className="w-full">
+          <audio controls className="w-full dark:[color-scheme:dark]">
             <source src={url} type="audio/webm" />
             <source src={url} />
           </audio>

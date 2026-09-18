@@ -1,13 +1,31 @@
-import { scoreBadgeClass } from '@/lib/scoreBands';
+import { competencyBadgeClass } from '@/lib/competency';
+import { scoreBadgeClass, scoreBarClass } from '@/lib/scoreBands';
 import { cn } from '@/lib/utils';
-import { CheckCircle, MessageSquare, X } from 'lucide-react';
+import { CheckCircle, X } from 'lucide-react';
+import { QuestionMedia } from './QuestionMedia';
 import { QuestionResponseView } from './QuestionResponseView';
 import type { EvaluationMethod, ReviewQuestionResult } from './types';
 
-const METHOD_LABEL: Record<EvaluationMethod, string> = {
-  automatic: 'Automática',
-  ai_grading: 'IA',
-  manual: 'Manual',
+const TYPE_LABEL: Record<string, string> = {
+  multiple_choice: 'Opción múltiple',
+  single_choice: 'Opción única',
+  true_false: 'V/F',
+  fill_blanks: 'Completar',
+  fill_blank: 'Completar',
+  matching: 'Emparejar',
+  ordering: 'Ordenar',
+  drag_drop: 'Arrastrar',
+  essay: 'Ensayo',
+  open_text: 'Texto',
+  audio_response: 'Audio',
+  speaking: 'Speaking',
+  file_upload: 'Archivo',
+};
+
+const METHOD: Record<EvaluationMethod, { label: string; className: string }> = {
+  automatic: { label: 'Automática', className: 'bg-muted/60 text-muted-foreground border-border/40' },
+  ai_grading: { label: 'IA', className: 'bg-blue-100 text-blue-700 border-blue-200 dark:bg-blue-900/40 dark:text-blue-300 dark:border-blue-700/40' },
+  manual: { label: 'Manual', className: 'bg-orange-100 text-orange-700 border-orange-200 dark:bg-orange-900/40 dark:text-orange-300 dark:border-orange-700/40' },
 };
 
 interface QuestionResultCardProps {
@@ -17,67 +35,82 @@ interface QuestionResultCardProps {
   showEvaluationMethod?: boolean;
 }
 
-/** One graded question: header with score, question text, the answer, and any feedback. */
+/** One graded question: header with score, the question as presented, the answer, and feedback. */
 export function QuestionResultCard({ index, result, showEvaluationMethod = false }: QuestionResultCardProps) {
   const data = result.questionData;
   const type = result.questionType ?? data?.questionType;
   const competency = result.competency ?? data?.competency;
-  const percentage = result.maxScore > 0 ? Math.round((result.score / result.maxScore) * 100) : 0;
-  const suggestions = result.aiAnalysis?.suggestions ?? [];
+  const percentage = result.maxScore > 0 ? (result.score / result.maxScore) * 100 : 0;
+  const method = showEvaluationMethod && result.evaluationMethod ? METHOD[result.evaluationMethod] : undefined;
+  const ai = result.aiAnalysis;
+  const criteria = Object.entries(ai?.criteria ?? {});
+  const suggestions = ai?.suggestions ?? [];
 
   return (
-    <article className="rounded-lg border border-border overflow-hidden">
-      <header className="flex items-start justify-between gap-2 px-3 py-2 bg-muted/30 border-b border-border/50">
-        <div className="flex items-center gap-2 min-w-0">
-          <span className="text-xs font-bold text-muted-foreground shrink-0">#{index + 1}</span>
-          {type && (
-            <span className="text-xs bg-muted text-muted-foreground border border-border px-1.5 py-0.5 rounded-full shrink-0">
-              {type.replace(/_/g, ' ')}
+    <article className="bg-muted/30 border border-border rounded-xl overflow-hidden">
+      <header className="flex items-start justify-between gap-3 px-4 py-3 border-b border-border/50">
+        <div className="flex items-center gap-2 flex-wrap min-w-0">
+          <span className="bg-muted text-foreground px-2.5 py-0.5 rounded-full text-xs font-medium shrink-0">#{index + 1}</span>
+          {type && <span className="text-xs text-foreground/80 font-medium">{TYPE_LABEL[type] ?? type.replace(/_/g, ' ')}</span>}
+          {competency && (
+            <span className={cn('inline-flex items-center px-2 py-0.5 rounded border text-xs capitalize', competencyBadgeClass(competency))}>
+              {competency}
             </span>
           )}
-          {competency && <span className="text-xs text-muted-foreground capitalize truncate">{competency}</span>}
-          {showEvaluationMethod && result.evaluationMethod && (
-            <span className="text-[10px] text-muted-foreground shrink-0">· {METHOD_LABEL[result.evaluationMethod]}</span>
+          {method && (
+            <span className={cn('inline-flex items-center px-2 py-0.5 rounded border text-xs', method.className)}>{method.label}</span>
           )}
+          {result.isCorrect === true && <CheckCircle className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" aria-label="Correcta" />}
+          {result.isCorrect === false && <X className="w-4 h-4 text-red-600 dark:text-red-400 shrink-0" aria-label="Incorrecta" />}
         </div>
-        <div className="flex items-center gap-1.5 shrink-0">
-          <span className={cn('inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold border', scoreBadgeClass(percentage))}>
-            {result.score}/{result.maxScore}
-          </span>
-          {result.isCorrect === true && <CheckCircle className="h-3.5 w-3.5 text-emerald-500" aria-label="Correcta" />}
-          {result.isCorrect === false && <X className="h-3.5 w-3.5 text-red-500" aria-label="Incorrecta" />}
-        </div>
+        <span className={cn('inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-bold border shrink-0', scoreBadgeClass(percentage))}>
+          {result.score}/{result.maxScore}
+        </span>
       </header>
 
-      <div className="px-3 py-2.5 space-y-2">
-        {data?.questionText && <p className="text-xs text-foreground leading-relaxed">{data.questionText}</p>}
+      <div className="px-4 py-3 space-y-3">
+        {data?.context && (
+          <div className="bg-card border border-border rounded-lg px-3 py-2">
+            <p className="text-xs text-muted-foreground italic leading-relaxed">{data.context}</p>
+          </div>
+        )}
+        {data?.instructions && <p className="text-xs text-muted-foreground">{data.instructions}</p>}
+        {data?.questionText && <p className="text-sm text-foreground font-medium leading-snug">{data.questionText}</p>}
+        <QuestionMedia data={data} />
 
-        <div className="space-y-0.5">
-          <p className="text-xs text-muted-foreground font-medium">Respuesta del estudiante</p>
+        <div>
+          <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1.5">Respuesta del candidato</p>
           <QuestionResponseView questionType={type} response={result.response} questionData={data} />
         </div>
 
+        <div className="h-1 w-full rounded-full bg-muted overflow-hidden" aria-hidden>
+          <div className={cn('h-full rounded-full transition-all', scoreBarClass(percentage))} style={{ width: `${Math.min(percentage, 100)}%` }} />
+        </div>
+
         {result.feedback && (
-          <div className="rounded bg-blue-50 border border-blue-200 dark:bg-blue-900/15 dark:border-blue-800/30 px-2.5 py-1.5">
-            <p className="text-xs text-blue-700 dark:text-blue-300 flex items-start gap-1.5">
-              <MessageSquare className="h-3 w-3 shrink-0 mt-0.5" />
-              {result.feedback}
-            </p>
+          <div className="bg-blue-50 border border-blue-200 dark:bg-blue-900/20 dark:border-blue-700/30 rounded-lg px-3 py-2.5">
+            <p className="text-xs text-blue-700 dark:text-blue-300 font-medium mb-0.5">Retroalimentación</p>
+            <p className="text-xs text-blue-600 dark:text-blue-200 leading-relaxed">{result.feedback}</p>
           </div>
         )}
 
-        {result.aiAnalysis?.feedback && (
-          <div className="rounded bg-purple-50 border border-purple-200 dark:bg-purple-900/15 dark:border-purple-800/30 px-2.5 py-2 space-y-1.5">
-            <p className="text-xs font-semibold text-purple-700 dark:text-purple-300">Análisis</p>
-            <p className="text-xs text-purple-600 dark:text-purple-400 leading-relaxed">{result.aiAnalysis.feedback}</p>
-            {suggestions.length > 0 && (
-              <ul className="space-y-0.5">
-                {suggestions.map((s, i) => (
-                  <li key={i} className="text-xs text-purple-600 dark:text-purple-400 flex items-start gap-1">
-                    <span className="shrink-0 mt-0.5">•</span>
-                    <span>{s}</span>
-                  </li>
+        {ai && (ai.feedback || suggestions.length > 0) && (
+          <div className="bg-purple-50 border border-purple-200 dark:bg-purple-900/20 dark:border-purple-700/30 rounded-lg px-3 py-2.5 space-y-2">
+            <p className="text-xs text-purple-700 dark:text-purple-300 font-medium">Análisis IA</p>
+            {ai.feedback && <p className="text-xs text-purple-600 dark:text-purple-200 leading-relaxed">{ai.feedback}</p>}
+            {criteria.length > 0 && (
+              <div className="flex flex-wrap gap-x-3 gap-y-1">
+                {criteria.map(([key, value]) => (
+                  <span key={key} className="text-xs text-purple-700 dark:text-purple-300">
+                    <span className="capitalize text-purple-500 dark:text-purple-400">{key}:</span>{' '}
+                    <span className="font-medium">{typeof value === 'number' ? value.toFixed(1) : String(value)}</span>
+                  </span>
                 ))}
+              </div>
+            )}
+            {suggestions.length > 0 && (
+              <ul className="space-y-0.5 text-xs text-purple-600 dark:text-purple-200 list-disc list-inside">
+                {suggestions.map((s, i) => <li key={i}>{s}</li>)}
               </ul>
             )}
           </div>

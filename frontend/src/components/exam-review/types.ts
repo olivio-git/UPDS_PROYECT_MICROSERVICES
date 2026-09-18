@@ -36,9 +36,24 @@ export interface ReviewQuestionResult {
   questionData?: ReviewQuestionData;
 }
 
+export interface ReviewCompetencyScore {
+  competency: string;
+  totalScore: number;
+  maxScore: number;
+  percentage: number;
+  questionCount?: number;
+  autoEvaluatedCount?: number;
+  aiEvaluatedCount?: number;
+  pendingEvaluationCount?: number;
+}
+
 /** Full result as returned by GET /api/v1/exam-results/:id/admin. */
 export interface AdminExamResultDetail {
   _id?: string;
   questionResults: ReviewQuestionResult[];
+  competencyScores?: ReviewCompetencyScore[];
+  overallFeedback?: string;
+  recommendations?: string[];
+  recommendedLevel?: string;
   gradingDurationMs?: number | null;
 }
