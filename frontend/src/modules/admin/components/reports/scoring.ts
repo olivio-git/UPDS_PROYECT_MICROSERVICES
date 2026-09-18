@@ -1,18 +1,14 @@
+import { PERFORMANCE_BANDS } from '@/lib/scoreBands';
 import type { DashboardSummary, LevelDistributionEntry } from '@/services/reportsService';
 import { MCER_LEVELS } from './constants';
 
+export { PERFORMANCE_BANDS, scoreTextClass } from '@/lib/scoreBands';
+
 /**
- * Every score threshold used by the reports screen lives here.
- *
- * Performance bands match the backend report bands (reports.service.ts) and the
- * ranges shown to the user in the distribution table. Competency mastery and
- * improvement areas are separate scales with their own documented cutoffs.
+ * Report-specific scales. Performance bands and score colors are shared
+ * app-wide in @/lib/scoreBands; competency mastery and the summary chips are
+ * separate scales with their own documented cutoffs.
  */
-export const PERFORMANCE_BANDS = {
-  excellent: 85,
-  good: 70,
-  acceptable: 60,
-} as const;
 
 /** Competency "dominio" column: Alto ≥75, Medio 50–74, Bajo <50. */
 export const MASTERY_BANDS = { high: 75, medium: 50 } as const;
@@ -20,32 +16,15 @@ export const MASTERY_BANDS = { high: 75, medium: 50 } as const;
 /** Competency summary chips: green ≥70, amber ≥50, red below. */
 export const COMPETENCY_CHIP_BANDS = { good: 70, fair: 50 } as const;
 
-type Tone = 'positive' | 'info' | 'warning' | 'negative' | 'neutral';
-
-const TONE_TEXT: Record<Tone, string> = {
-  positive: 'text-emerald-400',
-  info: 'text-blue-400',
-  warning: 'text-amber-400',
-  negative: 'text-red-400',
-  neutral: 'text-muted-foreground',
-};
+type Tone = 'positive' | 'warning' | 'negative' | 'neutral';
 
 const TONE_BADGE: Record<Tone, string> = {
   positive: 'text-emerald-400 bg-emerald-500/10 border border-emerald-500/20',
-  info: 'text-blue-400 bg-blue-500/10 border border-blue-500/20',
   warning: 'text-amber-400 bg-amber-500/10 border border-amber-500/20',
   negative: 'text-red-400 bg-red-500/10 border border-red-500/20',
   neutral: 'text-muted-foreground bg-muted/10 border border-border/20',
 };
 
-const performanceTone = (score: number): Tone =>
-  score >= PERFORMANCE_BANDS.excellent ? 'positive'
-  : score >= PERFORMANCE_BANDS.good ? 'info'
-  : score >= PERFORMANCE_BANDS.acceptable ? 'warning'
-  : 'negative';
-
-/** Text color for a 0–100 score, following the performance bands. */
-export const scoreTextClass = (score: number) => TONE_TEXT[performanceTone(score)];
 
 const DIFFICULTY: Record<string, { label: string; tone: Tone }> = {
   easy: { label: 'Fácil', tone: 'positive' },

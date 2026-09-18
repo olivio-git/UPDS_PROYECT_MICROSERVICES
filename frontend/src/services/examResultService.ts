@@ -1,3 +1,4 @@
+import type { AdminExamResultDetail } from '@/components/exam-review/types';
 import { api } from './api.service';
 
 export interface ExamResultSummary {
@@ -160,6 +161,18 @@ class ExamResultService {
       console.error('Error fetching result details:', error);
       throw new Error(error.response?.data?.message || 'Failed to fetch result details');
     }
+  }
+
+  /**
+   * Full result with per-question content, for staff review (admin/teacher only).
+   * `api.get` already returns the response body, so read `.data` from it once.
+   */
+  async getAdminResultDetail(resultId: string): Promise<AdminExamResultDetail> {
+    const body = await api.get<{ success: boolean; data: AdminExamResultDetail; message?: string }>(
+      `/api/v1/exam-results/${resultId}/admin`,
+    );
+    if (!body?.success) throw new Error(body?.message || 'No se pudo cargar el detalle del examen');
+    return body.data;
   }
 
   /**

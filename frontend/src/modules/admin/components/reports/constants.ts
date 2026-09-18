@@ -1,6 +1,6 @@
 import type { CSSProperties } from 'react';
 
-export const MCER_LEVELS = ['A1', 'A2', 'B1', 'B2', 'C1', 'C2'] as const;
+export { MCER_LEVELS } from '@/lib/mcer';
 
 export const COMPETENCY_LABELS: Record<string, string> = {
   listening: 'Listening',
