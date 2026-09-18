@@ -20,7 +20,7 @@ export const useWebSocket = (url: string, options: WebSocketOptions = {}) => {
   const [isConnected, setIsConnected] = useState(false);
   const [connectionState, setConnectionState] = useState<'disconnected' | 'connecting' | 'connected'>('disconnected');
   const websocket = useRef<WebSocket | null>(null);
-  const reconnectTimeoutRef = useRef<number | null>(null);
+  const reconnectTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const reconnectAttempts = useRef(0);
   const isConnecting = useRef(false);
 
