@@ -224,33 +224,6 @@ export class ExamResultController {
     }
   }
 
-  /**
-   * Force re-evaluation of an exam (admin only or for debugging)
-   */
-  async reevaluateExam(req: Request, res: Response, next: NextFunction) {
-    try {
-      const { attemptId } = req.params;
-
-      if (!attemptId) {
-        res.status(400).json({ success: false, message: 'Attempt ID required' });
-        return;
-      }
-
-      logger.info(`🔄 [ExamResult] Manual re-evaluation requested for attempt: ${attemptId}`);
-
-      const result = await evaluationService.evaluateExam(attemptId);
-
-      res.json({
-        success: true,
-        data: result,
-        message: 'Re-evaluation completed'
-      });
-
-    } catch (error) {
-      logger.error('Error re-evaluating exam:', error);
-      next(error);
-    }
-  }
 
   /**
    * Get evaluation statistics for the authenticated user

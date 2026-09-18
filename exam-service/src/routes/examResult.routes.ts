@@ -48,12 +48,6 @@ router.get('/:resultId/detailed', searchRefs, controller.getDetailedResultWithQu
 router.get('/attempt/:attemptId', searchRefs, controller.getResultByAttempt.bind(controller));
 
 /**
- * POST /api/exam-results/reevaluate/:attemptId
- * Force re-evaluation of an exam (for debugging/admin)
- */
-router.post('/reevaluate/:attemptId', controller.reevaluateExam.bind(controller));
-
-/**
  * GET /api/exam-results/:resultId/export-pdf
  * Generate and download PDF report for exam result
  * Query params:
