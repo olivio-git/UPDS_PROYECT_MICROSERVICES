@@ -1,6 +1,23 @@
 import type { AdminExamResultDetail } from '@/components/exam-review/types';
 import { api } from './api.service';
 
+/** One candidate's result as listed in a session's results table. */
+export interface SessionResultRow {
+  id: string;
+  candidateId: string;
+  percentage: number;
+  totalScore: number;
+  maxScore: number;
+  status: 'completed' | 'partial' | 'pending_ai_review';
+  /** Seconds. */
+  examDuration: number;
+  /** Seconds. */
+  timeAllowed: number;
+  competencyScores: Array<{ competency: string; percentage: number; totalScore: number; maxScore: number }>;
+  recommendedLevel?: string;
+  evaluatedAt: string;
+}
+
 export interface ExamResultSummary {
   id: string;
   examName: string;
@@ -161,6 +178,15 @@ class ExamResultService {
       console.error('Error fetching result details:', error);
       throw new Error(error.response?.data?.message || 'Failed to fetch result details');
     }
+  }
+
+  /** Graded results of every candidate in a completed session (staff). */
+  async getSessionResults(sessionId: string): Promise<SessionResultRow[]> {
+    const body = await api.get<{ success: boolean; data: { results: SessionResultRow[] }; message?: string }>(
+      `/api/v1/sessions/${sessionId}/results`,
+    );
+    if (!body?.success) throw new Error(body?.message || 'Error al cargar resultados');
+    return body.data.results ?? [];
   }
 
   /**
