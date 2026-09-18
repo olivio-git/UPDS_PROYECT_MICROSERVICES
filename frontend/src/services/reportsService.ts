@@ -64,6 +64,15 @@ export interface StudentStats {
   };
 }
 
+/**
+ * One MCER level in a dashboard level distribution. The endpoint has returned
+ * both a bare count and an object with extra statistics, so consumers must
+ * accept either shape.
+ */
+export type LevelDistributionEntry =
+  | number
+  | { count: number; averageScore?: number; passRate?: number };
+
 export interface DashboardSummary {
   overview: {
     totalStudents: number;
@@ -84,7 +93,7 @@ export interface DashboardSummary {
     studentsEvaluated: number;
     difficulty: string;
   }>;
-  levelDistribution: Record<string, number>;
+  levelDistribution: Record<string, LevelDistributionEntry>;
   topPerformers: Array<{
     studentId: string;
     studentName: string;
