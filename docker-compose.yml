@@ -98,8 +98,8 @@ services:
     depends_on:
       redis:
         condition: service_healthy
-    # profiles:
-    # - debug
+    profiles:
+      - debug
   # MONGO DB
   mongo:
     image: mongo:7.0
@@ -453,6 +453,8 @@ services:
       redis:
         condition: service_healthy
     restart: on-failure
+    profiles:
+      - debug
   # GRADING SERVICE (REST API - GROQ AI)
   grading-service:
     build:

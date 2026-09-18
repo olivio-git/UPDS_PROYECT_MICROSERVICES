@@ -2,8 +2,13 @@
 
 const { MongoClient } = require('mongodb');
 
+if (!process.env.MONGO_URI) {
+  console.error('MONGO_URI is required. Refusing to run against a hardcoded connection string.');
+  process.exit(1);
+}
+
 const config = {
-  mongoUri: 'mongodb://sa:olivio12@localhost:27017',
+  mongoUri: process.env.MONGO_URI,
   oldAuthDb: 'microservices_auth_olivio',
   newDb: 'cba_platform_db',
   collections: {
