@@ -1,1 +1,1 @@
-export { studentExamService, type NextExamData } from './examService';\n
+export { studentExamService, type NextExamData } from './examService';
