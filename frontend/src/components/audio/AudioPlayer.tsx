@@ -1,3 +1,4 @@
+import { toBrowserMediaUrl } from '@/lib/mediaUrl';
 import { cn } from '@/lib/utils';
 import { FastForward, Pause, Play, Rewind, RotateCcw, Volume2, VolumeX } from 'lucide-react';
 import React, { useEffect, useRef, useState } from 'react';
@@ -24,7 +25,7 @@ interface AudioPlayerProps {
 }
 
 const AudioPlayer: React.FC<AudioPlayerProps> = ({
-  src,
+  src: rawSrc,
   title,
   artist,
   knownDuration,
@@ -43,6 +44,8 @@ const AudioPlayer: React.FC<AudioPlayerProps> = ({
   // autoPlay = false,
   loop = false
 }) => {
+  // A stored URL may use MinIO's internal host; make it loadable by the browser.
+  const src = toBrowserMediaUrl(rawSrc);
   const audioRef = useRef<HTMLAudioElement>(null);
   const progressRef = useRef<HTMLDivElement>(null);
   

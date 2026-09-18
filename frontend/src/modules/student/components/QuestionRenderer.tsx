@@ -24,6 +24,7 @@ import {
 import { CSS } from '@dnd-kit/utilities';
 import { AlertTriangle, CheckCircle, GripVertical, Loader2, RotateCcw, Shuffle, Volume2 } from 'lucide-react';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { toBrowserMediaUrl } from '@/lib/mediaUrl';
 
 interface Props {
   question: Question | any;
@@ -233,7 +234,7 @@ const QuestionRenderer: React.FC<Props> = ({
   const titleText = content.question || question.title || question.text || 'Pregunta';
   const contextText = content.context || question.context || '';
   const optionsList = content.options || question.options || [];
-  const mediaUrl = content.mediaUrl || question.mediaUrl || null;
+  const mediaUrl = toBrowserMediaUrl(content.mediaUrl || question.mediaUrl || '');
 
   // Memoize effective type to avoid recalculation
   const effectiveType = useMemo(() => {
