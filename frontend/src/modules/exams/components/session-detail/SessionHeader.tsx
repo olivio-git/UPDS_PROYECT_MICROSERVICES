@@ -3,7 +3,7 @@ import { cn } from '@/lib/utils';
 import { ArrowLeft, BookOpen, Edit, UserPlus } from 'lucide-react';
 import type { ExamSession } from '../../types';
 import { ExtendTimeMenu } from './ExtendTimeMenu';
-import { sessionStatusStyle } from './sessionDisplay';
+import { sessionStatus } from '../../sessionStatus';
 
 interface SessionHeaderProps {
   session: ExamSession;
@@ -13,7 +13,7 @@ interface SessionHeaderProps {
 }
 
 export function SessionHeader({ session, onBack, onEdit, onManageCandidates }: SessionHeaderProps) {
-  const status = sessionStatusStyle(session.status);
+  const status = sessionStatus(session.status);
   const editable = session.status !== 'completed' && session.status !== 'cancelled';
   const canExtend = session._id && (session.status === 'in_progress' || session.status === 'scheduled');
 
@@ -32,9 +32,9 @@ export function SessionHeader({ session, onBack, onEdit, onManageCandidates }: S
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2">
             <h1 className="text-xl font-bold text-foreground leading-tight">{session.sessionName}</h1>
-            <span className={cn('inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium border', status.color)}>
+            <span className={cn('inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium border', status.badge)}>
               <span className={cn('w-1.5 h-1.5 rounded-full', status.dot)} />
-              {status.text}
+              {status.label}
             </span>
           </div>
           {session.exam?.name && (
