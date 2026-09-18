@@ -3,6 +3,24 @@ import dotenv from 'dotenv';
 // Cargar variables de entorno
 dotenv.config();
 
+/**
+ * Reads a required secret from the environment.
+ *
+ * Throws at startup instead of falling back to a default: a service that signs
+ * or verifies tokens with a guessable literal is worse than one that refuses to
+ * boot, because the failure is silent and each service would pick a different
+ * default, breaking cross-service token validation with no error.
+ */
+function requireEnv(name: string): string {
+  const value = process.env[name];
+  if (!value) {
+    throw new Error(
+      `Missing required environment variable ${name}. Refusing to start with an insecure default.`
+    );
+  }
+  return value;
+}
+
 interface Config {
   // Server
   port: number;
@@ -96,11 +114,11 @@ const config: Config = {
   // Auth Service Integration
   authService: {
     baseUrl: process.env.AUTH_SERVICE_URL || 'http://localhost:3000',
-    serviceToken: process.env.SERVICE_TOKEN || 'auth-service-token-2024',
+    serviceToken: requireEnv('SERVICE_TOKEN'),
   },
   
   // Security
-  jwtSecret: process.env.JWT_SECRET || 'default-secret-key',
+  jwtSecret: requireEnv('JWT_SECRET'),
   
   // File Upload
   upload: {

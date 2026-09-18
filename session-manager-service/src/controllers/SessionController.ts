@@ -5,6 +5,7 @@ import { AuthenticatedHttpRequest, authenticateHTTP, requireRole } from '../midd
 import { ActiveSessionModel } from '../models/ActiveSession';
 import { SessionService } from '../services/SessionService';
 import { logger, loggerUtils } from '../utils/logger';
+import { SESSION_JWT_SECRET } from '../config/env';
 
 // Using AuthenticatedHttpRequest from middleware/auth to ensure consistent typing
 
@@ -1175,11 +1176,7 @@ export class SessionController {
 
   private generateSessionAccessToken(userId: string, email: string, sessionId: string, role: string): string {
     // Firmar un JWT corto para acceso al WebSocket/session
-    const secret = process.env.SESSION_JWT_SECRET || process.env.JWT_SECRET;
-    if (!secret) {
-      // Fallback: si no hay secreto, lanzar para evitar emitir tokens inseguros
-      throw new Error('SESSION_JWT_SECRET or JWT_SECRET is not configured');
-    }
+    const secret = SESSION_JWT_SECRET;
 
     const expiresInMinutes = parseInt(process.env.SESSION_JWT_EXP_MIN || '15', 10);
 

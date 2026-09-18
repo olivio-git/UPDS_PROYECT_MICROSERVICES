@@ -2,6 +2,24 @@ import dotenv from 'dotenv';
 
 dotenv.config();
 
+/**
+ * Reads a required secret from the environment.
+ *
+ * Throws at startup instead of falling back to a default: a service that signs
+ * or verifies tokens with a guessable literal is worse than one that refuses to
+ * boot, because the failure is silent and each service would pick a different
+ * default, breaking cross-service token validation with no error.
+ */
+function requireEnv(name: string): string {
+  const value = process.env[name];
+  if (!value) {
+    throw new Error(
+      `Missing required environment variable ${name}. Refusing to start with an insecure default.`
+    );
+  }
+  return value;
+}
+
 export const config = {
   app: {
     port: parseInt(process.env.PORT || '3000'),
@@ -25,9 +43,9 @@ export const config = {
   },
 
   jwt: {
-    secret: process.env.JWT_SECRET || 'fallback-secret',
+    secret: requireEnv('JWT_SECRET'),
     expiresIn: process.env.JWT_EXPIRES_IN || '1h',
-    refreshSecret: process.env.REFRESH_TOKEN_SECRET || 'fallback-refresh-secret',
+    refreshSecret: requireEnv('REFRESH_TOKEN_SECRET'),
     refreshExpiresIn: process.env.REFRESH_TOKEN_EXPIRES_IN || '7d'
   },
 
@@ -40,7 +58,7 @@ export const config = {
   },
 
   service: {
-    token: process.env.SERVICE_TOKEN || 'auth-service-token-2024',
+    token: requireEnv('SERVICE_TOKEN'),
     allowDirectRegistration: process.env.ALLOW_DIRECT_REGISTRATION === 'true'
   },
 

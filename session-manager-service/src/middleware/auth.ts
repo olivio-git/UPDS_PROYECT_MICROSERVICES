@@ -1,6 +1,7 @@
 import type { NextFunction, Request, RequestHandler, Response } from 'express';
 import jwt from 'jsonwebtoken';
 import { Socket } from 'socket.io';
+import { JWT_SECRET } from '../config/env';
 
 interface AuthenticatedSocket extends Socket {
   userId: string;
@@ -36,11 +37,7 @@ export const authenticateSocket = async (socket: Socket, next: (err?: Error) => 
     console.log('🔐 Token recibido:', token.substring(0, 50) + '...');
 
     // Verificar JWT
-    const jwtSecret = process.env.JWT_SECRET;
-    if (!jwtSecret) {
-      console.error('❌ JWT_SECRET no configurado');
-      return next(new Error('Server configuration error'));
-    }
+    const jwtSecret = JWT_SECRET;
 
     let decoded: JWTPayload;
     try {
@@ -152,7 +149,7 @@ export const authenticateHTTP: RequestHandler = (
     }
 
     const token = authHeader.substring(7);
-    const decoded = jwt.verify(token, process.env.JWT_SECRET!) as JWTPayload;
+    const decoded = jwt.verify(token, JWT_SECRET) as JWTPayload;
     
     // Soportar ambos formatos de ID
     const userId = decoded.userId || decoded.id;
