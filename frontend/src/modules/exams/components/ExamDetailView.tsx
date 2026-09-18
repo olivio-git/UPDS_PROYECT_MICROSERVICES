@@ -1,5 +1,5 @@
 import { Button } from '@/components/atoms/button';
-import { ArrowLeft, Award, BookOpen, Clock, Edit, Settings, Target } from 'lucide-react';
+import { ArrowLeft, BookOpen, Clock, Edit, Settings, Target } from 'lucide-react';
 import React from 'react';
 import type { Exam } from '../types';
 

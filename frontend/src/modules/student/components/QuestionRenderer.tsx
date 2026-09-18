@@ -1,5 +1,4 @@
 import { Button } from '@/components/atoms/button';
-import { Input } from '@/components/atoms/input';
 import { AudioPlayer, AudioRecorder } from '@/components/audio';
 import type { Question } from '@/modules/exams/types';
 import {
@@ -233,7 +232,6 @@ const QuestionRenderer: React.FC<Props> = ({
 
   const titleText = content.question || question.title || question.text || 'Pregunta';
   const contextText = content.context || question.context || '';
-  const promptText = content.instructions || question.prompt || '';
   const optionsList = content.options || question.options || [];
   const mediaUrl = content.mediaUrl || question.mediaUrl || null;
 
@@ -267,7 +265,7 @@ const QuestionRenderer: React.FC<Props> = ({
   const [fillBlanksAnswers, setFillBlanksAnswers] = useState<string[]>([]);
   const [matchingPairs, setMatchingPairs] = useState<{[key: string]: string}>({});
   const [orderingItems, setOrderingItems] = useState<string[]>([]);
-  const [dragDropPositions, setDragDropPositions] = useState<{[key: string]: number}>({});
+  const [, setDragDropPositions] = useState<{[key: string]: number}>({});
   // dragDropOrder: ordered list of item IDs (index+1 = current position for grading)
   const [dragDropOrder, setDragDropOrder] = useState<string[]>([]);
 
@@ -653,12 +651,6 @@ const QuestionRenderer: React.FC<Props> = ({
     const original = items.map((item:any) => item.id);
     handleOrdering(original);
   }, [content, handleOrdering]);
-
-  const handleDragDrop = useCallback((itemId: string, position: number) => {
-    const newPositions = { ...dragDropPositions, [itemId]: position };
-    setDragDropPositions(newPositions);
-    onChange(id, { positions: newPositions });
-  }, [id, onChange, dragDropPositions]);
 
   // ── dnd-kit handlers ────────────────────────────────────────────────────────
   const handleOrderingDragStart = useCallback((event: DragStartEvent) => {

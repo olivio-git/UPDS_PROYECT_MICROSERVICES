@@ -32,23 +32,6 @@ const LevelsManagementScreen = () => {
   const [currentFilter, setCurrentFilter] = useState<FilterType>('all');
   const [searchTerm, setSearchTerm] = useState('');
 
-  // Preparar filtros para el hook
-  const getLevelsFilters = () => {
-    const filters: any = {};
-
-    if (currentFilter === 'active') {
-      filters.isActive = true;
-    } else if (currentFilter === 'inactive') {
-      filters.isActive = false;
-    }
-    // Para 'all' no enviamos isActive
-
-    if (searchTerm.trim()) {
-      filters.search = searchTerm.trim();
-    }
-
-    return Object.keys(filters).length > 0 ? filters : undefined;
-  };
 
   // Hook de niveles
   const {
@@ -134,7 +117,6 @@ const LevelsManagementScreen = () => {
   const handleFilterChange = (filter: FilterType) => {
     setCurrentFilter(filter);
     // Aplicar filtros inmediatamente
-    const newFilters = getLevelsFilters();
     // Actualizar el filtro antes de hacer la petición
     if (filter === 'active') {
       loadLevels({ isActive: true, search: searchTerm.trim() || undefined });

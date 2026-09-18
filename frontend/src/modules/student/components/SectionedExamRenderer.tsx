@@ -8,8 +8,7 @@ import type {
   SectionProgress
 } from '../types/sectionedExam';
 import {
-  groupQuestionsIntoSections,
-  initializeSectionProgress
+  groupQuestionsIntoSections
 } from '../types/sectionedExam';
 import SectionNavigator from './SectionNavigator';
 import SectionedQuestionRenderer from './SectionedQuestionRenderer';
@@ -40,9 +39,6 @@ interface SectionedExamRendererProps {
 
 const SectionedExamRenderer: React.FC<SectionedExamRendererProps> = ({
   questions,
-  examId,
-  sessionId,
-  timeRemaining,
   onAnswerChange,
   onSave,
   onFinish,
@@ -77,8 +73,6 @@ const SectionedExamRenderer: React.FC<SectionedExamRendererProps> = ({
       
       // Initialize progress for all sections
       setSectionProgress(prev => {
-        const newProgress = initializeSectionProgress(sections);
-        
         // Merge with existing progress, updating counts if questions changed
         const mergedProgress: { [sectionId: string]: SectionProgress } = {};
         sections.forEach(section => {

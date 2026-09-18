@@ -33,7 +33,7 @@ const RouteRenderer: React.FC<RouteRendererProps> = ({
   route,
   isAuthenticated = false,
   user = null,
-  redirectTo = "/"
+  redirectTo: _redirectTo = "/"
 }) => {
     
   const Component = route.element;

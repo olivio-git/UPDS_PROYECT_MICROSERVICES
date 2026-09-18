@@ -48,33 +48,6 @@ export class PDFService {
 
       let currentY = margin;
 
-      // Helper functions
-      const addPage = () => {
-        pdf.addPage();
-        currentY = margin;
-        this.addGoogleFormsSimpleHeader(pdf, pageWidth, margin);
-        currentY += 25;
-      };
-
-      const checkPageBreak = (neededHeight: number) => {
-        if (currentY + neededHeight > pageHeight - 40) {
-          addPage();
-        }
-      };
-
-      const setColor = (color: { r: number; g: number; b: number }) => {
-        pdf.setTextColor(color.r, color.g, color.b);
-      };
-
-      const setFillColor = (color: { r: number; g: number; b: number }) => {
-        pdf.setFillColor(color.r, color.g, color.b);
-      };
-
-      const setFont = (font: { size: number; style: string }) => {
-        pdf.setFontSize(font.size);
-        pdf.setFont('helvetica', font.style as any);
-      };
-
       // ================== PÁGINA 1: HEADER & RESUMEN ==================
       this.generateGoogleFormsHeader(pdf, result, studentInfo, pageWidth, margin);
       currentY = 75; // More space for student info
@@ -622,37 +595,4 @@ export class PDFService {
     return names[key] || key;
   }
 
-  private static getQuestionTypeName(type: string): string {
-    const types: Record<string, string> = {
-      multiple_choice: 'Selección Múltiple',
-      single_choice: 'Selección Única',
-      true_false: 'Verdadero/Falso',
-      fill_blank: 'Completar',
-      essay: 'Ensayo',
-      speaking: 'Expresión Oral',
-      listening: 'Comprensión Auditiva'
-    };
-    return types[type] || type;
-  }
-
-  private static getResponseSummary(question: any): string {
-    switch (question.questionType) {
-      case 'multiple_choice':
-        if (question.response?.selectedOptions) {
-          return `${question.response.selectedOptions.length} opción(es) seleccionada(s)`;
-        }
-        return 'Sin respuesta';
-
-      case 'true_false':
-        return question.response?.answer ? 'Verdadero' : 'Falso';
-
-      case 'essay':
-      case 'open_text':
-        const text = question.response?.text || '';
-        return text.length > 50 ? `${text.substring(0, 50)}...` : text || 'Sin respuesta';
-
-      default:
-        return 'Respuesta registrada';
-    }
-  }
 }

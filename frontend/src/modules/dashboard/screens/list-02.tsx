@@ -25,13 +25,6 @@ interface List02Props {
   className?: string
 }
 
-const categoryStyles = {
-  shopping: "bg-zinc-100 text-zinc-900",
-  food: "bg-zinc-100 text-zinc-900",
-  transport: "bg-zinc-100 text-zinc-900",
-  entertainment: "bg-zinc-100 text-zinc-900",
-}
-
 const TRANSACTIONS: Transaction[] = [
   {
     id: "1",

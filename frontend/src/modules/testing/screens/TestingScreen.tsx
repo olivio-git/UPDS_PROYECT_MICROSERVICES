@@ -24,18 +24,13 @@ import {
 import { auditLogService, type AuditLogEntry, type AuditFilters } from "@/services/auditLogService";
 import {
   Activity,
-  AlertCircle,
   BarChart3,
   BookOpen,
   Brain,
   CheckCircle,
   ChevronRight,
-  Clock,
   Copy,
   Database,
-  Eye,
-  FileText,
-  History,
   Loader2,
   Mail,
   MessageSquare,

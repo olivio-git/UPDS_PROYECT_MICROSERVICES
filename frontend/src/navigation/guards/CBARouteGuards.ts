@@ -1,4 +1,4 @@
-import { UserRole } from '../types/RouteTypes';
+import type { UserRole } from '../types/RouteTypes';
 
 export class CBARouteGuards {
   

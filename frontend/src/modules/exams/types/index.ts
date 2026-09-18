@@ -270,7 +270,7 @@ export interface ExamFilters {
 }
 
 // Respuestas de API
-export interface ApiResponse<T> {
+export interface ApiResponse<_T = unknown> {
   success: boolean;
   message?: string;
   data?: any;

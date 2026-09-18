@@ -7,7 +7,7 @@ import { authSDK } from "@/services/sdk-simple-auth";
 
 // Root layout que maneja la autenticación y scroll restoration
 export function RootLayout() {
-  const { isLoading, isInitialized, initialize } = useAuthStore();
+  const { isLoading, isInitialized } = useAuthStore();
   const [localInitialized, setLocalInitialized] = useState(false);
   
   useRoutePersistence();

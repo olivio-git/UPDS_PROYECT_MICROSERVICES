@@ -4,8 +4,6 @@ import { useAuthStore } from '@/modules/auth/services/authStore';
 import { protectedRoutes } from '@/navigation/Protected.Route';
 import { notificationService } from '@/services/notifications/notificationService';
 import { notificationSocket } from '@/services/notifications/notificationSocket';
-import { authSDK } from '@/services/sdk-simple-auth';
-import axios from 'axios';
 import {
   AlertTriangle,
   Bell,
@@ -16,7 +14,6 @@ import {
   LogOut,
   Menu,
   Search,
-  Settings,
   Trash2,
   User,
   X,
@@ -40,7 +37,7 @@ interface Notification {
 const Header = () => {
   const { user, logout, isAuthenticated } = useAuthStore();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [userForceUpdate, setUserForceUpdate] = useState(0);
+  const [, setUserForceUpdate] = useState(0);
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
   const [isAllNotificationsOpen, setIsAllNotificationsOpen] = useState(false);

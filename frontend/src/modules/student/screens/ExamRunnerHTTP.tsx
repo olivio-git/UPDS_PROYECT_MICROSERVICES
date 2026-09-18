@@ -78,15 +78,11 @@ const ExamRunnerHTTP: React.FC = () => {
 
     // Navigation helpers
     isLastQuestionInSection,
-    isFirstQuestionInSection,
-    isLastSection,
-    isFirstSection,
     isLastQuestionOverall,
     isFirstQuestionOverall,
 
     // Progress calculations
     overallProgress,
-    sectionProgress,
     answeredCount,
     sectionStats,
 

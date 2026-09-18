@@ -47,7 +47,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom';
 import {
   Bar, BarChart, CartesianGrid, Cell,
-  Line, LineChart, ReferenceLine,
+  ReferenceLine,
   ResponsiveContainer, Tooltip, XAxis, YAxis
 } from 'recharts';
 import { toast } from 'sonner';
@@ -262,10 +262,6 @@ const ReportsScreen: React.FC = () => {
       if (isInitial) setLoading(false);
       else setRefreshing(false);
     }
-  };
-
-  const handleFilterChange = (key: keyof ReportFilters, value: any) => {
-    setFilters(prev => ({ ...prev, [key]: value }));
   };
 
   const handleDateRangeChange = (range: DateRange | undefined) => {

@@ -12,7 +12,6 @@ import { ContentGradientSection } from '@/components/background';
 import { MainLayout } from '@/components/layout';
 import {
   examResultService,
-  type StudentExamResult,
 } from '@/services/examResultService';
 import { api } from '@/services/api.service';
 import {
@@ -108,7 +107,7 @@ const ExamReview = () => {
       setError(null);
 
       // Llamada directa para obtener los detalles completos con questionResults
-      const rawResponse = await api.get(`/api/v1/exam-results/${resultId}`);
+      const rawResponse = await api.get<{ data: { success: boolean; data: DetailedExamResult; message?: string } }>(`/api/v1/exam-results/${resultId}`);
 
       if (rawResponse.data.success) {
         setExamResult(rawResponse.data.data);
@@ -171,7 +170,7 @@ const ExamReview = () => {
             <div className="space-y-2">
               <p className="text-sm text-muted-foreground">Tu respuesta:</p>
               <div className="flex flex-wrap gap-2">
-                {question.response.selectedOptions.map((optionId: string, index: number) => (
+                {question.response.selectedOptions.map((_optionId: string, index: number) => (
                   <Badge
                     key={index}
                     className={`${

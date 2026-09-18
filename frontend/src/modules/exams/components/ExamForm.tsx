@@ -84,7 +84,7 @@ interface PlacementConfig {
 const ExamForm: React.FC<ExamFormProps> = ({ exam, onCancel, onSaved }) => {
   const { createExam, updateExam } = useExams();
   const { levels, isLoading: isLoadingLevels } = useLevels();
-  const { checkAvailability, availability, loading: availabilityLoading, getMaxAllowed } = useQuestionAvailability();
+  const { checkAvailability, availability, loading: availabilityLoading } = useQuestionAvailability();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
   const [placementConfig, setPlacementConfig] = useState<PlacementConfig>({

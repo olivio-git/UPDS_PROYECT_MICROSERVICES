@@ -1,5 +1,3 @@
-import { useTheme } from "@/context/ThemeContext"; 
-
 export type GradientPosition = 
   | 'top-left' 
   | 'top-center' 

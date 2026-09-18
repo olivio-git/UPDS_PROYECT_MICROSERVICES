@@ -52,7 +52,7 @@ const SectionedQuestionRenderer: React.FC<SectionedQuestionRendererProps> = ({
   answers,
   onAnswerChange,
   onNavigateQuestion,
-  onQuestionSelect,
+  onQuestionSelect: _onQuestionSelect,
   sectionTimeRemaining,
   disabled = false,
 }) => {
