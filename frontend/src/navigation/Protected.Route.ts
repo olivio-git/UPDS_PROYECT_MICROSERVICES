@@ -288,7 +288,7 @@ export const protectedRoutes: RouteType[] = [
     type: "protected",
     element: StudentHistoryScreen,
     isAdmin: false,
-    role: ["admin", "teacher", "student"],
+    role: ["admin", "teacher"],
     icon: User,
     hidden: true
   },

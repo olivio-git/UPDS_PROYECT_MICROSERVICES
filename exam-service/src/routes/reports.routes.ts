@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { ReportsController } from '../controllers/reports.controller';
 import { authMiddleware, requireRole } from '../middleware/auth.middleware';
 import { validateQuery } from '../middleware/validation.middleware';
+import { restrictStudentToOwnCandidate } from '../middleware/searchRefs';
 
 const router = Router();
 const reportsController = new ReportsController();
@@ -127,6 +128,7 @@ router.get(
 router.get(
   '/student/:studentId/history',
   requireRole('admin', 'teacher', 'student'),
+  restrictStudentToOwnCandidate('studentId'),
   reportsController.getStudentHistory.bind(reportsController)
 );
 
