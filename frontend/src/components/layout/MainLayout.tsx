@@ -1,39 +1,29 @@
-import Header from '@/modules/dashboard/components/Header';
-import GradientBackground from '@/modules/home/screens/GradientBackground';
+import type { ReactNode } from 'react';
+import { AppShell } from './AppShell';
 
 interface MainLayoutProps {
-  children: any;
-  showGradient?: boolean;
-  gradientVariant?: any;
-  // gradientVariant?: GradientVariant;
-  className?: string;
+  children: ReactNode;
+  /** Renders the page without the application frame (used by the exam runner). */
   hideHeader?: boolean;
+  className?: string;
+  /** @deprecated Decorative background props from the previous layout; ignored. */
+  showGradient?: boolean;
+  /** @deprecated Decorative background props from the previous layout; ignored. */
+  gradientVariant?: string;
 }
 
-const MainLayout = ({
-  children,
-  showGradient = true,
-  // gradientVariant = 'primary',
-  className = '',
-  hideHeader = false
-}: MainLayoutProps) => {
+/**
+ * Wrapper every screen uses. It delegates to AppShell so the frame is defined
+ * in one place; screens only provide their content.
+ */
+const MainLayout = ({ children, hideHeader = false, className = '' }: MainLayoutProps) => {
+  if (hideHeader) {
+    return <div className={`min-h-screen bg-background ${className}`}>{children}</div>;
+  }
   return (
-    <div className="min-h-screen relative">
-      {showGradient && (
-        <GradientBackground
-          grid={false}
-          lights={true}
-          size='md'
-        />
-      )}
-
-      {!hideHeader && <Header />}
-
-      {/* Main Content */}
-      <main className={`${hideHeader ? '' : 'pt-20'} px-4 ${className}`}>
-        {children}
-      </main>
-    </div>
+    <AppShell>
+      <div className={className}>{children}</div>
+    </AppShell>
   );
 };
 
