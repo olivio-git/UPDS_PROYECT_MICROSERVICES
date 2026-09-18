@@ -201,7 +201,7 @@ services:
       - PORT=3002
       - TZ=America/La_Paz
       - MONGO_URI=mongodb://${MONGO_ROOT_USERNAME}:${MONGO_ROOT_PASSWORD}@mongo:27017
-      - MONGO_DB_NAME=${MONGO_DB_NAME}
+      - MONGO_DB_NAME=${MONGO_USERS_DB_NAME:-cba_user_management_db}
       - MONGO_COLLECTION_USERS=users
       - MONGO_COLLECTION_CANDIDATES=candidates
       - MONGO_COLLECTION_ROLES=roles
@@ -318,8 +318,8 @@ services:
       - NODE_ENV=${NODE_ENV}
       - PORT=3003
       - TZ=America/La_Paz
-      - MONGO_URI=mongodb://${MONGO_ROOT_USERNAME}:${MONGO_ROOT_PASSWORD}@mongo:27017/${MONGO_DB_NAME}?authSource=admin
-      - MONGO_DB_NAME=${MONGO_DB_NAME}
+      - MONGO_URI=mongodb://${MONGO_ROOT_USERNAME}:${MONGO_ROOT_PASSWORD}@mongo:27017/${MONGO_EXAM_DB_NAME:-cba_platform}?authSource=admin
+      - MONGO_DB_NAME=${MONGO_EXAM_DB_NAME:-cba_platform}
       - REDIS_HOST=redis
       - REDIS_PORT=6379
       - REDIS_PASSWORD=${REDIS_PASSWORD}
@@ -344,7 +344,7 @@ services:
       - LOG_LEVEL=info
       - GRADING_SERVICE_URL=http://grading-service:3007
       - MINIO_INTERNAL_ENDPOINT=http://minio:9000
-      - MONGO_UMS_DB_NAME=${MONGO_DB_NAME:-cba_user_management_db}
+      - MONGO_UMS_DB_NAME=${MONGO_USERS_DB_NAME:-cba_user_management_db}
     depends_on:
       redis:
         condition: service_healthy
@@ -383,8 +383,8 @@ services:
       - NODE_ENV=${NODE_ENV}
       - PORT=3004
       - TZ=America/La_Paz
-      - MONGO_URI=mongodb://${MONGO_ROOT_USERNAME}:${MONGO_ROOT_PASSWORD}@mongo:27017/${MONGO_DB_NAME}?authSource=admin
-      - MONGO_DB_NAME=${MONGO_DB_NAME}
+      - MONGO_URI=mongodb://${MONGO_ROOT_USERNAME}:${MONGO_ROOT_PASSWORD}@mongo:27017/${MONGO_EXAM_DB_NAME:-cba_platform}?authSource=admin
+      - MONGO_DB_NAME=${MONGO_EXAM_DB_NAME:-cba_platform}
       - REDIS_HOST=redis
       - REDIS_PORT=6379
       - REDIS_PASSWORD=${REDIS_PASSWORD}
@@ -471,9 +471,9 @@ services:
       - PORT=3007
       - GROQ_API_KEY=${GROQ_API_KEY}
       - GROQ_MODEL=${GROQ_MODEL:-llama-3.3-70b-versatile}
-      - MONGO_URI=mongodb://${MONGO_ROOT_USERNAME}:${MONGO_ROOT_PASSWORD}@mongo:27017/${MONGO_DB_NAME}?authSource=admin
-      - MONGO_DB_NAME=${MONGO_DB_NAME}
-      - MONGO_LEVELS_DB_NAME=${MONGO_DB_NAME_USER_MANAGEMENT:-cba_user_management_db}
+      - MONGO_URI=mongodb://${MONGO_ROOT_USERNAME}:${MONGO_ROOT_PASSWORD}@mongo:27017/${MONGO_EXAM_DB_NAME:-cba_platform}?authSource=admin
+      - MONGO_DB_NAME=${MONGO_EXAM_DB_NAME:-cba_platform}
+      - MONGO_LEVELS_DB_NAME=${MONGO_EXAM_DB_NAME:-cba_platform}
       - NOTIFICATION_SERVICE_URL=http://notification-service:3001
       - MINIO_INTERNAL_ENDPOINT=http://minio:9000
       - MINIO_BUCKET_NAME=exam-files
