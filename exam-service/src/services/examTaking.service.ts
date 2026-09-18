@@ -343,9 +343,9 @@ export class ExamTakingService {
     };
   }
 
-  async submitAnswer(sessionId: string, _authUserId: string, questionId: string, answer: any) {
+  async submitAnswer(sessionId: string, candidateId: string, questionId: string, answer: any) {
     // locate attempt
-    const attempt = await Attempt.findOne({ sessionId: sessionId });
+    const attempt = await Attempt.findOne({ sessionId, candidateId });
     if (!attempt) throw new Error('Attempt not found');
 
     // Get question to determine competency
@@ -387,8 +387,8 @@ export class ExamTakingService {
     return { saved: true, responseId: resp._id };
   }
 
-  async finishExam(sessionId: string, _authUserId: string) {
-    const attempt = await Attempt.findOne({ sessionId: sessionId });
+  async finishExam(sessionId: string, candidateId: string) {
+    const attempt = await Attempt.findOne({ sessionId, candidateId });
     if (!attempt) throw new Error('Attempt not found');
 
     attempt.finishedAt = new Date();
@@ -415,8 +415,8 @@ export class ExamTakingService {
     };
   }
 
-  async getTimeRemaining(sessionId: string, _authUserId: string) {
-    const attempt = await Attempt.findOne({ sessionId: sessionId });
+  async getTimeRemaining(sessionId: string, candidateId: string) {
+    const attempt = await Attempt.findOne({ sessionId, candidateId });
     if (!attempt || !attempt.startedAt) return { timeRemaining: 0, sessionEnded: false };
 
     // If attempt is already completed or expired, return 0
@@ -452,8 +452,8 @@ export class ExamTakingService {
 
   // New methods for HTTP-based exam taking
 
-  async getMyAnswers(sessionId: string, _authUserId: string) {
-    const attempt = await Attempt.findOne({ sessionId: sessionId });
+  async getMyAnswers(sessionId: string, candidateId: string) {
+    const attempt = await Attempt.findOne({ sessionId, candidateId });
     if (!attempt) throw new Error('Attempt not found');
 
     const responses = await ResponseModel.find({
@@ -485,10 +485,10 @@ export class ExamTakingService {
     return { answers, totalAnswered: responses.length };
   }
 
-  async getActiveSession(authUserId: string) {
+  async getActiveSession(candidateId: string) {
     // Find active attempt for this user
     const attempt = await Attempt.findOne({
-      candidateId: authUserId,
+      candidateId,
       status: { $in: ['active', 'in_progress'] },
       finishedAt: { $exists: false }
     }).populate('sessionId').exec();
@@ -521,9 +521,9 @@ export class ExamTakingService {
     };
   }
 
-  async resumeExam(sessionId: string, _authUserId: string) {
+  async resumeExam(sessionId: string, candidateId: string) {
     // Get attempt
-    const attempt = await Attempt.findOne({ sessionId: sessionId });
+    const attempt = await Attempt.findOne({ sessionId, candidateId });
     if (!attempt) throw new Error('Attempt not found');
 
     // Check if attempt is already finished
@@ -736,8 +736,8 @@ export class ExamTakingService {
       }
     };
   }
-  async attempts(sessionId: string, _authUserId: string,countPermitted:any) {
-    const attempts = await Attempt.find({ sessionId: sessionId }).sort({ startedAt: -1 }).exec();
+  async attempts(sessionId: string, candidateId: string, countPermitted: any) {
+    const attempts = await Attempt.find({ sessionId, candidateId }).sort({ startedAt: -1 }).exec();
     const isPermitted = attempts.length < countPermitted;
     return { attempts, countPermitted:isPermitted };
   }
@@ -866,7 +866,7 @@ export class ExamTakingService {
   }
 
   async submitAdaptiveAnswer(sessionId: string, userCandidateId: string, questionId: string, answer: any) {
-    const attempt = await Attempt.findOne({ sessionId });
+    const attempt = await Attempt.findOne({ sessionId, candidateId: userCandidateId });
     if (!attempt) throw new Error('Attempt not found');
     if (attempt.status === 'completed') throw new Error('Exam already completed');
 
@@ -1034,8 +1034,8 @@ export class ExamTakingService {
     };
   }
 
-  async resumeAdaptiveExam(sessionId: string, _userCandidateId: string) {
-    const attempt = await Attempt.findOne({ sessionId });
+  async resumeAdaptiveExam(sessionId: string, candidateId: string) {
+    const attempt = await Attempt.findOne({ sessionId, candidateId });
     if (!attempt) throw new Error('Attempt not found');
 
     if (attempt.status === 'completed' || attempt.adaptiveState?.isFinished) {

@@ -61,7 +61,7 @@ export class ExamTakingController {
 
       console.log(`🎯 [ExamTakingController] Received answer for question ${questionId}:`, JSON.stringify(answer, null, 2));
 
-      const result = await service.submitAnswer(sessionId, String(authUserId), String(questionId), answer);
+      const result = await service.submitAnswer(sessionId, String(req.userCandidateId), String(questionId), answer);
       res.json({ success: true, data: result });
     } catch (error) {
       logger.error('Error in submit answer:', error);
@@ -82,7 +82,7 @@ export class ExamTakingController {
         return;
       }
 
-      const result = await service.finishExam(sessionId, String(authUserId));
+      const result = await service.finishExam(sessionId, String(req.userCandidateId));
       auditLog({
         action: 'exam.finished',
         target: { type: 'session', id: sessionId, name: (result as any)?.sessionName },
@@ -113,7 +113,7 @@ export class ExamTakingController {
         return;
       }
 
-      const result = await service.getTimeRemaining(sessionId, String(authUserId));
+      const result = await service.getTimeRemaining(sessionId, String(req.userCandidateId));
       res.json({ success: true, data: result });
     } catch (error) {
       logger.error('Error in time remaining:', error);
@@ -136,7 +136,7 @@ export class ExamTakingController {
         return;
       }
 
-      const result = await service.getMyAnswers(sessionId, String(authUserId));
+      const result = await service.getMyAnswers(sessionId, String(req.userCandidateId));
       res.json({ success: true, data: result });
     } catch (error) {
       logger.error('Error getting answers:', error);
@@ -152,7 +152,7 @@ export class ExamTakingController {
         return;
       }
 
-      const result = await service.getActiveSession(String(authUserId));
+      const result = await service.getActiveSession(String(req.userCandidateId));
       res.json({ success: true, data: result });
     } catch (error) {
       logger.error('Error getting active session:', error);
@@ -173,7 +173,7 @@ export class ExamTakingController {
         return;
       }
 
-      const result = await service.resumeExam(sessionId, String(authUserId));
+      const result = await service.resumeExam(sessionId, String(req.userCandidateId));
       auditLog({
         action: 'exam.resumed',
         target: { type: 'session', id: sessionId },
@@ -201,7 +201,7 @@ export class ExamTakingController {
         return;
       }
 
-      const result = await service.attempts(sessionId, String(authUserId),countPermitted);
+      const result = await service.attempts(sessionId, String(req.userCandidateId), countPermitted);
       res.json({ success: true, data: result });
     } catch (error) {
       logger.error('Error getting attempts:', error);
@@ -239,7 +239,7 @@ export class ExamTakingController {
     try {
       const { sessionId } = req.params;
       const { questionId, answer } = req.body;
-      const userCandidateId = req?.userCandidateId || (req.user && (req.user as any).id);
+      const userCandidateId = req.userCandidateId;
       if (!userCandidateId) {
         res.status(401).json({ success: false, message: 'Unauthorized' });
         return;
@@ -268,7 +268,7 @@ export class ExamTakingController {
         res.status(400).json({ success: false, message: 'sessionId required' });
         return;
       }
-      const result = await service.resumeAdaptiveExam(sessionId, String(authUserId));
+      const result = await service.resumeAdaptiveExam(sessionId, String(req.userCandidateId));
       res.json({ success: true, data: result });
     } catch (error) {
       logger.error('Error resuming adaptive exam:', error);
@@ -307,7 +307,7 @@ export class ExamTakingController {
 
       // Persistir inmediatamente en MongoDB para evitar race condition con auto-save
       try {
-        const attempt = await Attempt.findOne({ sessionId });
+        const attempt = await Attempt.findOne({ sessionId, candidateId: req.userCandidateId });
         const question = await Question.findById(questionId);
         if (attempt && question) {
           await ResponseModel.findOneAndUpdate(
