@@ -49,7 +49,17 @@ import { toast } from "sonner";
 
 // ─── Service config ──────────────────────────────────────────────────────────
 
-// Paths via nginx (port 80) — no direct port access needed
+/**
+ * Where the health checks go: the API gateway that serves every /api/v1 route.
+ * This used to be http://localhost:80, so on any machine other than the server
+ * every service showed as offline even when the system was healthy.
+ */
+const GATEWAY_URL = (
+  import.meta.env.VITE_API_GATEWAY_URL ||
+  import.meta.env.VITE_EXAM_SERVICE_URL ||
+  `${window.location.protocol}//${window.location.hostname}`
+).replace(/\/+$/, '');
+
 const SERVICE_PATHS: Record<string, { path: string; anyResponse: boolean }> = {
   auth:          { path: "/api/v1/auth/validate",        anyResponse: true  },
   users:         { path: "/api/v1/users/health",         anyResponse: false },
@@ -172,7 +182,7 @@ const DiagnosticoScreen = () => {
     const { path, anyResponse } = SERVICE_PATHS[key];
     const start = Date.now();
     try {
-      const res = await fetch(`http://localhost:80${path}`, { signal: AbortSignal.timeout(4000) });
+      const res = await fetch(`${GATEWAY_URL}${path}`, { signal: AbortSignal.timeout(4000) });
       const latency = Date.now() - start;
       const online = anyResponse ? true : res.ok;
       setServiceHealth(prev => ({
