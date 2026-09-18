@@ -57,19 +57,6 @@ export const protectedRoutes: RouteType[] = [
     icon: Home,
     hidden: true
   },
-  // Admin Dashboard
-  // {
-  //   path: "/admin/dashboard",
-  //   name: "Panel de Administración",
-  //   type: "protected", 
-  //   element: AdminDashboard,
-  //   isAdmin: true,
-  //   role: ["admin"],
-  //   icon: PanelBottom
-  // },
-  //===PROCTOR DASHBOARD
-  // Rutas específicas para estudiantes
-  /// ===== Aqui empieza el flujo de estudiante para dar examen
   {
     path: "/student/dashboard", //Pantalla de inicio sin funcionalidad logica
     name: "Pannel",
