@@ -138,7 +138,7 @@ const SectionedQuestionRenderer: React.FC<SectionedQuestionRendererProps> = ({
       <div className="bg-card border border-border rounded-xl p-6">
         <QuestionRenderer
           question={currentQuestion}
-          answer={answers[currentQuestion._id || currentQuestion.id]}
+          answer={answers[currentQuestion._id || (currentQuestion as { id?: string }).id || '']}
           onChange={onAnswerChange}
         />
       </div>

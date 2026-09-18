@@ -106,13 +106,11 @@ const ExamsScreen = () => {
     if (localFilters.isTemplate) active.isTemplate = localFilters.isTemplate;
     active.isActive = localFilters.isActive;
     applyFilters(active);
-    setShowFilters(false);
   };
 
   const handleClearFilters = () => {
     setLocalFilters({ type: "all", targetLevel: "all", isTemplate: false, isActive: true });
     clearFilters();
-    setShowFilters(false);
   };
 
   // Utilidades de render

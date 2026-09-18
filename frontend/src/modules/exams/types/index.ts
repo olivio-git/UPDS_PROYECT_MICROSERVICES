@@ -197,6 +197,13 @@ export interface ExamSession {
   updatedAt?: string;
 }
 
+// Payload para crear/actualizar una sesión: igual que ExamSession pero con
+// `participants` parcial también, ya que al editar se puede omitir
+// candidates/proctors para preservar los valores existentes en el backend.
+export type ExamSessionPayload = Partial<Omit<ExamSession, 'participants'>> & {
+  participants?: Partial<ExamSession['participants']>;
+};
+
 // Interfaz para resultado de examen
 export interface ExamResult {
   _id?: string;

@@ -7,6 +7,7 @@ import type {
   ExamFilters,
   ExamResult,
   ExamSession,
+  ExamSessionPayload,
   PaginatedResponse,
   PaginationParams,
   Question,
@@ -493,7 +494,7 @@ class ExamService {
   }
 
   // Crear nueva sesión
-  async createSession(session: Partial<ExamSession>): Promise<ApiResponse<ExamSession>> {
+  async createSession(session: ExamSessionPayload): Promise<ApiResponse<ExamSession>> {
     try {
       const response = await this.api.post('/sessions', session);
       return response.data;
@@ -504,7 +505,7 @@ class ExamService {
   }
 
   // Actualizar sesión
-  async updateSession(id: string, updates: Partial<ExamSession>): Promise<ApiResponse<ExamSession>> {
+  async updateSession(id: string, updates: ExamSessionPayload): Promise<ApiResponse<ExamSession>> {
     try {
       const response = await this.api.put(`/sessions/${id}`, updates);
       return response.data;

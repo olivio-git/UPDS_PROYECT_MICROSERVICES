@@ -168,10 +168,7 @@ const RubricTable = ({
           <TableRow className="border-border hover:bg-muted/30">
             <TableHead className="w-12">
               <Checkbox
-                checked={isAllSelected}
-                ref={(el) => {
-                  if (el) el.indeterminate = isIndeterminate;
-                }}
+                checked={isIndeterminate ? 'indeterminate' : isAllSelected}
                 onCheckedChange={onSelectAllRubrics}
                 className="border-border data-[state=checked]:bg-green-600 data-[state=checked]:border-green-600"
               />

@@ -255,7 +255,7 @@ const DiagnosticoScreen = () => {
       (async () => {
         try {
           const r = await notificationService.getEmailStats();
-          if (r?.success) setEmailStats(r.data);
+          if (r?.success) setEmailStats(r.data ?? null);
         } catch {}
       })(),
     ]);
@@ -264,7 +264,7 @@ const DiagnosticoScreen = () => {
   const fetchEmailHistory = async () => {
     try {
       const r = await notificationService.getEmailHistory({ email: historyEmail || undefined });
-      if (r?.success) setEmailHistory(r.data);
+      if (r?.success) setEmailHistory(r.data ?? null);
     } catch {
       toast.error("Error al cargar historial");
     }
@@ -617,7 +617,7 @@ const DiagnosticoScreen = () => {
               <Button variant="secondary" size="sm" onClick={async () => {
                 try {
                   const r = await notificationService.getEmailStats();
-                  if (r?.success) setEmailStats(r.data);
+                  if (r?.success) setEmailStats(r.data ?? null);
                 } catch {}
               }}>
                 Cargar estadísticas

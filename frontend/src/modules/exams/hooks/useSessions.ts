@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import { examService } from '../../../services/examService';
-import type { ExamSession } from '../types';
+import type { ExamSession, ExamSessionPayload } from '../types';
 
 interface UseSessionsState {
   sessions: ExamSession[];
@@ -75,7 +75,7 @@ export const useSessions = (initialFilters?: SessionFilters) => {
   }, []);
 
   // Crear sesión
-  const createSession = async (session: Partial<ExamSession>) => {
+  const createSession = async (session: ExamSessionPayload) => {
     try {
       const response = await examService.createSession(session);
       
@@ -91,7 +91,7 @@ export const useSessions = (initialFilters?: SessionFilters) => {
   };
 
   // Actualizar sesión
-  const updateSession = async (id: string, updates: Partial<ExamSession>) => {
+  const updateSession = async (id: string, updates: ExamSessionPayload) => {
     try {
       console.log('Updating session with ID:', id, 'and updates:', updates);
       const response = await examService.updateSession(id, updates);

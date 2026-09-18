@@ -29,6 +29,7 @@ const QuestionTags: React.FC<Props> = ({
       ...formData,
       metadata: {
         ...formData.metadata,
+        topic: formData.metadata?.topic ?? '',
         [field]: value,
       },
     });

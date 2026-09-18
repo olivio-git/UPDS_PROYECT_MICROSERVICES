@@ -109,7 +109,7 @@ const SectionedExamRenderer: React.FC<SectionedExamRendererProps> = ({
       sections.forEach(section => {
         let completed = 0;
         section.questions.forEach(question => {
-          const questionId = question._id || question.id;
+          const questionId = question._id || (question as { id?: string }).id || '';
           if (answers[questionId] && (
             answers[questionId].text ||
             answers[questionId].selectedOptions?.length ||
@@ -142,7 +142,7 @@ const SectionedExamRenderer: React.FC<SectionedExamRendererProps> = ({
     console.log('🗂️ [SectionedExamRenderer] sections:', sections.map(s => ({ id: s.id, competency: s.competency, qCount: s.questions?.length, questionCount: s.questionCount })));
     return sections.map(section => {
     const questionStates = section.questions.map(question => {
-      const questionId = question._id || question.id;
+      const questionId = question._id || (question as { id?: string }).id || '';
       const ans = answers[questionId];
       return {
         id: questionId,

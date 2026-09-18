@@ -26,6 +26,7 @@ const QuestionContent: React.FC<Props> = ({
       ...formData,
       content: {
         ...formData.content,
+        question: formData.content?.question ?? '',
         [field]: value,
       },
     });

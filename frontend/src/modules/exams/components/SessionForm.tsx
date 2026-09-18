@@ -13,7 +13,7 @@ import { Controller, useForm } from "react-hook-form";
 import { z } from "zod";
 import { useExams } from "../hooks/useExams";
 import { useSessions } from "../hooks/useSessions";
-import type { Exam, ExamSession } from "../types";
+import type { Exam, ExamSession, ExamSessionPayload } from "../types";
 
 const DAYS = ['Lu', 'Ma', 'Mi', 'Ju', 'Vi', 'Sa', 'Do'];
 const MONTHS = [
@@ -274,7 +274,7 @@ const SessionForm: React.FC<Props> = ({ session, onCancel, onSaved }) => {
     setLoading(true);
     try {
       const parseLocalDateTime = (dt: string) => new Date(dt).toISOString();
-      const payload: Partial<ExamSession> = {
+      const payload: ExamSessionPayload = {
         sessionName: data.sessionName,
         examId: String(data.examId),
         scheduling: {
@@ -287,7 +287,7 @@ const SessionForm: React.FC<Props> = ({ session, onCancel, onSaved }) => {
         participants: {
           maxCandidates: data.participants.maxCandidates,
           // Preserve existing candidates/proctors on edit — never overwrite with empty arrays
-          ...(isEditing ? {} : { candidates: [], proctors: [] }),
+          ...(isEditing ? {} : { candidates: [] as string[], proctors: [] as string[] }),
         },
         settings: {
           requireProctor: data.settings.requireProctor,

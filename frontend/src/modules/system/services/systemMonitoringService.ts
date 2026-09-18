@@ -221,10 +221,18 @@ export class SystemMonitoringService {
   }
 }
 
+// Forma mínima que AdminDashboard consume del endpoint /api/system/stats
+// (el backend no expone un tipo compartido, así que la derivamos del uso real).
+export interface SystemStats {
+  heapUsedMB: number;
+  heapTotalMB: number;
+  connections: number;
+}
+
 // Hook personalizado para usar el servicio de monitoreo
 export const useSystemMonitoring = () => {
   const [service] = useState(() => new SystemMonitoringService());
-  const [stats, setStats] = useState(null);
+  const [stats, setStats] = useState<SystemStats | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 

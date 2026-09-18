@@ -176,10 +176,11 @@ export const SectionNavigator: React.FC<SectionNavigatorProps> = ({
                           </span>
                           {/* Flag icon */}
                           {q.flagged && (
-                            <Bookmark
-                              className="shrink-0 w-3 h-3 text-amber-500 mt-0.5 fill-amber-500/30"
-                              title="Marcada para revisar"
-                            />
+                            <span title="Marcada para revisar">
+                              <Bookmark
+                                className="shrink-0 w-3 h-3 text-amber-500 mt-0.5 fill-amber-500/30"
+                              />
+                            </span>
                           )}
                         </button>
                       );
