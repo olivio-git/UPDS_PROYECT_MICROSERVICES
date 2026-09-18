@@ -103,7 +103,7 @@ services:
     # - debug
   # MONGO DB
   mongo:
-    image: mongo:latest
+    image: mongo:7.0
     container_name: mongo
     ports:
       - "27017:27017"
