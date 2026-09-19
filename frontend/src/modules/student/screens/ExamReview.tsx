@@ -27,6 +27,7 @@ import {
 import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { toast } from 'sonner';
+import { toBrowserMediaUrl } from '@/lib/mediaUrl';
 
 interface QuestionResult {
   questionId: string;
@@ -218,7 +219,7 @@ const ExamReview = () => {
       case 'speaking': {
         // Rewrite internal Docker MinIO URLs to public URL accessible by browser
         const rawAudioUrl: string = question.response?.audioUrl || '';
-        const audioUrl = rawAudioUrl.replace(/^https?:\/\/minio(:\d+)?/, 'http://localhost:9000');
+        const audioUrl = toBrowserMediaUrl(rawAudioUrl);
         return (
           <div className="space-y-3">
             <p className="text-sm text-muted-foreground">Tu respuesta:</p>

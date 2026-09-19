@@ -1,6 +1,7 @@
 import { authSDK } from '@/services/sdk-simple-auth';
 import axios from 'axios';
 import { io, Socket } from 'socket.io-client';
+import { SESSION_MANAGER_WS_URL } from '@/lib/serviceUrls';
 
 export interface SocketEvents {
   // Eventos de conexión
@@ -100,9 +101,7 @@ class SocketService {
 
       // WebSocket needs base URL without /api/v1
       // Use dedicated WebSocket URL or fallback to gateway base
-      const serverUrl = import.meta.env.VITE_SESSION_MANAGER_WS_URL ||
-                       import.meta.env.VITE_API_GATEWAY_URL ||
-                       'http://localhost:80';
+      const serverUrl = SESSION_MANAGER_WS_URL;
 
       // Si hay socket previo, limpiarlo completamente
       if (this.socket) {

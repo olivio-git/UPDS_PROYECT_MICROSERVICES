@@ -1,12 +1,13 @@
 import axios, { type AxiosInstance } from 'axios';
 import { authSDK } from './sdk-simple-auth';
+import { EXAM_SERVICE_URL } from '@/lib/serviceUrls';
 
 class ApiService {
   private api: AxiosInstance;
   private baseURL: string;
 
   constructor() {
-    this.baseURL = import.meta.env.VITE_EXAM_SERVICE_URL || 'http://localhost:3003';
+    this.baseURL = EXAM_SERVICE_URL;
     this.api = axios.create({
       baseURL: this.baseURL,
       headers: {

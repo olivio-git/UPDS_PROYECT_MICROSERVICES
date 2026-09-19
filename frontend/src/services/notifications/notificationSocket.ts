@@ -6,6 +6,7 @@
 import { authSDK } from '@/services/sdk-simple-auth';
 import axios from 'axios';
 import { io, Socket } from 'socket.io-client';
+import { NOTIFICATION_WS_URL } from '@/lib/serviceUrls';
 
 type EventCallback = (data: any) => void;
 
@@ -61,9 +62,7 @@ class NotificationSocketService {
     }
 
     const rawUrl =
-      import.meta.env.VITE_NOTIFICATION_SERVICE_WS ||
-      import.meta.env.VITE_NOTIFICATION_SERVICE_URL ||
-      'http://localhost:3001';
+      NOTIFICATION_WS_URL;
 
     // Socket.IO uses the origin only — strip any path like /api/v1 to avoid
     // treating it as a namespace (causes "Invalid namespace" error)

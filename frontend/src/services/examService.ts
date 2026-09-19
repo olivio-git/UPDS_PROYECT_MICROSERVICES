@@ -14,13 +14,14 @@ import type {
   QuestionFilters
 } from '@/modules/exams/types';
 import { authSDK } from './sdk-simple-auth';
+import { EXAM_SERVICE_URL } from '@/lib/serviceUrls';
 
 class ExamService {
   private api: AxiosInstance;
   private baseURL: string;
 
   constructor() {
-    this.baseURL = import.meta.env.VITE_EXAM_SERVICE_URL || 'http://localhost:3003';
+    this.baseURL = EXAM_SERVICE_URL;
     
     this.api = axios.create({
       baseURL: `${this.baseURL}/api/v1`,

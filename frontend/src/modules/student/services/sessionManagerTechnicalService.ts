@@ -1,5 +1,6 @@
 import { authSDK } from '@/services/sdk-simple-auth';
 import axios, { type AxiosInstance } from 'axios';
+import { AUTH_SERVICE_URL, EXAM_SERVICE_URL, SESSION_MANAGER_URL } from '@/lib/serviceUrls';
 
 interface TechnicalVerificationResponse {
   success: boolean;
@@ -52,7 +53,7 @@ class SessionManagerTechnicalService {
 
   constructor() {
     // VITE_SESSION_MANAGER_URL already includes /api/v1, so only append /technical
-    this.baseURL = import.meta.env.VITE_SESSION_MANAGER_URL || 'http://localhost:80/api/v1';
+    this.baseURL = SESSION_MANAGER_URL;
 
     this.api = axios.create({
       baseURL: `${this.baseURL}/technical`,
@@ -127,8 +128,8 @@ class SessionManagerTechnicalService {
       // Test básico usando el endpoint de health del session-manager
       const testUrls = [
         `${this.baseURL}/health`,
-        `${import.meta.env.VITE_EXAM_SERVICE_URL || 'http://localhost:3003'}/health`,
-        `${import.meta.env.VITE_AUTH_SERVICE_URL || 'http://localhost:3002'}/health`
+        `${EXAM_SERVICE_URL}/health`,
+        `${AUTH_SERVICE_URL}/health`
       ];
 
       let totalLatency = 0;

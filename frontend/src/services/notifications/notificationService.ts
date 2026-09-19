@@ -1,5 +1,6 @@
 import { authSDK } from "@/services/sdk-simple-auth";
 import axios from "axios";
+import { NOTIFICATION_SERVICE_URL } from '@/lib/serviceUrls';
 
 export interface NotificationStats {
   total: number;
@@ -44,7 +45,7 @@ export interface ApiResponse<T = any> {
 }
 
 class NotificationService {
-  private baseUrl = import.meta.env.VITE_NOTIFICATION_SERVICE_URL || 'http://localhost:3001';
+  private baseUrl = NOTIFICATION_SERVICE_URL;
 
   // In-app notification endpoints
   async getInAppNotifications(params?: { recipientId?: string; onlyUnread?: boolean; limit?: number; page?: number }) {

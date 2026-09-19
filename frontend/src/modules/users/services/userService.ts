@@ -1,6 +1,7 @@
 import axios from 'axios';
 import { toast } from 'sonner';
 import { authSDK } from '@/services/sdk-simple-auth';
+import { USER_MANAGEMENT_URL } from '@/lib/serviceUrls';
 import type {
   User,
   CreateUserRequest,
@@ -11,7 +12,7 @@ import type {
 } from '../types/user.types';
 
 class UserService {
-  private baseUrl = import.meta.env.VITE_USER_MANAGEMENT_URL || 'http://localhost:3002';
+  private baseUrl = USER_MANAGEMENT_URL;
 
   /**
    * Obtener headers de autenticación

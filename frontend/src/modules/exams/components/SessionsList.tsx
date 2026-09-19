@@ -46,6 +46,7 @@ import CandidateAssignmentView from './CandidateAssignmentView';
 import ProctorAssignmentModal from './ProctorAssignmentView';
 import SessionDetailView from './SessionDetailView';
 import SessionForm from './SessionForm';
+import { GATEWAY_URL } from '@/lib/serviceUrls';
 
 type ViewMode =
   | 'table'
@@ -302,7 +303,7 @@ const SessionsList: React.FC = () => {
 
   const handleRegrade = (session: ExamSession) => {
     setRegradingId(session._id!);
-    const gradingUrl = import.meta.env.VITE_API_GATEWAY_URL || 'http://localhost:80';
+    const gradingUrl = GATEWAY_URL;
     const token = authSDK.getAccessToken();
 
     const fetchPromise = fetch(`${gradingUrl}/api/v1/grading/regrade-session`, {

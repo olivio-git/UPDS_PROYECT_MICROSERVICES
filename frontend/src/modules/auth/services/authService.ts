@@ -1,6 +1,7 @@
 import { authSDK } from "@/services/sdk-simple-auth";
 import axios from "axios";
 import { toast } from "sonner";
+import { AUTH_SERVICE_URL } from '@/lib/serviceUrls';
 
 export interface LoginRequest {
   email: string;
@@ -39,7 +40,7 @@ export interface ApiResponse<T = any> {
 }
 
 class AuthService {
-  private baseUrl = import.meta.env.VITE_AUTH_SERVICE_URL || 'http://localhost:3000';
+  private baseUrl = AUTH_SERVICE_URL;
 
   // 📝 REGISTRO DIRECTO (SIN OTP AUTOMÁTICO)
   async register(data: RegisterRequest): Promise<ApiResponse> {

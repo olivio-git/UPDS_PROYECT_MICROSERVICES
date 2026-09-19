@@ -3,8 +3,9 @@ import axios from 'axios';
 import { useCallback, useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import type { ApiResponse, Exam, ExamFilters } from '../types';
+import { EXAM_SERVICE_URL } from '@/lib/serviceUrls';
 
-const API_BASE_URL = import.meta.env.VITE_EXAM_SERVICE_URL || 'http://localhost:3002';
+const API_BASE_URL = EXAM_SERVICE_URL;
 
 export const useExams = () => {
   const [exams, setExams] = useState<Exam[]>([]);

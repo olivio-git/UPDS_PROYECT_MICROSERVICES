@@ -55,6 +55,7 @@ import { useEffect, useMemo, useState } from 'react';
 import type { DateRange } from 'react-day-picker';
 import { useNavigate, useParams } from 'react-router-dom';
 import { toast } from 'sonner';
+import { toBrowserMediaUrl } from '@/lib/mediaUrl';
 
 const columnHelper = createColumnHelper<StudentExamResult>();
 
@@ -300,7 +301,7 @@ const StudentResults = () => {
         case 'audio_response':
         case 'speaking': {
           const rawUrl: string = question.response?.audioUrl || '';
-          const audioUrl = rawUrl.replace(/^https?:\/\/minio(:\d+)?/, 'http://localhost:9000');
+          const audioUrl = toBrowserMediaUrl(rawUrl);
           return (
             <div className="space-y-2">
               {audioUrl ? (
