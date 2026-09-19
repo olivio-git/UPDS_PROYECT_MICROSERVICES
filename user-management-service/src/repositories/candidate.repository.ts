@@ -24,7 +24,9 @@ export class CandidateRepository {
   // CRUD OPERATIONS
   // ================================
 
-  async create(candidateData: Omit<Candidate, '_id' | 'createdAt' | 'updatedAt'>): Promise<CandidateModel> {
+  async create(
+    candidateData: Omit<Candidate, '_id' | 'createdAt' | 'updatedAt'> & { _id?: ObjectId }
+  ): Promise<CandidateModel> {
     const candidate = new CandidateModel({
       ...candidateData,
       createdAt: new Date(),

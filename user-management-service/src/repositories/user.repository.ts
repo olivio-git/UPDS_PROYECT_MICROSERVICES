@@ -31,7 +31,9 @@ export class UserRepository {
   // CRUD OPERATIONS
   // ================================
 
-  async create(userData: Omit<User, '_id' | 'createdAt' | 'updatedAt'>): Promise<UserModel> {
+  async create(
+    userData: Omit<User, '_id' | 'createdAt' | 'updatedAt'> & { _id?: ObjectId }
+  ): Promise<UserModel> {
     const user = new UserModel({
       ...userData,
       createdAt: new Date(),

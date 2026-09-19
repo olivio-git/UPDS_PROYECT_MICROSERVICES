@@ -1,10 +1,12 @@
 /*
  * Creates a consistent set of accounts across the two user stores.
  *
- * A person currently needs up to three records: credentials in cba_auth_db,
- * a profile in cba_user_management_db linked by authServiceUserId, and — only
- * for students — a candidate document that the exam domain references.
- * This script creates all of them together so they can never drift apart.
+ * "One person, one id": a person has up to three records — credentials in
+ * cba_auth_db, a profile in cba_user_management_db, and — only for students —
+ * a candidate document that the exam domain references — but they all share
+ * the SAME _id (the auth-service user id). The profile keeps authServiceUserId
+ * populated for backward compatibility, but it always equals _id. This script
+ * creates all of them together so they can never drift apart.
  *
  * Run inside the auth-service container:
  *   docker cp scripts/seed-users.js auth-service:/app/seed-users.js
@@ -39,16 +41,17 @@ const PEOPLE = [
     await auth.collection(usersCol).deleteMany({ email });
     await ums.collection('users').deleteMany({ email });
 
-    const authId = new ObjectId();
+    // "one person, one id": the auth-service user _id is the canonical person
+    // id, reused as-is for the profile and (for students) the candidate.
+    const personId = new ObjectId();
     await auth.collection(usersCol).insertOne({
-      _id: authId, email, password: hash, firstName, lastName, role,
+      _id: personId, email, password: hash, firstName, lastName, role,
       isActive: true, isEmailVerified: true, permissions: [], profile: {},
       createdAt: now, updatedAt: now,
     });
 
-    const profileId = new ObjectId();
     await ums.collection('users').insertOne({
-      _id: profileId, authServiceUserId: String(authId), email, firstName, lastName, role,
+      _id: personId, authServiceUserId: String(personId), email, firstName, lastName, role,
       isActive: true, status: 'active', permissions: [], profile: {},
       createdAt: now, updatedAt: now,
     });
@@ -56,9 +59,12 @@ const PEOPLE = [
     // Only students are exam candidates. A proctor used to have a candidate
     // record, which is what made the roles impossible to reason about.
     if (role === 'student') {
-      await ums.collection('candidates').deleteMany({ userId: profileId });
+      // By email: the id is new on every run, so matching on it would leave
+      // the previous run's candidate behind.
+      await ums.collection('candidates').deleteMany({ 'personalInfo.email': email });
       await ums.collection('candidates').insertOne({
-        userId: profileId,
+        _id: personId,
+        userId: personId,
         personalInfo: { firstName, lastName, email },
         academicInfo: { currentLevel: level, targetLevel: level },
         status: 'active', examHistory: [], createdAt: now, updatedAt: now,

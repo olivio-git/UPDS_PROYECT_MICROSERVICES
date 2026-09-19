@@ -4,6 +4,7 @@ import { ObjectId } from 'mongodb';
 import { CandidateModel } from '../models/Candidate';
 import { CacheRepository } from '../repositories/cache.repository';
 import { CandidateRepository } from '../repositories/candidate.repository';
+import { UserRepository } from '../repositories/user.repository';
 import {
   ApiResponse,
   BulkImportResult,
@@ -11,6 +12,7 @@ import {
   CreateCandidateRequest,
   FilterParams,
   PaginationParams,
+  PersonalInfo,
   TechnicalSetup,
   UpdateCandidateRequest
 } from '../types';
@@ -18,11 +20,13 @@ import { eventService } from './event.service';
 
 export class CandidateService {
   private candidateRepository: CandidateRepository;
+  private userRepository: UserRepository;
   private redis: CacheRepository;
   private readonly USER_VERIFICATION_PREFIX = 'user_tech:';
 
   constructor() {
     this.candidateRepository = new CandidateRepository();
+    this.userRepository = new UserRepository();
     this.redis = new CacheRepository();
   }
 
@@ -78,6 +82,52 @@ export class CandidateService {
     }
   }
 
+  // 🆕 "one person, one id": resolves the person (auth user + user-management
+  // profile) behind a candidate, creating it through the standard UserService
+  // flow when it does not exist yet, and reusing it (by email) otherwise.
+  // The returned id becomes the candidate's own _id and userId.
+  private async resolvePersonId(personalInfo: PersonalInfo, registeredBy?: string): Promise<ObjectId> {
+    const existingUser = await this.userRepository.findByEmail(personalInfo.email);
+    if (existingUser?._id) {
+      // Only a student can be an exam candidate. Reusing a teacher's or
+      // proctor's account here would recreate the role mix-up where staff
+      // appeared as candidates.
+      if (existingUser.role !== 'student') {
+        throw new Error(
+          `El email ${personalInfo.email} pertenece a un usuario con rol "${existingUser.role}" y no puede registrarse como candidato`
+        );
+      }
+      return existingUser._id;
+    }
+
+    // Dynamic import to avoid a circular dependency with UserService, which
+    // itself dynamically imports CandidateService to auto-create candidates
+    // for student users.
+    const { UserService } = await import('./user.service');
+    const userService = new UserService();
+
+    const userResult = await userService.createUser(
+      {
+        email: personalInfo.email,
+        firstName: personalInfo.firstName,
+        lastName: personalInfo.lastName,
+        role: 'student',
+      },
+      registeredBy
+    );
+
+    if (!userResult.success) {
+      throw new Error(userResult.message || 'Error creando el usuario asociado al candidato');
+    }
+
+    const createdUserId = userResult.data?.user?._id;
+    if (!createdUserId) {
+      throw new Error('El usuario creado no tiene un id válido');
+    }
+
+    return new ObjectId(createdUserId);
+  }
+
   async createCandidate(candidateData: CreateCandidateRequest, registeredBy?: string): Promise<ApiResponse<any>> {
     try {
       // Verificar si ya existe un candidato con el mismo email
@@ -89,6 +139,10 @@ export class CandidateService {
           error: 'EMAIL_EXISTS'
         };
       }
+
+      // "one person, one id": asegurar que exista la persona (auth user + perfil)
+      // antes de crear el candidato, y reutilizar ese mismo id como _id/userId.
+      const personId = await this.resolvePersonId(candidateData.personalInfo, registeredBy);
 
       // Preparar technicalSetup con valores por defecto
       const defaultTechnicalSetup: TechnicalSetup = {
@@ -102,11 +156,13 @@ export class CandidateService {
 
       // Validar datos del candidato
       const candidateModel = new CandidateModel({
+        _id: personId,
+        userId: personId,
         personalInfo: candidateData.personalInfo,
         academicInfo: candidateData.academicInfo,
         technicalSetup: defaultTechnicalSetup,
         status: 'registered',
-        registeredBy: new ObjectId(registeredBy || '000000000000000000000000'),
+        registeredBy: new ObjectId(registeredBy || personId.toString()),
         notes: candidateData.notes || ''
       });
 
@@ -119,8 +175,27 @@ export class CandidateService {
         };
       }
 
-      // Crear candidato
-      const candidate = await this.candidateRepository.create(candidateModel);
+      // Si resolvePersonId creó un usuario student nuevo, UserService ya habrá
+      // auto-creado un candidato mínimo con este mismo _id (ver
+      // UserService.createUser). En ese caso actualizamos ese registro con los
+      // datos reales en vez de insertar uno duplicado.
+      const autoCreatedCandidate = await this.candidateRepository.findById(personId);
+      const candidate = autoCreatedCandidate
+        ? await this.candidateRepository.update(personId, {
+            personalInfo: candidateData.personalInfo,
+            academicInfo: candidateData.academicInfo,
+            technicalSetup: defaultTechnicalSetup,
+            notes: candidateData.notes || ''
+          })
+        : await this.candidateRepository.create(candidateModel);
+
+      if (!candidate) {
+        return {
+          success: false,
+          message: 'Error registrando candidato',
+          error: 'CANDIDATE_CREATE_FAILED'
+        };
+      }
 
       // Publicar evento de candidato registrado
       try {

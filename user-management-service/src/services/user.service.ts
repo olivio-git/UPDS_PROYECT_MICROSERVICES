@@ -1,3 +1,4 @@
+import { ObjectId } from 'mongodb';
 import { authServiceIntegration } from '../integrations/auth-service.integration';
 import { UserRepository } from '../repositories/user.repository';
 import {
@@ -79,16 +80,26 @@ export class UserService {
       console.log('✅ Usuario creado en auth-service:', authResult.data);
 
       // 4. Crear registro en user-management
+      const authServiceUserId: string | undefined = authResult.data?.user?._id || authResult.data?.userId;
+      // new ObjectId(undefined) would silently mint a fresh random id and split
+      // this person's ids again. Refuse instead of creating a divergent profile.
+      if (!authServiceUserId || !ObjectId.isValid(authServiceUserId)) {
+        throw new Error('auth-service did not return a valid user id; profile not created');
+      }
       const userProfile = {
+        // El _id del perfil DEBE ser el mismo que el del usuario en auth-service
+        // (modelo "one person, one id"): así el id del JWT sirve directamente
+        // como id del perfil, sin traducción.
+        _id: new ObjectId(authServiceUserId),
         email: adminData.email.toLowerCase(),
         firstName: adminData.firstName,
         lastName: adminData.lastName,
         role: 'admin' as UserRole,
         status: 'active' as UserStatus,
-        
+
         // Referencia al usuario en auth-service
-        authServiceUserId: authResult.data?.user?._id || authResult.data?.userId,
-        
+        authServiceUserId,
+
         // Permisos completos de administrador
         permissions: [
           { resource: 'users', actions: ['create', 'read', 'update', 'delete', 'manage'] },
@@ -129,9 +140,9 @@ export class UserService {
       return {
         success: true,
         message: 'Primer administrador creado exitosamente',
-        data: { 
+        data: {
           user: user.toJSON(),
-          authServiceUserId: authResult.data?.user?._id || authResult.data?.userId,
+          authServiceUserId,
           bootstrapCompleted: true,
           message: '🎉 Sistema inicializado. Ya puedes iniciar sesión con tus credenciales.'
         }
@@ -199,17 +210,27 @@ export class UserService {
       console.log('✅ Usuario creado en auth-service:', authResult.data);
 
       // 5. Crear registro en user-management con referencia al auth-service
+      const authServiceUserId: string | undefined = authResult.data?.user?._id || authResult.data?.userId;
+      // new ObjectId(undefined) would silently mint a fresh random id and split
+      // this person's ids again. Refuse instead of creating a divergent profile.
+      if (!authServiceUserId || !ObjectId.isValid(authServiceUserId)) {
+        throw new Error('auth-service did not return a valid user id; profile not created');
+      }
       const userProfile = {
+        // El _id del perfil DEBE ser el mismo que el del usuario en auth-service
+        // (modelo "one person, one id"): así el id del JWT sirve directamente
+        // como id del perfil, sin traducción.
+        _id: new ObjectId(authServiceUserId),
         // Datos básicos (solo metadatos, no credenciales)
         email: userData.email.toLowerCase(),
         firstName: userData.firstName,
         lastName: userData.lastName,
         role: userData.role as UserRole,
         status: userData.status as UserStatus || 'active',
-        
+
         // Referencia al usuario en auth-service
-        authServiceUserId: authResult.data?.user?._id || authResult.data?.userId,
-        
+        authServiceUserId,
+
         // Datos específicos de user-management
         profile: userData.profile || {
           preferences: {
@@ -275,9 +296,9 @@ export class UserService {
       return {
         success: true,
         message: 'Usuario creado exitosamente',
-        data: { 
+        data: {
           user: user.toJSON(),
-          authServiceUserId: authResult.data?.user?._id || authResult.data?.userId,
+          authServiceUserId,
           emailSent: true,
           message: '📧 Las credenciales de acceso han sido enviadas al email del usuario'
         }

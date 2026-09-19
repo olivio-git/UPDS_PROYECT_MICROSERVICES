@@ -259,6 +259,8 @@ export class CandidateModel implements Candidate {
   // 🆕 NUEVO: Factory method para crear desde User
   public static createFromUser(user: any): CandidateModel {
     return new CandidateModel({
+      // "one person, one id": the candidate _id IS the person id (user._id).
+      _id: user._id,
       userId: user._id,
       personalInfo: {
         firstName: user.firstName,
