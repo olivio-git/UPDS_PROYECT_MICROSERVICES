@@ -11,12 +11,23 @@ services:
       # Host port is configurable: rootless Docker cannot bind ports below 1024.
       - "${GATEWAY_PORT:-80}:80"
     depends_on:
+      - frontend
       - auth-service
       - user-management-service
       - notifications-service
       - exam-service
       - session-manager-service
       - grading-service
+    networks:
+      - default
+
+  # FRONTEND (static bundle served by nginx, proxied by the gateway)
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: frontend
+    restart: on-failure
     networks:
       - default
 
