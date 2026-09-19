@@ -29,7 +29,7 @@ export const isStudentRole = (role: unknown) => STUDENT_ROLES.includes(String(ro
  */
 async function lookupProfile(personId: string) {
   try {
-    return await User.findById(personId);
+    return await User.findById(personId).select('firstName lastName email').lean();
   } catch (error) {
     console.warn('searchRefs: profile lookup failed, falling back to JWT claims', error);
     return null;

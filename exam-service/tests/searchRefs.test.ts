@@ -11,7 +11,8 @@ const findById = jest.fn();
 
 jest.mock('../src/models/user.model', () => ({
   User: {
-    findById: (...args: unknown[]) => findById(...args),
+    // Mirrors the query chain: findById(id).select(fields).lean()
+    findById: (...args: unknown[]) => ({ select: () => ({ lean: () => findById(...args) }) }),
   },
 }));
 
