@@ -1,7 +1,7 @@
 {
-  "name": "user-management-service",
+  "name": "identity-service",
   "version": "1.0.0",
-  "description": "Microservicio de gestión de usuarios y candidatos para CBA Linguistic Platform",
+  "description": "Microservicio de identidad (autenticacion + gestion de usuarios/candidatos) para CBA Linguistic Platform",
   "main": "dist/index.js",
   "scripts": {
     "build": "tsc",
@@ -11,6 +11,8 @@
     "test": "jest"
   },
   "keywords": [
+    "identity",
+    "auth",
     "user-management",
     "candidates",
     "roles",
@@ -21,6 +23,7 @@
   "license": "MIT",
   "dependencies": {
     "axios": "^1.11.0",
+    "bcryptjs": "^2.4.3",
     "compression": "^1.8.1",
     "cors": "^2.8.5",
     "csv-parser": "^3.0.0",
@@ -40,6 +43,7 @@
     "zod": "^3.22.4"
   },
   "devDependencies": {
+    "@types/bcryptjs": "^2.4.6",
     "@types/compression": "^1.8.1",
     "@types/cors": "^2.8.17",
     "@types/express": "^4.17.21",

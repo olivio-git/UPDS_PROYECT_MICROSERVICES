@@ -286,6 +286,21 @@ export const asyncHandler = (fn: RequestHandler) => {
   };
 };
 
+// Body fields that must never reach the logs (credentials, OTP codes, tokens).
+const SENSITIVE_BODY_KEYS = new Set([
+  'password', 'oldPassword', 'newPassword', 'confirmPassword', 'passwordHash',
+  'code', 'otp', 'resetToken', 'refreshToken', 'accessToken', 'token',
+]);
+
+const redactBody = (body: unknown): unknown => {
+  if (!body || typeof body !== 'object' || Array.isArray(body)) return body;
+  return Object.fromEntries(
+    Object.entries(body as Record<string, unknown>).map(([key, value]) =>
+      [key, SENSITIVE_BODY_KEYS.has(key) ? '***' : value]
+    )
+  );
+};
+
 /**
  * Middleware de logging para desarrollo
  */
@@ -293,7 +308,7 @@ export const requestLogger = (req: any, res: any, next: any) => {
   if (process.env.NODE_ENV === 'development') {
     console.log(`[${new Date().toISOString()}] ${req.method} ${req.path}`, {
       query: req.query,
-      body: req.method !== 'GET' ? req.body : undefined,
+      body: req.method !== 'GET' ? redactBody(req.body) : undefined,
       headers: {
         authorization: req.headers.authorization ? 'Bearer ***' : undefined,
         'content-type': req.headers['content-type']

@@ -18,6 +18,12 @@ export interface User {
   lastLogin?: Date;
   teacherData?: TeacherData;
   proctorData?: ProctorData;
+
+  // Credentials (auth module). NEVER serialize this field out of the service —
+  // UserModel.toJSON() intentionally omits it and repository list/search reads
+  // project it out at the query level. Only auth flows (login, change/reset
+  // password) read it directly off the repository.
+  passwordHash?: string;
 }
 
 export type UserRole = 'admin' | 'teacher' | 'proctor' | 'student';
@@ -337,6 +343,14 @@ export interface ImportError {
 // JWT PAYLOAD TYPE
 // ================================
 
+// NOTE: the JWT actually issued by the auth module carries `permissions` as a
+// flat string[] (e.g. 'exam.create'), not Permission[]. That mismatch predates
+// this merge (it existed when auth-service and user-management-service were
+// separate) and is harmless in practice: permission.middleware.ts always falls
+// back to DEFAULT_PERMISSIONS[role] because `permission.resource` is undefined
+// on a plain string, so the JWT's permissions array is never actually read for
+// authorization decisions — only `role` matters. Left as-is to avoid touching
+// unrelated call sites; documented here instead of "fixed" silently.
 export interface JWTPayload {
   userId: string;
   email: string;

@@ -35,22 +35,12 @@ router.get('/info',
 );
 
 // ================================
-// AUTH SERVICE TESTS
+// AUTH MODULE TESTS (in-process since the identity-service merge)
 // ================================
 
 /**
- * @route GET /test/auth-service
- * @desc Test de conexión con auth-service
- * @access Admin
- */
-router.get('/auth-service',
-  ...middlewareStacks.adminOnly,
-  asyncHandler(testController.testAuthServiceConnection)
-);
-
-/**
  * @route POST /test/auth-service/validate-user
- * @desc Test de validación de usuario en auth-service
+ * @desc Test de validación de existencia de usuario (in-process)
  * @access Admin
  */
 router.post('/auth-service/validate-user',

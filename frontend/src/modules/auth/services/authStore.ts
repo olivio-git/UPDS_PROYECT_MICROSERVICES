@@ -9,6 +9,8 @@ interface OTPState {
   otpPurpose: 'login' | 'password_reset' | 'email_verification';
   otpExpiresAt?: Date;
   attemptsRemaining: number;
+  // Single-use proof of a verified password_reset OTP. Kept in memory only.
+  resetToken?: string;
 }
 
 export interface PublicRegisterRequest {
@@ -44,7 +46,7 @@ interface AuthStore {
   initialize: () => Promise<void>;
 
   // Reset password
-  resetPassword: (email: string, newPassword: string) => Promise<boolean>;
+  resetPassword: (newPassword: string) => Promise<boolean>;
 
   getCandidateId: () => Promise<string | null>;
 
@@ -269,7 +271,8 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
           otp: {
             ...otp,
             isOTPRequired: false, // Ya no se requiere
-            attemptsRemaining: 3 // Resetear intentos
+            attemptsRemaining: 3, // Resetear intentos
+            resetToken: (result.data as { resetToken?: string } | undefined)?.resetToken,
           }
         });
         return true;
@@ -493,13 +496,16 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
   },
 
   // 🔐 RESET PASSWORD (SIN CONTRASEÑA ACTUAL)
-  resetPassword: async (email: string, newPassword: string) => {
+  resetPassword: async (newPassword: string) => {
+    const { resetToken } = get().otp;
+    if (!resetToken) {
+      set({ error: 'Verifica el código enviado a tu correo antes de cambiar la contraseña.' });
+      return false;
+    }
     set({ isLoading: true, error: null });
 
     try {
-      console.log('🔐 [AuthStore] Restableciendo contraseña para:', email);
-
-      const result = await authService.resetPassword(email, newPassword);
+      const result = await authService.resetPassword(resetToken, newPassword);
 
       if (result.success) {
         console.log('✅ [AuthStore] Contraseña restablecida exitosamente');

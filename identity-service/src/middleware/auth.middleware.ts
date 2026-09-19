@@ -3,6 +3,8 @@ import jwt from 'jsonwebtoken';
 import { JWTPayload } from '@/types';
 import config from '../config/index';
 import { createError } from './error.middleware';
+import { AuthCacheRepository } from '../auth/repositories/auth-cache.repository';
+import { UserRepository } from '../repositories/user.repository';
 
 // Extender el tipo Request para incluir user
 declare global {
@@ -12,6 +14,22 @@ declare global {
       jwt?: string;
     }
   }
+}
+
+// Lazily instantiated: this module is imported at process start (before
+// database/connections' Mongo/Redis clients connect), but these repositories
+// touch those clients in their constructors. Creating them on first request
+// (well after connectDatabases() has run) avoids a boot-time crash while
+// still only paying the construction cost once per process.
+let cacheRepo: AuthCacheRepository | null = null;
+let userRepo: UserRepository | null = null;
+function getCacheRepo(): AuthCacheRepository {
+  if (!cacheRepo) cacheRepo = new AuthCacheRepository();
+  return cacheRepo;
+}
+function getUserRepo(): UserRepository {
+  if (!userRepo) userRepo = new UserRepository();
+  return userRepo;
 }
 
 export class AuthMiddleware {
@@ -36,6 +54,38 @@ export class AuthMiddleware {
         // Verificar que el token tenga la estructura esperada
         if (!decoded.userId || !decoded.email || !decoded.role) {
           const error = createError.unauthorized('Token inválido - estructura incorrecta');
+          next(error);
+          return;
+        }
+
+        // Explicit logout blacklist (defense in depth; inert today because
+        // the auth module never puts a jti on the token, same as the old
+        // auth-service — see auth/services/jwt.service.ts).
+        const tokenJti = (jwt.decode(token) as any)?.jti;
+        if (tokenJti && (await getCacheRepo().isTokenBlacklisted(tokenJti))) {
+          const error = createError.unauthorized('Token revocado');
+          next(error);
+          return;
+        }
+
+        // This is the real revocation mechanism: a deactivated user's
+        // already-issued token stops working within the cache TTL, because
+        // UserService.deactivateUser invalidates this cache entry
+        // synchronously (in-process, no Kafka round trip needed anymore).
+        // Cache-first to avoid a Mongo round trip on every single request.
+        let statusCheck = await getCacheRepo().getCachedUser(decoded.userId);
+        if (!statusCheck) {
+          const dbUser = await getUserRepo().findById(decoded.userId);
+          if (!dbUser) {
+            const error = createError.unauthorized('Usuario no válido o inactivo');
+            next(error);
+            return;
+          }
+          statusCheck = dbUser.toJSON();
+          await getCacheRepo().cacheUser(decoded.userId, statusCheck);
+        }
+        if (!statusCheck || statusCheck.status !== 'active') {
+          const error = createError.unauthorized('Usuario no válido o inactivo');
           next(error);
           return;
         }

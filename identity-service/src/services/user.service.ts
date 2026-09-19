@@ -1,6 +1,10 @@
 import { ObjectId } from 'mongodb';
-import { authServiceIntegration } from '../integrations/auth-service.integration';
+import bcrypt from 'bcryptjs';
 import { UserRepository } from '../repositories/user.repository';
+import { AuthService } from '../auth/services/auth.service';
+import { SessionRepository } from '../auth/repositories/session.repository';
+import { AuthCacheRepository } from '../auth/repositories/auth-cache.repository';
+import { JwtService } from '../auth/services/jwt.service';
 import {
   ApiResponse,
   CreateUserRequest,
@@ -14,9 +18,24 @@ import { eventService } from './event.service';
 
 export class UserService {
   private userRepository: UserRepository;
+  // The credentials side of user management (password hashing, sessions)
+  // used to be a separate HTTP call to auth-service. It is now the same
+  // in-process AuthService the /auth/* routes use — constructed here rather
+  // than imported as a singleton because this class, like AuthService's own
+  // dependencies, must only be built after Mongo/Redis are connected (which
+  // is guaranteed: UserService is only ever `new`'d from a controller, and
+  // controllers are only instantiated via routes/index.ts's dynamic import,
+  // which runs after connectDatabases()).
+  private authService: AuthService;
 
   constructor() {
     this.userRepository = new UserRepository();
+    this.authService = new AuthService(
+      this.userRepository,
+      new SessionRepository(),
+      new AuthCacheRepository(),
+      new JwtService()
+    );
     console.log('👤 UserService inicializado');
   }
 
@@ -58,47 +77,20 @@ export class UserService {
         };
       }
 
-      // 3. Crear usuario DIRECTAMENTE en auth-service (bypass user-management)
-      console.log('🔐 Creando credenciales en auth-service...');
-      const authResult = await authServiceIntegration.createUserInAuthService({
-        email: adminData.email,
-        password: adminData.password,
-        firstName: adminData.firstName,
-        lastName: adminData.lastName,
-        role: adminData.role
-      });
+      // 3. Hash the password and create the user document directly — the
+      // "one person, one id" model means there is only ever one insert, and
+      // Mongo mints the _id right here (no separate auth-service round trip,
+      // no second id to reconcile).
+      console.log('🔐 Generando credenciales...');
+      const passwordHash = await bcrypt.hash(adminData.password, 12);
 
-      if (!authResult.success) {
-        console.error('❌ Error creando usuario en auth-service:', authResult.message);
-        return {
-          success: false,
-          message: `Error creando credenciales: ${authResult.message}`,
-          error: 'AUTH_SERVICE_ERROR'
-        };
-      }
-
-      console.log('✅ Usuario creado en auth-service:', authResult.data);
-
-      // 4. Crear registro en user-management
-      const authServiceUserId: string | undefined = authResult.data?.user?._id || authResult.data?.userId;
-      // new ObjectId(undefined) would silently mint a fresh random id and split
-      // this person's ids again. Refuse instead of creating a divergent profile.
-      if (!authServiceUserId || !ObjectId.isValid(authServiceUserId)) {
-        throw new Error('auth-service did not return a valid user id; profile not created');
-      }
       const userProfile = {
-        // El _id del perfil DEBE ser el mismo que el del usuario en auth-service
-        // (modelo "one person, one id"): así el id del JWT sirve directamente
-        // como id del perfil, sin traducción.
-        _id: new ObjectId(authServiceUserId),
         email: adminData.email.toLowerCase(),
         firstName: adminData.firstName,
         lastName: adminData.lastName,
         role: 'admin' as UserRole,
         status: 'active' as UserStatus,
-
-        // Referencia al usuario en auth-service
-        authServiceUserId,
+        passwordHash,
 
         // Permisos completos de administrador
         permissions: [
@@ -133,16 +125,22 @@ export class UserService {
       console.log('💾 Creando registro en user-management...');
       const user = await this.userRepository.create(userProfile);
 
+      // Mirror the freshly-minted _id into authServiceUserId — kept only for
+      // exam-service's read-only copy of this collection, see models/User.ts.
+      await this.userRepository.update(user._id as ObjectId, {
+        authServiceUserId: (user._id as ObjectId).toString(),
+      });
+
       console.log('✅ Primer administrador creado exitosamente');
 
-      // 5. NO publicar eventos Kafka para evitar envío de email (ya tiene las credenciales)
-      
+      // NO publicar eventos Kafka para evitar envío de email (ya tiene las credenciales)
+
       return {
         success: true,
         message: 'Primer administrador creado exitosamente',
         data: {
           user: user.toJSON(),
-          authServiceUserId,
+          authServiceUserId: (user._id as ObjectId).toString(),
           bootstrapCompleted: true,
           message: '🎉 Sistema inicializado. Ya puedes iniciar sesión con tus credenciales.'
         }
@@ -166,72 +164,30 @@ export class UserService {
     try {
       console.log('🔄 Iniciando creación de usuario:', userData.email);
 
-      // 1. Verificar si el usuario ya existe en user-management
+      // 1. Verificar si el usuario ya existe
       const existingUser = await this.userRepository.findByEmail(userData.email);
       if (existingUser) {
         return {
           success: false,
-          message: 'Un usuario con este email ya existe en user-management',
+          message: 'Un usuario con este email ya existe',
           error: 'EMAIL_EXISTS'
         };
       }
 
-      // 2. Verificar si existe en auth-service
-      const authUserExists = await authServiceIntegration.validateUserExists(userData.email);
-      if (authUserExists.data) {
-        return {
-          success: false,
-          message: 'Un usuario con este email ya existe en auth-service',
-          error: 'EMAIL_EXISTS_AUTH'
-        };
-      }
+      // 2. Generar contraseña temporal y su hash. There is no second
+      // service to create this user in anymore — the _id is minted once,
+      // right here, by the insertOne() below.
+      const password = this.authService.generateTemporaryPassword();
+      const passwordHash = await bcrypt.hash(password, 12);
 
-      // 3. Generar credenciales para auth-service
-      const { password, credentials } = await authServiceIntegration.generateUserCredentials({
-        email: userData.email,
-        firstName: userData.firstName,
-        lastName: userData.lastName,
-        role: userData.role
-      });
-
-      console.log('🔐 Credenciales generadas para auth-service');
-
-      // 4. Crear usuario en auth-service PRIMERO
-      const authResult = await authServiceIntegration.createUserInAuthService(credentials);
-      if (!authResult.success) {
-        console.error('❌ Error creando usuario en auth-service:', authResult.message);
-        return {
-          success: false,
-          message: `Error creando credenciales: ${authResult.message}`,
-          error: 'AUTH_SERVICE_ERROR'
-        };
-      }
-
-      console.log('✅ Usuario creado en auth-service:', authResult.data);
-
-      // 5. Crear registro en user-management con referencia al auth-service
-      const authServiceUserId: string | undefined = authResult.data?.user?._id || authResult.data?.userId;
-      // new ObjectId(undefined) would silently mint a fresh random id and split
-      // this person's ids again. Refuse instead of creating a divergent profile.
-      if (!authServiceUserId || !ObjectId.isValid(authServiceUserId)) {
-        throw new Error('auth-service did not return a valid user id; profile not created');
-      }
       const userProfile = {
-        // El _id del perfil DEBE ser el mismo que el del usuario en auth-service
-        // (modelo "one person, one id"): así el id del JWT sirve directamente
-        // como id del perfil, sin traducción.
-        _id: new ObjectId(authServiceUserId),
-        // Datos básicos (solo metadatos, no credenciales)
         email: userData.email.toLowerCase(),
         firstName: userData.firstName,
         lastName: userData.lastName,
         role: userData.role as UserRole,
         status: userData.status as UserStatus || 'active',
+        passwordHash,
 
-        // Referencia al usuario en auth-service
-        authServiceUserId,
-
-        // Datos específicos de user-management
         profile: userData.profile || {
           preferences: {
             language: 'es',
@@ -243,31 +199,37 @@ export class UserService {
             }
           }
         },
-        
+
         permissions: [],
         teacherData: userData.teacherData,
         proctorData: userData.proctorData,
-        
+
         // Metadatos
         createdBy: createdBy,
         lastSync: new Date(),
       };
 
-      console.log('💾 Creando registro en user-management...');
+      console.log('💾 Creando usuario...');
       const user = await this.userRepository.create(userProfile);
 
-      // 6. Asignar permisos por defecto basados en el rol
+      // Mirror the freshly-minted _id into authServiceUserId — kept only for
+      // exam-service's read-only copy of this collection, see models/User.ts.
+      await this.userRepository.update(user._id as ObjectId, {
+        authServiceUserId: (user._id as ObjectId).toString(),
+      });
+
+      // 3. Asignar permisos por defecto basados en el rol
       await this.assignDefaultPermissions(user._id!.toString(), userData.role);
 
-      console.log('✅ Usuario creado exitosamente en user-management');
+      console.log('✅ Usuario creado exitosamente');
 
-      // 7. 🆕 Auto-crear candidato si es student
+      // 4. 🆕 Auto-crear candidato si es student
       if (userData.role === 'student') {
         try {
           // Importar dinámicamente para evitar dependencias circulares
           const { CandidateService } = await import('./candidate.service');
           const candidateService = new CandidateService();
-          
+
           await candidateService.createFromUser(user.toJSON());
           console.log(`✅ Auto-created candidate for student user ${user._id}`);
         } catch (error) {
@@ -276,7 +238,7 @@ export class UserService {
         }
       }
 
-      // 8. Publicar evento de usuario creado (que triggeará el envío de email con contraseña)
+      // 5. Publicar evento de usuario creado (que triggeará el envío de email con contraseña)
       try {
         await eventService.publishUserCreated(
           user._id!.toString(),
@@ -298,20 +260,14 @@ export class UserService {
         message: 'Usuario creado exitosamente',
         data: {
           user: user.toJSON(),
-          authServiceUserId,
+          authServiceUserId: (user._id as ObjectId).toString(),
           emailSent: true,
           message: '📧 Las credenciales de acceso han sido enviadas al email del usuario'
         }
       };
     } catch (error) {
       console.error('❌ Error creando usuario:', error);
-      
-      // Si hubo error después de crear en auth-service, intentar limpiar
-      if (error instanceof Error && error.message.includes('E11000')) {
-        console.warn('⚠️ Error de duplicado en user-management, pero usuario ya existe en auth-service');
-        console.warn('🧹 Considera limpiar el usuario en auth-service si es necesario');
-      }
-      
+
       return {
         success: false,
         message: 'Error interno del servidor',
@@ -336,24 +292,11 @@ export class UserService {
         };
       }
 
-      // Intentar obtener datos actualizados de auth-service
-      let authServiceData = null;
-      try {
-        if (user.authServiceUserId) {
-          // Aquí podrías hacer una llamada a auth-service para obtener datos actualizados
-          // const authData = await authServiceIntegration.getUserById(user.authServiceUserId);
-          // authServiceData = authData.data;
-        }
-      } catch (authError) {
-        console.warn('⚠️ No se pudieron obtener datos de auth-service:', authError);
-      }
-
       return {
         success: true,
         message: 'Usuario obtenido exitosamente',
-        data: { 
+        data: {
           user: user.toJSON(),
-          authServiceData,
           lastSync: user.lastSync
         }
       };
@@ -400,20 +343,16 @@ export class UserService {
 
       const updatedUser = await this.userRepository.update(id, userManagementUpdates);
 
-      // Sincronizar cambios relevantes con auth-service
-      if (updates.email || updates.firstName || updates.lastName || updates.role) {
+      // No cross-service sync needed anymore: email/firstName/lastName/role
+      // just changed on the one document both auth and profile reads use.
+      // Invalidate the auth module's cached snapshot so the next
+      // authenticated request (and the next token refresh) picks up the
+      // new role/email immediately instead of waiting out the cache TTL.
+      if (updatedUser && (updates.email || updates.firstName || updates.lastName || updates.role)) {
         try {
-          const syncData: any = {};
-          if (updates.email) syncData.email = updates.email;
-          if (updates.firstName) syncData.firstName = updates.firstName;
-          if (updates.lastName) syncData.lastName = updates.lastName;
-          if (updates.role) syncData.role = updates.role;
-
-          await authServiceIntegration.syncUserData(existingUser.authServiceUserId || id, syncData);
-          console.log('🔄 Datos sincronizados con auth-service');
-        } catch (syncError) {
-          console.warn('⚠️ Error sincronizando con auth-service:', syncError);
-          // No fallar la operación por error de sincronización
+          await this.authService.invalidateUserCache(id);
+        } catch (cacheError) {
+          console.warn('⚠️ Error invalidando cache de auth tras actualización:', cacheError);
         }
       }
 
@@ -452,24 +391,23 @@ export class UserService {
         };
       }
 
-      // Eliminar registro de user-management PRIMERO
+      // Eliminar el documento del usuario (perfil + credenciales, es el mismo documento)
       const deleted = await this.userRepository.delete(id);
 
       if (!deleted) {
         return {
           success: false,
-          message: 'Error eliminando usuario de user-management',
+          message: 'Error eliminando usuario',
           error: 'DELETE_FAILED'
         };
       }
 
-      // Intentar eliminar de auth-service (puede fallar sin afectar el resultado)
+      // Revocar cualquier sesión/refresh-token y caché que le quedara al
+      // usuario eliminado. No HTTP hop anymore — same DB, same call.
       try {
-        await authServiceIntegration.deleteUserFromAuthService(userExists.authServiceUserId || id);
-        console.log('🗑️ Usuario eliminado de auth-service');
-      } catch (authError) {
-        console.warn('⚠️ Error eliminando usuario de auth-service (continuando):', authError);
-        // No detener la eliminación si falla auth-service
+        await this.authService.revokeAllSessionsForUser(id);
+      } catch (sessionError) {
+        console.warn('⚠️ Error revocando sesiones del usuario eliminado:', sessionError);
       }
 
       // Publicar evento de usuario eliminado
@@ -559,10 +497,19 @@ export class UserService {
     if (!existing) return { success: false, message: 'Usuario no encontrado', error: 'USER_NOT_FOUND' };
   
     const updatedUser = await this.userRepository.updateStatus(id, 'active');
-    // Publicar evento
     if(!updatedUser?.authServiceUserId) {
       return { success: false, message: 'Error al actualizar usuario', error: 'UPDATE_FAILED' };
     }
+
+    // Invalidate the cached "inactive" snapshot so the host authenticate
+    // middleware picks up the reactivation immediately (see deactivateUser).
+    try {
+      await this.authService.invalidateUserCache(id);
+    } catch (e) {
+      console.warn('⚠️ Error invalidando cache tras activación:', e);
+    }
+
+    // Publicar evento
     try {
       await eventService.publishUserStatusChanged(
         updatedUser?.authServiceUserId,
@@ -578,13 +525,26 @@ export class UserService {
   async deactivateUser(id: string) {
     const existing = await this.userRepository.findById(id);
     if (!existing) return { success: false, message: 'Usuario no encontrado', error: 'USER_NOT_FOUND' };
-  
+
     const updatedUser = await this.userRepository.updateStatus(id, 'inactive');
-    // Publicar evento
-     // Publicar evento
     if(!updatedUser?.authServiceUserId) {
       return { success: false, message: 'Error al actualizar usuario', error: 'UPDATE_FAILED' };
     }
+
+    // Revoke live sessions/refresh-tokens and the cached "active" snapshot
+    // immediately, in-process. This used to be an async Kafka round trip
+    // (USER_STATUS_CHANGED -> auth-service's own consumer, on its own DB) —
+    // now it is a direct call against the same database, so deactivation
+    // takes effect before this request even returns instead of racing the
+    // next Kafka poll.
+    try {
+      await this.authService.revokeAllSessionsForUser(id);
+    } catch (e) {
+      console.warn('⚠️ Error revocando sesiones tras desactivación:', e);
+    }
+
+    // Publicar evento (notifications-service / session-manager-service still
+    // consume USER_STATUS_CHANGED from user-events)
     try {
       await eventService.publishUserStatusChanged(
         updatedUser?.authServiceUserId,
@@ -595,7 +555,7 @@ export class UserService {
       console.warn('Status event publish failed:', e);
     }
     return { success: true, message: 'Usuario desactivado exitosamente', data: { user: updatedUser!.toJSON() } };
-  } 
+  }
 
   async searchUsers(searchTerm: string, pagination: PaginationParams): Promise<ApiResponse<any>> {
     try {
@@ -732,46 +692,16 @@ export class UserService {
   }
 
   // ================================
-  // AUTH SERVICE INTEGRATION HELPERS
+  // PASSWORD MANAGEMENT (in-process — see auth/services/auth.service.ts)
   // ================================
 
   /**
-   * Verifica la conectividad con auth-service
+   * Cambiar contraseña de un usuario. `userId` here is the same _id used
+   * everywhere else (JWT userId === profile _id === candidate _id).
    */
-  async checkAuthServiceConnection(): Promise<ApiResponse<any>> {
+  async changePassword(userId: string, oldPassword: string, newPassword: string): Promise<ApiResponse<any>> {
     try {
-      const isConnected = await authServiceIntegration.healthCheck();
-      
-      return {
-        success: true,
-        message: 'Estado de auth-service verificado',
-        data: {
-          connected: isConnected,
-          connectionInfo: authServiceIntegration.getConnectionInfo()
-        }
-      };
-    } catch (error) {
-      return {
-        success: false,
-        message: 'Error verificando auth-service',
-        error: error instanceof Error ? error.message : 'Unknown error'
-      };
-    }
-  }
-
-  // ================================
-  // PASSWORD MANAGEMENT
-  // ================================
-
-  /**
-   * Cambiar contraseña de un usuario (delegado a auth-service)
-   */
-  async changePassword(userId: string, oldPassword: string, newPassword: string,jwt:string): Promise<ApiResponse<any>> {
-    try {
-      // Verificar que el usuario existe en user-management
-      const user = await this.userRepository.findOne({
-        authServiceUserId:userId
-      });
+      const user = await this.userRepository.findById(userId);
       if (!user) {
         return {
           success: false,
@@ -780,46 +710,35 @@ export class UserService {
         };
       }
 
-      // Delegar el cambio de contraseña al auth-service
-      const result = await authServiceIntegration.changePassword({
-        userId: user.authServiceUserId || userId,
-        oldPassword,
-        newPassword,
-        jwt
+      await this.authService.changePassword(userId, oldPassword, newPassword);
+
+      await this.userRepository.update(userId, {
+        lastSync: new Date(),
+        updatedAt: new Date()
       });
 
-      if (result.success) {
-        // Actualizar timestamp de sincronización
-        await this.userRepository.update(userId, {
-          lastSync: new Date(),
-          updatedAt: new Date()
-        });
-
-        // Publicar evento de cambio de contraseña
-        try {
-          await eventService.publishUserPasswordChanged(user.authServiceUserId || userId);
-        } catch (eventError) {
-          console.warn('⚠️ Error publicando evento de cambio de contraseña:', eventError);
-        }
+      try {
+        await eventService.publishUserPasswordChanged(userId);
+      } catch (eventError) {
+        console.warn('⚠️ Error publicando evento de cambio de contraseña:', eventError);
       }
 
-      return result;
+      return { success: true, message: 'Contraseña cambiada exitosamente' };
     } catch (error) {
       console.error('Error cambiando contraseña:', error);
       return {
         success: false,
-        message: 'Error interno del servidor',
+        message: error instanceof Error ? error.message : 'Error interno del servidor',
         error: error instanceof Error ? error.message : 'Unknown error'
       };
     }
   }
 
   /**
-   * Resetear contraseña de un usuario (solo admin, delegado a auth-service)
+   * Resetear contraseña de un usuario (solo admin)
    */
   async resetPassword(userId: string, newPassword?: string): Promise<ApiResponse<any>> {
     try {
-      // Verificar que el usuario existe
       const user = await this.userRepository.findById(userId);
       if (!user) {
         return {
@@ -830,39 +749,29 @@ export class UserService {
       }
 
       // Si no se proporciona nueva contraseña, generar una temporal
-      const finalPassword = newPassword || authServiceIntegration.generateTemporaryPassword();
+      const finalPassword = newPassword || this.authService.generateTemporaryPassword();
 
-      // Resetear contraseña en auth-service
-      const result = await authServiceIntegration.resetPassword({
-        email: user.email,
-        newPassword: finalPassword
+      await this.authService.resetPassword(user.email, finalPassword);
+
+      await this.userRepository.update(userId, {
+        lastSync: new Date(),
+        updatedAt: new Date()
       });
 
-      if (result.success) {
-        // Actualizar timestamp de sincronización
-        await this.userRepository.update(userId, {
-          lastSync: new Date(),
-          updatedAt: new Date()
-        });
-
-        // Publicar evento de reset de contraseña
-        try {
-          await eventService.publishUserPasswordChanged(userId);
-        } catch (eventError) {
-          console.warn('⚠️ Error publicando evento de reset de contraseña:', eventError);
-        }
-
-        return {
-          success: true,
-          message: 'Contraseña reseteada exitosamente',
-          data: {
-            temporaryPassword: !newPassword ? finalPassword : undefined,
-            mustChangePassword: true
-          }
-        };
+      try {
+        await eventService.publishUserPasswordChanged(userId);
+      } catch (eventError) {
+        console.warn('⚠️ Error publicando evento de reset de contraseña:', eventError);
       }
 
-      return result;
+      return {
+        success: true,
+        message: 'Contraseña reseteada exitosamente',
+        data: {
+          temporaryPassword: !newPassword ? finalPassword : undefined,
+          mustChangePassword: true
+        }
+      };
     } catch (error) {
       console.error('Error reseteando contraseña:', error);
       return {
@@ -889,15 +798,11 @@ export class UserService {
       }
 
       // Generar contraseña temporal
-      const temporaryPassword = authServiceIntegration.generateTemporaryPassword();
+      const temporaryPassword = this.authService.generateTemporaryPassword();
 
-      // Actualizar contraseña en auth-service
-      const result = await authServiceIntegration.resetPassword({
-        email: user.email,
-        newPassword: temporaryPassword
-      });
+      await this.authService.resetPassword(user.email, temporaryPassword);
 
-      if (result.success) {
+      {
         // Actualizar timestamp de sincronización
         await this.userRepository.update(userId, {
           lastSync: new Date(),
@@ -950,54 +855,8 @@ export class UserService {
           };
         }
       }
-
-      return result;
     } catch (error) {
       console.error('Error generando contraseña temporal:', error);
-      return {
-        success: false,
-        message: 'Error interno del servidor',
-        error: error instanceof Error ? error.message : 'Unknown error'
-      };
-    }
-  }
-
-  /**
-   * Sincroniza un usuario específico con auth-service
-   */
-  async syncUserWithAuthService(userId: string): Promise<ApiResponse<any>> {
-    try {
-      const user = await this.userRepository.findById(userId);
-      if (!user) {
-        return {
-          success: false,
-          message: 'Usuario no encontrado',
-          error: 'USER_NOT_FOUND'
-        };
-      }
-
-      const result = await authServiceIntegration.syncUserData(user.authServiceUserId || userId, {
-        email: user.email,
-        firstName: user.firstName,
-        lastName: user.lastName,
-        role: user.role
-      });
-
-      if (result.success) {
-        // Actualizar timestamp de sincronización
-        await this.userRepository.update(userId, {
-          lastSync: new Date(),
-          updatedAt: new Date()
-        });
-      }
-
-      return {
-        success: result.success,
-        message: result.message,
-        data: result.data
-      };
-    } catch (error) {
-      console.error('Error sincronizando usuario:', error);
       return {
         success: false,
         message: 'Error interno del servidor',

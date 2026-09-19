@@ -329,12 +329,10 @@ class AuthService {
   }
 
   // 🔐 RESET PASSWORD (SIN CONTRASEÑA ACTUAL)
-  async resetPassword(email: string, newPassword: string): Promise<ApiResponse> {
-    console.log('🔐 [AuthService] Restableciendo contraseña para:', email);
-
+  async resetPassword(resetToken: string, newPassword: string): Promise<ApiResponse> {
     try {
       const response = await axios.post(`${this.baseUrl}/auth/reset-password`, {
-        email,
+        resetToken,
         newPassword
       });
 

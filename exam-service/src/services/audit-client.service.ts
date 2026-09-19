@@ -2,7 +2,7 @@ import http from 'http';
 import https from 'https';
 
 const USER_MANAGEMENT_URL =
-  process.env.USER_MANAGEMENT_SERVICE_URL || 'http://user-management-service:3002';
+  process.env.USER_MANAGEMENT_SERVICE_URL || 'http://identity-service:3002';
 
 interface AuditPayload {
   action: string;

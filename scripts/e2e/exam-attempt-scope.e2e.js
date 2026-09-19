@@ -38,13 +38,13 @@ async function api(method, path, token, body) {
 
 async function main() {
   if (process.env.NODE_ENV === 'production') {
-    console.log('ABORT: NODE_ENV=production re-validates tokens with auth-service; test tokens would be rejected.');
+    console.log('ABORT: NODE_ENV=production re-validates tokens against identity-service; test tokens would be rejected.');
     process.exitCode = 2;
     return;
   }
   await mongoose.connect(process.env.MONGO_URI);
   const exams = mongoose.connection.db; // exam database (cba_platform)
-  const people = mongoose.connection.client.db(process.env.MONGO_UMS_DB_NAME || 'cba_user_management_db');
+  const people = mongoose.connection.client.db(process.env.MONGO_UMS_DB_NAME || 'cba_identity_db');
   const created = { personIds: [], sessionId: null, examId: null };
 
   try {
@@ -79,7 +79,7 @@ async function main() {
       const email = `${TAG}-${who}@example.com`;
       await people.collection('users').insertOne({
         _id: id, authServiceUserId: String(id), email, firstName: 'E2E', lastName: who,
-        role: 'student', isActive: true, createdAt: new Date(),
+        role: 'student', isActive: true, status: 'active', createdAt: new Date(),
       });
       await people.collection('candidates').insertOne({
         _id: id, userId: id, personalInfo: { firstName: 'E2E', lastName: who, email },

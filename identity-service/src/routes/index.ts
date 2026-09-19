@@ -14,11 +14,41 @@ import bootstrapRoutes from './bootstrap.routes';
 import auditRoutes from './audit.routes';
 import { AuditLogRepository } from '../repositories/audit-log.repository';
 
+// Auth module (merged from the former auth-service)
+import { createAuthRoutes } from '../auth/routes/auth.routes';
+import { AuthController } from '../auth/controllers/auth.controller';
+import { OtpController } from '../auth/controllers/otp.controller';
+import { AuthService } from '../auth/services/auth.service';
+import { OtpService } from '../auth/services/otp.service';
+import { JwtService } from '../auth/services/jwt.service';
+import { SessionRepository } from '../auth/repositories/session.repository';
+import { AuthCacheRepository } from '../auth/repositories/auth-cache.repository';
+
 // ================================
 // MAIN ROUTER
 // ================================
 
 const router = Router();
+
+// ================================
+// AUTH MODULE WIRING (merged from the former auth-service)
+// ================================
+// Instantiated here — not at module top-level in auth.routes.ts — because
+// this file is only loaded via the dynamic import in index.ts, which happens
+// AFTER connectDatabases() has run, so Mongo/Redis are guaranteed ready.
+const authJwtService = new JwtService();
+const authSessionRepository = new SessionRepository();
+const authCacheRepository = new AuthCacheRepository();
+const authUserRepository = new UserRepository();
+const authService = new AuthService(authUserRepository, authSessionRepository, authCacheRepository, authJwtService);
+const otpService = new OtpService(authCacheRepository, authUserRepository);
+const authController = new AuthController(authService, otpService);
+const otpController = new OtpController(otpService);
+
+// Mounted at '/auth' (not '/api/v1/auth') because the gateway rewrites
+// /api/v1/auth/ -> http://identity_service/auth/, exactly like it used to
+// rewrite it to the standalone auth-service.
+router.use('/auth', createAuthRoutes(authController, otpController));
 
 // ================================
 // HEALTH CHECK GENERAL
@@ -32,8 +62,8 @@ const router = Router();
 router.get('/health', (req, res) => {
   res.status(200).json({
     success: true,
-    message: 'User Management Service is healthy',
-    service: 'user-management-service',
+    message: 'Identity Service is healthy',
+    service: 'identity-service',
     version: '1.0.0',
     timestamp: new Date().toISOString(),
     uptime: process.uptime(),
@@ -49,10 +79,10 @@ router.get('/health', (req, res) => {
 router.get('/', (req, res) => {
   res.status(200).json({
     success: true,
-    message: 'CBA Platform - User Management Service',
-    service: 'user-management-service',
+    message: 'CBA Platform - Identity Service',
+    service: 'identity-service',
     version: '1.0.0',
-    description: 'Microservicio para gestión de usuarios, candidatos y roles',
+    description: 'Microservicio de identidad: autenticación, usuarios, candidatos y roles',
     endpoints: {
       users: '/api/v1/users',
       candidates: '/api/v1/candidates',
@@ -196,7 +226,7 @@ router.get('/api/v1/system/info', (req, res) => {
     success: true,
     message: 'Información del sistema',
     data: {
-      service: 'user-management-service',
+      service: 'identity-service',
       version: '1.0.0',
       node_version: process.version,
       platform: process.platform,
@@ -248,7 +278,7 @@ router.use('*', (req, res) => {
     details: {
       method: req.method,
       path: req.originalUrl,
-      service: 'user-management-service'
+      service: 'identity-service'
     },
     timestamp: new Date().toISOString()
   });

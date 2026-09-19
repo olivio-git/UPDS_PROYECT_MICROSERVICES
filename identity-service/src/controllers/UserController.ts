@@ -583,15 +583,6 @@ export class UserController {
     try {
       const { oldPassword, newPassword } = req.body;
       const currentUser = req.user as JWTPayload;
-      const jwt = req.jwt;
-      if(!jwt){
-        res.status(401).json({
-          success: false,
-          message: 'Token JWT no proporcionado',
-          error: 'JWT_REQUIRED'
-        });
-        return;
-      }
       // Validar datos requeridos
       if (!oldPassword || !newPassword) {
         res.status(400).json({
@@ -612,7 +603,7 @@ export class UserController {
         return;
       }
 
-      const result = await this.userService.changePassword(currentUser.userId, oldPassword, newPassword,jwt);
+      const result = await this.userService.changePassword(currentUser.userId, oldPassword, newPassword);
       
       if (result.success) {
         res.status(200).json(result);
@@ -902,17 +893,14 @@ export class UserController {
 
   healthCheck = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-      const authServiceStatus = await this.userService.checkAuthServiceConnection();
-      
       res.status(200).json({
         success: true,
         message: 'Health check completado',
         data: {
-          userManagementService: {
+          identityService: {
             status: 'healthy',
             timestamp: new Date().toISOString()
           },
-          authService: authServiceStatus.data,
           database: {
             status: 'connected', // Esto se podría verificar realmente
             timestamp: new Date().toISOString()

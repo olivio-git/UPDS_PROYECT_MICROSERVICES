@@ -36,7 +36,7 @@ export function auditLog(
 
   const entry: Omit<AuditLog, '_id'> = {
     timestamp: new Date(),
-    service: options.service ?? 'user-management',
+    service: options.service ?? 'identity-service',
     action,
     actor,
     target,

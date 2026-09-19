@@ -1,13 +1,23 @@
 // src/controllers/TestController.ts - Controller para testing de integración
+//
+// NOTE: this used to exercise the HTTP round-trip to the separate auth-service.
+// After the identity-service merge there is no HTTP hop for user creation /
+// credential validation anymore — those checks now go straight through
+// UserRepository / AuthService in-process. Kept as a debug/admin-only surface.
 
 import { Request, Response, NextFunction } from 'express';
-import { authServiceIntegration } from '../integrations/auth-service.integration';
+import { UserRepository } from '../repositories/user.repository';
 import { eventService } from '../services/event.service';
 import { KAFKA_TOPICS, KAFKA_EVENT_TYPES } from '../config/kafka-topics';
 import { JWTPayload } from '../types';
 
 export class TestController {
-  
+  private userRepository: UserRepository;
+
+  constructor() {
+    this.userRepository = new UserRepository();
+  }
+
   // ================================
   // HEALTH CHECKS
   // ================================
@@ -18,15 +28,9 @@ export class TestController {
   systemHealthCheck = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const healthStatus = {
-        userManagementService: {
+        identityService: {
           status: 'healthy',
           timestamp: new Date().toISOString()
-        },
-        authService: {
-          status: 'unknown',
-          connected: false,
-          baseUrl: '',
-          error: null as string | null
         },
         kafka: {
           status: 'unknown',
@@ -41,31 +45,11 @@ export class TestController {
         }
       };
 
-      // Check Auth Service
-      try {
-        const authHealthy = await authServiceIntegration.healthCheck();
-        const connectionInfo = authServiceIntegration.getConnectionInfo();
-        
-        healthStatus.authService = {
-          status: authHealthy ? 'healthy' : 'unhealthy',
-          connected: authHealthy,
-          baseUrl: connectionInfo.baseUrl,
-          error: null
-        };
-      } catch (error) {
-        healthStatus.authService = {
-          status: 'error',
-          connected: false,
-          baseUrl: authServiceIntegration.getConnectionInfo().baseUrl,
-          error: error instanceof Error ? error.message : 'Unknown error'
-        };
-      }
-
       // Check Kafka
       try {
         const kafkaHealthy = await eventService.healthCheck();
         const kafkaStatus = eventService.getConnectionStatus();
-        
+
         healthStatus.kafka = {
           status: kafkaHealthy ? 'healthy' : 'unhealthy',
           connected: kafkaStatus.initialized,
@@ -83,9 +67,7 @@ export class TestController {
         };
       }
 
-      // Determinar status general
-      const allHealthy = healthStatus.authService.status === 'healthy' && 
-                        healthStatus.kafka.status === 'healthy';
+      const allHealthy = healthStatus.kafka.status === 'healthy';
 
       res.status(allHealthy ? 200 : 207).json({
         success: true,
@@ -102,37 +84,11 @@ export class TestController {
   };
 
   // ================================
-  // AUTH SERVICE INTEGRATION TESTS
+  // AUTH MODULE INTEGRATION TESTS (in-process now)
   // ================================
 
   /**
-   * Test de conexión con auth-service
-   */
-  testAuthServiceConnection = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
-    try {
-      const connectionInfo = authServiceIntegration.getConnectionInfo();
-      const healthCheck = await authServiceIntegration.healthCheck();
-
-      res.status(200).json({
-        success: true,
-        message: 'Test de conexión con auth-service completado',
-        data: {
-          connection: connectionInfo,
-          healthy: healthCheck,
-          timestamp: new Date().toISOString()
-        }
-      });
-    } catch (error) {
-      res.status(500).json({
-        success: false,
-        message: 'Error en test de auth-service',
-        error: error instanceof Error ? error.message : 'Unknown error'
-      });
-    }
-  };
-
-  /**
-   * Test de validación de usuario en auth-service
+   * Test de validación de existencia de usuario (in-process, sin HTTP)
    */
   testUserValidation = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
@@ -147,15 +103,14 @@ export class TestController {
         return;
       }
 
-      const result = await authServiceIntegration.validateUserExists(email);
+      const existing = await this.userRepository.findByEmail(email);
 
       res.status(200).json({
         success: true,
         message: 'Test de validación completado',
         data: {
           email,
-          exists: result.data,
-          validationResult: result,
+          exists: Boolean(existing),
           timestamp: new Date().toISOString()
         }
       });
@@ -243,7 +198,7 @@ export class TestController {
   // ================================
 
   /**
-   * Test completo del flujo de creación de usuario
+   * Test completo del flujo de creación de usuario (in-process, sin HTTP)
    */
   testCompleteUserFlow = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
@@ -258,46 +213,19 @@ export class TestController {
 
       // Step 1: Verificar que el usuario no existe
       try {
-        const userExists = await authServiceIntegration.validateUserExists(testEmail);
+        const existing = await this.userRepository.findByEmail(testEmail);
         testResults.steps.push({
           step: 1,
           description: 'Verificar usuario no existe',
-          success: !userExists.data,
-          result: userExists
+          success: !existing,
+          result: { exists: Boolean(existing) }
         });
       } catch (error) {
         testResults.errors.push('Error verificando usuario existente');
         testResults.success = false;
       }
 
-      // Step 2: Generar credenciales
-      try {
-        const credentials = await authServiceIntegration.generateUserCredentials({
-          email: testEmail,
-          firstName: 'Test',
-          lastName: 'User',
-          role: 'student'
-        });
-        
-        testResults.steps.push({
-          step: 2,
-          description: 'Generar credenciales',
-          success: true,
-          result: {
-            hasPassword: Boolean(credentials.password),
-            passwordLength: credentials.password.length,
-            credentials: {
-              email: credentials.credentials.email,
-              hasPassword: Boolean(credentials.credentials.password)
-            }
-          }
-        });
-      } catch (error) {
-        testResults.errors.push('Error generando credenciales');
-        testResults.success = false;
-      }
-
-      // Step 3: Test de publicación de evento (sin crear usuario real)
+      // Step 2: Test de publicación de evento (sin crear usuario real)
       try {
         await eventService.publishTestEvent(
           KAFKA_TOPICS.USER_EVENTS,
@@ -308,9 +236,9 @@ export class TestController {
             triggeredBy: currentUser.userId
           }
         );
-        
+
         testResults.steps.push({
-          step: 3,
+          step: 2,
           description: 'Publicar evento de creación',
           success: true,
           result: 'Evento publicado exitosamente'
@@ -322,8 +250,8 @@ export class TestController {
 
       res.status(testResults.success ? 200 : 500).json({
         success: testResults.success,
-        message: testResults.success ? 
-          'Test de flujo completo exitoso' : 
+        message: testResults.success ?
+          'Test de flujo completo exitoso' :
           'Test de flujo completado con errores',
         data: {
           testEmail,
@@ -345,17 +273,15 @@ export class TestController {
    */
   getServiceInfo = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-      const connectionInfo = authServiceIntegration.getConnectionInfo();
       const kafkaStatus = eventService.getConnectionStatus();
 
       res.status(200).json({
         success: true,
         message: 'Información del servicio obtenida',
         data: {
-          service: 'user-management-service',
+          service: 'identity-service',
           version: '1.0.0',
           environment: process.env.NODE_ENV || 'development',
-          authService: connectionInfo,
           kafka: kafkaStatus,
           availableTopics: Object.values(KAFKA_TOPICS),
           availableEventTypes: Object.values(KAFKA_EVENT_TYPES),

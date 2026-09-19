@@ -24,10 +24,17 @@ export class UserModel implements User {
   teacherData?: TeacherData;
   proctorData?: ProctorData;
   
-  // Campos para integración con auth-service
-  authServiceUserId?: string;  // ID del usuario en auth-service
-  lastSync?: Date;             // Última sincronización con auth-service
+  // Mirror of _id (as a string) kept only for backward compatibility with
+  // exam-service's own read-only mirror of this collection (it queries by
+  // authServiceUserId instead of _id). Since the "one person, one id" merge,
+  // this is always set equal to _id.toString() at creation time — it is no
+  // longer a separate identity from a second database.
+  authServiceUserId?: string;
+  lastSync?: Date;             // Última sincronización (legacy field, kept for compatibility)
   createdBy?: string;          // Usuario que creó este registro
+
+  // Credential hash. Deliberately NOT included in toJSON() — see types/index.ts.
+  passwordHash?: string;
 
   constructor(data: Partial<User & { authServiceUserId?: string; lastSync?: Date; createdBy?: string }>) {
     this._id = data._id ?? undefined;
@@ -58,6 +65,7 @@ export class UserModel implements User {
     this.authServiceUserId = data.authServiceUserId ?? undefined;
     this.lastSync = data.lastSync ?? undefined;
     this.createdBy = data.createdBy ?? undefined;
+    this.passwordHash = data.passwordHash ?? undefined;
   }
 
   // Métodos de utilidad
@@ -137,8 +145,8 @@ export class UserModel implements User {
     this.updatedAt = new Date();
   }
 
-  public toJSON(): Omit<User, 'password'> & { authServiceUserId?: string; lastSync?: Date; createdBy?: string } {
-    const result: Omit<User, 'password'> & { authServiceUserId?: string; lastSync?: Date; createdBy?: string } = {
+  public toJSON(): Omit<User, 'passwordHash'> & { authServiceUserId?: string; lastSync?: Date; createdBy?: string } {
+    const result: Omit<User, 'passwordHash'> & { authServiceUserId?: string; lastSync?: Date; createdBy?: string } = {
       _id: this._id,
       email: this.email,
       firstName: this.firstName,
@@ -171,6 +179,20 @@ export class UserModel implements User {
     }
     
     return result;
+  }
+
+  /**
+   * Full document for MongoDB writes — includes passwordHash, unlike
+   * toJSON(). Only the repository's create()/insert path should call this;
+   * every read/response path must go through toJSON() (or rely on
+   * JSON.stringify's automatic toJSON() call) so the hash never reaches an
+   * API response.
+   */
+  public toPersistence(): User {
+    return {
+      ...this.toJSON(),
+      passwordHash: this.passwordHash,
+    };
   }
 
   // Validaciones
@@ -280,6 +302,7 @@ export class UserModel implements User {
       authServiceUserId: data.authServiceUserId,
       lastSync: data.lastSync,
       createdBy: data.createdBy,
+      passwordHash: data.passwordHash,
     });
   }
 

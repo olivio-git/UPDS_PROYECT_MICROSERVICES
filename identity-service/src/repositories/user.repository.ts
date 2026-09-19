@@ -4,6 +4,18 @@ import { getDatabase } from '../database/connections';
 import { UserModel } from '../models/User';
 import { FilterParams, PaginationParams, User, UserRole, UserStatus } from '../types';
 
+// Projection applied to list/search-style reads that return many users at
+// once. UserModel.toJSON() already omits passwordHash from every response
+// (JSON.stringify calls toJSON() automatically, even when a controller
+// forgets to call it explicitly), but excluding the field at the query level
+// too means it never leaves MongoDB for these paths in the first place —
+// defense in depth per the identity-service merge's security review.
+// findById/findOne/findByEmail intentionally do NOT use this projection:
+// auth flows (login, change/reset password) need passwordHash on the raw
+// document, and their responses go through UserModel.toJSON() same as
+// everywhere else.
+const EXCLUDE_PASSWORD_HASH: FindOptions<User> = { projection: { passwordHash: 0 } };
+
 export class UserRepository {
   private db: Db;
   private collection: Collection<User>;
@@ -45,7 +57,10 @@ export class UserRepository {
       throw new Error(`Datos de usuario inválidos: ${validation.errors.join(', ')}`);
     }
 
-    const result = await this.collection.insertOne(user.toJSON());
+    // toPersistence() (not toJSON()) — this is the one write path that must
+    // carry passwordHash into MongoDB. See EXCLUDE_PASSWORD_HASH comment above
+    // for why every read path stays on toJSON()/projection instead.
+    const result = await this.collection.insertOne(user.toPersistence());
     
     if (!result.insertedId) {
       throw new Error('Error creando usuario');
@@ -142,7 +157,7 @@ export class UserRepository {
   ): Promise<{ users: UserModel[]; total: number }> {
     try {
       const query = this.buildQuery(filters);
-      const options = this.buildFindOptions(pagination);
+      const options = { ...this.buildFindOptions(pagination), ...EXCLUDE_PASSWORD_HASH };
 
       const [users, total] = await Promise.all([
         this.collection.find(query, options).toArray(),
@@ -167,8 +182,8 @@ export class UserRepository {
       // Forzar filtro por role proctor
       query.role = 'proctor';
       query.status = 'active'; // Solo proctors activos
-      
-      const options = this.buildFindOptions(pagination);
+
+      const options = { ...this.buildFindOptions(pagination), ...EXCLUDE_PASSWORD_HASH };
 
       const [users, total] = await Promise.all([
         this.collection.find(query, options).toArray(),
@@ -187,7 +202,7 @@ export class UserRepository {
 
   async findByRole(role: UserRole): Promise<UserModel[]> {
     try {
-      const users = await this.collection.find({ role }).toArray();
+      const users = await this.collection.find({ role }, EXCLUDE_PASSWORD_HASH).toArray();
       return users.map(user => UserModel.fromDatabase(user));
     } catch (error) {
       console.error('Error buscando usuarios por rol:', error);
@@ -197,7 +212,7 @@ export class UserRepository {
 
   async findByStatus(status: UserStatus): Promise<UserModel[]> {
     try {
-      const users = await this.collection.find({ status }).toArray();
+      const users = await this.collection.find({ status }, EXCLUDE_PASSWORD_HASH).toArray();
       return users.map(user => UserModel.fromDatabase(user));
     } catch (error) {
       console.error('Error buscando usuarios por estado:', error);
@@ -218,7 +233,7 @@ export class UserRepository {
         ],
       };
 
-      const options = this.buildFindOptions(pagination);
+      const options = { ...this.buildFindOptions(pagination), ...EXCLUDE_PASSWORD_HASH };
 
       const [users, total] = await Promise.all([
         this.collection.find(query, options).toArray(),
@@ -454,7 +469,7 @@ export class UserRepository {
       const users = await this.collection.find({
         role: 'teacher',
         status: 'active',
-      }).toArray();
+      }, EXCLUDE_PASSWORD_HASH).toArray();
 
       return users.map(user => UserModel.fromDatabase(user));
     } catch (error) {
@@ -468,12 +483,29 @@ export class UserRepository {
       const users = await this.collection.find({
         role: 'proctor',
         status: 'active',
-      }).toArray();
+      }, EXCLUDE_PASSWORD_HASH).toArray();
 
       return users.map(user => UserModel.fromDatabase(user));
     } catch (error) {
       console.error('Error obteniendo supervisores activos:', error);
       return [];
     }
+  }
+
+  // ================================
+  // AUTH MODULE HELPERS
+  // ================================
+
+  /**
+   * Updates only the credential hash. Kept separate from the generic
+   * update() so callers never accidentally pass passwordHash through the
+   * same path as ordinary profile fields.
+   */
+  async updatePasswordHash(id: string | ObjectId, passwordHash: string): Promise<void> {
+    const objectId = typeof id === 'string' ? new ObjectId(id) : id;
+    await this.collection.updateOne(
+      { _id: objectId },
+      { $set: { passwordHash, updatedAt: new Date() } }
+    );
   }
 }
