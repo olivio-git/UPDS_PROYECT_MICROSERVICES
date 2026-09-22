@@ -15,13 +15,16 @@ declare global {
     }
   }
 };
-export const searchRefs = async (req: Request, res: Response, next: NextFunction) => {
-  try {
-    const role = req.user && (req.user as any).role;
-    if (role !== 'candidate' && role !== 'student') {
-      throw new Error('Only candidates or students can take exams');
-    }
-    const authUserId = req.user && (req.user as any).id; 
+const STUDENT_ROLES = ['candidate', 'student'];
+
+export const isStudentRole = (role: unknown) => STUDENT_ROLES.includes(String(role));
+
+/**
+ * Maps an auth-service user id to the user-management User and its Candidate.
+ * Exam data (attempts, results, history) is keyed by the candidate id, which is
+ * a different identifier from the auth user id carried in the JWT.
+ */
+export async function resolveCandidate(authUserId: string) {
     const userCandidate = await User.aggregate([
       {
         $match:{
@@ -37,12 +40,22 @@ export const searchRefs = async (req: Request, res: Response, next: NextFunction
         }
       }
     ]);
-    if (!userCandidate || userCandidate.length === 0) {
+    const userData = userCandidate?.[0];
+    const candidateData = userData?.candidate?.[0];
+    if (!userData || !candidateData) {
       throw new Error('User is not a candidate');
     }
+    return { userData, candidateData };
+}
 
-    const userData = userCandidate[0];
-    const candidateData = userData.candidate[0];
+export const searchRefs = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const role = req.user && (req.user as any).role;
+    if (!isStudentRole(role)) {
+      throw new Error('Only candidates or students can take exams');
+    }
+    const authUserId = req.user && (req.user as any).id;
+    const { userData, candidateData } = await resolveCandidate(authUserId);
 
     req.userCandidateId = candidateData._id;
     req.userId = userData._id;
@@ -62,3 +75,27 @@ export const searchRefs = async (req: Request, res: Response, next: NextFunction
     res.status(403).json({ error: error.message });
   }
 };
+
+/**
+ * Lets staff through, but restricts students to records of their own candidate
+ * id. Use on routes where a student may read a record addressed by a
+ * `:candidateParam` path parameter.
+ */
+export const restrictStudentToOwnCandidate =
+  (candidateParam: string) => async (req: Request, res: Response, next: NextFunction) => {
+    const role = req.user && (req.user as any).role;
+    if (!isStudentRole(role)) {
+      next();
+      return;
+    }
+    try {
+      const { candidateData } = await resolveCandidate((req.user as any).id);
+      if (String(candidateData._id) !== String(req.params[candidateParam])) {
+        res.status(403).json({ success: false, message: 'You can only access your own records' });
+        return;
+      }
+      next();
+    } catch {
+      res.status(403).json({ success: false, message: 'You can only access your own records' });
+    }
+  };
