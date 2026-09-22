@@ -19,6 +19,20 @@ import { logger, loggerUtils } from './utils/logger';
 // Cargar variables de entorno
 dotenv.config();
 
+const IS_PRODUCTION = process.env.NODE_ENV === 'production';
+
+// https://admin.socket.io (and its github.io mirror) are only needed to let
+// the hosted Socket.IO Admin UI page connect to this server. This service is
+// publicly reachable in production via nginx's /ws/session-manager/ route,
+// so these origins are dropped from CORS in production — and the admin UI
+// itself is only ever instrumented outside production (see
+// maybeInstrumentAdminUI below).
+const ADMIN_UI_ORIGINS: (string | RegExp)[] = [
+  'https://amritb.github.io',
+  'https://admin.socket.io',
+  /^https:\/\/.*\.github\.io$/
+];
+
 class SessionManagerServer {
   private app: express.Application;
   private server: any;
@@ -40,16 +54,14 @@ class SessionManagerServer {
         if (!origin) return callback(null, true);
 
         // Lista de orígenes permitidos
-        const allowedOrigins = [
+        const allowedOrigins: (string | RegExp)[] = [
           'http://localhost:3000',
           'http://localhost:3001',
           'http://localhost:3002',
           'http://localhost:5173',
-          'https://amritb.github.io',
-          'https://admin.socket.io',
           // Permitir cualquier localhost con cualquier puerto
           /^http:\/\/localhost:\d+$/,
-          /^https:\/\/.*\.github\.io$/
+          ...(IS_PRODUCTION ? [] : ADMIN_UI_ORIGINS)
         ];
 
         const isAllowed = allowedOrigins.some(allowed => {
@@ -72,9 +84,7 @@ class SessionManagerServer {
       transports: ['websocket', 'polling'],
       allowEIO3: true // Permitir compatibilidad con versiones anteriores
     });
-    instrument(this.io, {
-      auth: false
-    });
+    this.maybeInstrumentAdminUI();
 
     this.kafkaService = new KafkaService(this.io);
     this.sessionService = new SessionService(this.io);
@@ -92,6 +102,38 @@ class SessionManagerServer {
   }
 
   /**
+   * Instruments the Socket.IO Admin UI, but only outside production and only
+   * when basic-auth credentials are configured. This service is publicly
+   * exposed via nginx's /ws/session-manager/ route, so instrumenting it
+   * unconditionally (as before, with `auth: false`) let anyone connect to
+   * https://admin.socket.io and read every socket's handshake (including the
+   * candidate/proctor JWT) and force-disconnect students. If the env vars
+   * are absent, the admin UI is not instrumented at all — it never falls
+   * back to no-auth.
+   */
+  private maybeInstrumentAdminUI(): void {
+    if (IS_PRODUCTION) {
+      return;
+    }
+
+    const username = process.env.SOCKET_ADMIN_USER;
+    const passwordHash = process.env.SOCKET_ADMIN_PASSWORD_HASH;
+
+    if (!username || !passwordHash) {
+      logger.warn('Socket.IO Admin UI disabled: SOCKET_ADMIN_USER/SOCKET_ADMIN_PASSWORD_HASH not set');
+      return;
+    }
+
+    instrument(this.io, {
+      auth: {
+        type: 'basic',
+        username,
+        password: passwordHash
+      }
+    });
+  }
+
+  /**
    * Configurar middleware de Express
    */
   private setupMiddleware(): void {
@@ -106,15 +148,13 @@ class SessionManagerServer {
       origin: (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) => {
         if (!origin) return callback(null, true);
 
-        const allowedOrigins = [
+        const allowedOrigins: (string | RegExp)[] = [
           'http://localhost:3000',
           'http://localhost:3001',
           'http://localhost:3002',
           'http://localhost:5173',
-          'https://amritb.github.io',
-          'https://admin.socket.io',
           /^http:\/\/localhost:\d+$/,
-          /^https:\/\/.*\.github\.io$/
+          ...(IS_PRODUCTION ? [] : ADMIN_UI_ORIGINS)
         ];
 
         const isAllowed = allowedOrigins.some(allowed => {
