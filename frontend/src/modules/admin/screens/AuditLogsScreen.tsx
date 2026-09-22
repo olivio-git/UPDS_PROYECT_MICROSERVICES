@@ -22,6 +22,8 @@ import type { DateRange } from 'react-day-picker';
 import { toast } from 'sonner';
 
 const SERVICE_COLORS: Record<string, string> = {
+  'identity-service': 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400',
+  // Kept for audit logs written before the auth-service + user-management-service merge.
   'user-management': 'bg-blue-500/10 border-blue-500/20 text-blue-400',
   'exam-service':    'bg-purple-500/10 border-purple-500/20 text-purple-400',
   'auth-service':    'bg-emerald-500/10 border-emerald-500/20 text-emerald-400',
@@ -241,9 +243,8 @@ const AuditLogsScreen: React.FC = () => {
             className="h-7 text-xs bg-muted/60 border border-border rounded px-2 text-foreground focus:outline-none focus:ring-1 focus:ring-ring"
           >
             <option value="">Todos los servicios</option>
-            <option value="user-management">User Management</option>
+            <option value="identity-service">Identity Service</option>
             <option value="exam-service">Exam Service</option>
-            <option value="auth-service">Auth Service</option>
           </select>
 
           <div className="relative">

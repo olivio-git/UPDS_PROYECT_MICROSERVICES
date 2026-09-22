@@ -1,8 +1,9 @@
 // @ts-ignore
 import { AuthSDK } from "sdk-simple-auth";
+import { AUTH_SERVICE_URL } from '@/lib/serviceUrls';
 
 const authSDK = new AuthSDK({
-    authServiceUrl: import.meta.env.VITE_AUTH_SERVICE_URL || "http://localhost:3000",
+    authServiceUrl: AUTH_SERVICE_URL,
     endpoints: {
         login: "/auth/login",
         refresh: "/auth/refresh",

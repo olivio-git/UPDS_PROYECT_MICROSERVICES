@@ -1,6 +1,7 @@
 import { authSDK } from "@/services/sdk-simple-auth";
 import axios from "axios";
 import { toast } from "sonner";
+import { AUTH_SERVICE_URL } from '@/lib/serviceUrls';
 
 export interface LoginRequest {
   email: string;
@@ -39,7 +40,7 @@ export interface ApiResponse<T = any> {
 }
 
 class AuthService {
-  private baseUrl = import.meta.env.VITE_AUTH_SERVICE_URL || 'http://localhost:3000';
+  private baseUrl = AUTH_SERVICE_URL;
 
   // 📝 REGISTRO DIRECTO (SIN OTP AUTOMÁTICO)
   async register(data: RegisterRequest): Promise<ApiResponse> {
@@ -328,12 +329,10 @@ class AuthService {
   }
 
   // 🔐 RESET PASSWORD (SIN CONTRASEÑA ACTUAL)
-  async resetPassword(email: string, newPassword: string): Promise<ApiResponse> {
-    console.log('🔐 [AuthService] Restableciendo contraseña para:', email);
-
+  async resetPassword(resetToken: string, newPassword: string): Promise<ApiResponse> {
     try {
       const response = await axios.post(`${this.baseUrl}/auth/reset-password`, {
-        email,
+        resetToken,
         newPassword
       });
 

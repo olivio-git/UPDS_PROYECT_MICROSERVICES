@@ -145,3 +145,4 @@ data/zookeeper/*
 !data/redis/.gitkeep
 !data/kafka/.gitkeep
 !data/zookeeper/.gitkeep
+backups/

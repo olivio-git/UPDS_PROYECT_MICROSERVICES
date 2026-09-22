@@ -46,19 +46,10 @@ import {
 } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
+import { GATEWAY_URL } from '@/lib/serviceUrls';
 
 // ─── Service config ──────────────────────────────────────────────────────────
 
-/**
- * Where the health checks go: the API gateway that serves every /api/v1 route.
- * This used to be http://localhost:80, so on any machine other than the server
- * every service showed as offline even when the system was healthy.
- */
-const GATEWAY_URL = (
-  import.meta.env.VITE_API_GATEWAY_URL ||
-  import.meta.env.VITE_EXAM_SERVICE_URL ||
-  `${window.location.protocol}//${window.location.hostname}`
-).replace(/\/+$/, '');
 
 const SERVICE_PATHS: Record<string, { path: string; anyResponse: boolean }> = {
   auth:          { path: "/api/v1/auth/validate",        anyResponse: true  },

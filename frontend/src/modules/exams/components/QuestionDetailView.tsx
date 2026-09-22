@@ -5,6 +5,7 @@ import { ArrowLeft, BookOpen, Brain, CheckCircle, Clock, Edit, Eye, Hash, Image 
 import React, { useMemo, useState } from 'react';
 import { toast } from 'sonner';
 import type { Question } from '../types';
+import { GATEWAY_URL } from '@/lib/serviceUrls';
 
 interface QuestionDetailViewProps {
   question: Question;
@@ -275,7 +276,7 @@ const QuestionDetailView: React.FC<QuestionDetailViewProps> = ({
   const isAudioType = question.type === 'audio_response';
 
   const handleVerify = async () => {
-    const gradingUrl = (import.meta as any).env?.VITE_API_GATEWAY_URL || 'http://localhost:80';
+    const gradingUrl = GATEWAY_URL;
 
     if (isAudioType) {
       const audioBlob: Blob | undefined = studentAnswer?.audioBlob;

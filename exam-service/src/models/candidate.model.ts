@@ -24,5 +24,5 @@ const candidateSchema = new Schema<ICandidate>({
   collection: 'candidates'
 });
 
-const umsDb = mongoose.connection.useDb('cba_user_management_db', { useCache: true });
+const umsDb = mongoose.connection.useDb('cba_identity_db', { useCache: true });
 export const Candidate = umsDb.model<ICandidate>('CandidateMonitor', candidateSchema);

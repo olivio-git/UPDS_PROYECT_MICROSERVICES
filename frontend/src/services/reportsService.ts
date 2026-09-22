@@ -1,6 +1,7 @@
 import { authSDK } from './sdk-simple-auth';
+import { EXAM_SERVICE_URL } from '@/lib/serviceUrls';
 
-const API_BASE_URL = import.meta.env.VITE_EXAM_SERVICE_URL || 'http://localhost:3002';
+const API_BASE_URL = EXAM_SERVICE_URL;
 
 export interface ReportFilters {
   startDate?: string;

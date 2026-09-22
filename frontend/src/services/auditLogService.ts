@@ -1,7 +1,8 @@
 import axios from 'axios';
 import { authSDK } from './sdk-simple-auth';
+import { USER_MANAGEMENT_URL } from '@/lib/serviceUrls';
 
-const baseURL = import.meta.env.VITE_USER_MANAGEMENT_URL || 'http://localhost:3002';
+const baseURL = USER_MANAGEMENT_URL;
 
 function getHeaders() {
   const token = authSDK.getAccessToken();

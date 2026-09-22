@@ -1,6 +1,7 @@
 import { authSDK } from '@/services/sdk-simple-auth';
 import type { AxiosInstance } from 'axios';
 import axios from 'axios';
+import { SESSION_MANAGER_URL, USER_MANAGEMENT_URL } from '@/lib/serviceUrls';
 
 export interface AvailableSession {
   sessionId: string;
@@ -35,7 +36,7 @@ class StudentSessionService {
   private candidateInfo: CandidateInfo | null = null;
 
   constructor() {
-    const baseURL = import.meta.env.VITE_SESSION_MANAGER_URL || 'http://localhost:3004';
+    const baseURL = SESSION_MANAGER_URL;
     
     this.axiosInstance = axios.create({
       baseURL,
@@ -70,7 +71,7 @@ class StudentSessionService {
         }
 
         const response = await axios.get(
-          `${import.meta.env.VITE_USER_MANAGEMENT_URL || 'http://localhost:3002'}/api/v1/candidates/by-auth-user/${authUser.id}`,
+          `${USER_MANAGEMENT_URL}/api/v1/candidates/by-auth-user/${authUser.id}`,
           {
             headers: {
               'Content-Type': 'application/json',

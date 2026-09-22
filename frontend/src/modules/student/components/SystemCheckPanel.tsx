@@ -13,6 +13,7 @@ import {
   XCircle,
 } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { AUTH_SERVICE_URL, GATEWAY_URL } from '@/lib/serviceUrls';
 
 // Clave de sessionStorage para marcar una sesión como pre-verificada
 export const TECH_CHECK_KEY = (sessionId: string) => `tech_precheck_ok_${sessionId}`;
@@ -122,11 +123,9 @@ const SystemCheckPanel: React.FC<SystemCheckPanelProps> = ({ sessionId }) => {
       update('internet', 'error', 'Sin conexión a internet');
       return;
     }
-    const base =
-      import.meta.env.VITE_SESSION_MANAGER_URL?.replace('/api/v1', '') ||
-      'http://localhost:80';
+    const base = GATEWAY_URL;
     const authBase =
-      import.meta.env.VITE_AUTH_SERVICE_URL || 'http://localhost:3001';
+      AUTH_SERVICE_URL;
     const urls = [`${base}/health`, `${authBase}/health`];
     const t0 = performance.now();
     let ok = 0;

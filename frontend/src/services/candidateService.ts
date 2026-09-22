@@ -1,6 +1,7 @@
 import axios, { type AxiosInstance } from 'axios';
 // @ts-ignore
 import { authSDK } from './sdk-simple-auth';
+import { GATEWAY_URL } from '@/lib/serviceUrls';
 
 export interface Candidate {
   _id: string;
@@ -112,7 +113,7 @@ class CandidateService {
   private baseURL: string; 
 
   constructor() {
-    this.baseURL = import.meta.env.VITE_API_GATEWAY_URL || 'http://localhost:80';
+    this.baseURL = GATEWAY_URL;
 
     this.api = axios.create({
       baseURL: `${this.baseURL}/api/v1`,

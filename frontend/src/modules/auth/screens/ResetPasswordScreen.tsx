@@ -79,7 +79,7 @@ const ResetPasswordScreen = () => {
 
     try {
       console.log('🔐 Restableciendo contraseña para:', email);
-      const success = await resetPassword(email, newPassword);
+      const success = await resetPassword(newPassword);
 
       if (success) {
         console.log('✅ Contraseña restablecida exitosamente');

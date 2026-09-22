@@ -16,6 +16,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
 import { examService } from '@/services/examService';
 import type { Competency, Level, Question, QuestionType } from '../types';
+import { GATEWAY_URL } from '@/lib/serviceUrls';
 
 interface AIQuestionGeneratorProps {
   formData: Partial<Question>;
@@ -293,7 +294,7 @@ const AIQuestionGenerator: React.FC<AIQuestionGeneratorProps> = ({
 
   const isListening = formData.competency === 'listening';
   const canGenerate = !!(formData.competency && formData.level && formData.type);
-  const gradingUrl = (import.meta as any).env?.VITE_API_GATEWAY_URL || 'http://localhost:80';
+  const gradingUrl = GATEWAY_URL;
 
   // ── Format transcript via GROQ (dialogue detection + speaker labels) ────────
   const formatTranscript = async (raw: string): Promise<string> => {

@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { SESSION_MANAGER_WS_URL } from '@/lib/serviceUrls';
 
 interface DualTimingMessage {
   type: 'session-update' | 'individual-timer' | 'session-start' | 'session-end' | 'auto-save-status' | 'late-join-approved' | 'session-expired';
@@ -77,7 +78,7 @@ export const useDualTimingWebSocket = (
 
     try {
       // WebSocket URL with session type parameter
-      const wsUrl = `http://localhost:3004/session/${sessionId}?type=${isIndividualSession ? 'individual' : 'group'}`;
+      const wsUrl = `${SESSION_MANAGER_WS_URL}/session/${sessionId}?type=${isIndividualSession ? 'individual' : 'group'}`;
       websocket.current = new WebSocket(wsUrl);
 
       websocket.current.onopen = () => {

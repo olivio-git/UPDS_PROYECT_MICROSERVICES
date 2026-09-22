@@ -39,6 +39,7 @@ import QuestionDetailView from '../components/QuestionDetailView';
 import QuestionForm from '../components/QuestionForm';
 import { useQuestions } from '../hooks/useQuestions';
 import type { Question, QuestionType } from '../types';
+import { toBrowserMediaUrl } from '@/lib/mediaUrl';
 
 type ViewMode = 'table' | 'create' | 'edit' | 'import' | 'detail';
 
@@ -243,8 +244,10 @@ const QuestionsScreen = () => {
       size: 150,
       accessorFn: row => row.content.mediaType ?? '',
       cell: ({ row }) => {
-        const { mediaUrl, mediaType } = row.original.content;
-        if (!mediaUrl) return <span className="text-xs text-muted-foreground/60">—</span>;
+        const { mediaUrl: storedUrl, mediaType } = row.original.content;
+        if (!storedUrl) return <span className="text-xs text-muted-foreground/60">—</span>;
+        // Stored URLs use MinIO's internal host; resolve one the browser can load.
+        const mediaUrl = toBrowserMediaUrl(storedUrl);
         const detected = mediaType || detectMediaType(mediaUrl);
         return (
           <div className="flex items-center gap-2">

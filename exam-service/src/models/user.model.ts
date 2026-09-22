@@ -27,10 +27,10 @@ const userSchema = new Schema<IUser>({
   collection: 'users'
 });
 
-// Users and candidates are stored in the user-management-service database (cba_user_management_db).
+// Users and candidates are stored in the identity-service database (cba_identity_db).
 // exam-service connects to cba_platform by default, so we use useDb() to read from
 // the correct database without creating a second connection.
 // NOTE: Hardcoded to avoid env var resolution issues in Docker (MONGO_UMS_DB_NAME sometimes resolves incorrectly).
-const umsDb = mongoose.connection.useDb('cba_user_management_db', { useCache: true });
+const umsDb = mongoose.connection.useDb('cba_identity_db', { useCache: true });
 
 export const User = umsDb.model<IUser>('User', userSchema);

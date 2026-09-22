@@ -30,7 +30,7 @@ export const env = {
   MONGO_URI: process.env.MONGO_URI || 'mongodb://localhost:27017/cba_platform',
   MONGO_DB_NAME: process.env.MONGO_DB_NAME || 'cba_platform',
   // User-management-service database (used for User/Candidate lookups via useDb)
-  MONGO_UMS_DB_NAME: process.env.MONGO_UMS_DB_NAME || 'cba_user_management_db',
+  MONGO_UMS_DB_NAME: process.env.MONGO_UMS_DB_NAME || 'cba_identity_db',
   
   // Redis
   REDIS_HOST: process.env.REDIS_HOST || 'localhost',
@@ -49,7 +49,7 @@ export const env = {
   GRADING_SERVICE_URL: process.env.GRADING_SERVICE_URL || 'http://grading-service:3007',
 
   // User Management Service (internal)
-  USER_MANAGEMENT_SERVICE_URL: process.env.USER_MANAGEMENT_SERVICE_URL || 'http://user-management-service:3002',
+  USER_MANAGEMENT_SERVICE_URL: process.env.USER_MANAGEMENT_SERVICE_URL || 'http://identity-service:3002',
   JWT_SECRET: requireEnv('JWT_SECRET'),
   
   // MinIO Configuration

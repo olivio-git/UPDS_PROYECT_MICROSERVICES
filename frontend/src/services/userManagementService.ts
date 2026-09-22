@@ -1,6 +1,7 @@
 import axios from 'axios';
 import { toast } from 'sonner';
 import { authSDK } from './sdk-simple-auth';
+import { USER_MANAGEMENT_URL } from '@/lib/serviceUrls';
 
 export interface CreateUserRequest {
   email: string;
@@ -35,7 +36,7 @@ export interface ApiResponse<T = any> {
 }
 
 class UserManagementService {
-  private baseUrl = import.meta.env.VITE_USER_MANAGEMENT_URL || 'http://localhost:3002';
+  private baseUrl = USER_MANAGEMENT_URL;
 
   private getAuthHeaders() {
     const token = authSDK.getAccessToken();
