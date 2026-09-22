@@ -51,6 +51,10 @@ export const env = {
   // User Management Service (internal)
   USER_MANAGEMENT_SERVICE_URL: process.env.USER_MANAGEMENT_SERVICE_URL || 'http://identity-service:3002',
   JWT_SECRET: requireEnv('JWT_SECRET'),
+
+  // Session Manager Service (internal) — technical verification gate.
+  SESSION_MANAGER_SERVICE_URL: process.env.SESSION_MANAGER_SERVICE_URL || 'http://session-manager-service:3004',
+  SERVICE_TOKEN: requireEnv('SERVICE_TOKEN'),
   
   // MinIO Configuration
   MINIO_ENDPOINT: process.env.MINIO_ENDPOINT || 'localhost',

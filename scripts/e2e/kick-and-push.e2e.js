@@ -65,6 +65,35 @@ async function api(method, path, token, body) {
   return { status: res.status, json: await res.json().catch(() => ({})) };
 }
 
+// PR10: exam-taking start now blocks a brand-new attempt unless the
+// candidate has a passing technical verification on file (session-manager
+// enforces this server-side). Drive the real public API — same as a
+// student's browser would — so this suite keeps exercising start() as an
+// authenticated, verified candidate instead of tripping the new 403
+// TECHNICAL_VERIFICATION_REQUIRED gate.
+async function submitPassingVerification(token, sessionId, userId) {
+  const init = await api('POST', '/api/v1/technical/init', token, { sessionId, userId });
+  if (init.status !== 200 || !init.json?.data?.verificationId) {
+    throw new Error(`technical/init failed: HTTP ${init.status} ${JSON.stringify(init.json)}`);
+  }
+  const verificationId = init.json.data.verificationId;
+  await api('POST', `/api/v1/technical/${verificationId}/browser`, token, {
+    browserInfo: { userAgent: 'Mozilla/5.0 Chrome/120.0', platform: 'Linux', language: 'es-BO', cookieEnabled: true, javaEnabled: false },
+    systemInfo: { screen: { width: 1920, height: 1080, colorDepth: 24 }, timezone: 'America/La_Paz', onlineStatus: true },
+  });
+  await api('POST', `/api/v1/technical/${verificationId}/devices`, token, {
+    devices: { audioInputs: [{ deviceId: 'e2e-mic', label: 'E2E Mic' }], videoInputs: [], audioOutputs: [{ deviceId: 'e2e-spk', label: 'E2E Speaker' }] },
+  });
+  await api('POST', `/api/v1/technical/${verificationId}/permissions`, token, {
+    permissions: { microphone: 'granted', camera: 'denied', notifications: 'default' },
+  });
+  await api('POST', `/api/v1/technical/${verificationId}/network-test`, token);
+  await api('POST', `/api/v1/technical/${verificationId}/microphone-test`, token, { audioLevel: 0.5 });
+  await api('POST', `/api/v1/technical/${verificationId}/audio-test`, token, { canHear: true });
+  await api('POST', `/api/v1/technical/${verificationId}/finalize`, token);
+  return verificationId;
+}
+
 async function waitFor(fn, timeoutMs, intervalMs = 1000) {
   const deadline = Date.now() + timeoutMs;
   for (;;) {
@@ -198,6 +227,7 @@ async function main() {
     const sid = String(sessionId);
 
     // ---- Student starts the attempt ---------------------------------------
+    await submitPassingVerification(studentToken, sid, String(studentId));
     const startRes = await api('POST', `/api/v1/exam-taking/${sid}/start`, studentToken);
     check('candidate can start', startRes.status === 200, `HTTP ${startRes.status}${startRes.json?.message ? ` ${startRes.json.message}` : ''}`);
     if (startRes.status !== 200) throw new Error('start failed');

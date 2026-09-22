@@ -307,15 +307,38 @@ class SessionManagerTechnicalService {
   }
 
   /**
-   * Verificar si el usuario puede proceder con el examen
+   * Verificar si el usuario puede proceder con el examen (self-check contra
+   * Store A — el registro real en session-manager). El backend responde
+   * `{ success, data: { canProceed, reasons, verification } }`; solo se
+   * necesita el booleano aquí, `getTechnicalVerificationRequiredInfo()` en
+   * examService.ts es la vía autoritativa para leer `reasons` cuando el
+   * inicio del examen es rechazado por exam-service.
    */
   async canUserProceed(userId: string): Promise<boolean> {
+    const result = await this.canUserProceedWithReasons(userId);
+    return result.canProceed;
+  }
+
+  /**
+   * Same check as canUserProceed(), but also returns the reason codes —
+   * used by the preparation screen to tell the candidate WHY they're being
+   * asked to verify again (e.g. their previous verification expired)
+   * instead of silently restarting the checks.
+   */
+  async canUserProceedWithReasons(
+    userId: string
+  ): Promise<{ canProceed: boolean; reasons: { code: string; message: string }[] }> {
     try {
-      const response = await this.api.get<{success: boolean; canProceed: boolean}>(`/user/${userId}/can-proceed`);
-      return response.data.success ? response.data.canProceed : false;
+      const response = await this.api.get<{
+        success: boolean;
+        data?: { canProceed: boolean; reasons: { code: string; message: string }[] };
+      }>(`/user/${userId}/can-proceed`);
+      return response.data.success
+        ? { canProceed: response.data.data?.canProceed ?? false, reasons: response.data.data?.reasons ?? [] }
+        : { canProceed: false, reasons: [] };
     } catch (error) {
       console.warn('Error verificando si puede proceder:', error);
-      return false;
+      return { canProceed: false, reasons: [] };
     }
   }
 

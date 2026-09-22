@@ -23,13 +23,11 @@ import {
   GraduationCap,
   Loader2,
   Mail,
-  MonitorCheck,
   Play,
 } from 'lucide-react';
 import { notificationSocket } from '@/services/notifications/notificationSocket';
 import React, { useEffect, useState, useCallback } from 'react';
 import { studentExamService, type NextExamData } from '../services/examService';
-import SystemCheckPanel from './SystemCheckPanel';
 
 interface PropsNextExam {
   formatDate?: (date: string) => string;
@@ -50,7 +48,6 @@ const NextExam: React.FC<PropsNextExam> = ({
   const [error, setError] = useState<string | null>(null);
   const [startingExam, setStartingExam] = useState(false);
   const [now, setNow] = useState(() => Date.now());
-  const [showSystemCheck, setShowSystemCheck] = useState(false);
   const { toast } = useToast();
 
   // Tick cada 30 segundos para actualizar countdown/elapsed
@@ -87,7 +84,7 @@ const NextExam: React.FC<PropsNextExam> = ({
     loadNextExam();
 
     // Recargar cuando cambie el estado de la sesión o cuando nos agreguen a una
-    // Usar background=true para no desmontar SystemCheckPanel durante la recarga
+    // Usar background=true para evitar el flash de loading en cada recarga
     const onStatusChanged = (data: any) => {
       console.log('🔄 [NextExam] session.status.changed:', data);
       loadNextExam(true);
@@ -125,7 +122,7 @@ const NextExam: React.FC<PropsNextExam> = ({
     };
   }, []);
 
-  // background=true → actualiza datos sin flash de loading (no desmonta hijos como SystemCheckPanel)
+  // background=true → actualiza datos sin flash de loading
   const loadNextExam = async (background = false) => {
     try {
       if (!background) setLoading(true);
@@ -304,21 +301,10 @@ const NextExam: React.FC<PropsNextExam> = ({
   return (
     <Card className="bg-card backdrop-blur-sm border border-line shadow-none">
       <CardHeader className="space-y-2 border-b border-line pb-4">
-        <div className="flex items-center justify-between gap-2">
-          <CardTitle className="text-foreground flex items-center gap-2 font-bold">
-            <Calendar className="h-6 w-6 text-brand-gray bg-muted rounded-full p-1" />
-            Próximo Examen
-          </CardTitle>
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={() => setShowSystemCheck((v) => !v)}
-            className="h-8 gap-1.5 text-xs border-border text-muted-foreground hover:text-foreground hover:bg-muted shrink-0"
-          >
-            <MonitorCheck className="h-3.5 w-3.5" />
-            {showSystemCheck ? 'Cerrar prueba' : 'Prueba técnica'}
-          </Button>
-        </div>
+        <CardTitle className="text-foreground flex items-center gap-2 font-bold">
+          <Calendar className="h-6 w-6 text-brand-gray bg-muted rounded-full p-1" />
+          Próximo Examen
+        </CardTitle>
           <CardDescription className="text-brand-gray text-xs">
             Tu siguiente evaluación programada
           </CardDescription>
@@ -527,8 +513,6 @@ const NextExam: React.FC<PropsNextExam> = ({
             </Button>
             </>
           )}
-
-          {showSystemCheck && <SystemCheckPanel key={nextExam.sessionId} sessionId={nextExam.sessionId} />}
         </div>
       </CardContent>
     </Card>

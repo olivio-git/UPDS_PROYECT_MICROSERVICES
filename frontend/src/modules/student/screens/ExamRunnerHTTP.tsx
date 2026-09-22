@@ -9,7 +9,7 @@ import GradientWrapper from '@/components/background/GrandWrapperSection';
 import { MainLayout } from '@/components/layout';
 import { useExamSessionHTTP } from '@/hooks/useExamSessionHTTP';
 import { examResultService } from '@/services/examResultService';
-import { examService, getAttemptTerminationInfo } from '@/services/examService';
+import { examService, getAttemptTerminationInfo, getTechnicalVerificationRequiredInfo } from '@/services/examService';
 import { notificationSocket } from '@/services/notifications/notificationSocket';
 import {
   AlertCircle,
@@ -225,6 +225,31 @@ const ExamRunnerHTTP: React.FC = () => {
         const terminationInfo = getAttemptTerminationInfo(error);
         if (terminationInfo?.attemptStatus === 'cancelled') {
           toast.error('Has sido expulsado de esta sesión por el supervisor.', { duration: 6000 });
+          navigate('/student/dashboard');
+          return;
+        }
+
+        // Deep-link / stale-tab edge case: a brand-new attempt was rejected
+        // by exam-service's server-side technical verification gate.
+        // Resuming an existing in_progress attempt is never blocked this
+        // way, so this only fires when the candidate skipped (or lost) the
+        // preparation screen. Send them back there with the reasons.
+        const technicalInfo = getTechnicalVerificationRequiredInfo(error);
+        if (technicalInfo) {
+          navigate(`/student/exam/${sessionId}/preparation`, {
+            replace: true,
+            state: { technicalVerificationReasons: technicalInfo.reasons },
+          });
+          return;
+        }
+
+        // session-manager-service is reachable but misconfigured/erroring —
+        // the gate fails closed with a specific student-facing message.
+        if (error?.response?.data?.code === 'TECHNICAL_GATE_UNAVAILABLE') {
+          toast.error(
+            error.response.data.message || 'No se pudo validar la verificación técnica. Avisa al supervisor.',
+            { duration: 8000 }
+          );
           navigate('/student/dashboard');
           return;
         }

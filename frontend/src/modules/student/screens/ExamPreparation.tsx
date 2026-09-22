@@ -3,7 +3,11 @@ import { Button } from "@/components/atoms/button";
 import { Progress } from "@/components/atoms/progress";
 import { MainLayout } from "@/components/layout";
 import { cn } from "@/lib/utils";
-import { examService } from "@/services/examService";
+import {
+  examService,
+  getTechnicalVerificationRequiredInfo,
+} from "@/services/examService";
+import { authSDK } from "@/services/sdk-simple-auth";
 import { notificationSocket } from "@/services/notifications/notificationSocket";
 import { useExamStore } from "@/stores/examStore";
 import {
@@ -28,7 +32,7 @@ import {
   XCircle,
 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { toast } from "sonner";
 import { studentExamService, type NextExamData } from "../services/examService";
 import sessionManagerTechnicalService from "../services/sessionManagerTechnicalService";
@@ -37,7 +41,6 @@ import {
   type TechnicalCheck,
   type TechnicalVerificationData,
 } from "../services/technicalVerificationService";
-import { TECH_CHECK_KEY } from "../components/SystemCheckPanel";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -106,6 +109,19 @@ const STATUS_BADGE: Record<
   },
 };
 
+// Guía amigable por código de motivo cuando el servidor rechaza el inicio
+// del examen (TECHNICAL_VERIFICATION_REQUIRED). El `message` ya viene en
+// español desde session-manager-service — esto solo agrega el "cómo lo arreglo".
+const TECHNICAL_REASON_HINTS: Record<string, string> = {
+  MICROPHONE_FAILED: "Permite el acceso al micrófono en tu navegador.",
+  NETWORK_UNSTABLE: "Tu conexión es inestable, verifica tu red.",
+  BROWSER_INCOMPATIBLE: "Usa Chrome, Firefox, Edge o Safari.",
+  LOW_SCORE: "Vuelve a realizar la verificación técnica para mejorar tu puntaje.",
+  NOT_FOUND: "No se encontró una verificación técnica reciente. Complétala nuevamente.",
+  EXPIRED: "Tu verificación técnica expiró. Vuelve a realizarla.",
+  INTERNAL_ERROR: "Ocurrió un error inesperado. Intenta nuevamente.",
+};
+
 // ─── Sub-components ───────────────────────────────────────────────────────────
 
 function CheckStatusIcon({ status }: { status: TechnicalCheck["status"] }) {
@@ -157,6 +173,7 @@ type EntryStatus = 'loading' | 'too_early' | 'prep_window' | 'ok' | 'reduced_tim
 const ExamPreparation = () => {
   const { examId } = useParams<{ examId: string }>();
   const navigate = useNavigate();
+  const location = useLocation();
   const setSessionData = useExamStore((s) => s.setSessionData);
 
   // Core state
@@ -167,6 +184,15 @@ const ExamPreparation = () => {
   const [error, setError] = useState<string | null>(null);
   const [verificationId, setVerificationId] = useState<string | null>(null);
   const [isStarting, setIsStarting] = useState(false);
+  // Non-null when exam-service's server-side gate rejected the start with
+  // TECHNICAL_VERIFICATION_REQUIRED (403) — the client-side `canProceed`
+  // below is only a local UX hint, this is the authoritative block.
+  // Initialized from router state when a runner (ExamRunnerHTTP /
+  // AdaptiveExamRunner) redirected here after a deep-link 403, so the
+  // candidate sees the reasons immediately instead of re-discovering them.
+  const [verificationBlocked, setVerificationBlocked] = useState<
+    { code: string; message: string }[] | null
+  >((location.state as any)?.technicalVerificationReasons ?? null);
 
   // Entry timing state
   const [countdown, setCountdown] = useState<number | null>(null);
@@ -352,15 +378,32 @@ const ExamPreparation = () => {
         const candidateId =
           (await technicalVerificationService.getCandidateId()) ?? "";
 
-        // Chequear primero si hizo la prueba técnica anticipada desde el dashboard
-        const preChecked = sessionStorage.getItem(TECH_CHECK_KEY(exam.sessionId)) === '1';
+        // Store A (session-manager-service's own Redis record) is the single
+        // source of truth for "already verified" — self-check against the
+        // authenticated user's real verification via canUserProceed(). This
+        // replaces the old identity-service technicalSetup lookup (Store B,
+        // removed — it was a separate, unauthenticated-by-ownership cache
+        // that exam-service's gate never actually read).
+        const authUserId = authSDK.getCurrentUser()?.id;
+        const proceedCheck = authUserId
+          ? await sessionManagerTechnicalService.canUserProceedWithReasons(authUserId)
+          : { canProceed: false, reasons: [] };
+        const alreadyVerified = proceedCheck.canProceed;
 
-        // Si ya completó la verificación técnica (pre-check o backend), ir directo al examen
-        const alreadyVerified =
-          preChecked ||
-          await technicalVerificationService.technicalVerificationExists(
-            exam.sessionId
+        if (!alreadyVerified) {
+          // Tell the candidate WHY they're verifying again instead of
+          // silently restarting the checks — most commonly because their
+          // previous verification's Redis record expired or was never found
+          // (first-time visit is also NOT_FOUND, so only show this when a
+          // prior verification clearly lapsed rather than never existing).
+          const expiredReason = proceedCheck.reasons.find(
+            (r) => r.code === 'EXPIRED' || r.code === 'NOT_FOUND'
           );
+          if (expiredReason) {
+            toast.info('Tu verificación anterior venció, vuelve a verificar tu equipo.', { duration: 6000 });
+          }
+        }
+
         if (alreadyVerified) {
           toast.info("Verificación técnica ya completada anteriormente");
           if (computedStatus === 'prep_window') {
@@ -379,11 +422,27 @@ const ExamPreparation = () => {
             exam.exam?.placementConfig?.mode === "adaptive";
           if (isAdaptive) {
             navigate(`/student/exam/${exam.sessionId}/adaptive`, { replace: true });
-          } else {
-            const startResult = await examService.startExam(exam.sessionId);
-            if (startResult?.success) navigate(`/student/exam/${exam.sessionId}`, { replace: true });
+            return;
           }
-          return;
+          try {
+            const startResult = await examService.startExam(exam.sessionId);
+            if (startResult?.success) {
+              navigate(`/student/exam/${exam.sessionId}`, { replace: true });
+              return;
+            }
+          } catch (startErr: any) {
+            const technicalInfo = getTechnicalVerificationRequiredInfo(startErr);
+            if (technicalInfo) {
+              // Store A's self-check preview said yes but exam-service's
+              // authoritative gate said no (e.g. it also requires a
+              // microphone check this preview doesn't run) — fall through
+              // to the normal verification flow below instead of leaving
+              // the candidate stuck.
+              setVerificationBlocked(technicalInfo.reasons);
+            } else {
+              throw startErr;
+            }
+          }
         }
 
         // Inicializar en session-manager (retorna el verificationId directamente como string)
@@ -609,11 +668,12 @@ const ExamPreparation = () => {
   const handleStartExam = async () => {
     if (isStarting || !examData) return;
     setIsStarting(true);
+    setVerificationBlocked(null);
     try {
-      // Guardar verificación en backend
-      await technicalVerificationService.submitVerificationToBackend();
-
-      // Finalizar sesión de verificación técnica
+      // Finalizar sesión de verificación técnica — sessionManagerTechnicalService
+      // (Store A) es la única fuente de verdad; ya no se replica en
+      // identity-service (ver technicalVerificationService.ts, métodos
+      // technicalVerificationExists/submitVerificationToBackend removidos).
       if (verificationId) {
         await sessionManagerTechnicalService.finalizeVerification(verificationId);
       }
@@ -649,10 +709,27 @@ const ExamPreparation = () => {
         navigate("/student/dashboard");
         return;
       }
-      toast.error("Error al iniciar el examen");
+      const technicalInfo = getTechnicalVerificationRequiredInfo(err);
+      if (technicalInfo) {
+        setVerificationBlocked(technicalInfo.reasons);
+      } else if (err?.response?.data?.code === "TECHNICAL_GATE_UNAVAILABLE") {
+        // session-manager-service is reachable but misconfigured/erroring —
+        // fails closed with a specific student-facing message (see
+        // exam-service session-manager.integration.ts).
+        toast.error(err.response.data.message || "No se pudo validar la verificación técnica. Avisa al supervisor.", { duration: 8000 });
+      } else {
+        toast.error("Error al iniciar el examen");
+      }
     } finally {
       setIsStarting(false);
     }
+  };
+
+  // Server said no despite passing local checks — let the candidate redo
+  // the technical verification from scratch (fresh Store A record).
+  const resetVerification = () => {
+    setVerificationBlocked(null);
+    if (examId) initializeExamPreparation(examId);
   };
 
   // ── Action button per check ───────────────────────────────────────────────
@@ -1038,9 +1115,50 @@ const ExamPreparation = () => {
           </div>
         </details>
 
+        {/* Blocking state — server-side gate rejected the start */}
+        {verificationBlocked && (
+          <div className="mb-5 rounded-xl border border-red-200 dark:border-red-500/30 bg-red-50 dark:bg-red-500/10 p-5">
+            <div className="flex items-start gap-3 mb-3">
+              <XCircle className="h-5 w-5 text-red-500 flex-shrink-0 mt-0.5" />
+              <div>
+                <h3 className="text-sm font-semibold text-red-800 dark:text-red-200">
+                  No es posible iniciar el examen
+                </h3>
+                <p className="text-xs text-red-700/80 dark:text-red-300/80 mt-0.5">
+                  El servidor rechazó la verificación técnica por los siguientes motivos:
+                </p>
+              </div>
+            </div>
+            <ul className="space-y-2 mb-4">
+              {verificationBlocked.map((reason) => (
+                <li
+                  key={reason.code}
+                  className="text-xs bg-red-100/60 dark:bg-red-500/10 rounded-md px-3 py-2"
+                >
+                  <p className="font-medium text-red-800 dark:text-red-200">
+                    {reason.message}
+                  </p>
+                  {TECHNICAL_REASON_HINTS[reason.code] && (
+                    <p className="text-red-600/80 dark:text-red-400/70 mt-0.5">
+                      {TECHNICAL_REASON_HINTS[reason.code]}
+                    </p>
+                  )}
+                </li>
+              ))}
+            </ul>
+            <button
+              onClick={resetVerification}
+              className="w-full h-9 flex items-center justify-center gap-1.5 rounded-md border border-red-300 dark:border-red-500/40 text-red-700 dark:text-red-300 text-sm font-medium hover:bg-red-100 dark:hover:bg-red-500/10 transition-colors"
+            >
+              <RefreshCw className="h-3.5 w-3.5" />
+              Volver a verificar
+            </button>
+          </div>
+        )}
+
         {/* Start exam */}
         <div className="rounded-xl border border-border bg-card/60 p-5">
-          {!canProceed && visibleChecks.length > 0 && (
+          {!canProceed && visibleChecks.length > 0 && !verificationBlocked && (
             <p className="text-xs text-muted-foreground text-center mb-4">
               Completa todas las verificaciones requeridas para continuar
             </p>
@@ -1050,6 +1168,7 @@ const ExamPreparation = () => {
             disabled={
               !canProceed ||
               isStarting ||
+              !!verificationBlocked ||
               entryStatus === 'blocked' ||
               entryStatus === 'too_early' ||
               entryStatus === 'prep_window'
@@ -1073,7 +1192,7 @@ const ExamPreparation = () => {
               La sesión aún no ha comenzado
             </p>
           )}
-          {canProceed && !isStarting && entryStatus !== 'prep_window' && (
+          {canProceed && !isStarting && !verificationBlocked && entryStatus !== 'prep_window' && (
             <p className="text-xs text-green-600/70 dark:text-green-400/60 text-center mt-2.5">
               Sistema listo — todas las verificaciones completadas
             </p>

@@ -36,6 +36,35 @@ async function api(method, path, token, body) {
   return { status: res.status, json: await res.json().catch(() => ({})) };
 }
 
+// PR10: exam-taking start now blocks a brand-new attempt unless the
+// candidate has a passing technical verification on file (session-manager
+// enforces this server-side). Drive the real public API — same as a
+// student's browser would — so existing e2e suites keep exercising
+// start() as an authenticated, verified candidate instead of tripping the
+// new 403 TECHNICAL_VERIFICATION_REQUIRED gate.
+async function submitPassingVerification(token, sessionId, userId) {
+  const init = await api('POST', '/api/v1/technical/init', token, { sessionId, userId });
+  if (init.status !== 200 || !init.json?.data?.verificationId) {
+    throw new Error(`technical/init failed: HTTP ${init.status} ${JSON.stringify(init.json)}`);
+  }
+  const verificationId = init.json.data.verificationId;
+  await api('POST', `/api/v1/technical/${verificationId}/browser`, token, {
+    browserInfo: { userAgent: 'Mozilla/5.0 Chrome/120.0', platform: 'Linux', language: 'es-BO', cookieEnabled: true, javaEnabled: false },
+    systemInfo: { screen: { width: 1920, height: 1080, colorDepth: 24 }, timezone: 'America/La_Paz', onlineStatus: true },
+  });
+  await api('POST', `/api/v1/technical/${verificationId}/devices`, token, {
+    devices: { audioInputs: [{ deviceId: 'e2e-mic', label: 'E2E Mic' }], videoInputs: [], audioOutputs: [{ deviceId: 'e2e-spk', label: 'E2E Speaker' }] },
+  });
+  await api('POST', `/api/v1/technical/${verificationId}/permissions`, token, {
+    permissions: { microphone: 'granted', camera: 'denied', notifications: 'default' },
+  });
+  await api('POST', `/api/v1/technical/${verificationId}/network-test`, token);
+  await api('POST', `/api/v1/technical/${verificationId}/microphone-test`, token, { audioLevel: 0.5 });
+  await api('POST', `/api/v1/technical/${verificationId}/audio-test`, token, { canHear: true });
+  await api('POST', `/api/v1/technical/${verificationId}/finalize`, token);
+  return verificationId;
+}
+
 async function main() {
   if (process.env.NODE_ENV === 'production') {
     console.log('ABORT: NODE_ENV=production re-validates tokens against identity-service; test tokens would be rejected.');
@@ -86,7 +115,14 @@ async function main() {
         academicInfo: { currentLevel: exam.targetLevel, targetLevel: exam.targetLevel }, createdAt: new Date(),
       });
       created.personIds.push(id);
-      const token = jwt.sign({ userId: String(id), email, role: 'student' }, process.env.JWT_SECRET, { expiresIn: '10m' });
+      // issuer/audience required: session-manager-service's technical-gate
+      // endpoints (PR10) verify these strictly, unlike exam-service's own
+      // authMiddleware which only checks the secret.
+      const token = jwt.sign({ userId: String(id), email, role: 'student' }, process.env.JWT_SECRET, {
+        expiresIn: '10m',
+        issuer: 'cba-auth-service',
+        audience: 'cba-platform',
+      });
       students.push({ who, id, token });
     }
     const [alice, bob] = students;
@@ -104,6 +140,7 @@ async function main() {
     const sid = String(sessionId);
 
     for (const s of [alice, bob]) {
+      await submitPassingVerification(s.token, sid, String(s.id));
       const r = await api('POST', `/api/v1/exam-taking/${sid}/start`, s.token);
       check(`${s.who} can start (JWT id used directly as candidate id)`, r.status === 200, `HTTP ${r.status}${r.json?.message ? ` ${r.json.message}` : ''}`);
       if (r.status !== 200) throw new Error(`start failed for ${s.who}`);

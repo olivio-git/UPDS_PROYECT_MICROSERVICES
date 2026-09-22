@@ -350,24 +350,54 @@ export class TechnicalVerificationController {
 
   /**
    * GET /api/v1/technical/user/:userId/can-proceed
-   * Verificar si un usuario puede proceder con el examen
+   * Verificar si un usuario puede proceder con el examen.
+   *
+   * This is the self-service preview the frontend can call before starting
+   * an exam. It does NOT know whether the target exam requires a
+   * microphone (session-manager has no notion of exams) — pass
+   * ?requireMicrophone=true when the caller already knows. The
+   * authoritative, exam-aware check exam-service actually gates on is the
+   * internal endpoint below (internalCanProceed).
    */
   async canUserProceed(req: Request, res: Response) {
     try {
       const { userId } = req.params;
-      
-      const result = await technicalVerificationService.canUserProceed(userId);
-      
+      const requireMicrophone = req.query.requireMicrophone === 'true';
+
+      const result = await technicalVerificationService.canUserProceed(userId, { requireMicrophone });
+
       return res.status(200).json({
         success: true,
-        data: {
-          canProceed: result.canProceed,
-          reason: result.reason,
-          verification: result.verification
-        }
+        data: result
       });
     } catch (error) {
       logger.error('Error verificando si puede proceder:', error);
+      return res.status(500).json({
+        success: false,
+        message: 'Error interno del servidor'
+      });
+    }
+  }
+
+  /**
+   * GET /internal/technical/can-proceed/:userId?requireMicrophone=true
+   * Service-to-service endpoint used by exam-service to gate exam start.
+   * Guarded by verifyServiceToken middleware, not by JWT — see routes wiring
+   * in index.ts. NOT proxied by nginx.
+   */
+  async internalCanProceed(req: Request, res: Response) {
+    try {
+      const { userId } = req.params;
+      const requireMicrophone = req.query.requireMicrophone === 'true';
+
+      const result = await technicalVerificationService.canUserProceed(userId, { requireMicrophone });
+
+      return res.status(200).json({
+        success: true,
+        data: result
+      });
+    } catch (error) {
+      logger.error('[Internal] Error verificando si puede proceder:', error);
       return res.status(500).json({
         success: false,
         message: 'Error interno del servidor'
