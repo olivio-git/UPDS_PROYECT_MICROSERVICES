@@ -23,6 +23,11 @@ export class ExamTakingService {
   // it only throttles a real-time nicety, not the persisted infraction count
   // (that's written to the attempt on every accepted request regardless).
   private infractionPublishThrottle: Map<string, number> = new Map();
+  // A trailing timer per attempt: when infractions are coalesced within a
+  // 10s publish window, this fires once at the window's end so the proctor
+  // still sees the final count even if the candidate stops misbehaving
+  // before another infraction would naturally trigger a fresh publish.
+  private infractionTrailingPushTimers: Map<string, ReturnType<typeof setTimeout>> = new Map();
 
   constructor() {
     this.sessionService = new SessionService();
@@ -896,6 +901,49 @@ export class ExamTakingService {
   // the real-time notification.
   private static readonly INFRACTION_PUBLISH_INTERVAL_MS = 10000;
 
+  // Drops throttle-map entries with no pending trailing timer that haven't
+  // seen activity in a while — otherwise a long-running service accumulates
+  // one entry per attempt that ever recorded an infraction, forever.
+  private static readonly INFRACTION_THROTTLE_STALE_MS = 5 * 60 * 1000;
+  private pruneInfractionThrottleMap(nowMs: number): void {
+    const cutoff = nowMs - ExamTakingService.INFRACTION_THROTTLE_STALE_MS;
+    for (const [key, ts] of this.infractionPublishThrottle) {
+      if (ts < cutoff && !this.infractionTrailingPushTimers.has(key)) {
+        this.infractionPublishThrottle.delete(key);
+      }
+    }
+  }
+
+  private async publishInfractionEvent(params: {
+    sessionId: string;
+    candidateId: string;
+    attemptId: string;
+    type: string;
+    infractionCount: number;
+    occurredAt: Date;
+    details?: string;
+  }): Promise<void> {
+    try {
+      const session = await Session.findById(params.sessionId)
+        .select('sessionName participants.proctors createdBy')
+        .lean();
+      await this.kafkaService.publishEvent('session.candidate.infraction', {
+        sessionId: params.sessionId,
+        candidateId: params.candidateId,
+        attemptId: params.attemptId,
+        type: params.type,
+        infractionCount: params.infractionCount,
+        occurredAt: params.occurredAt.toISOString(),
+        details: params.details,
+        sessionName: (session as any)?.sessionName,
+        proctorIds: (session as any)?.participants?.proctors?.map(String) || [],
+        createdBy: (session as any)?.createdBy?.toString()
+      });
+    } catch (err) {
+      logger.error('Error publishing session.candidate.infraction:', err);
+    }
+  }
+
   async recordInfraction(
     sessionId: string,
     candidateId: string,
@@ -903,67 +951,117 @@ export class ExamTakingService {
     occurredAt?: string,
     details?: string
   ) {
-    const attempt = await Attempt.findOne({ sessionId, candidateId });
-    if (!attempt) throw new Error('Attempt not found');
-
-    if (attempt.status !== 'in_progress') {
-      throw new AppError(
-        `Cannot record infraction: attempt is ${attempt.status}, not in progress`,
-        409,
-        'ATTEMPT_NOT_IN_PROGRESS',
-        attempt.status
-      );
+    if (!Types.ObjectId.isValid(sessionId)) {
+      throw new AppError('Invalid session id', 400, 'INVALID_SESSION_ID');
     }
 
     const now = new Date();
-    const eventAt = occurredAt ? new Date(occurredAt) : now;
-    const lastInfractionAt = attempt.integrity?.lastInfractionAt;
 
-    // Rate limit: ignore (accept the request but don't count it) if the
-    // previous accepted infraction for this attempt was under 1s ago.
-    if (lastInfractionAt && now.getTime() - new Date(lastInfractionAt).getTime() < ExamTakingService.INFRACTION_MIN_INTERVAL_MS) {
-      return {
-        accepted: false,
-        infractionCount: attempt.integrity?.infractionCount ?? 0
-      };
+    // Server time is authoritative for the stored/published event time — a
+    // client clock can be wrong or spoofed. If the client also sent
+    // occurredAt and it parses to a real date within ±5 minutes of server
+    // time, keep it separately for forensic value; otherwise drop it.
+    let clientOccurredAt: Date | undefined;
+    if (occurredAt) {
+      const parsed = new Date(occurredAt);
+      if (!Number.isNaN(parsed.getTime()) && Math.abs(parsed.getTime() - now.getTime()) <= 5 * 60 * 1000) {
+        clientOccurredAt = parsed;
+      }
     }
 
-    if (!attempt.integrity) {
-      attempt.integrity = { infractionCount: 0, events: [] };
-    }
-    attempt.integrity.infractionCount = (attempt.integrity.infractionCount ?? 0) + 1;
-    attempt.integrity.lastInfractionAt = now;
-    attempt.integrity.events.push({ type, at: eventAt } as any);
-    if (attempt.integrity.events.length > ExamTakingService.MAX_INTEGRITY_EVENTS) {
-      attempt.integrity.events = attempt.integrity.events.slice(-ExamTakingService.MAX_INTEGRITY_EVENTS);
-    }
-    await attempt.save();
+    const rateLimitCutoff = new Date(now.getTime() - ExamTakingService.INFRACTION_MIN_INTERVAL_MS);
 
-    const infractionCount = attempt.integrity.infractionCount;
+    // Atomic accept-and-increment via a single findOneAndUpdate: the query
+    // condition itself enforces both "attempt is in_progress" and "the last
+    // accepted infraction was over 1s ago", so a burst of concurrent
+    // requests (client retry, double-fire) can't all read the same stale
+    // lastInfractionAt and all get accepted — a read-then-write in JS would
+    // race exactly that way. $slice caps the events array server-side too.
+    const updated = await Attempt.findOneAndUpdate(
+      {
+        sessionId,
+        candidateId,
+        status: 'in_progress',
+        $or: [
+          { 'integrity.lastInfractionAt': { $exists: false } },
+          { 'integrity.lastInfractionAt': null },
+          { 'integrity.lastInfractionAt': { $lt: rateLimitCutoff } },
+        ],
+      },
+      {
+        $inc: { 'integrity.infractionCount': 1 },
+        $set: { 'integrity.lastInfractionAt': now },
+        $push: {
+          'integrity.events': {
+            $each: [{ type, at: now, ...(clientOccurredAt ? { clientAt: clientOccurredAt } : {}) }],
+            $slice: -ExamTakingService.MAX_INTEGRITY_EVENTS,
+          },
+        },
+      },
+      { new: true }
+    );
+
+    if (!updated) {
+      // Either the attempt doesn't exist, isn't in_progress (real error), or
+      // the rate limit rejected it (silently accepted-but-uncounted, as
+      // before). A second, cheap lookup distinguishes the two.
+      const attempt = await Attempt.findOne({ sessionId, candidateId }).select('status integrity.infractionCount');
+      if (!attempt) throw new Error('Attempt not found');
+      if (attempt.status !== 'in_progress') {
+        throw new AppError(
+          `Cannot record infraction: attempt is ${attempt.status}, not in progress`,
+          409,
+          'ATTEMPT_NOT_IN_PROGRESS',
+          attempt.status
+        );
+      }
+      return { accepted: false, infractionCount: attempt.integrity?.infractionCount ?? 0 };
+    }
+
+    const infractionCount = updated.integrity?.infractionCount ?? 0;
+    const attemptKey = String(updated._id);
+
+    this.pruneInfractionThrottleMap(now.getTime());
 
     // Throttled proctor push — coalesce bursts to one Kafka publish per
     // attempt per 10s.
-    const attemptKey = String(attempt._id);
     const lastPublished = this.infractionPublishThrottle.get(attemptKey) ?? 0;
     if (now.getTime() - lastPublished >= ExamTakingService.INFRACTION_PUBLISH_INTERVAL_MS) {
       this.infractionPublishThrottle.set(attemptKey, now.getTime());
-      try {
-        const session = await Session.findById(sessionId).select('sessionName participants.proctors createdBy').lean();
-        await this.kafkaService.publishEvent('session.candidate.infraction', {
-          sessionId,
-          candidateId,
-          attemptId: attemptKey,
-          type,
-          infractionCount,
-          occurredAt: eventAt.toISOString(),
-          details,
-          sessionName: (session as any)?.sessionName,
-          proctorIds: (session as any)?.participants?.proctors?.map(String) || [],
-          createdBy: (session as any)?.createdBy?.toString()
-        });
-      } catch (err) {
-        logger.error('Error publishing session.candidate.infraction:', err);
+      const pendingTrailing = this.infractionTrailingPushTimers.get(attemptKey);
+      if (pendingTrailing) {
+        clearTimeout(pendingTrailing);
+        this.infractionTrailingPushTimers.delete(attemptKey);
       }
+      await this.publishInfractionEvent({
+        sessionId, candidateId, attemptId: attemptKey, type, infractionCount, occurredAt: now, details
+      });
+    } else if (!this.infractionTrailingPushTimers.has(attemptKey)) {
+      // Coalesced within the current window — schedule ONE trailing push at
+      // the window's end (relative to the last real publish) so the proctor
+      // still sees the final count even if the candidate stops misbehaving
+      // before another infraction would naturally trigger a fresh publish.
+      const delay = Math.max(0, lastPublished + ExamTakingService.INFRACTION_PUBLISH_INTERVAL_MS - now.getTime());
+      const timer = setTimeout(async () => {
+        this.infractionTrailingPushTimers.delete(attemptKey);
+        try {
+          const latest = await Attempt.findById(attemptKey).select('status integrity.infractionCount');
+          if (!latest || latest.status !== 'in_progress') return;
+          this.infractionPublishThrottle.set(attemptKey, Date.now());
+          await this.publishInfractionEvent({
+            sessionId,
+            candidateId,
+            attemptId: attemptKey,
+            type,
+            infractionCount: latest.integrity?.infractionCount ?? infractionCount,
+            occurredAt: new Date(),
+            details,
+          });
+        } catch (err) {
+          logger.error('Error publishing trailing session.candidate.infraction:', err);
+        }
+      }, delay);
+      this.infractionTrailingPushTimers.set(attemptKey, timer);
     }
 
     return { accepted: true, infractionCount };

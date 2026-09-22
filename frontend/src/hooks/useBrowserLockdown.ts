@@ -132,14 +132,36 @@ export function useBrowserLockdown({
 
   const reenterFullscreen = useCallback(() => {
     const result = requestElementFullscreen(document.documentElement);
-    if (result) {
-      result
-        .then(() => setShowFullscreenPrompt(false))
-        .catch(() => {
-          toast.error('No se pudo volver a pantalla completa. Actívala manualmente (F11).');
-        });
+
+    // Degrade gracefully instead of trapping the student behind the overlay
+    // forever. Two cases land here: the Fullscreen API isn't available at
+    // all on this browser/element (`result` undefined), or the request was
+    // rejected (unsupported context, or the browser/OS denied it). Either
+    // way there's no working retry to offer — and we deliberately don't
+    // tell the student to "press F11": that's the browser's own manual
+    // fullscreen toggle, which the Fullscreen API can't detect or verify,
+    // so guidance around it would be unverifiable and misleading. Instead:
+    // record it as an infraction (the proctor sees it and can follow up)
+    // and let the exam continue outside fullscreen — a small integrity gap
+    // is preferable to a student being unable to take the exam at all.
+    const degradeGracefully = () => {
+      toast.error(
+        'No se pudo activar la pantalla completa. El examen continuará sin ella; esto queda registrado para el supervisor.',
+        { duration: 6000 }
+      );
+      throttledReport('fullscreen_exit', 'No se pudo activar la pantalla completa.');
+      setShowFullscreenPrompt(false);
+    };
+
+    if (!result) {
+      degradeGracefully();
+      return;
     }
-  }, []);
+
+    result
+      .then(() => setShowFullscreenPrompt(false))
+      .catch(degradeGracefully);
+  }, [throttledReport]);
 
   useEffect(() => {
     if (!enabled) {
@@ -147,13 +169,29 @@ export function useBrowserLockdown({
       return;
     }
 
-    wasFullscreenRef.current = isFullscreenActive();
+    const startedFullscreen = isFullscreenActive();
+    wasFullscreenRef.current = startedFullscreen;
+
+    // Lockdown can arm while the page is already NOT in fullscreen — a
+    // reload/F5 (browsers drop fullscreen on navigation), an auto-started
+    // session with no user gesture yet, or a deep link straight into the
+    // runner. Relying only on the true→false `fullscreenchange` transition
+    // below misses all of these: nothing ever transitions, so the blocking
+    // overlay never shows and the student can sit outside fullscreen
+    // indefinitely. Show it immediately in that case instead — the button
+    // inside it is itself the user gesture fullscreen APIs require. This is
+    // the initial state, not an exit, so it does NOT count as an infraction.
+    if (!startedFullscreen) {
+      setShowFullscreenPrompt(true);
+    }
 
     const handleFullscreenChange = () => {
       const isFs = isFullscreenActive();
       if (wasFullscreenRef.current && !isFs) {
         throttledReport('fullscreen_exit', 'Saliste de pantalla completa. El examen requiere pantalla completa.');
         setShowFullscreenPrompt(true);
+      } else if (isFs) {
+        setShowFullscreenPrompt(false);
       }
       wasFullscreenRef.current = isFs;
     };

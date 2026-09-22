@@ -535,9 +535,14 @@ const ExamRunnerHTTP: React.FC = () => {
               <Maximize className="h-6 w-6 text-amber-600 dark:text-amber-400" />
             </div>
             <div>
-              <h3 className="text-base font-semibold text-foreground">Saliste de pantalla completa</h3>
+              <h3 className="text-base font-semibold text-foreground">Pantalla completa requerida</h3>
               <p className="text-sm text-muted-foreground mt-1">
-                Vuelve a pantalla completa para continuar. Esta acción quedó registrada.
+                {/* Also shown right at load when the session arms lockdown but
+                    the page isn't in fullscreen yet (reload, auto-start,
+                    deep link) — not only after a real exit — so this copy
+                    stays accurate for both instead of implying an
+                    infraction was always just logged. */}
+                El examen requiere pantalla completa para continuar. Salir de ella queda registrado.
               </p>
             </div>
             <Button onClick={reenterFullscreen} className="w-full">
