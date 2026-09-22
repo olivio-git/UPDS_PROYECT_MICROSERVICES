@@ -1,4 +1,5 @@
 import React, { useMemo } from 'react';
+import { UserAvatar } from '@/components/atoms/UserAvatar';
 import {
   createColumnHelper,
   useReactTable,
@@ -20,14 +21,13 @@ import {
 } from '@/components/atoms/dropdown-menu';
 import CustomizableTable from '@/components/common/CustomizableTable';
 import { 
-  MoreVertical, 
-  Edit, 
-  Trash2, 
-  UserCheck, 
-  UserX, 
+  MoreVertical,
+  Edit,
+  Trash2,
+  UserCheck,
+  UserX,
   Key,
   Shield,
-  Mail,
   Eye,
   ChevronLeft,
   ChevronRight
@@ -47,7 +47,6 @@ interface UserTableProps {
   onDeactivateUser: (user: User) => void;
   onGeneratePassword: (user: User) => void;
   onAssignRole: (user: User) => void;
-  onSendEmail: (user: User) => void;
   isLoading?: boolean;
   isFetching?: boolean;
   isError?: boolean;
@@ -76,7 +75,6 @@ const UserTable: React.FC<UserTableProps> = ({
   onDeactivateUser,
   onGeneratePassword,
   onAssignRole,
-  onSendEmail,
   isLoading = false,
   isFetching = false,
   isError = false,
@@ -164,23 +162,15 @@ const UserTable: React.FC<UserTableProps> = ({
       header: 'Usuario',
       cell: ({ row }) => {
         const user = row.original;
-        const initials = `${user.firstName[0]}${user.lastName[0]}`.toUpperCase();
-        
+
         return (
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 bg-blue-500/20 rounded-full flex items-center justify-center">
-              {user.profile?.avatar ? (
-                <img
-                  src={user.profile.avatar}
-                  alt={`${user.firstName} ${user.lastName}`}
-                  className="w-8 h-8 rounded-full object-cover"
-                />
-              ) : (
-                <span className="text-blue-400 text-sm font-medium">
-                  {initials}
-                </span>
-              )}
-            </div>
+            <UserAvatar
+              avatarUrl={user.profile?.avatarUrl}
+              firstName={user.firstName}
+              lastName={user.lastName}
+              size="sm"
+            />
             <div>
               <p className="font-medium text-foreground">
                 {user.firstName} {user.lastName}
@@ -308,13 +298,13 @@ const UserTable: React.FC<UserTableProps> = ({
         
         return (
           <DropdownMenu>
-            <DropdownMenuTrigger asChild className='bg-card border border-line rounded-md p-1 hover:bg-muted'>
+            <DropdownMenuTrigger asChild className='bg-card border border-border rounded-md p-1 hover:bg-muted'>
               <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
                 <MoreVertical className="h-4 w-4 text-foreground" />
                 <span className="sr-only">Abrir menú</span>
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-48 bg-popover border-line text-foreground">
+            <DropdownMenuContent align="end" className="w-48 bg-popover border-border text-foreground">
               {/* Ver detalles */}
               <DropdownMenuItem className='hover:bg-muted' onClick={() => onViewUser(user)}>
                 <Eye className="mr-2 h-4 w-4" />
@@ -325,12 +315,6 @@ const UserTable: React.FC<UserTableProps> = ({
               <DropdownMenuItem className='hover:bg-muted' onClick={() => onEditUser(user)}>
                 <Edit className="mr-2 h-4 w-4" />
                 Editar
-              </DropdownMenuItem>
-
-              {/* Enviar email */}
-              <DropdownMenuItem className='hover:bg-muted' onClick={() => onSendEmail(user)}>
-                <Mail className="mr-2 h-4 w-4" />
-                Enviar email
               </DropdownMenuItem>
 
               <DropdownMenuSeparator />
@@ -408,7 +392,7 @@ const UserTable: React.FC<UserTableProps> = ({
   });
 
   return (
-    <div className="bg-card border border-line rounded-lg shadow-sm overflow-hidden">
+    <div className="overflow-hidden">
       <CustomizableTable
         table={table}
         isLoading={isLoading}
@@ -421,7 +405,7 @@ const UserTable: React.FC<UserTableProps> = ({
 
       {/* Paginación - Debug: siempre mostrar si hay datos */}
       {totalItems > 0 && onPageChange && (
-        <div className="px-6 py-4 border-t border-line flex flex-col sm:flex-row items-center justify-between gap-4">
+        <div className="px-6 py-4 border-t border-border flex flex-col sm:flex-row items-center justify-between gap-4">
           <div className="text-sm text-muted-foreground">
             Mostrando {(currentPage - 1) * itemsPerPage + 1} a{' '}
             {Math.min(currentPage * itemsPerPage, totalItems)} de {totalItems}{' '}
@@ -431,7 +415,7 @@ const UserTable: React.FC<UserTableProps> = ({
             <button
               onClick={() => onPageChange(currentPage - 1)}
               disabled={currentPage === 1}
-              className="p-2 bg-muted/50 border border-line rounded-lg hover:bg-muted disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+              className="p-2 bg-muted/50 border border-border rounded-lg hover:bg-muted disabled:opacity-50 disabled:cursor-not-allowed transition-all"
             >
               <ChevronLeft className="w-4 h-4 text-muted-foreground" />
             </button>
@@ -446,7 +430,7 @@ const UserTable: React.FC<UserTableProps> = ({
                     className={`px-3 py-1 rounded-lg transition-all ${
                       page === currentPage
                         ? 'bg-blue-600 text-white'
-                        : 'bg-muted/50 border border-line text-muted-foreground hover:bg-muted'
+                        : 'bg-muted/50 border border-border text-muted-foreground hover:bg-muted'
                     }`}
                   >
                     {page}
@@ -458,7 +442,7 @@ const UserTable: React.FC<UserTableProps> = ({
             <button
               onClick={() => onPageChange(currentPage + 1)}
               disabled={currentPage === totalPages}
-              className="p-2 bg-muted/50 border border-line rounded-lg hover:bg-muted disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+              className="p-2 bg-muted/50 border border-border rounded-lg hover:bg-muted disabled:opacity-50 disabled:cursor-not-allowed transition-all"
             >
               <ChevronRight className="w-4 h-4 text-muted-foreground" />
             </button>

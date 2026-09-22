@@ -1,4 +1,5 @@
 import { Button } from '@/components/atoms/button';
+import { UserAvatar } from '@/components/atoms/UserAvatar';
 import { useAuthStore } from '@/modules/auth/services/authStore';
 import { protectedRoutes } from '@/navigation/Protected.Route';
 import { notificationService } from '@/services/notifications/notificationService';
@@ -204,6 +205,9 @@ const Header = () => {
   }, []);
 
   const userRole = user?.role;
+  const profilePath =
+    userRole === 'student' ? '/student/profile' :
+    userRole === 'teacher' ? '/teacher/profile' : null;
   const filteredRoutes = protectedRoutes.filter(
     route =>
       route.role?.includes('all') ||
@@ -325,21 +329,18 @@ const Header = () => {
     <>
       {/* Header Principal */}
       <header className="fixed top-0 z-50 w-full">
-        <div className="flex items-center justify-between w-full mx-auto mt-2 px-4">
+        <div className="flex justify-end lg:grid lg:grid-cols-[1fr_auto_1fr] items-center w-full mx-auto mt-2 px-4">
           {/* Logo/Brand - Solo visible en desktop */}
-          <div className="hidden md:flex items-center">
-            <div className="flex items-center gap-3">
-              <div className="flex flex-col">
-                <span className="text-sm font-bold text-foreground leading-none">
-                  CBA
-                </span>
-                <span className="text-xs text-muted-foreground">Platform</span>
-              </div>
-            </div>
+          <div className="hidden lg:flex items-center min-w-0">
+            <img
+              src="/CBA_Horizontal_blanco.webp"
+              alt="CBA Platform"
+              className="h-8 w-auto max-w-[160px] object-contain invert dark:invert-0"
+            />
           </div>
 
-          {/* Desktop Navigation */}
-          <nav className="hidden md:flex px-6 py-1 text-xs font-medium rounded-full bg-background/80 backdrop-blur-xl border border-border text-foreground justify-center items-center gap-4">
+          {/* Desktop Navigation — íconos en lg/xl, íconos+texto en 2xl */}
+          <nav className="hidden lg:flex px-3 py-1 rounded-full bg-card/95 shadow-sm backdrop-blur-xl border border-border text-foreground justify-center items-center gap-0.5">
             {filteredRoutes.map(route => {
               const IconComponent = route.icon;
               const isActive = location.pathname === route.path;
@@ -348,45 +349,50 @@ const Header = () => {
                 <button
                   key={route.path}
                   onClick={() => handleNavigation(route.path)}
+                  title={route.name}
                   className={`
-                                        flex gap-2 items-center font-medium border border-transparent relative px-3 py-2 rounded-md transition-all duration-300 hover:cursor-pointer
-                                        ${
-                                          isActive
-                                            ? 'text-blue-400 bg-blue-500/10'
-                                            : 'hover:text-blue-400 hover:bg-blue-500/5 hover:border-blue-500/20'
-                                        }
-                                    `}
+                    flex items-center gap-1.5 border border-transparent px-2 py-1.5 rounded-md transition-all duration-200 hover:cursor-pointer
+                    ${isActive
+                      ? 'text-blue-400 bg-blue-500/10 border-blue-500/20'
+                      : 'text-foreground/70 hover:text-blue-400 hover:bg-blue-500/5 hover:border-blue-500/20'
+                    }
+                  `}
                   aria-label={route.name}
                 >
-                  {IconComponent && <IconComponent className="h-4 w-4" />}
-                  <span className="hidden lg:block">{route.name}</span>
+                  {IconComponent && <IconComponent className="h-4 w-4 shrink-0" />}
+                  <span className="hidden 2xl:block text-xs font-medium truncate max-w-[96px]">
+                    {route.name}
+                  </span>
                 </button>
               );
             })}
           </nav>
 
           {/* Actions: Search + Notifications + User Menu + Mobile Menu Button */}
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 justify-end">
             {/* Command Palette Button - Desktop */}
-            <div className="hidden md:block">
+            <div className="hidden lg:block">
               <button
                 onClick={openCommandPalette}
-                className="flex items-center px-2 py-1 text-sm text-muted-foreground bg-muted backdrop-blur-sm rounded-lg hover:border-border hover:bg-muted/80 hover:text-foreground transition-all duration-300"
+                className="flex items-center px-2 py-1 text-sm text-muted-foreground bg-card border border-border/60 rounded-lg hover:bg-muted hover:text-foreground transition-all duration-300"
               >
                 <Search className="h-4 w-4" />
-                <kbd className="pointer-events-none hidden lg:inline-flex h-5 select-none items-center gap-1 rounded px-1.5 font-mono text-xs font-medium text-muted-foreground opacity-100">
+                <kbd className="pointer-events-none hidden xl:inline-flex h-5 select-none items-center gap-1 rounded px-1.5 font-mono text-xs font-medium text-muted-foreground opacity-100">
                   Ctrl+K
                 </kbd>
               </button>
             </div>
+            <div className="hidden lg:block">
+                <ThemeToggle></ThemeToggle>
+            </div>
 
             {/* Notifications - Desktop */}
-            <div className="hidden md:block relative" ref={notificationRef}>
+            <div className="hidden lg:block relative" ref={notificationRef}>
               <Button
                 variant="outline"
                 size="icon"
                 onClick={() => setIsNotificationsOpen(!isNotificationsOpen)}
-                className="relative border border-border bg-background/80 backdrop-blur-sm hover:border-border hover:bg-muted transition-all duration-300"
+                className="relative border border-border bg-card backdrop-blur-sm hover:bg-muted transition-all duration-300"
               >
                 <Bell className="h-4 w-4 text-foreground" />
                 {unreadCount > 0 && (
@@ -395,19 +401,13 @@ const Header = () => {
                   </span>
                 )}
               </Button>
-                <ThemeToggle></ThemeToggle>
-              {/* Notifications Dropdown con Gradiente Plateado */}
+              {/* Notifications Dropdown */}
               {isNotificationsOpen && (
-                <div className="absolute right-0 mt-2 w-80 bg-popover/95 backdrop-blur-sm border border-border rounded-xl shadow-2xl overflow-hidden">
-                  {/* Gradiente plateado para el modal de notificaciones */}
-                  <div className="absolute inset-0 pointer-events-none">
-                    {/* Gradiente central que se expande hacia los lados */}
-                    <div className="absolute top-0 left-1/2 -translate-x-1/2 w-48 h-full bg-gradient-to-l from-transparent via-slate-500/28 to-transparent blur-2xl"></div>
-                    {/* <div className="absolute top-0 left-1/2 -translate-x-1/2 w-32 h-full bg-gradient-to-r from-transparent via-slate-300/1 to-transparent blur-xs"></div> */}
-                    {/* Gradiente horizontal desde el centro */}
-                    {/* <div className="absolute top-1/2 -translate-y-1/2 left-0 w-full h-24 bg-gradient-to-r from-transparent via-slate-400/6 to-transparent"></div> */}
+                <div className="absolute right-0 mt-2 w-80 bg-popover border border-border rounded-xl shadow-2xl overflow-hidden">
+                  {/* Gradiente metálico solo en dark mode */}
+                  <div className="absolute inset-0 pointer-events-none hidden dark:block">
+                    <div className="absolute top-0 left-1/2 -translate-x-1/2 w-48 h-full bg-gradient-to-l from-transparent via-slate-500/28 to-transparent blur-2xl" />
                   </div>
-
                   {/* Header */}
                   <div className="relative flex items-center justify-between p-4 border-b border-border/60">
                     <h3 className="text-sm font-semibold text-popover-foreground">
@@ -509,14 +509,19 @@ const Header = () => {
             </div>
 
             {/* User Menu Desktop */}
-            <div className="hidden md:block relative" ref={userMenuRef}>
+            <div className="hidden lg:block relative" ref={userMenuRef}>
               <Button
                 variant="outline"
                 size="icon"
                 onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
-                className="border border-border bg-background/80 backdrop-blur-sm hover:border-border hover:bg-muted transition-all duration-300"
+                className="border border-border bg-card backdrop-blur-sm hover:bg-muted transition-all duration-300 overflow-hidden p-0 rounded-full w-10 h-10"
               >
-                <User className="h-4 w-4 text-foreground" />
+                <UserAvatar
+                  avatarUrl={user?.profile?.avatarUrl}
+                  firstName={user?.firstName}
+                  lastName={user?.lastName}
+                  size="md"
+                />
               </Button>
 
               {/* User Dropdown */}
@@ -525,13 +530,12 @@ const Header = () => {
                   {/* User Info */}
                   <div className="p-4 border-b border-border">
                     <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 bg-gradient-to-br from-blue-400 to-blue-600 rounded-full flex items-center justify-center">
-                        <span className="text-white font-semibold text-sm">
-                          {user?.firstName?.charAt(0) ||
-                            user?.name?.charAt(0) ||
-                            'U'}
-                        </span>
-                      </div>
+                      <UserAvatar
+                        avatarUrl={user?.profile?.avatarUrl}
+                        firstName={user?.firstName}
+                        lastName={user?.lastName}
+                        size="sm"
+                      />
                       <div>
                         <p className="text-sm font-medium text-popover-foreground">
                           {user?.firstName && user?.lastName
@@ -547,27 +551,21 @@ const Header = () => {
 
                   {/* Menu Items */}
                   <div className="py-2">
-                    <button
-                      className="flex items-center gap-3 w-full px-4 py-3 text-sm text-popover-foreground hover:bg-muted/50 transition-colors"
-                      onClick={() => {
-                        setIsUserMenuOpen(false);
-                        navigate('/profile');
-                      }}
-                    >
-                      <User className="h-4 w-4" />
-                      Mi Perfil
-                    </button>
-                    <button
-                      className="flex items-center gap-3 w-full px-4 py-3 text-sm text-popover-foreground hover:bg-muted/50 transition-colors"
-                      onClick={() => {
-                        setIsUserMenuOpen(false);
-                        navigate('/settings');
-                      }}
-                    >
-                      <Settings className="h-4 w-4" />
-                      Configuración
-                    </button>
-                    <hr className="my-2 border-border" />
+                    {profilePath && (
+                      <>
+                        <button
+                          className="flex items-center gap-3 w-full px-4 py-3 text-sm text-popover-foreground hover:bg-muted/50 transition-colors"
+                          onClick={() => {
+                            setIsUserMenuOpen(false);
+                            navigate(profilePath);
+                          }}
+                        >
+                          <User className="h-4 w-4" />
+                          Mi Perfil
+                        </button>
+                        <hr className="my-2 border-border" />
+                      </>
+                    )}
                     <button
                       className="flex items-center gap-3 w-full px-4 py-3 text-sm text-red-500 hover:bg-red-500/10 transition-colors"
                       onClick={handleLogout}
@@ -586,7 +584,7 @@ const Header = () => {
                 variant="outline"
                 size="icon"
                 onClick={toggleMobileMenu}
-                className="md:hidden border border-border bg-background/80 backdrop-blur-sm hover:border-border hover:bg-muted transition-all duration-300"
+                className="lg:hidden border border-border bg-card backdrop-blur-sm hover:bg-muted transition-all duration-300"
               >
                 <Menu className="h-4 w-4 text-foreground" />
               </Button>
@@ -608,9 +606,11 @@ const Header = () => {
             <div className="flex flex-col h-full">
               {/* Header */}
               <div className="flex items-center justify-between p-4 border-b border-border">
-                <h2 className="text-lg font-bold text-popover-foreground">
-                  CBA Platform
-                </h2>
+                <img
+                  src="/CBA_Horizontal_blanco.webp"
+                  alt="CBA Platform"
+                  className="h-7 w-auto invert dark:invert-0"
+                />
                 <Button
                   variant="ghost"
                   size="icon"
@@ -639,7 +639,11 @@ const Header = () => {
                 <Button
                   variant="outline"
                   size="icon"
-                  className="border border-border bg-background/80 backdrop-blur-sm hover:border-border hover:bg-muted transition-all duration-300 relative"
+                  className="border border-border bg-card backdrop-blur-sm hover:bg-muted transition-all duration-300 relative"
+                  onClick={() => {
+                    setIsMobileMenuOpen(false);
+                    setIsAllNotificationsOpen(true);
+                  }}
                 >
                   <Bell className="h-4 w-4 text-foreground" />
                   {unreadCount > 0 && (
@@ -681,16 +685,6 @@ const Header = () => {
               {/* User Actions */}
               <div className="p-4 border-t border-border">
                 <div className="space-y-2">
-                  <button
-                    className="flex items-center gap-3 w-full p-3 text-foreground/70 hover:bg-muted hover:text-blue-400 rounded-lg transition-all duration-200"
-                    onClick={() => {
-                      setIsMobileMenuOpen(false);
-                      navigate('/settings');
-                    }}
-                  >
-                    <Settings className="h-5 w-5" />
-                    <span className="font-medium">Configuración</span>
-                  </button>
                   <button
                     className="flex items-center gap-3 w-full p-3 text-red-500 hover:bg-red-500/10 rounded-lg transition-all duration-200"
                     onClick={handleLogout}

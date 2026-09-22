@@ -19,6 +19,15 @@ export interface ExamResultSummary {
   totalQuestions: number;
 }
 
+export interface GradingBreakdown {
+  questionsMs: number;
+  autoGradingMs: number;
+  aiGradingMs: number;
+  audioGradingMs: number;
+  perQuestionFeedbackMs: number;
+  overallFeedbackMs: number;
+}
+
 export interface DetailedExamResult {
   id: string;
   examName: string;
@@ -30,6 +39,9 @@ export interface DetailedExamResult {
   duration: number;
   timeAllowed: number;
   totalQuestions: number;
+  /** Total grading time in milliseconds (set by grading-service) */
+  gradingDurationMs?: number;
+  gradingBreakdown?: GradingBreakdown;
   details: {
     totalScore: number;
     maxScore: number;
@@ -55,6 +67,8 @@ export interface DetailedExamResult {
       aiEvaluatedCount: number;
       pendingEvaluationCount: number;
     }>;
+    gradingDurationMs?: number;
+    gradingBreakdown?: GradingBreakdown;
   };
 }
 
@@ -557,8 +571,6 @@ class ExamResultService {
       writing: 'Expresión Escrita',
       listening: 'Comprensión Auditiva',
       speaking: 'Expresión Oral',
-      grammar: 'Gramática',
-      vocabulary: 'Vocabulario',
       general: 'General'
     };
 

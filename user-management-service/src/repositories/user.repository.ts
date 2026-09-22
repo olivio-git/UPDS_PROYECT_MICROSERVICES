@@ -75,6 +75,10 @@ export class UserRepository {
     }
   }
 
+  async findByAuthServiceUserId(authServiceUserId: string): Promise<UserModel | null> {
+    return this.findOne({ authServiceUserId });
+  }
+
   async findByEmail(email: string): Promise<UserModel | null> {
     try {
       const userData = await this.collection.findOne({ email: email.toLowerCase() });
@@ -88,15 +92,23 @@ export class UserRepository {
   async update(id: string | ObjectId, updates: UpdateFilter<User>): Promise<UserModel | null> {
     try {
       const objectId = typeof id === 'string' ? new ObjectId(id) : id;
-      
-      const updateDoc = {
-        ...updates,
-        updatedAt: new Date(),
-      };
+
+      // Flatten nested profile fields to dot-notation so MongoDB merges them
+      // instead of replacing the entire profile subdocument
+      const flatUpdates: Record<string, any> = { updatedAt: new Date() };
+      for (const [key, value] of Object.entries(updates as Record<string, any>)) {
+        if (key === 'profile' && value && typeof value === 'object') {
+          for (const [profileKey, profileValue] of Object.entries(value)) {
+            flatUpdates[`profile.${profileKey}`] = profileValue;
+          }
+        } else {
+          flatUpdates[key] = value;
+        }
+      }
 
       const result = await this.collection.findOneAndUpdate(
         { _id: objectId },
-        { $set: updateDoc },
+        { $set: flatUpdates },
         { returnDocument: 'after' }
       );
 

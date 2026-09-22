@@ -11,6 +11,12 @@ export interface NextExamData {
   sessionId: string;
   status: string;
   myAttemptStatus?: string | null; // 'in_progress' | 'completed' | null
+  rawStartDate: string;
+  rawEndDate: string;
+  allowLateEntry: boolean;
+  lateEntryMinutes: number;
+  examDurationMinutes: number;
+  browserLockdown: boolean;
   exam?: {
     name: string;
     type: string;
@@ -29,6 +35,7 @@ export interface NextExamData {
     lastName: string;
     email: string;
     role: string;
+    avatarUrl?: string;
     teacherData?: {
       department: string;
       specialization: string[];
@@ -41,14 +48,14 @@ class StudentExamService {
   /**
    * Obtiene las próximas sesiones de examen para el candidato actual
    */
-  async getNextExams(): Promise<NextExamData[]> {
+  async getNextExams(justLast = true): Promise<NextExamData[]> {
     try {
       const response = await globalExamService.apiClient.get('/sessions/my-sessions', {
         params: {
-          // Incluir tanto programadas como en progreso para que no desaparezcan
-          status: 'scheduled,in_progress', 
+          status: 'scheduled,in_progress',
           limit: 10,
-          page: 1
+          page: 1,
+          justLast,
         }
       });
       
@@ -100,6 +107,12 @@ class StudentExamService {
         minute: '2-digit' 
       }),
       duration: this.formatDuration(session.exam?.structure?.totalDuration || 60),
+      rawStartDate: session.scheduling?.startDate || new Date().toISOString(),
+      rawEndDate: session.scheduling?.endDate || new Date().toISOString(),
+      allowLateEntry: session.settings?.allowLateEntry ?? false,
+      lateEntryMinutes: session.settings?.lateEntryMinutes ?? 0,
+      browserLockdown: session.settings?.browserLockdown ?? false,
+      examDurationMinutes: session.exam?.structure?.totalDuration ?? 60,
       level: session.exam?.targetLevel || 'N/A',
       status: session.status || 'scheduled',
       myAttemptStatus: session.myAttemptStatus ?? null,
@@ -115,6 +128,7 @@ class StudentExamService {
         lastName: session.createdBy.lastName,
         email: session.createdBy.email,
         role: session.createdBy.role,
+        avatarUrl: session.createdBy.profile?.avatarUrl,
         teacherData: session.createdBy.teacherData ? {
           department: session.createdBy.teacherData.department,
           specialization: session.createdBy.teacherData.specialization,

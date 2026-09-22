@@ -12,6 +12,9 @@ export interface ReportFilters {
   minScore?: number;
   maxScore?: number;
   status?: string[];
+  sessionId?: string;
+  gestion?: number;
+  semestre?: 'H1' | 'H2';
 }
 
 export interface CompetencyAnalysis {
@@ -41,7 +44,7 @@ export interface StudentStats {
   performanceDistribution: {
     excellent: number;
     good: number;
-    satisfactory: number;
+    acceptable: number;
     needsImprovement: number;
   };
   levelDistribution: Record<string, number>;
@@ -52,7 +55,7 @@ export interface StudentStats {
     examsCompleted: number;
   }>;
   timeAnalysis: {
-    averageTime: number;
+    averageDuration: number; // minutos — campo real del backend
     timeEfficiency: number;
   };
   progressionAnalysis: {
@@ -72,7 +75,7 @@ export interface DashboardSummary {
   performanceDistribution: {
     excellent: number;
     good: number;
-    satisfactory: number;
+    acceptable: number;
     needsImprovement: number;
   };
   competencyRanking: Array<{
@@ -115,6 +118,7 @@ export interface StudentHistoryData {
     registrationDate: string;
   };
   examHistory: Array<{
+    resultId?: string;
     examId: string;
     examTitle: string;
     sessionId: string;
@@ -133,6 +137,7 @@ export interface StudentHistoryData {
       percentage: number;
     }>;
     feedback: string;
+    gradingDurationMs: number | null;
   }>;
   summary: {
     totalExams: number;
@@ -155,6 +160,24 @@ export interface StudentHistoryData {
     trend: 'improving' | 'stable' | 'declining';
   }>;
   recommendations: string[];
+}
+
+export interface StudentListEntry {
+  candidateId: string;
+  name: string;
+  email: string;
+  averageScore: number;
+  examCount: number;
+  lastExamDate: string | null;
+  currentLevel: string;
+  trend: 'improving' | 'stable' | 'declining';
+}
+
+export interface StudentListReport {
+  students: StudentListEntry[];
+  total: number;
+  page: number;
+  totalPages: number;
 }
 
 export interface ExportOptions {
@@ -195,6 +218,12 @@ export interface UpcomingSessionsData {
       requireProctor: boolean;
       allowLateEntry: boolean;
       lateEntryMinutes: number;
+    };
+    createdBy?: {
+      firstName: string;
+      lastName: string;
+      email: string;
+      avatarUrl?: string;
     };
   }>;
   proctorWorkload: Array<{
@@ -248,6 +277,20 @@ class ReportsService {
       throw new Error(`Error fetching competency analysis: ${response.statusText}`);
     }
 
+    const result = await response.json();
+    return result.data;
+  }
+
+  async getStudentList(
+    filters: ReportFilters = {},
+    page = 1,
+    limit = 20,
+    search = ''
+  ): Promise<StudentListReport> {
+    const queryString = this.buildQueryString({ ...filters, page, limit, ...(search && { search }) });
+    const url = `${this.baseUrl}/students/list${queryString ? `?${queryString}` : ''}`;
+    const response = await fetch(url, { headers: this.getAuthHeaders() });
+    if (!response.ok) throw new Error(`Error fetching student list: ${response.statusText}`);
     const result = await response.json();
     return result.data;
   }

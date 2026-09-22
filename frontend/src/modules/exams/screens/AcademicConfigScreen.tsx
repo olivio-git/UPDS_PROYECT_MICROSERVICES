@@ -1,128 +1,88 @@
-import GradientWrapper from "@/components/background/GrandWrapperSection";
 import { MainLayout } from "@/components/layout";
-import { Award, BarChart3, BookOpen, HelpCircle, Settings } from "lucide-react";
+import { Award, BarChart3, BookOpen, ChevronRight, HelpCircle } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+
+const configOptions = [
+  {
+    title: "Niveles MCER",
+    description: "Gestionar niveles del Marco Común Europeo de Referencia para lenguas",
+    icon: BarChart3,
+    path: "/levels",
+    accent: "text-blue-400",
+    bg: "bg-blue-500/10",
+    border: "border-blue-500/20",
+    hoverBorder: "hover:border-blue-500/40",
+  },
+  {
+    title: "Rúbricas de Evaluación",
+    description: "Crear y gestionar rúbricas de calificación por competencia lingüística",
+    icon: Award,
+    path: "/rubrics",
+    accent: "text-emerald-400",
+    bg: "bg-emerald-500/10",
+    border: "border-emerald-500/20",
+    hoverBorder: "hover:border-emerald-500/40",
+  },
+  {
+    title: "Banco de Preguntas",
+    description: "Administrar preguntas multimodal: audio, texto, imagen y más",
+    icon: HelpCircle,
+    path: "/questions",
+    accent: "text-amber-400",
+    bg: "bg-amber-500/10",
+    border: "border-amber-500/20",
+    hoverBorder: "hover:border-amber-500/40",
+  },
+  {
+    title: "Gestión de Exámenes",
+    description: "Configurar exámenes, sesiones y asignación de candidatos",
+    icon: BookOpen,
+    path: "/exams",
+    accent: "text-purple-400",
+    bg: "bg-purple-500/10",
+    border: "border-purple-500/20",
+    hoverBorder: "hover:border-purple-500/40",
+  },
+];
 
 const AcademicConfigScreen = () => {
   const navigate = useNavigate();
 
-  const configOptions = [
-    {
-      title: "Niveles MCER",
-      description: "Gestionar niveles del Marco Común Europeo de Referencia",
-      icon: BarChart3,
-      path: "/levels",
-      wrapClass: "icon-wrap-blue",
-    },
-    {
-      title: "Rúbricas de Evaluación",
-      description: "Crear y gestionar rúbricas por competencias",
-      icon: Award,
-      path: "/rubrics",
-      wrapClass: "icon-wrap-green",
-    },
-    {
-      title: "Gestión de Preguntas",
-      description: "Administrar banco de preguntas y asignaciones",
-      icon: HelpCircle,
-      path: "/questions",
-      wrapClass: "icon-wrap-orange",
-    },
-    {
-      title: "Gestión de Exámenes",
-      description: "Configurar y administrar exámenes y sesiones",
-      icon: BookOpen,
-      path: "/exams",
-      wrapClass: "icon-wrap-purple",
-    }
-  ];
-
-  const handleNavigate = (path: string) => {
-    navigate(path);
-  };
-
   return (
-    <MainLayout gradientVariant="aurora">
-      <div className="max-w-7xl mx-auto space-y-8 epilogue-uniquifier">
-        <div className="text-center space-y-3 mb-5">
-          <div className="flex justify-center">
-            <div className="p-2.5 rounded-full bg-gradient-to-br from-indigo-500/15 to-purple-600/15 border border-indigo-500/20">
-              <Settings className="h-3.5 w-3.5 text-indigo-300" />
-            </div>
-          </div>
-          <h1 className="text-2xl font-bold text-foreground">Configuración Académica</h1>
-          <p className="text-muted-foreground max-w-2xl mx-auto">
-            Gestiona todos los aspectos académicos del sistema de evaluación lingüística
+    <MainLayout>
+      <div className="flex flex-col gap-4 p-4 max-w-5xl mx-auto w-full">
+
+        {/* Header */}
+        <div>
+          <h1 className="text-xl font-bold text-foreground">Configuración Académica</h1>
+          <p className="text-xs text-muted-foreground mt-0.5">
+            Niveles · Rúbricas · Preguntas · Exámenes
           </p>
         </div>
 
-        <GradientWrapper
-          intensity="low"
-          size="xl"
-          position="right"
-          animate={false}
-          variant="cosmic"
-        >
-          <div className="min-h-screen p-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {configOptions.map((option) => {
-                const IconComponent = option.icon;
-                return (
-                  <div
-                    key={option.path}
-                    onClick={() => handleNavigate(option.path)}
-                    className="group cursor-pointer bg-box/50 backdrop-blur-sm bg-box border border-line hover:border-line/60 rounded-xl p-6 transition-all duration-300   hover:shadow-lg hover:shadow-blue-500/10"
-                  >
-                    <div className="space-y-4">
-                      <div className="flex items-center justify-between">
-                        <div className={`p-3 rounded-full ${option.wrapClass}`}>
-                          <IconComponent className="h-4 w-4" />
-                        </div>
-                        <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                          <svg className="w-5 h-5 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                          </svg>
-                        </div>
-                      </div>
-                      
-                      <div className="space-y-2">
-                        <h3 className="text-lg font-semibold text-foreground group-hover:text-foreground transition-colors">
-                          {option.title}
-                        </h3>
-                        <p className="text-muted-foreground text-sm leading-relaxed">
-                          {option.description}
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
+        {/* Cards */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          {configOptions.map((option) => {
+            const Icon = option.icon;
+            return (
+              <button
+                key={option.path}
+                onClick={() => navigate(option.path)}
+                className={`group flex items-center gap-4 bg-card border ${option.border} ${option.hoverBorder} rounded-lg p-5 text-left transition-all duration-200 hover:bg-muted/30 hover:shadow-sm`}
+              >
+                <div className={`shrink-0 p-2.5 rounded-lg ${option.bg} border ${option.border}`}>
+                  <Icon className={`h-5 w-5 ${option.accent}`} />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-semibold text-foreground">{option.title}</p>
+                  <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">{option.description}</p>
+                </div>
+                <ChevronRight className={`h-4 w-4 shrink-0 text-muted-foreground/40 group-hover:${option.accent} group-hover:translate-x-0.5 transition-all`} />
+              </button>
+            );
+          })}
+        </div>
 
-            {/* Estadísticas rápidas */}
-            {/* <div className="mt-12 bg-box/30 backdrop-blur-sm border border-line rounded-xl p-6 bg-box">
-              <h3 className="text-lg font-semibold text-gray-200 mb-4">Resumen del Sistema</h3>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <div className="text-center space-y-2">
-                  <div className="text-2xl font-bold text-blue-300">6</div>
-                  <div className="text-sm text-gray-400">Niveles MCER</div>
-                </div>
-                <div className="text-center space-y-2">
-                  <div className="text-2xl font-bold text-green-300">--</div>
-                  <div className="text-sm text-gray-400">Rúbricas Activas</div>
-                </div>
-                <div className="text-center space-y-2">
-                  <div className="text-2xl font-bold text-orange-300">--</div>
-                  <div className="text-sm text-gray-400">Preguntas</div>
-                </div>
-                <div className="text-center space-y-2">
-                  <div className="text-2xl font-bold text-purple-300">--</div>
-                  <div className="text-sm text-gray-400">Exámenes</div>
-                </div>
-              </div>
-            </div> */}
-          </div>
-        </GradientWrapper>
       </div>
     </MainLayout>
   );

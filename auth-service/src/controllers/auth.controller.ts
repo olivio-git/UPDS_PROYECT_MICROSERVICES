@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import { AuthenticatedRequest } from '../middleware/auth.middleware';
 import { LoginRequest, RefreshTokenRequest, RegisterRequest } from '../schemas/auth.schemas';
+import { auditLog } from '../services/audit-client.service';
 import { AuthService } from '../services/auth.service';
 import { OtpService } from '../services/otp.service';
 import { ApiResponse } from '../types';
@@ -18,15 +19,29 @@ export class AuthController {
         ...req.body,
         role: req.body.role || 'student' // Default a student para registro público
       };
-      
+
       const result = await this.authService.register(userData);
-      
+
+      auditLog({
+        action: 'user.registered',
+        target: { type: 'user', name: req.body.email },
+        actor: { email: req.body.email, role: userData.role, ip: req.ip || req.connection.remoteAddress },
+        status: 'success',
+      });
+
       res.status(201).json({
         success: true,
         message: 'Usuario registrado exitosamente',
         data: result
       });
     } catch (error: any) {
+      auditLog({
+        action: 'user.registered',
+        target: { type: 'user', name: req.body.email },
+        actor: { email: req.body.email, ip: req.ip || req.connection.remoteAddress },
+        status: 'failure',
+        details: { reason: error.message },
+      });
       res.status(400).json({
         success: false,
         message: error.message || 'Error en el registro',
@@ -47,12 +62,27 @@ export class AuthController {
         });
       }
       const result = await this.authService.changePassword({userId, oldPassword, newPassword});
+
+      auditLog({
+        action: 'user.password_changed',
+        target: { type: 'user', id: userId },
+        actor: { userId: req.user?.userId, email: req.user?.email, role: req.user?.role, ip: req.ip || req.connection.remoteAddress },
+        status: 'success',
+      });
+
       res.status(200).json({
         success: true,
         message: 'Contraseña cambiada exitosamente',
         data: result
       });
     } catch (error: any) {
+      auditLog({
+        action: 'user.password_changed',
+        target: { type: 'user', id: req.body?.userId },
+        actor: { userId: req.user?.userId, email: req.user?.email, role: req.user?.role, ip: req.ip || req.connection.remoteAddress },
+        status: 'failure',
+        details: { reason: error.message },
+      });
       res.status(400).json({
         success: false,
         message: error.message || 'Error cambiando la contraseña',
@@ -62,18 +92,31 @@ export class AuthController {
   };
 
   login = async (req: Request<{}, ApiResponse, LoginRequest>, res: Response<ApiResponse>) => {
+    const ip = req.ip || req.connection.remoteAddress;
     try {
       const userAgent = req.get('User-Agent');
-      const ipAddress = req.ip || req.connection.remoteAddress;
-      
-      const result = await this.authService.login(req.body, userAgent, ipAddress);
-      
+      const result = await this.authService.login(req.body, userAgent, ip);
+
+      auditLog({
+        action: 'user.login',
+        target: { type: 'user', name: req.body.email },
+        actor: { email: req.body.email, ip },
+        status: 'success',
+      });
+
       res.status(200).json({
         success: true,
         message: 'Inicio de sesión exitoso',
         data: result
       });
     } catch (error: any) {
+      auditLog({
+        action: 'user.login',
+        target: { type: 'user', name: req.body.email },
+        actor: { email: req.body.email, ip },
+        status: 'failure',
+        details: { reason: error.message },
+      });
       res.status(401).json({
         success: false,
         message: error.message || 'Error en el inicio de sesión',
@@ -103,7 +146,7 @@ export class AuthController {
   logout = async (req: AuthenticatedRequest, res: Response<ApiResponse>) => {
     try {
       const { refreshToken } = req.body;
-      
+
       if (!refreshToken || !req.user) {
         return res.status(400).json({
           success: false,
@@ -113,7 +156,14 @@ export class AuthController {
       }
 
       await this.authService.logout(refreshToken, req.user.userId);
-      
+
+      auditLog({
+        action: 'user.logout',
+        target: { type: 'user', id: req.user.userId },
+        actor: { userId: req.user.userId, email: req.user.email, role: req.user.role, ip: req.ip || req.connection.remoteAddress },
+        status: 'success',
+      });
+
       res.status(200).json({
         success: true,
         message: 'Sesión cerrada exitosamente'
@@ -227,6 +277,13 @@ export class AuthController {
 
       const result = await this.authService.resetPassword(email, newPassword);
 
+      auditLog({
+        action: 'user.password_reset',
+        target: { type: 'user', name: email },
+        actor: { email, ip: req.ip || req.connection.remoteAddress },
+        status: 'success',
+      });
+
       res.status(200).json({
         success: true,
         message: 'Contraseña restablecida exitosamente',
@@ -238,6 +295,33 @@ export class AuthController {
         message: error.message || 'Error restableciendo la contraseña',
         error: 'Password reset failed'
       });
+    }
+  };
+
+  // Internal endpoint — called by user-management-service to sync user fields (role, name, email)
+  syncUser = async (req: Request, res: Response<ApiResponse>) => {
+    try {
+      const { userId } = req.params as { userId: string };
+      const { role, firstName, lastName, email } = req.body;
+
+      const allowed: Record<string, any> = {};
+      if (role) allowed.role = role;
+      if (firstName) allowed.firstName = firstName;
+      if (lastName) allowed.lastName = lastName;
+      if (email) allowed.email = email;
+
+      if (Object.keys(allowed).length === 0) {
+        return res.status(400).json({ success: false, message: 'No hay campos para actualizar', error: 'Missing fields' });
+      }
+
+      const updated = await this.authService.syncUserFields(userId, allowed);
+      if (!updated) {
+        return res.status(404).json({ success: false, message: 'Usuario no encontrado en auth-service', error: 'USER_NOT_FOUND' });
+      }
+
+      res.status(200).json({ success: true, message: 'Usuario sincronizado', data: { userId } });
+    } catch (error: any) {
+      res.status(500).json({ success: false, message: error.message || 'Error sincronizando usuario', error: 'Sync failed' });
     }
   };
 }

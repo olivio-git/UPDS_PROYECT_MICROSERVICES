@@ -3,13 +3,12 @@ import {
   Card,
   CardContent,
   CardHeader,
-  CardTitle,
 } from '@/components/atoms/card';
-import { Progress } from '@/components/atoms/progress';
 import GradientWrapper from '@/components/background/GrandWrapperSection';
 import { MainLayout } from '@/components/layout';
 import { useExamSession } from '@/hooks/useExamSession';
 import { examService } from '@/services/examService';
+import { notificationSocket } from '@/services/notifications/notificationSocket';
 import { useExamStore } from '@/stores/examStore';
 import { AlertCircle, ChevronLeft, ChevronRight, Loader2, Play, Rocket, Save, Square, Timer, Unplug, Users } from 'lucide-react';
 import React, {
@@ -112,6 +111,19 @@ const ExamRunner: React.FC = () => {
 
   const [starting, setStarting] = useState(false);
 
+  // ── Prevent accidental exit (browser close / refresh) ─────────────────────
+  const examActive = isActive || storeState.isActive;
+
+  // Bloquear cierre/recarga de pestaña
+  useEffect(() => {
+    if (!examActive) return;
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      e.preventDefault();
+    };
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [examActive]);
+
   // Debug logging
   useEffect(() => {
     console.log('🎯 [ExamRunner] Store state:', {
@@ -195,6 +207,36 @@ const ExamRunner: React.FC = () => {
     }
   }, [sessionId, navigate]);
 
+  // Listen for kick event — redirect student immediately
+  useEffect(() => {
+    const handleNotification = (data: any) => {
+      if (data?.type === 'candidate.kicked') {
+        toast.error('Has sido expulsado de la sesión por el administrador.', { duration: 6000 });
+        navigate('/student/dashboard');
+      }
+    };
+    notificationSocket.on('notification.created', handleNotification);
+    return () => {
+      notificationSocket.off('notification.created', handleNotification);
+    };
+  }, [navigate]);
+
+  // Listen for time extension
+  useEffect(() => {
+    const handleTimeExtended = (data: any) => {
+      if (data?.sessionId && data.sessionId !== sessionId) return;
+      const extra = Number(data?.extraMinutes) || 0;
+      if (extra > 0) {
+        storeState.addTimeExtension(extra * 60);
+        toast.success(`El administrador extendió el tiempo de la sesión por ${extra} minuto${extra !== 1 ? 's' : ''}.`, { duration: 6000 });
+      }
+    };
+    notificationSocket.on('session.time.extended', handleTimeExtended);
+    return () => {
+      notificationSocket.off('session.time.extended', handleTimeExtended);
+    };
+  }, [sessionId, storeState.addTimeExtension]);
+
   // Auto-initialize when we have store data from ExamPreparation
   useEffect(() => {
     if (storeState.isActive && storeState.hasSections && !isActive) {
@@ -221,11 +263,15 @@ const ExamRunner: React.FC = () => {
           const response = await examService.getSessionQuestions(sessionId);
           if (response.success && response.data) {
             console.log('✅ [ExamRunner] Preguntas obtenidas de la API:', response.data);
-            // Store the questions in Zustand
+            // Backend returns sections array directly as `data`
+            const sectionsData = Array.isArray(response.data)
+              ? response.data
+              : (response.data.sections || []);
+            const questionsData = sectionsData.flatMap((s: any) => s.questions || []);
             storeState.setSessionData({
               sessionId,
-              sections: response.data.sections || [],
-              questions: response.data.questions || [],
+              sections: sectionsData,
+              questions: questionsData,
               timeRemaining: response.data.timeRemaining
             });
           }
@@ -268,7 +314,7 @@ const ExamRunner: React.FC = () => {
 
   if (loading) {
     return (
-      <MainLayout>
+      <MainLayout hideHeader>
         <div className="max-w-4xl mx-auto">
           <Card>
             <CardHeader>
@@ -284,7 +330,7 @@ const ExamRunner: React.FC = () => {
   }
 
   return (
-    <MainLayout>
+    <MainLayout hideHeader>
       <div className="max-w-5xl mx-auto space-y-6">
         <GradientWrapper
           intensity="low"
@@ -294,55 +340,56 @@ const ExamRunner: React.FC = () => {
           variant="cosmic"
         >
           <Card>
-            <CardHeader className="pb-3">
-              <div className="flex items-center justify-between mb-2">
-                <CardTitle className="flex items-center gap-2">
-                  <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-                  {/* {isIndividualSession ? 'Examen Individual' : 'Examen Grupal'} */}
-                  {isIndividualSession && (
-                    <span className="bg-purple-100 text-purple-700 dark:bg-purple-900 dark:text-purple-300 px-2 py-1 rounded text-xs font-medium">
-                      Flexible
+            <CardHeader className="pb-0">
+              <div className="flex items-center justify-between py-1">
+                {/* Left: status dot + session type */}
+                <div className="flex items-center gap-2.5">
+                  <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse shrink-0" />
+                  {isIndividualSession ? (
+                    <span className="text-xs font-semibold text-purple-600 dark:text-purple-400 bg-purple-50 dark:bg-purple-500/10 border border-purple-200 dark:border-purple-500/30 px-2 py-0.5 rounded-full">
+                      Individual
+                    </span>
+                  ) : (
+                    <span className="text-xs font-semibold text-blue-600 dark:text-blue-400">
+                      Examen Grupal
                     </span>
                   )}
-                </CardTitle>
-                <div className="flex items-center gap-3">
-                  <ConnectionIndicator />
+                  <span className="text-[11px] text-muted-foreground font-mono hidden sm:inline">
+                    #{sessionId?.slice(-6) ?? '------'}
+                  </span>
+                </div>
+
+                {/* Right: connection + auto-save + timer */}
+                <div className="flex items-center gap-2">
                   <AutoSaveIndicator />
-                  <div className="text-sm text-gray-500 dark:text-gray-400">
-                    Sesión: {sessionId?.slice(-8) || 'N/A'}
-                  </div>
-                  {isIndividualSession && timeRemaining !== null && (
-                    <div className="flex items-center gap-1 text-sm text-blue-600 dark:text-blue-400 font-mono">
-                      <Timer className="w-4 h-4" />
+                  <ConnectionIndicator />
+                  {timeRemaining !== null && (
+                    <div className={[
+                      'flex items-center gap-1.5 px-2.5 py-1 rounded-full font-mono text-sm font-bold border',
+                      timeRemaining < 300
+                        ? 'bg-red-50 dark:bg-red-500/10 text-red-600 dark:text-red-400 border-red-200 dark:border-red-500/30'
+                        : timeRemaining < 600
+                        ? 'bg-amber-50 dark:bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-200 dark:border-amber-500/30'
+                        : 'bg-muted text-foreground border-border',
+                    ].join(' ')}>
+                      <Timer className={`w-3.5 h-3.5 ${timeRemaining < 300 ? 'animate-pulse' : ''}`} />
                       {formatTime(timeRemaining)}
                     </div>
                   )}
                 </div>
               </div>
-              {questions.length > 0 && (
-                <div className="space-y-2">
-                  <div className="flex justify-between text-sm text-gray-600 dark:text-gray-400">
-                    <span>Progreso del examen</span>
-                    <span>{Math.round(progress * 100)}%</span>
-                  </div>
-                  <Progress
-                    value={progress * 100}
-                    className="h-2"
-                  />
-                </div>
-              )}
             </CardHeader>
             <CardContent>
               {(!isActive && !storeState.isActive && storeState.sections.length === 0) ? (
                 <div className="text-center py-10">
                   <div className="mb-6">
                     {isIndividualSession ? (
-                      <div className="bg-[#0F1A2A] border border-line rounded-lg p-4 mb-4">
+                      <div className="bg-purple-50 border border-purple-200 dark:bg-purple-900/20 dark:border-purple-800/30 rounded-lg p-4 mb-4">
                         <div className="flex items-center gap-2 mb-2">
                           <Users className="w-5 h-5 text-purple-600 dark:text-purple-400" />
                           <h3 className="font-semibold text-purple-900 dark:text-purple-100">Examen Individual Flexible</h3>
                         </div>
-                        <p className="text-sm text-white">
+                        <p className="text-sm text-foreground">
                           Puedes comenzar cuando estés listo. Tu tiempo individual comenzará al iniciar el examen.
                         </p>
                       </div>

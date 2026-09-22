@@ -5,6 +5,7 @@ import { Attempt } from '../models/attempt.model';
 import { Question } from '../models/question.model';
 import { Response as ResponseModel } from '../models/response.model';
 import { logger } from '../utils/logger';
+import { auditLog } from '../services/audit-client.service';
 
 const service = new ExamTakingService();
 const storageService = new StorageService();
@@ -24,6 +25,12 @@ export class ExamTakingController {
       }
 
       const result = await service.startExam(sessionId, String(userCandidateId));
+      auditLog({
+        action: 'exam.started',
+        target: { type: 'session', id: sessionId, name: (result as any)?.sessionName },
+        actor: { userId: String(userCandidateId), email: (req.user as any)?.email, role: 'student' },
+        details: { examId: (result as any)?.examId },
+      });
       res.json({ success: true, data: result });
     } catch (error) {
       logger.error('Error in start exam:', error);
@@ -76,6 +83,16 @@ export class ExamTakingController {
       }
 
       const result = await service.finishExam(sessionId, String(authUserId));
+      auditLog({
+        action: 'exam.finished',
+        target: { type: 'session', id: sessionId, name: (result as any)?.sessionName },
+        actor: { userId: String(authUserId), email: (req.user as any)?.email, role: 'student' },
+        details: {
+          attemptId: (result as any)?.attemptId,
+          answeredCount: (result as any)?.answeredCount,
+          totalQuestions: (result as any)?.totalQuestions,
+        },
+      });
       res.json({ success: true, data: result });
     } catch (error) {
       logger.error('Error in finish exam:', error);
@@ -157,6 +174,11 @@ export class ExamTakingController {
       }
 
       const result = await service.resumeExam(sessionId, String(authUserId));
+      auditLog({
+        action: 'exam.resumed',
+        target: { type: 'session', id: sessionId },
+        actor: { userId: String(authUserId), email: (req.user as any)?.email, role: 'student' },
+      });
       res.json({ success: true, data: result });
     } catch (error) {
       logger.error('Error resuming exam:', error);
@@ -200,6 +222,12 @@ export class ExamTakingController {
         return;
       }
       const result = await service.startAdaptiveExam(sessionId, String(userCandidateId));
+      auditLog({
+        action: 'exam.started',
+        target: { type: 'session', id: sessionId },
+        actor: { userId: String(userCandidateId), email: (req.user as any)?.email, role: 'student' },
+        details: { mode: 'adaptive' },
+      });
       res.json({ success: true, data: result });
     } catch (error) {
       logger.error('Error starting adaptive exam:', error);

@@ -12,7 +12,8 @@ import {
   Monitor,
   PanelBottom,
   Settings,
-  TestTube,
+  Activity,
+  Shield,
   Trophy,
   User,
   Users
@@ -33,6 +34,7 @@ import UsersScreen from "@/modules/users/screens/UserScreen";
 
 // Exams Module
 // import ExamsModule from "@/modules/exams/pages/ExamsModule";
+import AuditLogsScreen from "@/modules/admin/screens/AuditLogsScreen";
 import ReportsScreen from "@/modules/admin/screens/ReportsScreen";
 import StudentHistoryScreen from "@/modules/admin/screens/StudentHistoryScreen";
 import UpcomingSessionsScreen from "@/modules/admin/screens/UpcomingSessionsScreen";
@@ -66,27 +68,7 @@ export const protectedRoutes: RouteType[] = [
   //   role: ["admin"],
   //   icon: PanelBottom
   // },
-  //===TEACHER DASHBOARD
-  {
-    path: "/teacher/dashboard", //Pantalla de inicio sin funcionalidad logica
-    name: "Pannel",
-    type: "protected",
-    element: DashboardScreen,
-    isAdmin: false,
-    role: ["teacher"],
-    icon: PanelBottom
-  },
   //===PROCTOR DASHBOARD
-
-  {
-    path: "/proctor/dashboard", //Pantalla de inicio sin funcionalidad logica
-    name: "Pannel",
-    type: "protected",
-    element: DashboardScreen,
-    isAdmin: false,
-    role: ["proctor"],
-    icon: PanelBottom
-  },
   // Rutas específicas para estudiantes
   /// ===== Aqui empieza el flujo de estudiante para dar examen
   {
@@ -180,21 +162,21 @@ export const protectedRoutes: RouteType[] = [
   
   // Rutas de administración
   {
-    path: "/testing", //Pantalla simple donde se pueden probar o testear algunos microservicios
-    name: "Testing",
+    path: "/testing",
+    name: "Diagnóstico del Sistema",
     type: "protected",
     element: TestingScreen,
     isAdmin: true,
     role: ["admin"],
-    icon: TestTube
+    icon: Activity
   },
   {
     path: "/academic-config", //Lista y gestion de configuracion academica
     name: "Configuración Académica",
     type: "protected",
     element: AcademicConfigScreen,
-    isAdmin: true,
-    role: ["admin"],
+    isAdmin: false,
+    role: ["admin", "teacher"],
     icon: Settings,
   },
   {
@@ -211,8 +193,8 @@ export const protectedRoutes: RouteType[] = [
     name: "Niveles MCER",
     type: "protected",
     element: LevelsManagementScreen,
-    isAdmin: true,
-    role: ["admin"],
+    isAdmin: false,
+    role: ["admin", "teacher"],
     icon: BarChart3,
     hidden: true
   },
@@ -221,8 +203,8 @@ export const protectedRoutes: RouteType[] = [
     name: "Rúbricas",
     type: "protected",
     element: RubricsManagementScreen,
-    isAdmin: true,
-    role: ["admin"],
+    isAdmin: false,
+    role: ["admin", "teacher"],
     icon: Trophy,
     hidden: true
   },
@@ -231,7 +213,7 @@ export const protectedRoutes: RouteType[] = [
     name: "Preguntas",
     type: "protected",
     element: QuestionsScreen,
-    isAdmin: true,
+    isAdmin: false,
     role: ["admin", "teacher"],
     icon: ClipboardList,
     hidden: true,
@@ -241,8 +223,8 @@ export const protectedRoutes: RouteType[] = [
     name: "Exámenes",
     type: "protected",
     element: ExamsScreen,
-    isAdmin: true,
-    role: ["admin"],
+    isAdmin: false,
+    role: ["admin", "teacher"],
     icon: BookOpen,
     hidden: true
   },
@@ -291,6 +273,15 @@ export const protectedRoutes: RouteType[] = [
     isAdmin: false,
     role: ["admin", "teacher"],
     icon: FileText
+  },
+  {
+    path: "/audit-logs",
+    name: "Auditoría",
+    type: "protected",
+    element: AuditLogsScreen,
+    isAdmin: true,
+    role: ["admin"],
+    icon: Shield
   },
   {
     path: "/upcoming-sessions", //Vista de próximas programaciones

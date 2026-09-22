@@ -299,6 +299,10 @@ export class UserService {
     }
   }
 
+  async getUserByAuthServiceId(authServiceUserId: string) {
+    return this.userRepository.findByAuthServiceUserId(authServiceUserId);
+  }
+
   async getUserById(id: string): Promise<ApiResponse<any>> {
     try {
       const user = await this.userRepository.findById(id);

@@ -53,7 +53,8 @@ export const useRoutePersistence = () => {
         const defaultPaths = {
           admin: '/dashboard',
           student: '/student/dashboard',
-          teacher: '/teacher/dashboard',
+          teacher: '/sessions',
+          proctor: '/sessions',
           all: '/home'
         };
         const defaultPath = defaultPaths[userRole as keyof typeof defaultPaths] || '/dashboard';

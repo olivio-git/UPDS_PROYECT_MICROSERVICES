@@ -8,9 +8,8 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/atoms/alert-dialog";
-import GradientWrapper from "@/components/background/GrandWrapperSection";
 import { MainLayout } from "@/components/layout";
-import { Award } from "lucide-react";
+import { X } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import RubricForm from "../components/rubrics/RubricForm";
@@ -162,25 +161,28 @@ const RubricsManagementScreen = () => {
 
   // Renderizar contenido según el modo de vista
   const renderContent = () => {
-    if (viewMode === "create") {
+    if (viewMode === "create" || (viewMode === "edit" && selectedRubric)) {
       return (
-        <RubricForm
-          onSave={handleSaveRubric}
-          onCancel={handleBackToTable}
-          isLoading={isFormLoading}
-        />
-      );
-    }
-
-    if (viewMode === "edit" && selectedRubric) {
-      return (
-        <RubricForm
-          rubric={selectedRubric}
-          isEditing={true}
-          onSave={handleSaveRubric}
-          onCancel={handleBackToTable}
-          isLoading={isFormLoading}
-        />
+        <div className="bg-card border border-border rounded-xl p-6">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-lg font-semibold text-foreground">
+              {viewMode === "edit" ? "Editar Rúbrica" : "Nueva Rúbrica"}
+            </h2>
+            <button
+              onClick={handleBackToTable}
+              className="px-3 py-2 bg-muted/50 border border-border rounded-lg text-muted-foreground hover:bg-muted flex items-center gap-2 text-sm"
+            >
+              <X className="w-4 h-4" /> Volver
+            </button>
+          </div>
+          <RubricForm
+            rubric={viewMode === "edit" ? selectedRubric! : undefined}
+            isEditing={viewMode === "edit"}
+            onSave={handleSaveRubric}
+            onCancel={handleBackToTable}
+            isLoading={isFormLoading}
+          />
+        </div>
       );
     }
 
@@ -219,28 +221,8 @@ const RubricsManagementScreen = () => {
 
   return (
     <MainLayout gradientVariant="aurora">
-      <div className="max-w-7xl mx-auto space-y-8 epilogue-uniquifier">
-        <div className="text-center space-y-3 mb-5">
-          <div className="flex justify-center">
-            <div className="p-2.5 rounded-full bg-gradient-to-br from-green-500/15 to-emerald-600/15 border border-green-500/20">
-              <Award className="h-3.5 w-3.5 text-green-300" />
-            </div>
-          </div>
-          <h1 className="text-2xl font-bold text-foreground">Gestión de Rúbricas</h1>
-          <p className="text-muted-foreground max-w-2xl mx-auto">
-            Cree y administre rúbricas de evaluación por competencias y niveles MCER
-          </p>
-        </div>
-
-        <GradientWrapper
-          intensity="low"
-          size="xl"
-          position="right"
-          animate={false}
-          variant="cosmic"
-        >
-          <div className="min-h-screen">{renderContent()}</div>
-        </GradientWrapper>
+      <div className="max-w-7xl mx-auto epilogue-uniquifier px-4 sm:px-6 lg:px-8 py-8">
+        {renderContent()}
       </div>
 
       {/* Dialog para eliminar rúbrica individual */}

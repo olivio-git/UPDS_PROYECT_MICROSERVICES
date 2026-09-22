@@ -10,7 +10,7 @@ import {
   SelectValue,
 } from "@/components/atoms/select";
 import { Switch } from "@/components/atoms/switch";
-import { ArrowLeft, BarChart3, Plus, Save, Target, Trash2, X } from "lucide-react";
+import { BarChart3, Plus, Save, Target, Trash2, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import type { MCERLevel, ScoringType } from "../../constants/academic.constants";
 import type { Competency } from "../../types";
@@ -208,33 +208,10 @@ const RubricForm = ({
   };
 
   return (
-    <div className="space-y-6  bg-box p-6 rounded-xl border border-line">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center space-x-3">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={onCancel}
-            className="text-muted-foreground hover:text-foreground hover:bg-line/50"
-          >
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            Volver
-          </Button>
-          <div>
-            <h2 className="text-xl font-semibold text-foreground">
-              {isEditing ? 'Editar Rúbrica' : 'Crear Nueva Rúbrica'}
-            </h2>
-            <p className="text-sm text-muted-foreground">
-              {isEditing ? 'Modifica la configuración de la rúbrica existente' : 'Define una nueva rúbrica de evaluación'}
-            </p>
-          </div>
-        </div>
-      </div>
-
+    <div className="space-y-6">
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* Información Básica */}
-        <Card className="bg-box/50 border-line">
+        <Card className="bg-muted/30 border-border">
           <CardHeader>
             <CardTitle className="text-foreground">Información Básica</CardTitle>
           </CardHeader>
@@ -249,7 +226,7 @@ const RubricForm = ({
                   value={formData.name}
                   onChange={(e) => handleInputChange('name', e.target.value)}
                   placeholder="Ej: Rúbrica de Expresión Oral B1"
-                  className="bg-input border-line text-foreground"
+                  className="bg-muted/50 border-border text-foreground"
                 />
                 {errors.name && (
                   <p className="text-red-400 text-sm">{errors.name}</p>
@@ -267,7 +244,7 @@ const RubricForm = ({
                   max="1000"
                   value={formData.maxScore}
                   onChange={(e) => handleInputChange('maxScore', parseInt(e.target.value))}
-                  className="bg-input border-line text-foreground"
+                  className="bg-muted/50 border-border text-foreground"
                 />
                 {errors.maxScore && (
                   <p className="text-red-400 text-sm">{errors.maxScore}</p>
@@ -313,19 +290,19 @@ const RubricForm = ({
                   value={formData.scoringType}
                   onValueChange={(value) => handleInputChange('scoringType', value)}
                 >
-                  <SelectTrigger className="bg-input border-line text-foreground">
+                  <SelectTrigger className="bg-muted/50 border-border text-foreground">
                     <SelectValue placeholder="Seleccionar tipo" />
                   </SelectTrigger>
-                  <SelectContent className="bg-box border-line">
+                  <SelectContent className="bg-card border-border">
                     <SelectItem 
                       value="holistic"
-                      className="text-foreground hover:bg-line/50 focus:bg-line/50"
+                      className="text-foreground hover:bg-muted focus:bg-line/50"
                     >
                       Holística
                     </SelectItem>
                     <SelectItem 
                       value="analytic"
-                      className="text-foreground hover:bg-line/50 focus:bg-line/50"
+                      className="text-foreground hover:bg-muted focus:bg-line/50"
                     >
                       Analítica
                     </SelectItem>
@@ -348,7 +325,7 @@ const RubricForm = ({
         </Card>
 
         {/* Criterios de Evaluación */}
-        <Card className="bg-box/50 border-line">
+        <Card className="bg-muted/30 border-border">
           <CardHeader>
             <div className="flex items-center justify-between">
               <CardTitle className="text-foreground">Criterios de Evaluación</CardTitle>
@@ -358,7 +335,7 @@ const RubricForm = ({
                   variant="outline"
                   size="sm"
                   onClick={distributeWeightsEvenly}
-                  className="bg-transparent border-line text-muted-foreground hover:bg-line/50"
+                  className="bg-transparent border-border text-muted-foreground hover:bg-muted"
                 >
                   <BarChart3 className="h-4 w-4 mr-2" />
                   Distribuir Evenly
@@ -368,7 +345,7 @@ const RubricForm = ({
                   variant="outline"
                   size="sm"
                   onClick={addCriterion}
-                  className="bg-transparent border-line text-muted-foreground hover:bg-line/50"
+                  className="bg-transparent border-border text-muted-foreground hover:bg-muted"
                 >
                   <Plus className="h-4 w-4 mr-2" />
                   Agregar Criterio
@@ -392,7 +369,7 @@ const RubricForm = ({
           </CardHeader>
           <CardContent className="space-y-6">
             {formData.criteria.map((criterion, criterionIndex) => (
-              <div key={criterionIndex} className="border border-line rounded-lg p-4 space-y-4">
+              <div key={criterionIndex} className="border border-border rounded-lg p-4 space-y-4">
                 <div className="flex items-center justify-between">
                   <h4 className="text-lg font-medium text-foreground flex items-center">
                     <Target className="h-4 w-4 mr-2" />
@@ -420,7 +397,7 @@ const RubricForm = ({
                       value={criterion.name}
                       onChange={(e) => updateCriterion(criterionIndex, 'name', e.target.value)}
                       placeholder="Ej: Fluidez"
-                      className="bg-input border-line text-foreground"
+                      className="bg-muted/50 border-border text-foreground"
                     />
                     {errors[`criterion_${criterionIndex}_name`] && (
                       <p className="text-red-400 text-sm">{errors[`criterion_${criterionIndex}_name`]}</p>
@@ -437,7 +414,7 @@ const RubricForm = ({
                       max="100"
                       value={criterion.weight}
                       onChange={(e) => updateCriterion(criterionIndex, 'weight', parseInt(e.target.value))}
-                      className="bg-input border-line text-foreground"
+                      className="bg-muted/50 border-border text-foreground"
                     />
                     {errors[`criterion_${criterionIndex}_weight`] && (
                       <p className="text-red-400 text-sm">{errors[`criterion_${criterionIndex}_weight`]}</p>
@@ -452,7 +429,7 @@ const RubricForm = ({
                       value={criterion.description}
                       onChange={(e) => updateCriterion(criterionIndex, 'description', e.target.value)}
                       placeholder="Descripción del criterio"
-                      className="bg-input border-line text-foreground"
+                      className="bg-muted/50 border-border text-foreground"
                     />
                     {errors[`criterion_${criterionIndex}_description`] && (
                       <p className="text-red-400 text-sm">{errors[`criterion_${criterionIndex}_description`]}</p>
@@ -465,7 +442,7 @@ const RubricForm = ({
                   <Label className="text-muted-foreground">Niveles de Desempeño</Label>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                     {criterion.levels.map((level, levelIndex) => (
-                      <div key={levelIndex} className="border border-line/50 rounded-lg p-3 space-y-2">
+                      <div key={levelIndex} className="border border-border/50 rounded-lg p-3 space-y-2">
                         <div className="flex items-center space-x-2">
                           <Input
                             type="number"
@@ -473,14 +450,14 @@ const RubricForm = ({
                             max="10"
                             value={level.score}
                             onChange={(e) => updateCriterionLevel(criterionIndex, levelIndex, 'score', parseInt(e.target.value))}
-                            className="bg-input border-line text-foreground w-20"
+                            className="bg-muted/50 border-border text-foreground w-20"
                             placeholder="Puntaje"
                           />
                           <Input
                             value={level.description}
                             onChange={(e) => updateCriterionLevel(criterionIndex, levelIndex, 'description', e.target.value)}
                             placeholder="Descripción del nivel"
-                            className="bg-input border-line text-foreground flex-1"
+                            className="bg-muted/50 border-border text-foreground flex-1"
                           />
                         </div>
                       </div>
@@ -499,7 +476,7 @@ const RubricForm = ({
             variant="outline"
             onClick={onCancel}
             disabled={isLoading}
-            className="bg-transparent border-line text-muted-foreground hover:bg-line/50"
+            className="bg-transparent border-border text-muted-foreground hover:bg-muted"
           >
             <X className="h-4 w-4 mr-2" />
             Cancelar

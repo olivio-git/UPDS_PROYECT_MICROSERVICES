@@ -4,7 +4,7 @@ import { useActiveSessionDetection } from "@/hooks/useActiveSessionDetection";
 // import { useAuthStore } from "@/modules/auth/services/authStore";
 import { useNavigate } from "react-router-dom";
 import NextExam from "../components/NextExam";
-import Performance from "../components/Performance";
+import ExamCalendar from "../components/ExamCalendar";
 import RecentResults from "../components/RecentResults";
 
 const StudentDashboard = () => {
@@ -65,8 +65,8 @@ const StudentDashboard = () => {
 
             {/* Panel Lateral */}
             <div className="space-y-6">
-              {/* Estadísticas de Rendimiento */}
-              <Performance />
+              {/* Calendario de Exámenes */}
+              <ExamCalendar />
             </div>
           </div>
         </div>

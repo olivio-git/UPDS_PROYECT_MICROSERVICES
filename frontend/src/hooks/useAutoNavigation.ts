@@ -59,7 +59,7 @@ const getDashboardPath = (role?: string): string => {
     case 'student':
       return '/student/dashboard';
     case 'teacher':
-      return '/teacher/dashboard';
+      return '/sessions';
     case 'proctor':
       return '/dashboard';
     default:

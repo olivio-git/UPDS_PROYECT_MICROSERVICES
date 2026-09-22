@@ -19,12 +19,22 @@ interface RouteRendererProps {
   redirectTo?: string;
 }
 
-const RouteRenderer: React.FC<RouteRendererProps> = ({ 
-  route, 
-  isAuthenticated = false, 
+const getHomePath = (role: string): string => {
+  const paths: Record<string, string> = {
+    admin: "/dashboard",
+    teacher: "/sessions",
+    proctor: "/sessions",
+    student: "/student/dashboard",
+  };
+  return paths[role] ?? "/dashboard";
+};
+
+const RouteRenderer: React.FC<RouteRendererProps> = ({
+  route,
+  isAuthenticated = false,
   user = null,
-  redirectTo = "/" 
-}) => { 
+  redirectTo = "/"
+}) => {
     
   const Component = route.element;
   if (!Component) {
@@ -53,9 +63,9 @@ const RouteRenderer: React.FC<RouteRendererProps> = ({
         case "admin":
           return "/dashboard";
         case "teacher":
-          return "/teacher/dashboard";
+          return "/sessions";
         case "proctor":
-          return "/proctor/dashboard";
+          return "/sessions";
         case "student":
           return "/student/dashboard";
         default:
@@ -68,8 +78,12 @@ const RouteRenderer: React.FC<RouteRendererProps> = ({
 
   // Redirección automática del dashboard general según el rol
   if (route.path === "/dashboard" && isAuthenticated && user && user.role !== "admin") {
-    // console.log("Redirigiendo desde dashboard general al dashboard específico del rol:", user.role);
-    return <Navigate to={`/${user.role}/dashboard`} replace />;
+    const rolePaths: Record<string, string> = {
+      student: "/student/dashboard",
+      teacher: "/sessions",
+      proctor: "/sessions",
+    };
+    return <Navigate to={rolePaths[user.role] ?? "/dashboard"} replace />;
   }
 
   if (route.type === "protected" && isAuthenticated && user) {
@@ -101,11 +115,11 @@ const RouteRenderer: React.FC<RouteRendererProps> = ({
               <p className="text-gray-600">
                 Esta función requiere uno de estos roles: {route.role.join(", ")}
               </p>
-              <a 
-                href={user.role === "admin" ? "/dashboard" : `/${user.role}/dashboard`}
+              <a
+                href={getHomePath(user.role)}
                 className="inline-block px-4 py-2 bg-black text-white rounded hover:bg-gray-800 transition-colors"
               >
-                Volver al Dashboard
+                Volver al inicio
               </a>
             </div>
           </div>
@@ -121,11 +135,11 @@ const RouteRenderer: React.FC<RouteRendererProps> = ({
           <div className="text-center space-y-4">
             <h1 className="text-4xl font-bold text-red-600">403</h1>
             <p className="text-gray-600">No tienes permisos de administrador</p>
-            <a 
-              href={`/${user.role}/dashboard`}
+            <a
+              href={getHomePath(user.role)}
               className="inline-block px-4 py-2 bg-black text-white rounded hover:bg-gray-800 transition-colors"
             >
-              Volver al Dashboard
+              Volver al inicio
             </a>
           </div>
         </div>

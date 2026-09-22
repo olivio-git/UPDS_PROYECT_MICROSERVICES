@@ -296,4 +296,26 @@ export class NotificationController {
       res.status(500).json({ success: false, message: error.message || 'Error deleting notification' });
     }
   };
+
+  createInApp = async (req: Request, res: Response<ApiResponse>) => {
+    try {
+      const { recipientId, recipientType, type, content, channel, priority, metadata } = req.body;
+      if (!recipientId || !type) {
+        return res.status(400).json({ success: false, message: 'recipientId y type son requeridos' });
+      }
+      const notification = await this.notificationService.createInAppNotification({
+        recipientId,
+        recipientType: recipientType || 'candidate',
+        type,
+        channel: channel || 'in-app',
+        content: content || {},
+        priority: priority || 'normal',
+        metadata: metadata || {},
+        read: false,
+      });
+      return res.status(201).json({ success: true, message: 'Notificación creada', data: notification });
+    } catch (error: any) {
+      return res.status(500).json({ success: false, message: error.message || 'Error al crear notificación' });
+    }
+  };
 }

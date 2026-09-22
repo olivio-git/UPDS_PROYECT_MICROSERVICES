@@ -577,6 +577,21 @@ html, body, #root {
   }
 }
 
+@keyframes question-enter {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.question-enter {
+  animation: question-enter 180ms ease-out;
+}
+
 @keyframes bounce {
 
   0%,
@@ -992,6 +1007,15 @@ nav {
 .command-palette-scroll::-webkit-scrollbar-thumb:hover {
   background: #9ca3af;
 }
+/* Hide scrollbar but keep scrollability (drum columns, etc.) */
+.scrollbar-none {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.scrollbar-none::-webkit-scrollbar {
+  display: none;
+}
+
 /* Styles extras */
 .bg-box{
   background-color: hsl(var(--card));
@@ -1030,4 +1054,17 @@ nav {
 
 .bg-brand-blue {
     background-color: var(--color-brand-blue);
+}
+
+/* Recharts Brush — texto visible en dark y light mode */
+.trend-chart-wrapper .recharts-brush-texts text {
+  fill: hsl(var(--muted-foreground)) !important;
+  font-size: 10px;
+}
+.trend-chart-wrapper .recharts-brush-slide {
+  fill: hsl(var(--muted)) !important;
+}
+.trend-chart-wrapper .recharts-brush-traveller rect {
+  fill: hsl(var(--card)) !important;
+  stroke: hsl(var(--border)) !important;
 }

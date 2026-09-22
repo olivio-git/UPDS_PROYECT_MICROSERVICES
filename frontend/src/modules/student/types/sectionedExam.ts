@@ -84,20 +84,6 @@ export const DEFAULT_SECTION_CONFIG: { [key in Competency]: SectionConfig } = {
     estimatedTime: 15,
     instructions: 'Graba tu respuesta de forma clara. Puedes volver a grabar si es necesario.'
   },
-  grammar: {
-    competency: 'grammar',
-    duration: 20,
-    weight: 15,
-    estimatedTime: 18,
-    instructions: 'Completa o selecciona las opciones correctas según las reglas gramaticales.'
-  },
-  vocabulary: {
-    competency: 'vocabulary',
-    duration: 15,
-    weight: 10,
-    estimatedTime: 12,
-    instructions: 'Selecciona o completa con el vocabulario más apropiado.'
-  }
 };
 
 // Utility function to group questions by competency into sections
@@ -138,7 +124,7 @@ export function groupQuestionsIntoSections(
   });
 
   // Sort by the order they should appear
-  const competencyOrder: Competency[] = ['listening', 'reading', 'grammar', 'vocabulary', 'writing', 'speaking'];
+  const competencyOrder: Competency[] = ['listening', 'reading', 'writing', 'speaking'];
   sections.sort((a, b) => {
     const aIndex = competencyOrder.indexOf(a.competency);
     const bIndex = competencyOrder.indexOf(b.competency);
@@ -181,8 +167,6 @@ export function getSectionDisplayName(competency: Competency): string {
     writing: 'Expresión Escrita',
     listening: 'Comprensión Auditiva',
     speaking: 'Expresión Oral',
-    grammar: 'Gramática',
-    vocabulary: 'Vocabulario'
   };
   return names[competency];
 }

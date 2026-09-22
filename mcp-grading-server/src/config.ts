@@ -29,7 +29,7 @@ export const config = {
     bucketName: process.env.MINIO_BUCKET_NAME || 'exam-files',
   },
   kafka: {
-    broker: process.env.KAFKA_BROKER || 'kafka:9092',
+    broker: process.env.KAFKA_BROKER || 'kafka:29092',
     clientId: 'grading-service',
     topic: 'exam-events',
   },

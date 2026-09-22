@@ -22,7 +22,7 @@ export interface ExamSessionState {
   answers: Record<string, any>;
   timeRemaining: number | null;
   sessionStatus: 'waiting' | 'active' | 'completed' | 'expired';
-  autoSaveStatus: 'idle' | 'saving' | 'saved' | 'error';
+  autoSaveStatus: 'idle' | 'dirty' | 'saving' | 'saved' | 'error';
   totalQuestions: number;
 }
 
@@ -73,13 +73,26 @@ export const useExamSessionHTTP = (options: UseExamSessionHTTPOptions = {}) => {
   const lastTimeWarning = useRef<number>(0);
   const lastServerSync = useRef<number>(Date.now());
   const localTimeStart = useRef<number | null>(null);
+  // Refs estables — evitan que performAutoSave se recree en cada render/keystroke
+  const answersRef = useRef<Record<string, any>>({});
+  const sessionIdRef = useRef<string | null>(null);
+  const onAutoSaveRef = useRef(onAutoSave);
+  const onTimeWarningRef = useRef(onTimeWarning);
+  const onSessionEndRef = useRef(onSessionEnd);
 
-  // Auto-save functionality
+  // Mantener refs de callbacks sincronizados sin añadirlos a deps de useCallback
+  useEffect(() => { answersRef.current = state.answers; }, [state.answers]);
+  useEffect(() => { sessionIdRef.current = state.sessionId; }, [state.sessionId]);
+  useEffect(() => { onAutoSaveRef.current = onAutoSave; }, [onAutoSave]);
+  useEffect(() => { onTimeWarningRef.current = onTimeWarning; }, [onTimeWarning]);
+  useEffect(() => { onSessionEndRef.current = onSessionEnd; }, [onSessionEnd]);
+
+  // Auto-save functionality — usa refs en lugar de state para no recrearse en cada cambio
   const performAutoSave = useCallback(async () => {
-    if (!state.sessionId || !hasUnsavedChanges.current) return;
+    if (!sessionIdRef.current || !hasUnsavedChanges.current) return;
 
     const now = Date.now();
-    if (now - lastSaveRef.current < 2000) return; // Throttle saves to 2 seconds minimum
+    if (now - lastSaveRef.current < 2000) return; // Throttle: mínimo 2s entre saves
 
     setState(prev => ({ ...prev, autoSaveStatus: 'saving' }));
     lastSaveRef.current = now;
@@ -87,29 +100,27 @@ export const useExamSessionHTTP = (options: UseExamSessionHTTPOptions = {}) => {
 
     try {
       // Sanitize and save answers — skip audio answers still uploading or failed
-      const entries = Object.entries(state.answers).filter(([, answer]) => {
+      const entries = Object.entries(answersRef.current).filter(([, answer]) => {
         if (answer && typeof answer === 'object') {
-          if ((answer as any).uploading === true) return false; // still uploading
-          if ((answer as any).uploadFailed === true && !(answer as any).audioUrl) return false; // failed, no URL
+          if ((answer as any).uploading === true) return false;
+          if ((answer as any).uploadFailed === true && !(answer as any).audioUrl) return false;
         }
         return true;
       });
       const savePromises = entries.map(([questionId, answer]) => {
-        // Strip non-serializable / local-only fields from audio answers before sending JSON
         let sanitized = answer;
         if (answer && typeof answer === 'object' && ((answer as any).audioUrl || (answer as any).previewUrl)) {
           const { audioBlob: _blob, previewUrl: _preview, uploading: _up, uploadFailed: _fail, ...rest } = answer as any;
-          sanitized = rest; // keeps only audioUrl (permanent MinIO URL)
+          sanitized = rest;
         }
-        return examService.submitAnswer(state.sessionId!, questionId, sanitized);
+        return examService.submitAnswer(sessionIdRef.current!, questionId, sanitized);
       });
 
       await Promise.all(savePromises);
 
       setState(prev => ({ ...prev, autoSaveStatus: 'saved' }));
-      onAutoSave?.(true);
+      onAutoSaveRef.current?.(true);
 
-      // Reset to idle after 2 seconds
       setTimeout(() => {
         setState(prev => ({ ...prev, autoSaveStatus: 'idle' }));
       }, 2000);
@@ -117,10 +128,10 @@ export const useExamSessionHTTP = (options: UseExamSessionHTTPOptions = {}) => {
     } catch (error) {
       console.error('Auto-save failed:', error);
       setState(prev => ({ ...prev, autoSaveStatus: 'error' }));
-      hasUnsavedChanges.current = true; // Mark as having unsaved changes again
-      onAutoSave?.(false);
+      hasUnsavedChanges.current = true;
+      onAutoSaveRef.current?.(false);
     }
-  }, [state.sessionId, state.answers, onAutoSave]);
+  }, []); // deps vacías — usa refs para todo, nunca se recrea
 
   // Local timer functionality for real-time countdown
   const startLocalTimer = useCallback((initialTimeRemaining: number) => {
@@ -154,8 +165,7 @@ export const useExamSessionHTTP = (options: UseExamSessionHTTPOptions = {}) => {
       const minutes = Math.floor(newTimeRemaining / 60);
       if (minutes <= 5 && minutes > 0 && minutes !== lastTimeWarning.current) {
         lastTimeWarning.current = minutes;
-        onTimeWarning?.(minutes);
-        toast.warning(`⏰ Quedan ${minutes} minutos para finalizar el examen`);
+        onTimeWarningRef.current?.(minutes);
       }
 
       // Stop local timer if time is up (server polling will handle finish)
@@ -175,6 +185,18 @@ export const useExamSessionHTTP = (options: UseExamSessionHTTPOptions = {}) => {
     }
     localTimeStart.current = null;
   }, []);
+
+  // Ref to track current timeRemaining without stale closures
+  const timeRemainingRef = useRef<number | null>(null);
+  useEffect(() => {
+    timeRemainingRef.current = state.timeRemaining;
+  }, [state.timeRemaining]);
+
+  // Add seconds to the running countdown (e.g. after admin extends session time)
+  const addTime = useCallback((seconds: number) => {
+    const current = timeRemainingRef.current ?? 0;
+    startLocalTimer(current + seconds);
+  }, [startLocalTimer]);
 
   // Session management functions - define finishExam first
   const finishExam = useCallback(async () => {
@@ -257,7 +279,7 @@ export const useExamSessionHTTP = (options: UseExamSessionHTTPOptions = {}) => {
         // HTTP fallback: session ended by admin/teacher (WebSocket may have been missed)
         if (sessionEnded && timeRemaining <= 0) {
           console.log('🔴 [useExamSessionHTTP] Session ended by admin (HTTP fallback)');
-          toast.warning('La sesión ha sido finalizada por el administrador');
+          toast.error('La sesión ha sido finalizada por el administrador');
         }
 
         // Auto-finish when time is up or session was ended externally
@@ -286,14 +308,12 @@ export const useExamSessionHTTP = (options: UseExamSessionHTTPOptions = {}) => {
     }
   }, [state.sessionId, state.isActive, state.sessionStatus, onTimeWarning, finishExam, startLocalTimer, stopLocalTimer]);
 
-  // Initialize auto-save interval
+  // Initialize auto-save interval — performAutoSave es estable (deps vacías), nunca se reinicia
   useEffect(() => {
     if (state.isActive && state.sessionId) {
       autoSaveRef.current = setInterval(performAutoSave, autoSaveInterval);
       return () => {
-        if (autoSaveRef.current) {
-          clearInterval(autoSaveRef.current);
-        }
+        if (autoSaveRef.current) clearInterval(autoSaveRef.current);
       };
     }
   }, [state.isActive, state.sessionId, performAutoSave, autoSaveInterval]);
@@ -332,7 +352,7 @@ export const useExamSessionHTTP = (options: UseExamSessionHTTPOptions = {}) => {
       if (timePollingRef.current) clearInterval(timePollingRef.current);
       stopLocalTimer();
 
-      toast.warning('La sesión ha sido finalizada por el administrador');
+      toast.error('La sesión ha sido finalizada por el administrador');
       await finishExamRef.current();
     };
 
@@ -489,21 +509,29 @@ export const useExamSessionHTTP = (options: UseExamSessionHTTPOptions = {}) => {
         ...prev.answers,
         [questionId]: answer
       },
-      autoSaveStatus: 'idle'
+      autoSaveStatus: 'dirty'
     }));
     hasUnsavedChanges.current = true;
   }, []);
 
   // Section navigation
   const navigateToSection = useCallback((sectionIndex: number) => {
+    if (hasUnsavedChanges.current) {
+      lastSaveRef.current = 0;
+      performAutoSave();
+    }
     setState(prev => ({
       ...prev,
       currentSectionIndex: Math.max(0, Math.min(sectionIndex, prev.sections.length - 1)),
-      currentQuestionIndex: 0 // Reset to first question of the section
+      currentQuestionIndex: 0
     }));
-  }, []);
+  }, [performAutoSave]);
 
   const navigateToQuestionInSection = useCallback((sectionIndex: number, questionIndex: number) => {
+    if (hasUnsavedChanges.current) {
+      lastSaveRef.current = 0;
+      performAutoSave();
+    }
     setState(prev => {
       const targetSection = prev.sections[sectionIndex];
       if (!targetSection) return prev;
@@ -514,9 +542,13 @@ export const useExamSessionHTTP = (options: UseExamSessionHTTPOptions = {}) => {
         currentQuestionIndex: Math.max(0, Math.min(questionIndex, targetSection.questions.length - 1))
       };
     });
-  }, []);
+  }, [performAutoSave]);
 
   const goToNextQuestion = useCallback(() => {
+    if (hasUnsavedChanges.current) {
+      lastSaveRef.current = 0; // bypass throttle so el auto-save dispara de inmediato
+      performAutoSave();
+    }
     setState(prev => {
       const currentSection = prev.sections[prev.currentSectionIndex];
       if (!currentSection) return prev;
@@ -541,9 +573,13 @@ export const useExamSessionHTTP = (options: UseExamSessionHTTPOptions = {}) => {
       // Already at the last question of the last section
       return prev;
     });
-  }, []);
+  }, [performAutoSave]);
 
   const goToPreviousQuestion = useCallback(() => {
+    if (hasUnsavedChanges.current) {
+      lastSaveRef.current = 0;
+      performAutoSave();
+    }
     setState(prev => {
       // If not at the first question of current section, move to previous question
       if (prev.currentQuestionIndex > 0) {
@@ -566,7 +602,7 @@ export const useExamSessionHTTP = (options: UseExamSessionHTTPOptions = {}) => {
       // Already at the first question of the first section
       return prev;
     });
-  }, []);
+  }, [performAutoSave]);
 
   // Cleanup
   useEffect(() => {
@@ -622,15 +658,22 @@ export const useExamSessionHTTP = (options: UseExamSessionHTTPOptions = {}) => {
 
     answeredCount: Object.values(state.answers).filter(isAnswered).length,
 
-    sectionStats: state.sections.map(section => ({
-      id: section.id,
-      name: section.name,
-      competency: section.competency,
-      answered: section.questions.filter(q => isAnswered(state.answers[q._id])).length,
-      total: section.questions.length,
-      progress: section.questions.length > 0 ?
-        section.questions.filter(q => isAnswered(state.answers[q._id])).length / section.questions.length : 0
-    })),
+    sectionStats: state.sections.map(section => {
+      const answered = section.questions.filter(q => isAnswered(state.answers[q._id])).length;
+      return {
+        id: section.id,
+        name: section.name,
+        competency: section.competency,
+        answered,
+        total: section.questions.length,
+        progress: section.questions.length > 0 ? answered / section.questions.length : 0,
+        questionStates: section.questions.map(q => ({
+          id: q._id as string,
+          answered: isAnswered(state.answers[q._id]),
+          text: (q.content?.question || q.title || q.text || '') as string,
+        })),
+      };
+    }),
 
     // Actions
     startSession,
@@ -645,6 +688,7 @@ export const useExamSessionHTTP = (options: UseExamSessionHTTPOptions = {}) => {
     goToPreviousQuestion,
 
     performManualSave: performAutoSave,
+    addTime,
 
     // Utility
     formatTime: (seconds: number) => {

@@ -50,6 +50,11 @@ export const config = {
 
   logging: {
     level: process.env.LOG_LEVEL || 'info'
+  },
+
+  services: {
+    userManagementUrl: process.env.USER_MANAGEMENT_SERVICE_URL || 'http://user-management-service:3002',
+    examServiceUrl: process.env.EXAM_SERVICE_URL || 'http://exam-service:3003',
   }
 };
 

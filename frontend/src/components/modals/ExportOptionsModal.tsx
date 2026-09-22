@@ -31,10 +31,7 @@ const ExportOptionsModal: React.FC<ExportOptionsModalProps> = ({
   });
 
   const handleOptionChange = (key: keyof ExportOptions, value: any) => {
-    setExportOptions(prev => ({
-      ...prev,
-      [key]: value
-    }));
+    setExportOptions(prev => ({ ...prev, [key]: value }));
   };
 
   const handleExport = (format: 'csv' | 'pdf') => {
@@ -72,7 +69,7 @@ const ExportOptionsModal: React.FC<ExportOptionsModalProps> = ({
       <Card className="bg-box border-line w-full max-w-2xl max-h-[90vh] overflow-y-auto">
         <CardHeader className="pb-4">
           <div className="flex items-center justify-between">
-            <CardTitle className="flex items-center space-x-2 text-white">
+            <CardTitle className="flex items-center space-x-2 text-foreground">
               <Download className="h-5 w-5 text-blue-400" />
               <span>Opciones de Exportación</span>
             </CardTitle>
@@ -80,12 +77,12 @@ const ExportOptionsModal: React.FC<ExportOptionsModalProps> = ({
               variant="ghost"
               size="sm"
               onClick={onClose}
-              className="text-slate-400 hover:text-white hover:bg-slate-800"
+              className="text-muted-foreground hover:text-foreground hover:bg-muted"
             >
               <X className="h-4 w-4" />
             </Button>
           </div>
-          <p className="text-sm text-slate-400">
+          <p className="text-sm text-muted-foreground">
             Configurar opciones para exportar: {getReportTypeLabel(reportType)}
           </p>
         </CardHeader>
@@ -93,8 +90,8 @@ const ExportOptionsModal: React.FC<ExportOptionsModalProps> = ({
         <CardContent className="space-y-6">
           {/* Formato de Exportación */}
           <div className="space-y-3">
-            <h3 className="text-sm font-semibold text-white flex items-center space-x-2">
-              <FileText className="h-4 w-4 text-slate-400" />
+            <h3 className="text-sm font-semibold text-foreground flex items-center space-x-2">
+              <FileText className="h-4 w-4 text-muted-foreground" />
               <span>Formato de Exportación</span>
             </h3>
 
@@ -126,21 +123,20 @@ const ExportOptionsModal: React.FC<ExportOptionsModalProps> = ({
           </div>
 
           {/* Configuración PDF Avanzada */}
-          <div className="space-y-4 p-4 rounded-lg bg-slate-800/30 border border-slate-700">
-            <h3 className="text-sm font-semibold text-white flex items-center space-x-2">
-              <Settings className="h-4 w-4 text-slate-400" />
+          <div className="space-y-4 p-4 rounded-lg bg-muted/30 border border-border">
+            <h3 className="text-sm font-semibold text-foreground flex items-center space-x-2">
+              <Settings className="h-4 w-4 text-muted-foreground" />
               <span>Configuración PDF</span>
             </h3>
 
             {/* Interpretación con IA */}
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-2">
-                {/* <Brain className="h-4 w-4 text-purple-400" /> */}
                 <div>
-                  <label className="text-sm font-medium text-white">
+                  <label className="text-sm font-medium text-foreground">
                     Incluir Análisis con IA
                   </label>
-                  <p className="text-xs text-slate-400">
+                  <p className="text-xs text-muted-foreground">
                     Agregar interpretación
                   </p>
                 </div>
@@ -157,13 +153,13 @@ const ExportOptionsModal: React.FC<ExportOptionsModalProps> = ({
               <div className="space-y-4 pl-6 border-l-2 border-purple-500/30">
                 {/* Idioma del Reporte */}
                 <div>
-                  <label className="text-xs font-medium text-slate-300 mb-2 block">
+                  <label className="text-xs font-medium text-muted-foreground mb-2 block">
                     Idioma del Reporte
                   </label>
                   <select
                     value={exportOptions.language}
                     onChange={(e) => handleOptionChange('language', e.target.value)}
-                    className="w-full bg-slate-800 border border-slate-600 text-white text-sm rounded px-3 py-2"
+                    className="w-full bg-muted border border-border text-foreground text-sm rounded px-3 py-2"
                   >
                     <option value="spanish">Español</option>
                     <option value="english">English</option>
@@ -172,13 +168,13 @@ const ExportOptionsModal: React.FC<ExportOptionsModalProps> = ({
 
                 {/* Idioma de Interpretación */}
                 <div>
-                  <label className="text-xs font-medium text-slate-300 mb-2 block">
+                  <label className="text-xs font-medium text-muted-foreground mb-2 block">
                     Idioma de Interpretación IA
                   </label>
                   <select
                     value={exportOptions.interpretationLanguage}
                     onChange={(e) => handleOptionChange('interpretationLanguage', e.target.value)}
-                    className="w-full bg-slate-800 border border-slate-600 text-white text-sm rounded px-3 py-2"
+                    className="w-full bg-muted border border-border text-foreground text-sm rounded px-3 py-2"
                   >
                     <option value="spanish">Español</option>
                     <option value="english">English</option>
@@ -187,13 +183,13 @@ const ExportOptionsModal: React.FC<ExportOptionsModalProps> = ({
 
                 {/* Profundidad de Análisis */}
                 <div>
-                  <label className="text-xs font-medium text-slate-300 mb-2 block">
+                  <label className="text-xs font-medium text-muted-foreground mb-2 block">
                     Profundidad de Análisis
                   </label>
                   <select
                     value={exportOptions.interpretationDepth}
                     onChange={(e) => handleOptionChange('interpretationDepth', e.target.value)}
-                    className="w-full bg-slate-800 border border-slate-600 text-white text-sm rounded px-3 py-2"
+                    className="w-full bg-muted border border-border text-foreground text-sm rounded px-3 py-2"
                   >
                     <option value="brief">Breve</option>
                     <option value="detailed">Detallado</option>
@@ -202,13 +198,13 @@ const ExportOptionsModal: React.FC<ExportOptionsModalProps> = ({
 
                 {/* Enfoque de Análisis */}
                 <div>
-                  <label className="text-xs font-medium text-slate-300 mb-2 block">
+                  <label className="text-xs font-medium text-muted-foreground mb-2 block">
                     Enfoque de Análisis
                   </label>
                   <select
                     value={exportOptions.interpretationFocus}
                     onChange={(e) => handleOptionChange('interpretationFocus', e.target.value)}
-                    className="w-full bg-slate-800 border border-slate-600 text-white text-sm rounded px-3 py-2"
+                    className="w-full bg-muted border border-border text-foreground text-sm rounded px-3 py-2"
                   >
                     {getFocusOptions(reportType).map(option => (
                       <option key={option.value} value={option.value}>
@@ -222,33 +218,17 @@ const ExportOptionsModal: React.FC<ExportOptionsModalProps> = ({
 
             {/* Nombre de la Empresa */}
             <div>
-              <label className="text-xs font-medium text-slate-300 mb-2 block">
+              <label className="text-xs font-medium text-muted-foreground mb-2 block">
                 Nombre de la Empresa (Opcional)
               </label>
               <Input
                 value={exportOptions.companyName || ''}
                 onChange={(e) => handleOptionChange('companyName', e.target.value)}
                 placeholder="Sistema de Evaluación Académica"
-                className="bg-slate-800 border-slate-600 text-white text-sm"
+                className="bg-muted border-border text-foreground text-sm"
               />
             </div>
           </div>
-
-          {/* Información adicional */}
-            {/* <div className="text-xs text-slate-400 bg-slate-800/20 p-3 rounded border border-slate-700">
-              <div className="flex items-start space-x-2">
-                <Brain className="h-4 w-4 text-purple-400 mt-0.5 flex-shrink-0" />
-                <div>
-                  <p className="font-medium text-slate-300 mb-1">Sobre el Análisis con IA:</p>
-                  <ul className="space-y-1 list-disc list-inside">
-                    <li>Proporciona insights profesionales basados en los datos</li>
-                    <li>Identifica tendencias y patrones importantes</li>
-                    <li>Genera recomendaciones personalizadas</li>
-                    <li>Mejora la presentación visual del reporte PDF</li>
-                  </ul>
-                </div>
-              </div>
-            </div> */}
         </CardContent>
       </Card>
     </div>

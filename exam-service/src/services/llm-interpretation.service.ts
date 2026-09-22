@@ -16,395 +16,460 @@ export interface InterpretationConfig {
   focus: 'academic' | 'administrative' | 'strategic';
 }
 
+interface GroqMessage {
+  role: 'system' | 'user';
+  content: string;
+}
+
 export class LLMInterpretationService {
-  private ollamaUrl: string;
+  private groqApiKey: string;
   private model: string;
   private timeout: number;
+  private readonly groqUrl = 'https://api.groq.com/openai/v1/chat/completions';
 
   constructor() {
-    // Using the same Ollama configuration as AI-grading service
-    this.ollamaUrl = process.env.OLLAMA_URL || 'https://ollama-354865198391.us-central1.run.app';
-    this.model = process.env.OLLAMA_MODEL || 'qwen2.5:3b-instruct';
-    this.timeout = parseInt(process.env.LLM_TIMEOUT || '60') * 1000;
+    this.groqApiKey = process.env.GROQ_API_KEY || '';
+    this.model = process.env.GROQ_MODEL || 'llama-3.3-70b-versatile';
+    this.timeout = parseInt(process.env.LLM_TIMEOUT || '30') * 1000;
   }
 
-  /**
-   * Interpreta datos de competencias para generar insights
-   */
-  async interpretCompetencyData(data: any, config: InterpretationConfig = {
-    language: 'spanish',
-    depth: 'detailed',
-    focus: 'academic'
-  }): Promise<DataInterpretation> {
-    const prompt = this.buildCompetencyPrompt(data, config);
-    return await this.processWithLLM(prompt, config);
+  async interpretCompetencyData(data: any, config: InterpretationConfig = { language: 'spanish', depth: 'detailed', focus: 'academic' }): Promise<DataInterpretation> {
+    const messages = this.buildCompetencyMessages(data, config);
+    return this.processWithGroq(messages, config, data);
   }
 
-  /**
-   * Interpreta estadísticas de estudiantes
-   */
-  async interpretStudentStats(data: any, config: InterpretationConfig = {
-    language: 'spanish',
-    depth: 'detailed',
-    focus: 'academic'
-  }): Promise<DataInterpretation> {
-    const prompt = this.buildStudentStatsPrompt(data, config);
-    return await this.processWithLLM(prompt, config);
+  async interpretStudentStats(data: any, config: InterpretationConfig = { language: 'spanish', depth: 'detailed', focus: 'academic' }): Promise<DataInterpretation> {
+    const messages = this.buildStudentStatsMessages(data, config);
+    return this.processWithGroq(messages, config, data);
   }
 
-  /**
-   * Interpreta datos de próximas sesiones
-   */
-  async interpretUpcomingSessions(data: any, config: InterpretationConfig = {
-    language: 'spanish',
-    depth: 'detailed',
-    focus: 'administrative'
-  }): Promise<DataInterpretation> {
-    const prompt = this.buildUpcomingSessionsPrompt(data, config);
-    return await this.processWithLLM(prompt, config);
+  async interpretUpcomingSessions(data: any, config: InterpretationConfig = { language: 'spanish', depth: 'detailed', focus: 'administrative' }): Promise<DataInterpretation> {
+    const messages = this.buildUpcomingSessionsMessages(data, config);
+    return this.processWithGroq(messages, config, data);
   }
 
-  /**
-   * Interpreta historial de estudiante individual
-   */
-  async interpretStudentHistory(data: any, config: InterpretationConfig = {
-    language: 'spanish',
-    depth: 'detailed',
-    focus: 'academic'
-  }): Promise<DataInterpretation> {
-    const prompt = this.buildStudentHistoryPrompt(data, config);
-    return await this.processWithLLM(prompt, config);
+  async interpretStudentHistory(data: any, config: InterpretationConfig = { language: 'spanish', depth: 'detailed', focus: 'academic' }): Promise<DataInterpretation> {
+    const messages = this.buildStudentHistoryMessages(data, config);
+    return this.processWithGroq(messages, config, data);
   }
 
-  /**
-   * Interpreta resultado individual de examen
-   */
-  async interpretExamResult(data: any, config: InterpretationConfig = {
-    language: 'spanish',
-    depth: 'detailed',
-    focus: 'academic'
-  }): Promise<DataInterpretation> {
-    const prompt = this.buildExamResultPrompt(data, config);
-    return await this.processWithLLM(prompt, config);
+  async interpretExamResult(data: any, config: InterpretationConfig = { language: 'spanish', depth: 'detailed', focus: 'academic' }): Promise<DataInterpretation> {
+    const messages = this.buildExamResultMessages(data, config);
+    return this.processWithGroq(messages, config, data);
   }
 
-  /**
-   * Construye prompt para análisis de competencias
-   */
-  private buildCompetencyPrompt(data: any, config: InterpretationConfig): string {
-    const language = config.language === 'spanish' ? 'español' : 'English';
-    const depthInstructions = config.depth === 'detailed'
-      ? 'Proporciona un análisis detallado y exhaustivo'
-      : 'Proporciona un análisis conciso y directo';
+  // ─── BUILDERS ────────────────────────────────────────────────────────────────
 
-    return `Actúa como un experto analista educativo. Analiza los siguientes datos de competencias académicas y proporciona insights valiosos en ${language}.
+  private buildExamResultMessages(data: any, config: InterpretationConfig): GroqMessage[] {
+    const isSpanish = config.language === 'spanish';
 
-${depthInstructions}.
+    const firstName = data.student?.firstName || '';
+    const lastName  = data.student?.lastName  || '';
+    const studentName = `${firstName} ${lastName}`.trim() || (isSpanish ? 'el estudiante' : 'the student');
 
-DATOS DE COMPETENCIAS:
-${JSON.stringify(data, null, 2)}
+    const percentage   = data.result?.percentage   ?? 0;
+    const passed       = data.result?.passed        ?? false;
+    const examTitle    = data.result?.examTitle     ?? '';
+    const level        = data.result?.level         ?? '';
+    const passingScore = data.result?.passingScore  ?? 70;
+    const duration     = data.result?.duration      ?? 0;
+    const feedback     = data.result?.feedback      ?? '';
 
-Proporciona tu análisis en el siguiente formato JSON:
+    const competencies: string = (data.competencyScores ?? [])
+      .map((c: any) => `  • ${c.competency}: ${Number(c.percentage ?? 0).toFixed(1)}% (${c.score}/${c.maxScore} pts)`)
+      .join('\n') || (isSpanish ? '  (sin desglose por competencia)' : '  (no competency breakdown)');
+
+    const margin = Math.abs(percentage - passingScore).toFixed(1);
+    const statusLine = passed
+      ? (isSpanish ? `APROBADO — superó el mínimo por ${margin}%` : `PASSED — exceeded minimum by ${margin}%`)
+      : (isSpanish ? `NO APROBADO — le faltaron ${margin}% para alcanzar el mínimo` : `DID NOT PASS — ${margin}% below minimum`);
+
+    const system = isSpanish
+      ? `Eres un evaluador académico del Centro Boliviano Americano (CBA), institución de enseñanza de inglés en Bolivia. Tu misión es generar retroalimentación académica directamente dirigida AL estudiante, usando segunda persona (tú/tu). NUNCA hables del estudiante en tercera persona. Escribe como si le estuvieras hablando directamente: "obtuviste", "tu fortaleza es", "te recomendamos", "puedes mejorar". Usa su nombre solo al inicio del resumen como saludo. Responde únicamente con JSON válido con las claves exactas indicadas.`
+      : `You are an academic evaluator at an English language institute. Write ALL feedback directly TO the student using second person (you/your). NEVER refer to the student in third person. Write as if speaking directly to them: "you scored", "your strength is", "we recommend you". Use their name only at the start of the summary as a greeting. Respond only with valid JSON using the exact keys indicated.`;
+
+    const user = isSpanish ? `
+Genera retroalimentación académica personalizada para este resultado de examen.
+
+DATOS DEL EXAMEN:
+  Estudiante:  ${studentName}
+  Examen:      ${examTitle}${level ? ` — Nivel ${level}` : ''}
+  Puntaje:     ${percentage.toFixed(1)}%
+  Estado:      ${statusLine}
+  Mínimo req.: ${passingScore}%
+  Duración:    ${duration} minutos
+
+RENDIMIENTO POR COMPETENCIAS:
+${competencies}
+
+${feedback ? `RETROALIMENTACIÓN PREVIA DEL SISTEMA:\n  "${feedback}"\n` : ''}
+
+INSTRUCCIONES CRÍTICAS:
+- Habla DIRECTAMENTE al estudiante en segunda persona: "obtuviste", "tu resultado", "puedes", "te recomendamos". NUNCA en tercera persona.
+- Usa su nombre (${firstName || 'el estudiante'}) solo al inicio del resumen como saludo, después usa "tú/tu".
+- Usa los porcentajes y datos reales del examen, no inventes cifras.
+- Si aprobó: resalta sus logros en segunda persona, la competencia más fuerte, y cómo puede seguir creciendo.
+- Si no aprobó: sé alentador en segunda persona, señala qué necesita trabajar y qué puede hacer concreto.
+- Las recomendaciones deben ser accionables y específicas (ej: "practica comprensión auditiva con podcasts 20 min al día").
+- No repitas la misma información en distintas secciones.
+
+Responde con este JSON exacto:
 {
-  "summary": "Resumen ejecutivo de los hallazgos principales",
-  "keyInsights": ["Insight 1", "Insight 2", "Insight 3"],
-  "recommendations": ["Recomendación 1", "Recomendación 2", "Recomendación 3"],
-  "trends": ["Tendencia 1", "Tendencia 2"],
-  "concerns": ["Preocupación 1", "Preocupación 2"],
-  "visualizationSuggestions": ["Sugerencia visual 1", "Sugerencia visual 2"]
-}
+  "summary": "2-3 oraciones describiendo el desempeño general de ${firstName || studentName}. Incluye el puntaje obtenido, si aprobó, y la competencia más destacada.",
+  "keyInsights": [
+    "Observación específica sobre la competencia con mejor rendimiento (con %) ",
+    "Observación sobre la competencia con menor rendimiento (con %)",
+    "Observación sobre eficiencia, tiempo, o patrón general de respuestas"
+  ],
+  "recommendations": [
+    "Acción concreta y específica para reforzar la competencia más débil",
+    "Estrategia para consolidar y proyectar la competencia más fuerte",
+    "Hábito o recurso de estudio concreto para el próximo examen"
+  ],
+  "trends": [
+    "Relación o patrón observado entre las competencias evaluadas",
+    "Implicación del resultado para el avance al siguiente nivel"
+  ],
+  "concerns": ${passed
+    ? '[]'
+    : `["Competencia específica que impidió la aprobación y requiere atención prioritaria", "Brecha concreta entre el puntaje obtenido y el mínimo requerido"]`
+  },
+  "visualizationSuggestions": []
+}` : `
+Generate personalized academic feedback for this exam result.
 
-Enfócate en:
-- Rendimiento por competencias
-- Identificación de fortalezas y debilidades
-- Patrones de dificultad
-- Recomendaciones pedagógicas
-- Áreas de mejora prioritarias`;
-  }
+EXAM DATA:
+  Student:   ${studentName}
+  Exam:      ${examTitle}${level ? ` — Level ${level}` : ''}
+  Score:     ${percentage.toFixed(1)}%
+  Status:    ${statusLine}
+  Min score: ${passingScore}%
+  Duration:  ${duration} minutes
 
-  /**
-   * Construye prompt para estadísticas de estudiantes
-   */
-  private buildStudentStatsPrompt(data: any, config: InterpretationConfig): string {
-    const language = config.language === 'spanish' ? 'español' : 'English';
-    const depthInstructions = config.depth === 'detailed'
-      ? 'Proporciona un análisis detallado y exhaustivo'
-      : 'Proporciona un análisis conciso y directo';
+COMPETENCY BREAKDOWN:
+${competencies}
 
-    return `Actúa como un experto analista educativo. Analiza las siguientes estadísticas de estudiantes y proporciona insights valiosos en ${language}.
+${feedback ? `EXISTING SYSTEM FEEDBACK:\n  "${feedback}"\n` : ''}
 
-${depthInstructions}.
-
-ESTADÍSTICAS DE ESTUDIANTES:
-${JSON.stringify(data, null, 2)}
-
-Proporciona tu análisis en el siguiente formato JSON:
+Respond with this exact JSON:
 {
-  "summary": "Resumen ejecutivo del rendimiento estudiantil",
-  "keyInsights": ["Insight 1", "Insight 2", "Insight 3"],
-  "recommendations": ["Recomendación 1", "Recomendación 2", "Recomendación 3"],
-  "trends": ["Tendencia 1", "Tendencia 2"],
-  "concerns": ["Preocupación 1", "Preocupación 2"],
-  "visualizationSuggestions": ["Sugerencia visual 1", "Sugerencia visual 2"]
-}
+  "summary": "2-3 sentences describing ${firstName || studentName}'s overall performance. Include score, pass/fail status, and top competency.",
+  "keyInsights": [
+    "Specific observation about best performing competency (with %)",
+    "Specific observation about weakest competency (with %)",
+    "Observation about efficiency, time usage, or response patterns"
+  ],
+  "recommendations": [
+    "Concrete action to strengthen the weakest competency",
+    "Strategy to consolidate the strongest competency",
+    "Specific study habit or resource for the next exam"
+  ],
+  "trends": [
+    "Pattern or relationship observed across competencies",
+    "Implication of this result for advancing to the next level"
+  ],
+  "concerns": ${passed ? '[]' : '["Specific competency that prevented passing", "Gap between achieved score and minimum required"]'},
+  "visualizationSuggestions": []
+}`;
 
-Enfócate en:
-- Distribución de rendimiento
-- Análisis de progresión
-- Identificación de estudiantes en riesgo
-- Patrones de tiempo y eficiencia
-- Recomendaciones de intervención`;
+    return [
+      { role: 'system', content: system },
+      { role: 'user',   content: user   }
+    ];
   }
 
-  /**
-   * Construye prompt para próximas sesiones
-   */
-  private buildUpcomingSessionsPrompt(data: any, config: InterpretationConfig): string {
-    const language = config.language === 'spanish' ? 'español' : 'English';
-    const depthInstructions = config.depth === 'detailed'
-      ? 'Proporciona un análisis detallado y exhaustivo'
-      : 'Proporciona un análisis conciso y directo';
+  private buildCompetencyMessages(data: any, config: InterpretationConfig): GroqMessage[] {
+    const isSpanish = config.language === 'spanish';
 
-    return `Actúa como un experto en gestión académica. Analiza los siguientes datos de próximas sesiones de examen y proporciona insights valiosos en ${language}.
+    const competencies = Object.entries(data.competencyBreakdown ?? {})
+      .map(([name, d]: [string, any]) =>
+        `  • ${name}: ${Number(d.averageScore ?? 0).toFixed(1)}% promedio — ${d.studentsEvaluated ?? 0} estudiantes — dificultad: ${d.difficulty}`
+      ).join('\n') || '  (sin datos de competencias)';
 
-${depthInstructions}.
+    const system = isSpanish
+      ? `Eres un analista educativo experto del Centro Boliviano Americano. Genera análisis precisos y accionables sobre rendimiento por competencias en inglés. Responde únicamente con JSON válido.`
+      : `You are an expert educational analyst. Generate precise and actionable analysis about English competency performance. Respond only with valid JSON.`;
 
-DATOS DE PRÓXIMAS SESIONES:
-${JSON.stringify(data, null, 2)}
+    const user = isSpanish ? `
+Analiza el rendimiento por competencias académicas:
 
-Proporciona tu análisis en el siguiente formato JSON:
+ESTADÍSTICAS GENERALES:
+  Total exámenes: ${data.overallStats?.totalExams ?? 0}
+  Estudiantes:    ${data.overallStats?.totalStudents ?? 0}
+  Promedio gral.: ${Number(data.overallStats?.averageOverallScore ?? 0).toFixed(1)}%
+  Tasa completación: ${Number(data.overallStats?.completionRate ?? 0).toFixed(1)}%
+
+COMPETENCIAS:
+${competencies}
+
+Mejor competencia:  ${data.comparativeAnalysis?.bestPerforming ?? 'N/A'}
+Más desafiante:     ${data.comparativeAnalysis?.mostChallenging ?? 'N/A'}
+Áreas de mejora:    ${(data.comparativeAnalysis?.improvementAreas ?? []).join(', ') || 'ninguna'}
+
+Responde con este JSON:
 {
-  "summary": "Resumen ejecutivo de la planificación de sesiones",
-  "keyInsights": ["Insight 1", "Insight 2", "Insight 3"],
-  "recommendations": ["Recomendación 1", "Recomendación 2", "Recomendación 3"],
-  "trends": ["Tendencia 1", "Tendencia 2"],
-  "concerns": ["Preocupación 1", "Preocupación 2"],
-  "visualizationSuggestions": ["Sugerencia visual 1", "Sugerencia visual 2"]
-}
+  "summary": "2-3 oraciones sobre el estado general del rendimiento por competencias.",
+  "keyInsights": ["Fortaleza destacada con datos", "Debilidad principal con datos", "Patrón transversal observado"],
+  "recommendations": ["Acción pedagógica para competencia débil", "Estrategia para aprovechar fortalezas", "Intervención institucional sugerida"],
+  "trends": ["Tendencia entre competencias", "Implicaciones para el programa"],
+  "concerns": ["Competencia con promedio crítico (< 60%)", "Riesgo institucional identificado"],
+  "visualizationSuggestions": []
+}` : `Analyze the competency performance data and respond with valid JSON using keys: summary, keyInsights, recommendations, trends, concerns, visualizationSuggestions.`;
 
-Enfócate en:
-- Utilización de capacidad
-- Distribución de carga de trabajo
-- Planificación de recursos
-- Identificación de cuellos de botella
-- Optimización de horarios`;
+    return [{ role: 'system', content: system }, { role: 'user', content: user }];
   }
 
-  /**
-   * Construye prompt para historial de estudiante
-   */
-  private buildStudentHistoryPrompt(data: any, config: InterpretationConfig): string {
-    const language = config.language === 'spanish' ? 'español' : 'English';
-    const depthInstructions = config.depth === 'detailed'
-      ? 'Proporciona un análisis detallado y exhaustivo'
-      : 'Proporciona un análisis conciso y directo';
+  private buildStudentStatsMessages(data: any, config: InterpretationConfig): GroqMessage[] {
+    const isSpanish = config.language === 'spanish';
 
-    return `Actúa como un consejero académico experto. Analiza el siguiente historial académico de un estudiante y proporciona insights personalizados en ${language}.
+    const dist = data.performanceDistribution ?? {};
+    const total = data.evaluatedStudents || 1;
 
-${depthInstructions}.
+    const system = isSpanish
+      ? `Eres un analista educativo experto. Genera análisis claros sobre estadísticas estudiantiles. Responde únicamente con JSON válido.`
+      : `You are an expert educational analyst. Respond only with valid JSON.`;
 
-HISTORIAL DEL ESTUDIANTE:
-${JSON.stringify(data, null, 2)}
+    const user = isSpanish ? `
+Analiza las estadísticas de estudiantes:
 
-Proporciona tu análisis en el siguiente formato JSON:
+RESUMEN:
+  Total estudiantes:    ${data.totalStudents ?? 0}
+  Evaluados:            ${data.evaluatedStudents ?? 0}
+  Promedio general:     ${Number(data.averageScore ?? 0).toFixed(1)}%
+
+DISTRIBUCIÓN:
+  Excelente (>85%):     ${dist.excellent ?? 0} (${((dist.excellent ?? 0) / total * 100).toFixed(1)}%)
+  Bueno (70-85%):       ${dist.good ?? 0} (${((dist.good ?? 0) / total * 100).toFixed(1)}%)
+  Aceptable (60-70%):   ${dist.acceptable ?? 0} (${((dist.acceptable ?? 0) / total * 100).toFixed(1)}%)
+  Necesita mejora (<60%): ${dist.needsImprovement ?? 0} (${((dist.needsImprovement ?? 0) / total * 100).toFixed(1)}%)
+
+TIEMPO:
+  Duración promedio:   ${data.timeAnalysis?.averageDuration ?? 0} min
+  Eficiencia temporal: ${data.timeAnalysis?.timeEfficiency ?? 0}%
+
+Responde con JSON:
 {
-  "summary": "Resumen del progreso académico del estudiante",
-  "keyInsights": ["Insight 1", "Insight 2", "Insight 3"],
-  "recommendations": ["Recomendación 1", "Recomendación 2", "Recomendación 3"],
-  "trends": ["Tendencia 1", "Tendencia 2"],
-  "concerns": ["Preocupación 1", "Preocupación 2"],
-  "visualizationSuggestions": ["Sugerencia visual 1", "Sugerencia visual 2"]
-}
+  "summary": "Estado general del rendimiento estudiantil con cifras concretas.",
+  "keyInsights": ["Segmento predominante con %", "Estudiantes en riesgo con %", "Eficiencia temporal observada"],
+  "recommendations": ["Intervención para estudiantes con < 60%", "Estrategia para elevar el grupo 60-70%", "Refuerzo para mantener excelentes"],
+  "trends": ["Distribución y su implicación", "Eficiencia tiempo vs rendimiento"],
+  "concerns": ["Porcentaje de estudiantes que necesitan mejora", "Riesgos institucionales"],
+  "visualizationSuggestions": []
+}` : `Analyze student statistics and respond with valid JSON using keys: summary, keyInsights, recommendations, trends, concerns, visualizationSuggestions.`;
 
-Enfócate en:
-- Evolución del rendimiento
-- Fortalezas y debilidades por competencia
-- Patrones de progreso
-- Recomendaciones personalizadas
-- Estrategias de mejora`;
+    return [{ role: 'system', content: system }, { role: 'user', content: user }];
   }
 
-  /**
-   * Construye prompt para resultado individual de examen
-   */
-  private buildExamResultPrompt(data: any, config: InterpretationConfig): string {
-    const language = config.language === 'spanish' ? 'español' : 'English';
-    const depthInstructions = config.depth === 'detailed'
-      ? 'Proporciona un análisis detallado y exhaustivo'
-      : 'Proporciona un análisis conciso y directo';
+  private buildUpcomingSessionsMessages(data: any, config: InterpretationConfig): GroqMessage[] {
+    const isSpanish = config.language === 'spanish';
 
-    return `Actúa como un tutor académico experto y consejero educativo. Analiza ESPECÍFICAMENTE los resultados de examen de este estudiante y proporciona feedback personalizado basado en su desempeño real en ${language}.
+    const system = isSpanish
+      ? `Eres un gestor académico experto. Analiza datos de programación de sesiones y genera observaciones operativas. Responde únicamente con JSON válido.`
+      : `You are an expert academic manager. Analyze session scheduling data and generate operational insights. Respond only with valid JSON.`;
 
-${depthInstructions}.
+    const user = isSpanish ? `
+Analiza la programación de sesiones:
 
-DATOS ESPECÍFICOS DEL ESTUDIANTE:
-${JSON.stringify(data, null, 2)}
+  Total próximas sesiones: ${data.totalUpcomingSessions ?? 0}
+  Esta semana:             ${data.sessionsThisWeek ?? 0}
+  Próxima semana:          ${data.sessionsNextWeek ?? 0}
+  Candidatos registrados:  ${data.summary?.totalCandidatesRegistered ?? 0}
+  Utilización de capacidad: ${data.summary?.averageCapacityUtilization ?? 0}%
+  Sesiones sin proctors:   ${data.summary?.sessionsNeedingProctors ?? 0}
 
-INSTRUCCIONES DE ANÁLISIS:
-1. Revisa el puntaje total obtenido (result.percentage) y compáralo con el puntaje de aprobación
-2. Analiza el rendimiento por cada competencia (competencyScores) - identifica fortalezas y debilidades
-3. Si hay datos de preguntas individuales (questionResults), analiza patrones de aciertos/errores
-4. Considera el tiempo utilizado vs tiempo permitido para evaluar eficiencia
-5. Revisa cualquier feedback de IA ya existente (aiAnalysis) para complementar el análisis
-
-Proporciona tu análisis en el siguiente formato JSON:
+Responde con JSON:
 {
-  "summary": "Resumen personalizado basado en el puntaje X% obtenido y el rendimiento específico por competencias",
-  "keyInsights": ["Fortaleza específica: X competencia con Y%", "Debilidad identificada: Z competencia con W%", "Patrón observado en las respuestas"],
-  "recommendations": ["Práctica específica para competencia débil", "Estrategia para mantener fortaleza", "Recurso concreto de estudio"],
-  "trends": ["Competencia con mejor rendimiento: X", "Área que necesita más trabajo: Y"],
-  "concerns": ["Competencia por debajo del 60%: especificar cuál", "Patrón de errores en tipo de pregunta específico"],
-  "visualizationSuggestions": ["Gráfico de barras por competencia", "Comparación vs promedio de aprobación"]
-}
+  "summary": "Estado de la programación con cifras clave.",
+  "keyInsights": ["Carga de sesiones esta semana", "Utilización de capacidad", "Déficit de proctors si aplica"],
+  "recommendations": ["Acción operativa prioritaria", "Optimización de recursos", "Prevención de cuellos de botella"],
+  "trends": ["Distribución de carga semanal", "Patrón de registro de candidatos"],
+  "concerns": ["Riesgo operativo principal", "Sesiones en riesgo por falta de proctors"],
+  "visualizationSuggestions": []
+}` : `Analyze upcoming sessions data and respond with valid JSON using keys: summary, keyInsights, recommendations, trends, concerns, visualizationSuggestions.`;
 
-ANALIZA ESPECÍFICAMENTE:
-- ¿Qué competencias (Reading, Writing, Listening, Speaking) tuvieron mejor/peor rendimiento?
-- ¿El estudiante aprobó o no? ¿Por cuánto margen?
-- ¿Hay patrones en los tipos de preguntas que respondió bien/mal?
-- ¿Qué estrategias específicas necesita para mejorar las áreas débiles?
-- ¿Cómo puede mantener y potenciar sus fortalezas?
-
-IMPORTANTE:
-- Base TODO tu análisis en los datos numéricos específicos proporcionados
-- Menciona porcentajes y competencias concretas
-- Sé específico sobre QUÉ debe practicar y CÓMO
-- Este feedback es personalizado para ESTE estudiante específico`;
+    return [{ role: 'system', content: system }, { role: 'user', content: user }];
   }
 
-  /**
-   * Procesa datos con el LLM y parsea la respuesta
-   */
-  private async processWithLLM(prompt: string, config: InterpretationConfig): Promise<DataInterpretation> {
+  private buildStudentHistoryMessages(data: any, config: InterpretationConfig): GroqMessage[] {
+    const isSpanish = config.language === 'spanish';
+
+    const studentName = data.studentInfo?.name || (isSpanish ? 'el estudiante' : 'the student');
+    const summary = data.summary ?? {};
+    const exams = (data.examHistory ?? []).slice(0, 5)
+      .map((e: any) => `  • ${e.examTitle} (${e.level}): ${Number(e.percentage ?? 0).toFixed(1)}% — ${new Date(e.completedAt).toLocaleDateString('es-BO')}`)
+      .join('\n') || '  (sin historial)';
+
+    const competencyLines = Object.entries(data.competencyProgress ?? {})
+      .map(([comp, d]: [string, any]) => `  • ${comp}: ${Number(d.averageScore ?? 0).toFixed(1)}% (${d.trend})`)
+      .join('\n') || '  (sin datos)';
+
+    const system = isSpanish
+      ? `Eres un consejero académico del Centro Boliviano Americano. Analiza el historial académico de un estudiante y genera retroalimentación personalizada de progreso. Responde únicamente con JSON válido.`
+      : `You are an academic counselor. Analyze a student's academic history and generate personalized progress feedback. Respond only with valid JSON.`;
+
+    const user = isSpanish ? `
+Analiza el historial académico de ${studentName}:
+
+RESUMEN:
+  Total exámenes: ${summary.totalExams ?? 0}
+  Promedio:       ${Number(summary.averageScore ?? 0).toFixed(1)}%
+  Mejor puntaje:  ${Number(summary.bestScore ?? 0).toFixed(1)}%
+  Peor puntaje:   ${Number(summary.worstScore ?? 0).toFixed(1)}%
+  Tiempo total:   ${summary.totalTimeSpent ?? 0} min
+
+ÚLTIMOS EXÁMENES:
+${exams}
+
+PROGRESO POR COMPETENCIAS:
+${competencyLines}
+
+Responde con JSON:
+{
+  "summary": "Trayectoria académica de ${studentName} con datos concretos de progreso.",
+  "keyInsights": ["Competencia con mejor trayectoria", "Competencia con mayor oscilación o caída", "Patrón de rendimiento a lo largo del tiempo"],
+  "recommendations": ["Foco de estudio para la próxima evaluación", "Competencia a consolidar", "Estrategia a largo plazo"],
+  "trends": ["Tendencia general: mejorando/estable/declinando", "Competencia con tendencia más clara"],
+  "concerns": ["Competencia en declive si aplica", "Riesgo de estancamiento si aplica"],
+  "visualizationSuggestions": []
+}` : `Analyze student history and respond with valid JSON.`;
+
+    return [{ role: 'system', content: system }, { role: 'user', content: user }];
+  }
+
+  // ─── GROQ CORE ───────────────────────────────────────────────────────────────
+
+  private async processWithGroq(
+    messages: GroqMessage[],
+    config: InterpretationConfig,
+    rawData?: any
+  ): Promise<DataInterpretation> {
+    if (!this.groqApiKey) {
+      logger.warn('GROQ_API_KEY no configurada — usando fallback');
+      return this.generateFallbackInterpretation(config, rawData);
+    }
+
     try {
-      logger.info('Iniciando interpretación con LLM', {
-        model: this.model,
-        language: config.language,
-        depth: config.depth
-      });
+      logger.info('Llamando a GROQ para interpretación', { model: this.model });
 
-      const response = await axios.post(`${this.ollamaUrl}/api/generate`, {
+      const response = await axios.post(this.groqUrl, {
         model: this.model,
-        prompt: prompt,
-        stream: false,
-        options: {
-          temperature: 0.3, // Más determinístico para análisis
-          top_p: 0.9,
-          max_tokens: 2048
-        }
+        messages,
+        temperature: 0.4,
+        max_tokens: 1200,
+        response_format: { type: 'json_object' }
       }, {
         timeout: this.timeout,
         headers: {
+          'Authorization': `Bearer ${this.groqApiKey}`,
           'Content-Type': 'application/json'
         }
       });
 
-      if (response.data && response.data.response) {
-        const interpretation = this.parseInterpretationResponse(response.data.response);
-        logger.info('Interpretación completada exitosamente');
-        return interpretation;
-      } else {
-        throw new Error('Respuesta inválida del LLM');
-      }
-    } catch (error) {
-      // Fix circular structure error by only logging the error message and code
-      const errorInfo = {
-        message: error instanceof Error ? error.message : String(error),
-        code: (error as any)?.code,
-        status: (error as any)?.response?.status,
-        statusText: (error as any)?.response?.statusText
+      const content = response.data?.choices?.[0]?.message?.content;
+      if (!content) throw new Error('Respuesta vacía de GROQ');
+
+      const parsed = JSON.parse(content);
+      logger.info('Interpretación GROQ completada');
+
+      return {
+        summary:                 parsed.summary                 || '',
+        keyInsights:             Array.isArray(parsed.keyInsights)             ? parsed.keyInsights             : [],
+        recommendations:         Array.isArray(parsed.recommendations)         ? parsed.recommendations         : [],
+        trends:                  Array.isArray(parsed.trends)                  ? parsed.trends                  : [],
+        concerns:                Array.isArray(parsed.concerns)                ? parsed.concerns                : [],
+        visualizationSuggestions: Array.isArray(parsed.visualizationSuggestions) ? parsed.visualizationSuggestions : []
       };
-      logger.error('Error en interpretación LLM:', errorInfo);
-
-      // Fallback: interpretación básica sin LLM
-      return this.generateFallbackInterpretation(config);
-    }
-  }
-
-  /**
-   * Parsea la respuesta JSON del LLM
-   */
-  private parseInterpretationResponse(response: string): DataInterpretation {
-    try {
-      // Buscar JSON en la respuesta
-      const jsonMatch = response.match(/\{[\s\S]*\}/);
-      if (jsonMatch) {
-        const parsed = JSON.parse(jsonMatch[0]);
-
-        // Validar estructura
-        return {
-          summary: parsed.summary || 'Análisis completado',
-          keyInsights: Array.isArray(parsed.keyInsights) ? parsed.keyInsights : [],
-          recommendations: Array.isArray(parsed.recommendations) ? parsed.recommendations : [],
-          trends: Array.isArray(parsed.trends) ? parsed.trends : [],
-          concerns: Array.isArray(parsed.concerns) ? parsed.concerns : [],
-          visualizationSuggestions: Array.isArray(parsed.visualizationSuggestions) ? parsed.visualizationSuggestions : []
-        };
-      } else {
-        throw new Error('No se encontró JSON válido en la respuesta');
-      }
     } catch (error) {
-      logger.warn('Error parseando respuesta LLM, usando fallback:', error);
-
-      // Fallback: extraer insights de texto libre
-      return this.extractInsightsFromText(response);
+      const msg = error instanceof Error ? error.message : String(error);
+      logger.error('Error en GROQ — usando fallback:', { message: msg });
+      return this.generateFallbackInterpretation(config, rawData);
     }
   }
 
-  /**
-   * Extrae insights del texto libre si falla el parseo JSON
-   */
-  private extractInsightsFromText(text: string): DataInterpretation {
-    const lines = text.split('\n').filter(line => line.trim());
+  // ─── FALLBACK INTELIGENTE ─────────────────────────────────────────────────────
 
-    return {
-      summary: lines.length > 0 ? (lines[0] || 'Análisis completado') : 'Análisis completado',
-      keyInsights: lines.slice(1, 4),
-      recommendations: lines.slice(4, 7),
-      trends: lines.slice(7, 9),
-      concerns: lines.slice(9, 11),
-      visualizationSuggestions: lines.slice(11, 13)
-    };
-  }
-
-  /**
-   * Genera interpretación básica cuando falla el LLM
-   */
-  private generateFallbackInterpretation(config: InterpretationConfig): DataInterpretation {
+  private generateFallbackInterpretation(config: InterpretationConfig, data?: any): DataInterpretation {
     const isSpanish = config.language === 'spanish';
 
+    // Fallback específico para resultado de examen
+    if (data?.result !== undefined) {
+      const percentage  = Number(data.result?.percentage  ?? 0);
+      const passed      = data.result?.passed  ?? false;
+      const level       = data.result?.level   ?? '';
+      const passingScore = data.result?.passingScore ?? 70;
+      const firstName   = data.student?.firstName ?? '';
+      const name        = `${firstName} ${data.student?.lastName ?? ''}`.trim() || (isSpanish ? 'El estudiante' : 'The student');
+
+      const sorted      = [...(data.competencyScores ?? [])].sort((a, b) => b.percentage - a.percentage);
+      const best        = sorted[0];
+      const worst       = sorted[sorted.length - 1];
+      const margin      = Math.abs(percentage - passingScore).toFixed(1);
+
+      return {
+        summary: isSpanish
+          ? `${name}, obtuviste un ${percentage.toFixed(1)}% en el examen de nivel ${level}. ${passed ? `¡Aprobaste superando el mínimo por ${margin}%!` : `No alcanzaste el mínimo requerido (${passingScore}%), te faltaron ${margin}%.`}${best ? ` Tu competencia más fuerte fue ${best.competency} con ${Number(best.percentage).toFixed(1)}%.` : ''}`
+          : `${name}, you scored ${percentage.toFixed(1)}% on the ${level} level exam. ${passed ? `You passed, exceeding the minimum by ${margin}%!` : `You did not meet the required minimum (${passingScore}%), missing by ${margin}%.`}`,
+        keyInsights: [
+          best  ? (isSpanish ? `Tu mejor rendimiento fue en ${best.competency} con ${Number(best.percentage).toFixed(1)}%` : `Your best performance was in ${best.competency} at ${Number(best.percentage).toFixed(1)}%`) : '',
+          worst && worst !== best ? (isSpanish ? `Tu área a reforzar es ${worst.competency} con ${Number(worst.percentage).toFixed(1)}%` : `Your area to strengthen is ${worst.competency} at ${Number(worst.percentage).toFixed(1)}%`) : '',
+          passed
+            ? (isSpanish ? `Tu rendimiento muestra dominio del nivel ${level}` : `Your performance shows mastery of ${level} level`)
+            : (isSpanish ? `Necesitas refuerzo en las competencias evaluadas antes de tu próxima evaluación` : `You need reinforcement before your next evaluation`)
+        ].filter(Boolean),
+        recommendations: isSpanish
+          ? [
+              worst ? `Dedica tiempo adicional a ejercicios de ${worst.competency} para mejorar desde tu ${Number(worst.percentage).toFixed(1)}% actual` : 'Continúa con tu plan de estudio actual',
+              passed ? `Considera avanzar al siguiente nivel para seguir desarrollando tus habilidades` : `Repasa los temas del nivel ${level} antes de reintentar la evaluación`,
+              'Practica regularmente con materiales del nivel para mantener y mejorar tu rendimiento'
+            ]
+          : [
+              worst ? `Dedicate extra time to ${worst.competency} to improve from your current ${Number(worst.percentage).toFixed(1)}%` : 'Continue with your current study plan',
+              passed ? `Consider advancing to the next level` : `Review ${level} level topics before retaking the assessment`,
+              'Practice regularly with level-appropriate materials'
+            ],
+        trends: isSpanish
+          ? [
+              best && worst && best !== worst
+                ? `Hay una diferencia de ${(Number(best.percentage) - Number(worst.percentage)).toFixed(1)}% entre tu competencia más fuerte y la más débil`
+                : 'Tu rendimiento es uniforme entre las competencias',
+              passed ? `Tu resultado confirma que estás listo para el nivel siguiente` : `Tu resultado indica que necesitas consolidar el nivel ${level}`
+            ]
+          : ['Your competency performance shows variation worth addressing', passed ? `Your result confirms readiness for the next level` : `Your result indicates you need to consolidate ${level} level`],
+        concerns: passed
+          ? []
+          : isSpanish
+            ? [
+                worst ? `Tu competencia de ${worst.competency} (${Number(worst.percentage).toFixed(1)}%) requiere atención prioritaria` : 'Necesitas refuerzo general en todas las competencias',
+                `Te faltan ${margin}% para alcanzar el puntaje mínimo de aprobación`
+              ]
+            : [
+                worst ? `Your ${worst.competency} (${Number(worst.percentage).toFixed(1)}%) needs priority attention` : 'You need general reinforcement across all competencies',
+                `You need ${margin}% more to reach the minimum passing score`
+              ],
+        visualizationSuggestions: []
+      };
+    }
+
+    // Fallback genérico para otros tipos de reporte
     return {
-      summary: isSpanish
-        ? 'Análisis de datos completado. Los datos han sido procesados y están listos para revisión.'
-        : 'Data analysis completed. The data has been processed and is ready for review.',
-      keyInsights: isSpanish
-        ? ['Datos procesados correctamente', 'Información disponible para análisis', 'Métricas calculadas']
-        : ['Data processed successfully', 'Information available for analysis', 'Metrics calculated'],
-      recommendations: isSpanish
-        ? ['Revisar los resultados detalladamente', 'Considerar tendencias históricas', 'Implementar mejoras basadas en datos']
-        : ['Review results in detail', 'Consider historical trends', 'Implement data-driven improvements'],
-      trends: isSpanish
-        ? ['Datos disponibles para análisis de tendencias', 'Patrones identificables en la información']
-        : ['Data available for trend analysis', 'Identifiable patterns in the information'],
-      concerns: isSpanish
-        ? ['Revisar calidad de datos', 'Validar métricas importantes']
-        : ['Review data quality', 'Validate important metrics'],
-      visualizationSuggestions: isSpanish
-        ? ['Incluir gráficos de tendencias', 'Agregar tablas comparativas']
-        : ['Include trend charts', 'Add comparative tables']
+      summary:         isSpanish ? 'Análisis completado con los datos disponibles.' : 'Analysis completed with available data.',
+      keyInsights:     isSpanish ? ['Los datos han sido procesados correctamente', 'Métricas calculadas y disponibles'] : ['Data processed successfully', 'Metrics calculated and available'],
+      recommendations: isSpanish ? ['Revisar los resultados detalladamente', 'Implementar mejoras basadas en los datos'] : ['Review results in detail', 'Implement data-driven improvements'],
+      trends:          [],
+      concerns:        [],
+      visualizationSuggestions: []
     };
   }
 
-  /**
-   * Verifica si el servicio LLM está disponible
-   */
   async isAvailable(): Promise<boolean> {
+    if (!this.groqApiKey) return false;
     try {
-      const response = await axios.get(`${this.ollamaUrl}/api/tags`, {
-        timeout: 5000
+      const res = await axios.get('https://api.groq.com/openai/v1/models', {
+        timeout: 5000,
+        headers: { 'Authorization': `Bearer ${this.groqApiKey}` }
       });
-      return response.status === 200;
-    } catch (error) {
-      logger.warn('LLM service no disponible:', error);
+      return res.status === 200;
+    } catch {
       return false;
     }
   }

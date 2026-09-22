@@ -81,6 +81,19 @@ export interface IExamResult extends Document {
     percentage: number;
     questionCount: number;
   }>;
+
+  // Grading performance tracking
+  gradingStartedAt?: Date;
+  gradingCompletedAt?: Date;
+  gradingDurationMs?: number;
+  gradingBreakdown?: {
+    questionsMs: number;
+    autoGradingMs: number;
+    aiGradingMs: number;
+    audioGradingMs: number;
+    perQuestionFeedbackMs: number;
+    overallFeedbackMs: number;
+  };
 }
 
 const questionResultSchema = new Schema<IQuestionResult>({
@@ -165,7 +178,20 @@ const examResultSchema = new Schema<IExamResult>({
     maxScore: Number,
     percentage: Number,
     questionCount: Number
-  }]
+  }],
+
+  // Grading performance tracking
+  gradingStartedAt: Date,
+  gradingCompletedAt: Date,
+  gradingDurationMs: Number,
+  gradingBreakdown: {
+    questionsMs: Number,
+    autoGradingMs: Number,
+    aiGradingMs: Number,
+    audioGradingMs: Number,
+    perQuestionFeedbackMs: Number,
+    overallFeedbackMs: Number,
+  }
 }, {
   timestamps: true,
   collection: 'exam_results'

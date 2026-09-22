@@ -19,8 +19,8 @@ export const useNavigation = () => {
   // Default paths for each role
   const defaultPaths: Record<UserRole, string> = {
     admin: '/dashboard',
-    teacher: '/teacher/dashboard', 
-    proctor: '/proctor/dashboard',
+    teacher: '/sessions',
+    proctor: '/sessions',
     student: '/student/dashboard'
   };
 

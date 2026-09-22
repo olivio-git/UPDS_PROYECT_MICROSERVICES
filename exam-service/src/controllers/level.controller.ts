@@ -1,4 +1,5 @@
 import { NextFunction, Request, Response } from 'express';
+import { auditLog } from '../services/audit-client.service';
 import { Question } from '../models/question.model';
 import { LevelService } from '../services/level.service';
 import { logger } from '../utils/logger';
@@ -89,6 +90,12 @@ export class LevelController {
         createdBy: req.user.id
       });
 
+      auditLog({
+        action: 'level.created',
+        target: { type: 'level', id: String((level as any)._id ?? ''), name: (level as any).code },
+        actor: { userId: req.user?.id, email: req.user?.email, role: req.user?.role },
+      });
+
       return res.status(201).json({
         success: true,
         message: 'Nivel creado exitosamente',
@@ -134,6 +141,12 @@ export class LevelController {
         });
       }
 
+      auditLog({
+        action: 'level.updated',
+        target: { type: 'level', id: req.params.id!, name: (level as any).code },
+        actor: { userId: req.user?.id, email: req.user?.email, role: req.user?.role },
+      });
+
       return res.json({
         success: true,
         message: 'Nivel actualizado exitosamente',
@@ -167,6 +180,12 @@ export class LevelController {
 
       await this.levelService.delete(req.params.id!);
 
+      auditLog({
+        action: 'level.deleted',
+        target: { type: 'level', id: req.params.id!, name: (level as any).code },
+        actor: { userId: req.user?.id, email: req.user?.email, role: req.user?.role },
+      });
+
       return res.json({
         success: true,
         message: 'Nivel eliminado exitosamente'
@@ -188,6 +207,12 @@ export class LevelController {
           message: 'Nivel no encontrado'
         });
       }
+
+      auditLog({
+        action: 'level.activated',
+        target: { type: 'level', id: req.params.id!, name: (level as any).code },
+        actor: { userId: req.user?.id, email: req.user?.email, role: req.user?.role },
+      });
 
       return res.json({
         success: true,
@@ -211,6 +236,12 @@ export class LevelController {
           message: 'Nivel no encontrado'
         });
       }
+
+      auditLog({
+        action: 'level.deactivated',
+        target: { type: 'level', id: req.params.id!, name: (level as any).code },
+        actor: { userId: req.user?.id, email: req.user?.email, role: req.user?.role },
+      });
 
       return res.json({
         success: true,

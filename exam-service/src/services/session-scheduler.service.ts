@@ -5,6 +5,9 @@ import { Session } from '../models/session.model';
 import { logger } from '../utils/logger';
 import { KafkaService } from './kafka.service';
 import { SessionService } from './session.service';
+import { auditLog } from './audit-client.service';
+
+const SYSTEM_ACTOR = { userId: 'system', email: 'system@scheduler', role: 'system' };
 
 export class SessionSchedulerService {
   private schedulerQueue: Bull.Queue | null = null; // 👈 Cambiar a null
@@ -163,9 +166,22 @@ export class SessionSchedulerService {
           timing
         });
         await this.sessionService.startSession(sessionId);
+        auditLog({
+          action: 'session.auto_started',
+          target: { type: 'session', id: sessionId, name: session.sessionName },
+          actor: SYSTEM_ACTOR,
+          details: { scheduledFor, trigger: 'scheduler' },
+        });
         logger.info(`✅ Evento START_REQUESTED enviado para sesión ${sessionId}`);
 
       } catch (error: any) {
+        auditLog({
+          action: 'session.auto_start_failed',
+          target: { type: 'session', id: sessionId },
+          actor: SYSTEM_ACTOR,
+          status: 'failure',
+          details: { error: (error as any)?.message },
+        });
         logger.error(`❌ Error enviando evento de inicio ${sessionId}:`, error);
         throw error;
       }
@@ -191,9 +207,22 @@ export class SessionSchedulerService {
           actualEndTime: new Date().toISOString()
         });
         await this.sessionService.endSession(sessionId);
+        auditLog({
+          action: 'session.auto_ended',
+          target: { type: 'session', id: sessionId, name: session.sessionName },
+          actor: SYSTEM_ACTOR,
+          details: { scheduledFor, trigger: 'scheduler' },
+        });
         logger.info(`✅ Evento END_REQUESTED enviado para sesión ${sessionId}`);
 
       } catch (error: any) {
+        auditLog({
+          action: 'session.auto_end_failed',
+          target: { type: 'session', id: sessionId },
+          actor: SYSTEM_ACTOR,
+          status: 'failure',
+          details: { error: (error as any)?.message },
+        });
         logger.error(`❌ Error enviando evento de fin ${sessionId}:`, error);
         throw error;
       }
@@ -234,6 +263,34 @@ export class SessionSchedulerService {
     } catch (error) {
       logger.error(`Error cancelando programación de sesión ${sessionId}:`, error);
       // No lanzar error para que no bloquee la programación
+    }
+  }
+
+  async rescheduleEndJob(sessionId: string, newEndDate: Date): Promise<void> {
+    this.ensureQueueInitialized();
+    try {
+      const endJob = await this.schedulerQueue!.getJob(`end-${sessionId}`);
+      if (endJob) await endJob.remove();
+
+      const endDelay = newEndDate.getTime() - Date.now();
+      if (endDelay > 0) {
+        await this.schedulerQueue!.add('end-session', {
+          sessionId,
+          action: 'end',
+          scheduledFor: newEndDate.toISOString()
+        }, {
+          delay: endDelay,
+          jobId: `end-${sessionId}`,
+          attempts: 3,
+          backoff: { type: 'exponential', delay: 1000 },
+          removeOnComplete: 10,
+          removeOnFail: 10
+        });
+        logger.info(`End job reprogramado para sesion ${sessionId}: ${newEndDate.toISOString()}`);
+      }
+    } catch (error) {
+      logger.error(`Error reprogramando end job para sesion ${sessionId}:`, error);
+      throw error;
     }
   }
 

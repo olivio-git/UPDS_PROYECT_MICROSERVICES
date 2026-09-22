@@ -20,9 +20,7 @@ export type Competency =
   | 'reading' 
   | 'writing' 
   | 'listening' 
-  | 'speaking' 
-  | 'grammar' 
-  | 'vocabulary';
+  | 'speaking';
 
 // Niveles MCER
 export type Level = 'A1' | 'A2' | 'B1' | 'B2' | 'C1' | 'C2';

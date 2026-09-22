@@ -1,7 +1,10 @@
 import type { PipelineStage } from 'mongoose';
+import { Types } from 'mongoose';
 import { cache } from '../config/redis';
+import { Candidate } from '../models/candidate.model';
 import { ExamResult } from '../models/examResult.model';
 import { Session } from '../models/session.model';
+import { User } from '../models/user.model';
 import { logger } from '../utils/logger';
 
 // Interfaces para los reportes
@@ -183,6 +186,7 @@ export interface StudentStatsReport {
   };
   topPerformers: Array<{
     candidateId: string;
+    name: string;
     averageScore: number;
     examsCompleted: number;
     currentLevel: string;
@@ -193,6 +197,24 @@ export interface StudentStatsReport {
     examsCompleted: number;
     weakCompetencies: string[];
   }>;
+}
+
+export interface StudentListEntry {
+  candidateId: string;
+  name: string;
+  email: string;
+  averageScore: number;
+  examCount: number;
+  lastExamDate: Date | null;
+  currentLevel: string;
+  trend: 'improving' | 'stable' | 'declining';
+}
+
+export interface StudentListReport {
+  students: StudentListEntry[];
+  total: number;
+  page: number;
+  totalPages: number;
 }
 
 export interface ReportFilters {
@@ -207,6 +229,10 @@ export interface ReportFilters {
   minScore?: number;
   maxScore?: number;
   status?: string[];
+  createdBy?: string;
+  sessionId?: string;
+  gestion?: number;       // Año académico, ej. 2026
+  semestre?: 'H1' | 'H2'; // H1=ene-jun, H2=jul-dic
 }
 
 export class ReportsService {
@@ -256,7 +282,10 @@ export class ReportsService {
 
       // Construir el reporte
       const competencyBreakdown: Record<string, any> = {};
-      const competencies = ['reading', 'writing', 'listening', 'speaking', 'grammar', 'vocabulary'];
+      const ALL_COMPETENCIES = ['reading', 'writing', 'listening', 'speaking'];
+      const competencies = filters.competencies?.length
+        ? filters.competencies.filter(c => ALL_COMPETENCIES.includes(c))
+        : ALL_COMPETENCIES;
 
       for (const comp of competencies) {
         const data = competencyData.find(item => item._id === comp);
@@ -346,6 +375,96 @@ export class ReportsService {
   }
 
   /**
+   * Lista paginada de estudiantes con métricas individuales
+   */
+  async getStudentList(
+    filters: ReportFilters = {},
+    page = 1,
+    limit = 20,
+    search = ''
+  ): Promise<StudentListReport> {
+    try {
+      const matchStage = this.buildMatchStage(filters);
+
+      const pipeline: PipelineStage[] = [
+        { $match: { ...matchStage, status: { $in: ['completed', 'pending_ai_review'] } } },
+        { $sort: { evaluatedAt: 1 as const } },
+        {
+          $group: {
+            _id: '$candidateId',
+            examCount: { $sum: 1 },
+            averageScore: { $avg: '$percentage' },
+            lastExamDate: { $max: '$evaluatedAt' },
+            currentLevel: { $last: '$examLevel' },
+            scores: { $push: '$percentage' },
+          }
+        }
+      ];
+
+      const studentData = await ExamResult.aggregate(pipeline);
+
+      // Batch-fetch candidate info (cross-db join en application code)
+      const candidateIds = studentData.map(s => s._id).filter(Boolean);
+      const candidates = await Candidate.find({ _id: { $in: candidateIds } }).lean();
+      const candidateMap = new Map(
+        candidates.map(c => [
+          c._id.toString(),
+          {
+            name: `${c.personalInfo.firstName} ${c.personalInfo.lastName}`.trim(),
+            email: c.personalInfo.email || ''
+          }
+        ])
+      );
+
+      let students: StudentListEntry[] = studentData.map(s => {
+        const info = candidateMap.get(s._id?.toString() ?? '') ?? { name: '', email: '' };
+
+        // Tendencia: primera mitad vs segunda mitad de puntajes
+        let trend: 'improving' | 'stable' | 'declining' = 'stable';
+        if (s.scores.length >= 2) {
+          const mid = Math.floor(s.scores.length / 2);
+          const firstAvg = s.scores.slice(0, mid).reduce((a: number, b: number) => a + b, 0) / mid;
+          const secondHalf = s.scores.slice(mid);
+          const secondAvg = secondHalf.reduce((a: number, b: number) => a + b, 0) / secondHalf.length;
+          if (secondAvg > firstAvg + 5) trend = 'improving';
+          else if (secondAvg < firstAvg - 5) trend = 'declining';
+        }
+
+        return {
+          candidateId: s._id?.toString() ?? '',
+          name: (info.name || s._id?.toString()) ?? '',
+          email: info.email,
+          averageScore: Number.isFinite(s.averageScore) ? Math.round(s.averageScore * 100) / 100 : 0,
+          examCount: s.examCount,
+          lastExamDate: s.lastExamDate ?? null,
+          currentLevel: s.currentLevel || 'N/A',
+          trend,
+        };
+      });
+
+      // Filtro de búsqueda por nombre o email
+      if (search) {
+        const q = search.toLowerCase();
+        students = students.filter(s =>
+          s.name.toLowerCase().includes(q) || s.email.toLowerCase().includes(q)
+        );
+      }
+
+      // Ordenar por nombre
+      students.sort((a, b) => a.name.localeCompare(b.name, 'es'));
+
+      const total = students.length;
+      const totalPages = Math.ceil(total / limit);
+      const paginated = students.slice((page - 1) * limit, page * limit);
+
+      return { students: paginated, total, page, totalPages };
+    } catch (error) {
+      logger.error('Error generating student list:', error);
+      throw error;
+    }
+  }
+
+  /**
    * Generar reporte de estadísticas de estudiantes
    */
   async getStudentStats(filters: ReportFilters = {}): Promise<StudentStatsReport> {
@@ -404,15 +523,26 @@ export class ReportsService {
       };
 
       // Top performers
-      const topPerformers = studentData
+      const topPerformersSorted = studentData
         .sort((a, b) => b.averageScore - a.averageScore)
-        .slice(0, 10)
-        .map(student => ({
-          candidateId: student._id.toString(),
-          averageScore: Math.round(student.averageScore * 100) / 100,
-          examsCompleted: student.examCount,
-          currentLevel: student.currentLevel || 'N/A'
-        }));
+        .slice(0, 10);
+
+      const topPerformerIds = topPerformersSorted.map(s => s._id);
+      const topCandidates = await Candidate.find({ _id: { $in: topPerformerIds } }).lean();
+      const topCandidateMap = new Map(
+        topCandidates.map(c => [
+          c._id.toString(),
+          `${c.personalInfo.firstName} ${c.personalInfo.lastName}`.trim()
+        ])
+      );
+
+      const topPerformers = topPerformersSorted.map(student => ({
+        candidateId: student._id.toString(),
+        name: topCandidateMap.get(student._id.toString()) || student._id.toString(),
+        averageScore: Math.round(student.averageScore * 100) / 100,
+        examsCompleted: student.examCount,
+        currentLevel: student.currentLevel || 'N/A'
+      }));
 
       // Estudiantes con dificultades
       const strugglingStudents = await this.getStrugglingStudents(filters);
@@ -438,6 +568,24 @@ export class ReportsService {
       logger.error('Error generating student stats:', error);
       throw error;
     }
+  }
+
+  /**
+   * Exportar historial de estudiante a CSV
+   */
+  async exportStudentHistoryToCSV(studentId: string): Promise<string> {
+    const report = await this.getStudentHistory(studentId);
+    let csv = 'Examen,Sesión,Fecha,Puntaje,Puntaje Máximo,Porcentaje,Nivel,Estado,Tiempo (min)\n';
+    report.examHistory.forEach(exam => {
+      const date = exam.completedAt ? new Date(exam.completedAt).toLocaleDateString('es-BO') : '';
+      csv += `"${exam.examTitle}","${exam.sessionName}","${date}",${exam.finalScore},${exam.maxScore},${exam.percentage.toFixed(1)}%,"${exam.level}","${exam.status}",${exam.timeSpent}\n`;
+    });
+    csv += `\nResumen\n`;
+    csv += `Total Exámenes,${report.summary.totalExams}\n`;
+    csv += `Promedio,${report.summary.averageScore.toFixed(1)}%\n`;
+    csv += `Mejor Puntaje,${report.summary.bestScore.toFixed(1)}%\n`;
+    csv += `Tiempo Total,${report.summary.totalTimeSpent} min\n`;
+    return csv;
   }
 
   /**
@@ -469,10 +617,21 @@ export class ReportsService {
       status: 'completed'
     };
 
+    // Filtro por rango de fechas explícito
     if (filters.dateRange) {
       match.evaluatedAt = {
         $gte: filters.dateRange.start,
         $lte: filters.dateRange.end
+      };
+    } else if (filters.gestion || filters.semestre) {
+      // Filtro por gestión/semestre (convierte a rango de fechas)
+      const year = filters.gestion ?? new Date().getFullYear();
+      let startMonth = 1, endMonth = 12;
+      if (filters.semestre === 'H1') { startMonth = 1; endMonth = 6; }
+      else if (filters.semestre === 'H2') { startMonth = 7; endMonth = 12; }
+      match.evaluatedAt = {
+        $gte: new Date(`${year}-${String(startMonth).padStart(2, '0')}-01`),
+        $lte: new Date(`${year}-${String(endMonth).padStart(2, '0')}-${endMonth === 6 ? '30' : '31'}`)
       };
     }
 
@@ -488,6 +647,10 @@ export class ReportsService {
       match.percentage = {};
       if (filters.minScore !== undefined) match.percentage.$gte = filters.minScore;
       if (filters.maxScore !== undefined) match.percentage.$lte = filters.maxScore;
+    }
+
+    if (filters.sessionId) {
+      match.sessionId = new Types.ObjectId(filters.sessionId);
     }
 
     return match;
@@ -628,23 +791,25 @@ export class ReportsService {
       {
         $group: {
           _id: '$examLevel',
-          count: { $sum: 1 },
+          students: { $addToSet: '$candidateId' },
           averageScore: { $avg: '$percentage' },
           passCount: {
             $sum: { $cond: [{ $gte: ['$percentage', 70] }, 1, 0] }
-          }
+          },
+          totalExams: { $sum: 1 }
         }
       }
     ];
 
-    const levelData = await ExamResult.aggregate(pipeline); 
+    const levelData = await ExamResult.aggregate(pipeline);
     const distribution: Record<string, any> = {};
 
     levelData.forEach(level => {
+      const studentCount = level.students.length;
       distribution[level._id] = {
-        count: level.count,
+        count: studentCount,
         averageScore: Math.round(level.averageScore * 100) / 100,
-        passRate: Math.round((level.passCount / level.count) * 100)
+        passRate: Math.round((level.passCount / level.totalExams) * 100)
       };
     });
 
@@ -829,22 +994,31 @@ export class ReportsService {
       const oneWeekFromNow = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
       const twoWeeksFromNow = new Date(now.getTime() + 14 * 24 * 60 * 60 * 1000);
 
-      // Construir query para sesiones futuras
+      // Construir query para sesiones futuras y en progreso
+      // - scheduled: startDate >= now
+      // - in_progress: endDate >= now (ya empezaron pero no terminaron)
       const matchStage: any = {
-        status: { $in: ['scheduled', 'in_progress'] },
-        'scheduling.startDate': { $gte: now }
+        $or: [
+          { status: 'scheduled', 'scheduling.startDate': { $gte: now } },
+          { status: 'in_progress', 'scheduling.endDate': { $gte: now } },
+        ]
       };
 
       // Aplicar filtros de fecha si se proporcionan
       if (filters.dateRange) {
-        matchStage['scheduling.startDate'].$lte = filters.dateRange.end;
-        matchStage['scheduling.startDate'].$gte = filters.dateRange.start;
+        matchStage.$or[0]['scheduling.startDate'].$gte = filters.dateRange.start;
+        matchStage.$or[0]['scheduling.startDate'].$lte = filters.dateRange.end;
+      }
+
+      // Filtrar por creador si es teacher (admin ve todas)
+      if (filters.createdBy) {
+        matchStage['createdBy'] = new Types.ObjectId(filters.createdBy);
       }
 
       // Obtener sesiones próximas con datos del examen
       const upcomingSessions = await Session.find(matchStage)
         .populate('examId', 'title description structure')
-        .populate('participants.proctors', 'name email')
+        .populate({ path: 'createdBy', select: 'firstName lastName email profile', model: User })
         .sort({ 'scheduling.startDate': 1 })
         .limit(50)
         .lean();
@@ -878,7 +1052,13 @@ export class ReportsService {
             requireProctor: session.settings.requireProctor,
             allowLateEntry: session.settings.allowLateEntry,
             lateEntryMinutes: session.settings.lateEntryMinutes
-          }
+          },
+          createdBy: session.createdBy && typeof session.createdBy === 'object' ? {
+            firstName: (session.createdBy as any).firstName,
+            lastName: (session.createdBy as any).lastName,
+            email: (session.createdBy as any).email,
+            avatarUrl: (session.createdBy as any).profile?.avatarUrl || undefined,
+          } : undefined,
         };
       });
 
@@ -949,8 +1129,8 @@ export class ReportsService {
         }
       };
 
-      // Cache por 30 minutos (las programaciones no cambian frecuentemente)
-      await cache.set(cacheKey, report, 1800);
+      // Cache por 60 segundos (sesiones en progreso cambian frecuentemente)
+      await cache.set(cacheKey, report, 60);
 
       return report;
     } catch (error) {
@@ -973,42 +1153,46 @@ export class ReportsService {
       // Obtener resultados de exámenes del estudiante
       const examResults = await ExamResult.find({
         candidateId: studentId,
-        isEvaluated: true
+        status: { $in: ['completed', 'pending_ai_review'] }
       })
       .populate('examId', 'title description structure')
       .populate('sessionId', 'sessionName')
       .sort({ evaluatedAt: -1 })
       .lean();
 
-      if (examResults.length === 0) {
-        throw new Error('No se encontraron resultados para este estudiante');
+      // Obtener info del candidato desde la DB compartida con user-management-service
+      let studentInfo: { name: string; email: string; registrationDate: Date };
+      try {
+        const candidate = await Candidate.findById(studentId).lean();
+        studentInfo = {
+          name: candidate
+            ? `${candidate.personalInfo.firstName} ${candidate.personalInfo.lastName}`.trim()
+            : studentId,
+          email: candidate?.personalInfo?.email || '',
+          registrationDate: (candidate as any)?.createdAt || new Date()
+        };
+      } catch {
+        studentInfo = { name: studentId, email: '', registrationDate: new Date() };
       }
-
-      // Información básica del estudiante (simulada - debería venir del user-management-service)
-      const studentInfo = {
-        name: `Estudiante ${studentId}`, // En producción: llamar al servicio de usuarios
-        email: `student${studentId}@example.com`, // En producción: llamar al servicio de usuarios
-        registrationDate: new Date('2024-01-01') // En producción: obtener fecha real
-      };
 
       // Procesar historial de exámenes
       const examHistory = examResults.map((result: any) => {
-        const percentage = result.maxScore > 0 ? (result.finalScore / result.maxScore) * 100 : 0;
-
         return {
           examId: result.examId?._id?.toString() || '',
-          examTitle: result.examId?.title || 'Examen sin título',
+          resultId: result._id?.toString() || '',
+          examTitle: result.examName || result.examId?.title || 'Examen sin título',
           sessionId: result.sessionId?._id?.toString() || '',
           sessionName: result.sessionId?.sessionName || 'Sesión sin nombre',
           completedAt: result.evaluatedAt || result.completedAt,
-          finalScore: result.finalScore || 0,
+          finalScore: result.totalScore || 0,
           maxScore: result.maxScore || 100,
-          percentage: Math.round(percentage * 100) / 100,
-          level: result.level || 'No determinado',
+          percentage: result.percentage ?? Math.round(((result.totalScore || 0) / (result.maxScore || 100)) * 10000) / 100,
+          level: result.examLevel || 'No determinado',
           status: result.status || 'completed',
-          timeSpent: result.timeSpent || 0,
+          timeSpent: Math.round((result.examDuration || 0) / 60), // segundos → minutos
           competencyScores: result.competencyScores || [],
-          feedback: result.feedback || ''
+          feedback: result.overallFeedback || '',
+          gradingDurationMs: result.gradingDurationMs ?? null,
         };
       });
 
@@ -1039,7 +1223,7 @@ export class ReportsService {
           competencyData.get(comp.competency).push({
             examDate: exam.completedAt,
             score: comp.percentage,
-            level: exam.level
+            level: exam.level  // ya es examLevel mapeado arriba como 'level'
           });
         });
       });

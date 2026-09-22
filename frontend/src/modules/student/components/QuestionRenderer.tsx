@@ -539,16 +539,16 @@ const QuestionRenderer: React.FC<Props> = ({
   // Función para generar colores consistentes
   const generateColor = useCallback((pairValue: string): string => {
     const colors = [
-      'bg-blue-500/20 border-blue-500 text-blue-300',
-      'bg-green-500/20 border-green-500 text-green-300',
-      'bg-purple-500/20 border-purple-500 text-purple-300',
-      'bg-yellow-500/20 border-yellow-500 text-yellow-300',
-      'bg-red-500/20 border-red-500 text-red-300',
-      'bg-indigo-500/20 border-indigo-500 text-indigo-300',
-      'bg-pink-500/20 border-pink-500 text-pink-300',
-      'bg-teal-500/20 border-teal-500 text-teal-300',
-      'bg-orange-500/20 border-orange-500 text-orange-300',
-      'bg-cyan-500/20 border-cyan-500 text-cyan-300'
+      'bg-blue-100   border-blue-400   text-blue-700   dark:bg-blue-500/20   dark:border-blue-500   dark:text-blue-300',
+      'bg-green-100  border-green-400  text-green-700  dark:bg-green-500/20  dark:border-green-500  dark:text-green-300',
+      'bg-purple-100 border-purple-400 text-purple-700 dark:bg-purple-500/20 dark:border-purple-500 dark:text-purple-300',
+      'bg-yellow-100 border-yellow-400 text-yellow-700 dark:bg-yellow-500/20 dark:border-yellow-500 dark:text-yellow-300',
+      'bg-red-100    border-red-400    text-red-700    dark:bg-red-500/20    dark:border-red-500    dark:text-red-300',
+      'bg-indigo-100 border-indigo-400 text-indigo-700 dark:bg-indigo-500/20 dark:border-indigo-500 dark:text-indigo-300',
+      'bg-pink-100   border-pink-400   text-pink-700   dark:bg-pink-500/20   dark:border-pink-500   dark:text-pink-300',
+      'bg-teal-100   border-teal-400   text-teal-700   dark:bg-teal-500/20   dark:border-teal-500   dark:text-teal-300',
+      'bg-orange-100 border-orange-400 text-orange-700 dark:bg-orange-500/20 dark:border-orange-500 dark:text-orange-300',
+      'bg-cyan-100   border-cyan-400   text-cyan-700   dark:bg-cyan-500/20   dark:border-cyan-500   dark:text-cyan-300'
     ];
     
     // Generar hash simple del pairValue para consistencia
@@ -733,8 +733,8 @@ const QuestionRenderer: React.FC<Props> = ({
         )}
         {/* Para listening: audio ANTES de la pregunta para que el estudiante escuche primero */}
         {question.competency === 'listening' && mediaUrl && !mediaUrl.startsWith('blob:') && (
-          <div className="mb-4 rounded-lg border border-green-700/40 bg-green-900/10 p-3">
-            <div className="text-[11px] font-medium text-green-400 uppercase tracking-wide mb-2 flex items-center gap-1.5">
+          <div className="mb-4 rounded-lg border border-green-300 bg-green-50 p-3 dark:border-green-700/40 dark:bg-green-900/10">
+            <div className="text-[11px] font-medium text-green-700 dark:text-green-400 uppercase tracking-wide mb-2 flex items-center gap-1.5">
               <span>🎧</span> Escucha el audio antes de responder:
             </div>
             <AudioPlayer
@@ -998,8 +998,8 @@ const QuestionRenderer: React.FC<Props> = ({
             <AudioRecorder
               variant="compact"
               maxDuration={content.expectedResponseType === 'word' ? 10 : content.expectedResponseType === 'sentence' ? 30 : 120}
-              onRecordingComplete={(blob: Blob, url: string) => {
-                onChange(id, { previewUrl: url, audioBlob: blob });
+              onRecordingComplete={(blob: Blob, url: string, duration: number) => {
+                onChange(id, { previewUrl: url, audioBlob: blob, audioDuration: duration });
               }}
               onRecordingStart={() => console.log('Iniciando grabación...')}
               onRecordingStop={() => console.log('Grabación detenida')}
@@ -1007,7 +1007,7 @@ const QuestionRenderer: React.FC<Props> = ({
 
             {/* Estado de subida */}
             {isUploadingAudio && (
-              <div className="flex items-center gap-2 text-sm text-blue-400 bg-blue-900/20 border border-blue-700 rounded-lg p-3">
+              <div className="flex items-center gap-2 text-sm text-blue-700 bg-blue-50 border border-blue-300 rounded-lg p-3 dark:text-blue-400 dark:bg-blue-900/20 dark:border-blue-700">
                 <Loader2 className="w-4 h-4 animate-spin shrink-0" />
                 <span>Guardando tu respuesta de audio...</span>
               </div>
@@ -1015,7 +1015,7 @@ const QuestionRenderer: React.FC<Props> = ({
 
             {/* Error de subida */}
             {answer?.uploadFailed && !isUploadingAudio && (
-              <div className="flex items-center gap-2 text-sm text-red-400 bg-red-900/20 border border-red-700 rounded-lg p-3">
+              <div className="flex items-center gap-2 text-sm text-red-700 bg-red-50 border border-red-300 rounded-lg p-3 dark:text-red-400 dark:bg-red-900/20 dark:border-red-700">
                 <AlertTriangle className="w-4 h-4 shrink-0" />
                 <span>No se pudo guardar el audio. Vuelve a grabar.</span>
               </div>
@@ -1023,20 +1023,24 @@ const QuestionRenderer: React.FC<Props> = ({
 
             {/* Confirmación de audio guardado en servidor */}
             {answer?.audioUrl && !isUploadingAudio && (
-              <div className="flex items-center gap-2 text-sm text-green-400 bg-green-900/20 border border-green-700 rounded-lg p-2">
+              <div className="flex items-center gap-2 text-sm text-green-700 bg-green-50 border border-green-300 rounded-lg p-2 dark:text-green-400 dark:bg-green-900/20 dark:border-green-700">
                 <CheckCircle className="w-4 h-4 shrink-0" />
                 <span>Audio guardado correctamente</span>
               </div>
             )}
 
-            {/* Preview local o URL permanente */}
-            {(answer?.previewUrl || answer?.audioUrl) && (
+            {/* Preview local o URL permanente
+                - audioUrl: URL permanente del servidor (siempre válida)
+                - previewUrl: blob URL en memoria — solo válido si audioBlob está presente (misma sesión)
+                  Si no hay audioBlob, el blob URL ya no existe en memoria (ej. tras reload) */}
+            {(answer?.audioUrl || (answer?.previewUrl && answer?.audioBlob)) && (
               <div className="mt-2">
                 <p className="text-xs text-muted-foreground mb-1">Tu respuesta grabada:</p>
                 <AudioPlayer
-                  src={answer.previewUrl || answer.audioUrl}
+                  src={answer.audioUrl || answer.previewUrl}
                   variant="compact"
                   title="Tu respuesta"
+                  knownDuration={answer.audioDuration}
                 />
               </div>
             )}
@@ -1120,7 +1124,7 @@ const QuestionRenderer: React.FC<Props> = ({
                       key={i}
                       className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium border transition-all ${
                         filled
-                          ? 'bg-blue-900/40 border-blue-500/50 text-blue-200'
+                          ? 'bg-blue-100 border-blue-400 text-blue-700 dark:bg-blue-900/40 dark:border-blue-500/50 dark:text-blue-200'
                           : 'bg-muted/50 border-border text-muted-foreground'
                       }`}
                     >
@@ -1145,12 +1149,12 @@ const QuestionRenderer: React.FC<Props> = ({
         <div className="space-y-6">
           {/* Información sobre errores de multimedia */}
           {(content.items || []).some((item: any) => item.mediaUrl?.startsWith('blob:')) && (
-            <div className="mb-4 p-3 bg-red-900/20 border border-red-700 rounded-lg">
-              <div className="flex items-center gap-2 text-red-400 text-sm font-medium mb-1">
+            <div className="mb-4 p-3 bg-red-50 border border-red-300 rounded-lg dark:bg-red-900/20 dark:border-red-700">
+              <div className="flex items-center gap-2 text-red-700 dark:text-red-400 text-sm font-medium mb-1">
                 <AlertTriangle className="w-4 h-4" />
                 Problemas detectados:
               </div>
-              <div className="text-red-300 text-xs">
+              <div className="text-red-600 dark:text-red-300 text-xs">
                 Algunos archivos multimedia no se guardaron correctamente. 
                 Contacta con el profesor si no puedes completar la pregunta.
               </div>
@@ -1158,10 +1162,10 @@ const QuestionRenderer: React.FC<Props> = ({
           )}
 
           {/* Instrucciones */}
-          <div className="bg-blue-950/50 border border-blue-800 rounded-lg p-4">
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 dark:bg-blue-950/50 dark:border-blue-800">
             <div className="flex justify-between items-center">
-              <p className="text-blue-200 text-sm">
-                {selectedLeftItem ? 
+              <p className="text-blue-700 dark:text-blue-200 text-sm">
+                {selectedLeftItem ?
                   '👆 Ahora selecciona la opción correcta del lado derecho para emparejar' :
                   '👆 Primero selecciona un elemento del lado izquierdo'
                 }
@@ -1170,7 +1174,7 @@ const QuestionRenderer: React.FC<Props> = ({
                 onClick={shuffleMatchingOptions}
                 size="sm"
                 variant="outline"
-                className="flex items-center gap-1 text-blue-300 border-blue-600 hover:bg-blue-900/30"
+                className="flex items-center gap-1 text-blue-600 border-blue-400 hover:bg-blue-100 dark:text-blue-300 dark:border-blue-600 dark:hover:bg-blue-900/30"
               >
                 <Shuffle className="w-4 h-4" />
                 Mezclar opciones
@@ -1181,7 +1185,7 @@ const QuestionRenderer: React.FC<Props> = ({
           <div className="grid md:grid-cols-2 gap-6">
             {/* Lado izquierdo - Items principales */}
             <div className="space-y-3">
-              <h4 className="font-semibold text-purple-200 mb-3 text-center">Elementos principales</h4>
+              <h4 className="font-semibold text-purple-700 dark:text-purple-200 mb-3 text-center">Elementos principales</h4>
               {(content.items || []).map((item: any, index: number) => {
                 const isPaired = Boolean(matchingPairs[item.id]);
                 const isSelected = selectedLeftItem === item.id;
@@ -1233,12 +1237,12 @@ const QuestionRenderer: React.FC<Props> = ({
                         {isPaired ? (
                           <>
                             <div className="w-2 h-2 bg-green-400 rounded-full"></div>
-                            <span className="text-green-300">Emparejado</span>
+                            <span className="text-green-600 dark:text-green-300">Emparejado</span>
                           </>
                         ) : isSelected ? (
                           <>
                             <div className="w-2 h-2 bg-yellow-400 rounded-full animate-pulse"></div>
-                            <span className="text-yellow-300">Seleccionado</span>
+                            <span className="text-yellow-600 dark:text-yellow-300">Seleccionado</span>
                           </>
                         ) : (
                           <>
@@ -1255,7 +1259,7 @@ const QuestionRenderer: React.FC<Props> = ({
 
             {/* Lado derecho - Opciones de matching */}
             <div className="space-y-3">
-              <h4 className="font-semibold text-purple-200 mb-3 text-center">Opciones de emparejamiento</h4>
+              <h4 className="font-semibold text-purple-700 dark:text-purple-200 mb-3 text-center">Opciones de emparejamiento</h4>
               {shuffledMatchingPairs.map((pairValue, index) => {
                 // Verificar si esta opción está emparejada con algún elemento izquierdo
                 // IMPORTANTE: Solo usar matchingPairs (selecciones del usuario), NO comparar con item.matchingPair (respuesta correcta)
@@ -1271,7 +1275,7 @@ const QuestionRenderer: React.FC<Props> = ({
                     className={`
                       relative p-4 border-2 rounded-lg transition-all duration-200
                       ${isUsed ? `${colorClass} border-2` :
-                        canSelect ? 'bg-muted/50 border-border hover:border-green-500 hover:bg-green-900/20 cursor-pointer' :
+                        canSelect ? 'bg-muted/50 border-border hover:border-green-500 hover:bg-green-100 dark:hover:bg-green-900/20 cursor-pointer' :
                         'bg-card/50 border-border opacity-60 cursor-not-allowed'
                       }
                       ${canSelect ? 'hover:shadow-lg' : ''}
@@ -1281,9 +1285,9 @@ const QuestionRenderer: React.FC<Props> = ({
                       <div className="font-medium text-foreground">{pairValue}</div>
                       <div className="flex items-center gap-2 text-xs">
                         {isUsed ? (
-                          <><div className="w-2 h-2 bg-green-400 rounded-full" /><span className="text-green-300">Usado</span></>
+                          <><div className="w-2 h-2 bg-green-400 rounded-full" /><span className="text-green-600 dark:text-green-300">Usado</span></>
                         ) : canSelect ? (
-                          <><div className="w-2 h-2 bg-blue-400 rounded-full" /><span className="text-blue-300">Disponible</span></>
+                          <><div className="w-2 h-2 bg-blue-400 rounded-full" /><span className="text-blue-600 dark:text-blue-300">Disponible</span></>
                         ) : (
                           <><div className="w-2 h-2 bg-muted-foreground rounded-full" /><span className="text-muted-foreground">No disponible</span></>
                         )}
@@ -1358,8 +1362,8 @@ const QuestionRenderer: React.FC<Props> = ({
                 const item = (content.items || []).find((i: any) => i.id === activeDragId);
                 return item ? (
                   <div className="flex items-center gap-3 p-3 rounded-lg border-2 border-blue-400 bg-blue-600/30 shadow-2xl">
-                    <GripVertical className="w-4 h-4 text-blue-300 flex-shrink-0" />
-                    <span className="text-white text-sm font-medium">{item.content}</span>
+                    <GripVertical className="w-4 h-4 text-blue-700 dark:text-blue-300 flex-shrink-0" />
+                    <span className="text-foreground text-sm font-medium">{item.content}</span>
                   </div>
                 ) : null;
               })() : null}

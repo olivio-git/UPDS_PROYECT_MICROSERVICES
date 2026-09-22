@@ -1,11 +1,8 @@
-import { Button } from "@/components/atoms/button";
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem,
   DropdownMenuSeparator, DropdownMenuTrigger,
 } from "@/components/atoms/dropdown-menu";
-import { Input } from "@/components/atoms/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/atoms/select";
-import GradientWrapper from "@/components/background/GrandWrapperSection";
 import CustomizableTable from "@/components/common/CustomizableTable";
 import { MainLayout } from "@/components/layout";
 import { getCoreRowModel, getSortedRowModel, useReactTable, type ColumnDef } from "@tanstack/react-table";
@@ -14,7 +11,6 @@ import {
   ChevronLeft, ChevronRight,
   Copy, Edit,
   Eye,
-  Filter,
   MoreVertical,
   Plus, Search,
   Trash2,
@@ -37,7 +33,6 @@ const ExamsScreen = () => {
 
   // Estados de UI
   const [searchTerm, setSearchTerm] = useState("");
-  const [showFilters, setShowFilters] = useState(false);
 
   // Confirmación no modal de eliminación
   const [examToDelete, setExamToDelete] = useState<Exam | null>(null);
@@ -222,7 +217,7 @@ const ExamsScreen = () => {
       accessorFn: (row) => row.questionPool?.length || 0,
       cell: ({ getValue }) => (
         <div className="text-center">
-          <span className="text-lg font-semibold text-blue-400">
+          <span className="text-lg font-semibold text-blue-600 dark:text-blue-400">
             {Number(getValue())}
           </span>
           <div className="text-xs text-muted-foreground">preguntas</div>
@@ -276,7 +271,7 @@ const ExamsScreen = () => {
                   <MoreVertical className="w-4 h-4 text-muted-foreground" />
                 </button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="bg-popover border-line">
+              <DropdownMenuContent align="end" className="bg-popover border-border">
                 <DropdownMenuItem
                   onClick={() => handleViewDetails(exam)}
                   className="text-foreground hover:bg-muted cursor-pointer"
@@ -338,14 +333,14 @@ const ExamsScreen = () => {
 
     if (viewMode === "create" || viewMode === "edit") {
       return (
-        <div className="bg-card border border-line rounded-xl p-6">
+        <div className="bg-card border border-border rounded-xl p-6">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-lg font-semibold text-foreground">
               {viewMode === "edit" ? "Editar Examen" : "Nuevo Examen"}
             </h2>
             <button
               onClick={handleBackToTable}
-              className="px-3 py-2 bg-muted/50 border border-line rounded-lg text-muted-foreground hover:bg-muted flex items-center gap-2"
+              className="px-3 py-2 bg-muted/50 border border-border rounded-lg text-muted-foreground hover:bg-muted flex items-center gap-2"
             >
               <X className="w-4 h-4" /> Volver
             </button>
@@ -363,218 +358,194 @@ const ExamsScreen = () => {
       );
     }
 
-    const baseInputClass =
-      "bg-muted/50 border-border text-foreground placeholder:text-muted-foreground border-[0.5px] focus:border-blue-500 focus:ring-0 rounded-lg";
-
     // Tabla
     return (
-      <div className="space-y-6">
-        {/* Header con búsqueda y acciones */}
-        <div className="bg-card border border-line rounded-xl p-6">
-          <div className="flex-1">
-            <h2 className="text-2xl font-bold text-foreground">
-              Gestión de Exámenes
-            </h2> 
+      <div className="flex flex-col gap-3">
+
+        {/* Header */}
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-xl font-bold text-foreground">Gestión de Exámenes</h1>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              {totalItems > 0 ? `${totalItems} exámenes` : 'Sin exámenes'} · gestión del banco de evaluaciones
+            </p>
           </div>
-          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
-            {/* Búsqueda */}
-            <div className="flex-1 max-w-xl">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground w-5 h-5" />
-                <Input
-                  placeholder="Buscar exámenes..."
-                  value={searchTerm || ''}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10 pr-3 w-full bg-muted/50 border-border text-foreground placeholder:text-muted-foreground"
-                /> 
-              </div>
-            </div>
-
-            {/* Acciones */}
-            <div className="flex items-center gap-3">
-              <button
-                onClick={() => setShowFilters(!showFilters)}
-                className="px-4 py-2.5 bg-muted/50 border border-line rounded-lg hover:bg-muted text-muted-foreground flex items-center gap-2 transition-all"
-              >
-                <Filter className="w-4 h-4" />
-                Filtros
-              </button>
-
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleCreate}
-                className="gap-1 bg-blue-600 hover:bg-blue-700 text-white"
-              >
-                <Plus className="w-4 h-4" />
-                Nuevo Examen
-              </Button>
-            </div>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={handleCreate}
+              className="h-8 flex items-center gap-1.5 px-3 text-xs rounded-md bg-blue-600 hover:bg-blue-700 text-white transition-colors"
+            >
+              <Plus className="w-3.5 h-3.5" /> Nuevo Examen
+            </button>
           </div>
-
-          {/* Filtros expandidos */}
-          {showFilters && (
-            <div className="mt-6 pt-6 border-t border-line">
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-muted-foreground mb-2">Tipo</label>
-                  <Select
-                    value={localFilters.type}
-                    onValueChange={(value) => setLocalFilters({ ...localFilters, type: value })}
-                  >
-                    <SelectTrigger className={baseInputClass}>
-                      <SelectValue placeholder="Selecciona el tipo" />
-                    </SelectTrigger>
-                    <SelectContent className="bg-background border border-border">
-                      <SelectItem className="hover:bg-muted" value="all">Todos</SelectItem>
-                      <SelectItem className="hover:bg-muted" value="placement">Nivelación</SelectItem>
-                      <SelectItem className="hover:bg-muted" value="progress">Progreso</SelectItem>
-                      <SelectItem className="hover:bg-muted" value="final">Final</SelectItem>
-                      <SelectItem className="hover:bg-muted" value="practice">Práctica</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-muted-foreground mb-2">Nivel</label>
-                  <Select
-                    value={localFilters.targetLevel}
-                    onValueChange={(value) => setLocalFilters({ ...localFilters, targetLevel: value })}
-                  >
-                    <SelectTrigger className={baseInputClass}>
-                      <SelectValue placeholder="Selecciona el nivel" />
-                    </SelectTrigger>
-                    <SelectContent className="bg-background border border-border">
-                      <SelectItem className="hover:bg-muted" value="all">Todos</SelectItem>
-                      <SelectItem className="hover:bg-muted" value="A1">A1</SelectItem>
-                      <SelectItem className="hover:bg-muted" value="A2">A2</SelectItem>
-                      <SelectItem className="hover:bg-muted" value="B1">B1</SelectItem>
-                      <SelectItem className="hover:bg-muted" value="B2">B2</SelectItem>
-                      <SelectItem className="hover:bg-muted" value="C1">C1</SelectItem>
-                      <SelectItem className="hover:bg-muted" value="C2">C2</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-muted-foreground mb-2">Estado</label>
-                  <Select
-                    value={localFilters.isActive.toString()}
-                    onValueChange={(value) => setLocalFilters({ ...localFilters, isActive: value === "true" })}
-                  >
-                    <SelectTrigger className={baseInputClass}>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent className="bg-background border border-border">
-                      <SelectItem className="hover:bg-muted" value="true">Activos</SelectItem>
-                      <SelectItem className="hover:bg-muted" value="false">Inactivos</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="flex items-end gap-2">
-                  <button
-                    onClick={handleApplyFilters}
-                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-all"
-                  >
-                    Aplicar
-                  </button>
-                  <button
-                    onClick={handleClearFilters}
-                    className="px-4 py-2 bg-muted/50 border border-line rounded-lg hover:bg-muted text-muted-foreground transition-all"
-                  >
-                    Limpiar
-                  </button>
-                </div>
-              </div>
-            </div>
-          )}
         </div>
 
-        {/* Tabla */}
-        <div className="bg-card border border-line rounded-xl overflow-hidden">
+        {/* Filter bar */}
+        <div className="bg-card border border-border rounded-lg px-3 py-2 flex flex-wrap items-center gap-2">
+
+          {/* Search */}
+          <div className="relative">
+            <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3 w-3 text-muted-foreground pointer-events-none" />
+            <input
+              type="text"
+              placeholder="Buscar exámenes..."
+              value={searchTerm}
+              onChange={e => setSearchTerm(e.target.value)}
+              onKeyDown={e => e.key === 'Enter' && handleApplyFilters()}
+              className="h-7 pl-6 pr-2 text-xs bg-muted/60 border border-border rounded text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring w-44"
+            />
+          </div>
+
+          <div className="w-px h-5 bg-border shrink-0" />
+
+          {/* Tipo */}
+          <Select
+            value={localFilters.type}
+            onValueChange={(value) => setLocalFilters({ ...localFilters, type: value })}
+          >
+            <SelectTrigger className="h-7 text-xs bg-muted/60 border border-border rounded px-2 text-foreground focus:outline-none w-auto min-w-0 gap-1">
+              <SelectValue placeholder="Tipo" />
+            </SelectTrigger>
+            <SelectContent className="bg-background border border-border">
+              <SelectItem className="hover:bg-muted text-xs" value="all">Todos los tipos</SelectItem>
+              <SelectItem className="hover:bg-muted text-xs" value="placement">Nivelación</SelectItem>
+              <SelectItem className="hover:bg-muted text-xs" value="progress">Progreso</SelectItem>
+              <SelectItem className="hover:bg-muted text-xs" value="final">Final</SelectItem>
+              <SelectItem className="hover:bg-muted text-xs" value="practice">Práctica</SelectItem>
+            </SelectContent>
+          </Select>
+
+          {/* Nivel */}
+          <Select
+            value={localFilters.targetLevel}
+            onValueChange={(value) => setLocalFilters({ ...localFilters, targetLevel: value })}
+          >
+            <SelectTrigger className="h-7 text-xs bg-muted/60 border border-border rounded px-2 text-foreground focus:outline-none w-auto min-w-0 gap-1">
+              <SelectValue placeholder="Nivel" />
+            </SelectTrigger>
+            <SelectContent className="bg-background border border-border">
+              <SelectItem className="hover:bg-muted text-xs" value="all">Todos los niveles</SelectItem>
+              <SelectItem className="hover:bg-muted text-xs" value="A1">A1</SelectItem>
+              <SelectItem className="hover:bg-muted text-xs" value="A2">A2</SelectItem>
+              <SelectItem className="hover:bg-muted text-xs" value="B1">B1</SelectItem>
+              <SelectItem className="hover:bg-muted text-xs" value="B2">B2</SelectItem>
+              <SelectItem className="hover:bg-muted text-xs" value="C1">C1</SelectItem>
+              <SelectItem className="hover:bg-muted text-xs" value="C2">C2</SelectItem>
+            </SelectContent>
+          </Select>
+
+          {/* Estado */}
+          <Select
+            value={localFilters.isActive.toString()}
+            onValueChange={(value) => setLocalFilters({ ...localFilters, isActive: value === "true" })}
+          >
+            <SelectTrigger className="h-7 text-xs bg-muted/60 border border-border rounded px-2 text-foreground focus:outline-none w-auto min-w-0 gap-1">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent className="bg-background border border-border">
+              <SelectItem className="hover:bg-muted text-xs" value="true">Activos</SelectItem>
+              <SelectItem className="hover:bg-muted text-xs" value="false">Inactivos</SelectItem>
+            </SelectContent>
+          </Select>
+
+          <button
+            onClick={handleApplyFilters}
+            className="h-7 px-2.5 text-xs rounded bg-blue-600 hover:bg-blue-700 text-white transition-colors"
+          >
+            Aplicar
+          </button>
+          <button
+            onClick={handleClearFilters}
+            className="h-7 px-2 text-xs rounded text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+          >
+            Limpiar
+          </button>
+        </div>
+
+        {/* Table */}
+        <div className="bg-card border border-border rounded-lg overflow-hidden">
           {loading ? (
             <div className="p-12 text-center">
-              <div className="inline-block animate-spin rounded-full h-10 w-10 border-b-2 border-blue-500"></div>
-              <p className="mt-4 text-muted-foreground">Cargando exámenes...</p>
+              <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500" />
+              <p className="mt-4 text-sm text-muted-foreground">Cargando exámenes...</p>
             </div>
           ) : error ? (
             <div className="p-12 text-center">
-              <p className="text-red-400 mb-4">{error}</p>
+              <p className="text-sm text-red-400 mb-4">{error}</p>
               <button
                 onClick={() => loadExams()}
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-all"
+                className="px-3 py-1.5 text-xs bg-blue-600 text-white rounded-lg hover:bg-blue-700"
               >
                 Reintentar
               </button>
             </div>
           ) : exams.length === 0 ? (
             <div className="p-12 text-center">
-              <BookOpen className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-              <p className="text-muted-foreground mb-4">No se encontraron exámenes</p>
+              <BookOpen className="w-10 h-10 text-muted-foreground/40 mx-auto mb-3" />
+              <p className="text-sm text-muted-foreground mb-4">No se encontraron exámenes</p>
               <button
                 onClick={handleCreate}
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-all"
+                className="px-3 py-1.5 text-xs bg-blue-600 text-white rounded-lg hover:bg-blue-700"
               >
                 Crear primer examen
               </button>
             </div>
           ) : (
             <>
-              <div className="overflow-x-auto">
-                <CustomizableTable
-                  table={table}
-                  isLoading={loading}
-                  isFetching={false}
-                  isError={!!error}
-                  errorMessage={error!}
-                  noDataMessage="No se encontraron exámenes"
-                  rows={10}
-                />
-                
-                {/* Paginación */}
-                <div className="px-6 py-4 border-t border-line flex flex-col sm:flex-row items-center justify-between gap-4">
-                  <div className="text-sm text-muted-foreground">
-                    Mostrando {((currentPage - 1) * 10) + 1} a {Math.min(currentPage * 10, totalItems)} de {totalItems} exámenes
-                  </div>
-                  <div className="flex items-center gap-2">
+              <CustomizableTable
+                table={table}
+                isLoading={loading}
+                isFetching={false}
+                isError={!!error}
+                errorMessage={error!}
+                noDataMessage="No se encontraron exámenes"
+                rows={10}
+              />
+
+              {/* Paginación */}
+              {totalPages > 1 && (
+                <div className="px-4 py-3 border-t border-border flex items-center justify-between">
+                  <span className="text-xs text-muted-foreground">
+                    {(currentPage - 1) * 10 + 1}–{Math.min(currentPage * 10, totalItems)} de {totalItems} exámenes
+                  </span>
+                  <div className="flex items-center gap-1">
                     <button
                       onClick={() => changePage(currentPage - 1)}
                       disabled={currentPage === 1}
-                      className="p-2 bg-muted/50 border border-line rounded-lg hover:bg-muted disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                      className="p-1.5 bg-muted/50 border border-border rounded hover:bg-muted disabled:opacity-40 disabled:cursor-not-allowed transition-all"
                     >
-                      <ChevronLeft className="w-4 h-4 text-muted-foreground" />
+                      <ChevronLeft className="w-3.5 h-3.5 text-muted-foreground" />
                     </button>
-
-                    <div className="flex gap-1">
-                      {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-                        const page = i + 1;
-                        return (
-                          <button
-                            key={page}
-                            onClick={() => changePage(page)}
-                            className={`px-3 py-1 rounded-lg transition-all ${
-                              page === currentPage
-                                ? "bg-blue-600 text-white"
-                                : "bg-muted/50 border border-line text-muted-foreground hover:bg-muted"
-                            }`}
-                          >
-                            {page}
-                          </button>
-                        );
-                      })}
-                    </div>
-
+                    {(() => {
+                      const maxVisible = 5;
+                      const half = Math.floor(maxVisible / 2);
+                      let start = Math.max(1, currentPage - half);
+                      const end = Math.min(totalPages, start + maxVisible - 1);
+                      if (end - start + 1 < maxVisible) start = Math.max(1, end - maxVisible + 1);
+                      return Array.from({ length: end - start + 1 }, (_, i) => start + i).map(page => (
+                        <button
+                          key={page}
+                          onClick={() => changePage(page)}
+                          className={`px-2.5 py-1 text-xs rounded transition-all ${
+                            page === currentPage
+                              ? 'bg-blue-600 text-white'
+                              : 'bg-muted/50 border border-border text-muted-foreground hover:bg-muted'
+                          }`}
+                        >
+                          {page}
+                        </button>
+                      ));
+                    })()}
                     <button
                       onClick={() => changePage(currentPage + 1)}
                       disabled={currentPage === totalPages}
-                      className="p-2 bg-muted/50 border border-line rounded-lg hover:bg-muted disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                      className="p-1.5 bg-muted/50 border border-border rounded hover:bg-muted disabled:opacity-40 disabled:cursor-not-allowed transition-all"
                     >
-                      <ChevronRight className="w-4 h-4 text-muted-foreground" />
+                      <ChevronRight className="w-3.5 h-3.5 text-muted-foreground" />
                     </button>
                   </div>
                 </div>
-              </div>
+              )}
             </>
           )}
         </div>
@@ -584,18 +555,8 @@ const ExamsScreen = () => {
 
   return (
     <MainLayout gradientVariant="aurora">
-      <div className="max-w-7xl mx-auto space-y-8 epilogue-uniquifier">
-        <div className="text-center space-y-3 mb-5">
-          <div className="flex justify-center">
-            <div className="p-2.5 rounded-full bg-gradient-to-br from-blue-500/15 to-purple-600/15 border border-blue-500/20">
-              <BookOpen className="h-3.5 w-3.5 text-blue-300" />
-            </div>
-          </div> 
-        </div>
-
-        <GradientWrapper intensity="low" size="xl" position="right" animate={false} variant="cosmic">
-          <div className="min-h-screen">{renderView()}</div>
-        </GradientWrapper>
+      <div className="flex flex-col gap-3 p-4 max-w-7xl mx-auto w-full epilogue-uniquifier">
+        {renderView()}
       </div>
 
       {/* Barra de confirmación (no modal) */}

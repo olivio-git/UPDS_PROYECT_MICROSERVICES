@@ -1,4 +1,5 @@
 import { NextFunction, Request, Response } from 'express';
+import { auditLog } from '../services/audit-client.service';
 import { ImportService } from '../services/import.service';
 import { QuestionService } from '../services/question.service';
 import { StorageService } from '../services/storage.service';
@@ -23,6 +24,12 @@ export class QuestionController {
       };
 
       const question = await this.questionService.create(questionData as any);
+
+      auditLog({
+        action: 'question.created',
+        target: { type: 'question', id: String((question as any)._id ?? ''), name: (question as any).content?.prompt?.substring(0, 60) },
+        actor: { userId: (req as any).user?.id, email: (req as any).user?.email, role: (req as any).user?.role },
+      });
 
       res.status(201).json({
         success: true,
@@ -194,6 +201,13 @@ export class QuestionController {
         const finalQuestion = await this.questionService.findById(questionIdStr);
         console.log('Final question created:', finalQuestion);
 
+        auditLog({
+          action: 'question.created',
+          target: { type: 'question', id: questionIdStr, name: questionData.content?.prompt?.substring(0, 60) },
+          actor: { userId: (req as any).user?.id, email: (req as any).user?.email, role: (req as any).user?.role },
+          details: { hasMedia: true },
+        });
+
         res.status(201).json({
           success: true,
           message: 'Pregunta creada exitosamente con multimedia',
@@ -344,6 +358,13 @@ export class QuestionController {
         });
         return;
       }
+
+      auditLog({
+        action: 'question.updated',
+        target: { type: 'question', id: req.params.id! },
+        actor: { userId: (req as any).user?.id, email: (req as any).user?.email, role: (req as any).user?.role },
+      });
+
       res.json({
         success: true,
         message: 'Pregunta actualizada exitosamente',
@@ -364,6 +385,13 @@ export class QuestionController {
         });
         return;
       }
+
+      auditLog({
+        action: 'question.deleted',
+        target: { type: 'question', id: req.params.id! },
+        actor: { userId: (req as any).user?.id, email: (req as any).user?.email, role: (req as any).user?.role },
+      });
+
       res.json({
         success: true,
         message: 'Pregunta eliminada exitosamente'
@@ -386,7 +414,14 @@ export class QuestionController {
       }
 
       const result = await this.importService.importQuestionsFromFile(req.file, userId!);
-      
+
+      auditLog({
+        action: 'question.imported',
+        target: { type: 'question_bank', name: req.file.originalname },
+        actor: { userId, email: (req as any).user?.email, role: (req as any).user?.role },
+        details: { imported: result.imported, errors: result.errors },
+      });
+
       res.json({
         success: true,
         message: `Preguntas importadas: ${result.imported} exitosas, ${result.errors} errores`,

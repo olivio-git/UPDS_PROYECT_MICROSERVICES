@@ -20,16 +20,26 @@ export class ExamTakingService {
     const session = await this.sessionService.findById(sessionId);
     if (!session) throw new Error('Session not found');
 
-    // Check if there's already an expired attempt for this session
+    // ── Late entry validation ─────────────────────────────────────────────────
+    const now = new Date();
+    const startDate = new Date((session as any).scheduling.startDate);
+    const endDate   = new Date((session as any).scheduling.endDate);
+    const GRACE_PERIOD_MS = 2 * 60 * 1000; // 2 min grace always
+
+    if ((session as any).status === 'scheduled') {
+      throw new Error('Session has not started yet');
+    }
+    if ((session as any).status !== 'in_progress') {
+      throw new Error('Session is not active');
+    }
+
+    // ── Check for existing attempt FIRST (re-entry bypasses late-entry check) ─
     const existingAttempt = await Attempt.findOne({
       sessionId: session._id,
       candidateId: userCandidateId
     });
 
     if (existingAttempt) {
-      if (existingAttempt.status === 'expired') {
-        throw new Error('Exam time has expired');
-      }
       if (existingAttempt.status === 'completed') {
         throw new Error('Exam already completed');
       }
@@ -37,27 +47,53 @@ export class ExamTakingService {
         throw new Error('Exam was cancelled');
       }
 
-      // If there's an active attempt, check if it's expired by time
+      // Check if time has expired
       if (existingAttempt.startedAt) {
-        const now = new Date();
         const elapsed = Math.floor((now.getTime() - existingAttempt.startedAt.getTime()) / 1000);
         const remaining = Math.max(0, existingAttempt.timeAllowedSeconds - elapsed);
-
         if (remaining <= 0) {
-          // Auto-expire the attempt
           existingAttempt.status = 'expired';
           existingAttempt.finishedAt = new Date();
           await existingAttempt.save();
-          throw new Error('Exam time has expired');
+          throw new Error('El tiempo del examen ha expirado');
+        }
+      }
+
+      if (existingAttempt.status === 'expired') {
+        throw new Error('El tiempo del examen ha expirado');
+      }
+
+      // Student has an in-progress attempt → allow re-entry without late-entry check
+      // (they already entered, changing PC or reconnecting should be allowed)
+    } else {
+      // No existing attempt → this is a first entry → apply late-entry check
+      const settings = (session as any).settings || {};
+      if (!settings.allowLateEntry) {
+        if (now.getTime() > startDate.getTime() + GRACE_PERIOD_MS) {
+          throw new Error('Late entry is not allowed for this session');
+        }
+      } else {
+        const lateLimit = (settings.lateEntryMinutes || 0) * 60 * 1000;
+        if (now.getTime() > startDate.getTime() + lateLimit) {
+          throw new Error('Late entry window has expired');
         }
       }
     }
-    // resolve candidate by userCandidateId -> candidates are in participants.registeredCandidates (they are candidate._id)
-      const candidate = (session as any).candidatesData?.find((c: any) => String(c._id) === String(userCandidateId)) || null;
+    // ─────────────────────────────────────────────────────────────────────────
+    // resolve candidate — first try populated candidatesData, fallback to raw registeredCandidates
+    const candidatesData: any[] = (session as any).candidatesData || [];
+    let candidate = candidatesData.find((c: any) => String(c._id) === String(userCandidateId)) || null;
 
     if (!candidate) {
-      // Try fallback: match by auth id in User model via session service mappings
-      throw new Error('Candidate not registered for this session');
+      // Fallback: candidatesData may be empty if user-management-service was unreachable.
+      // Check registeredCandidates directly — the source of truth.
+      const registered: any[] = (session as any).participants?.registeredCandidates || [];
+      const isRegistered = registered.some((id: any) => String(id) === String(userCandidateId));
+      if (!isRegistered) {
+        throw new Error('Candidate not registered for this session');
+      }
+      // Build minimal candidate object — _id is all that's needed for attempt creation
+      candidate = { _id: userCandidateId };
     }
 
       // SessionService may populate the exam into either `exam` (aggregation) or `examId` (populate)
@@ -143,7 +179,30 @@ export class ExamTakingService {
         const competencyQuestions = competencyQuestionsMap.get(sectionConfig.competency) || [];
 
         // Take questions for this section (they've already been shuffled)
-        const questionsForSection = competencyQuestions.splice(0, sectionConfig.questionCount);
+        // For listening/speaking: deduplicate by context/mediaUrl so the same audio
+        // doesn't appear in multiple questions within the same section
+        let questionsForSection: any[];
+        if (sectionConfig.competency === 'listening' || sectionConfig.competency === 'speaking') {
+          const usedContexts = new Set<string>();
+          const deduped: any[] = [];
+          const consumed: number[] = [];
+          for (let i = 0; i < competencyQuestions.length; i++) {
+            if (deduped.length >= sectionConfig.questionCount) break;
+            const q = competencyQuestions[i];
+            const key = (q.content?.mediaUrl ?? q.content?.context ?? '').trim();
+            if (key && usedContexts.has(key)) continue;
+            if (key) usedContexts.add(key);
+            deduped.push(q);
+            consumed.push(i);
+          }
+          // Remove consumed questions from the pool (in reverse order to preserve indices)
+          for (let i = consumed.length - 1; i >= 0; i--) {
+            competencyQuestions.splice(consumed[i]!, 1);
+          }
+          questionsForSection = deduped;
+        } else {
+          questionsForSection = competencyQuestions.splice(0, sectionConfig.questionCount);
+        }
 
         console.log(`📝 [Section: ${sectionConfig.name}] Assigned ${questionsForSection.length}/${sectionConfig.questionCount} questions`);
 
@@ -197,10 +256,12 @@ export class ExamTakingService {
 
     console.log(`🎯 [ExamTaking] Generated ${sections.length} sections with total ${allSelectedQuestions.length} questions`);
 
-    // Create or update Attempt
-    const timeInMinutes = exam.structure?.totalDuration || 60;
-    const timeInSeconds = timeInMinutes * 60;
-    console.log(`🕒 [ExamTaking] Time configuration: ${timeInMinutes} minutes = ${timeInSeconds} seconds`);
+    // Create or update Attempt — use min(examDuration, sessionRemaining) so late joiners get correct time
+    const examDurationSecs = (exam.structure?.totalDuration || 60) * 60;
+    const sessionRemainingMs = endDate.getTime() - now.getTime();
+    const sessionRemainingSecs = Math.max(0, Math.floor(sessionRemainingMs / 1000));
+    const timeInSeconds = Math.min(examDurationSecs, sessionRemainingSecs);
+    console.log(`🕒 [ExamTaking] Time: exam=${examDurationSecs}s, sessionRemaining=${sessionRemainingSecs}s, allowed=${timeInSeconds}s`);
 
     const attempt = await Attempt.findOneAndUpdate(
       { sessionId: session._id, candidateId: candidate._id },
@@ -591,13 +652,26 @@ export class ExamTakingService {
     console.log(`🎯 [ResumeExam] Restored ${sections.length} sections with total ${sections.reduce((total, s) => total + s.questions.length, 0)} questions`);
 
     // Get existing answers
+    // NOTE: we select `answer` (Mixed/full data) in addition to `response` (strict schema).
+    // The `response` field strips blanks/pairs/positions/order due to Mongoose strict schema.
+    // The `answer` field (Mixed) preserves all fields — use it preferentially.
     const responses = await ResponseModel.find({
       sessionId: attempt.sessionId,
       candidateId: attempt.candidateId
-    }).select('questionId response timestamp').exec();
+    }).select('questionId response answer timestamp').exec();
+
+    // Rewrite internal MinIO URLs back to public URLs so the browser can access audio
+    const internalBase = env.MINIO_INTERNAL_ENDPOINT;
+    const publicBase = env.MINIO_PUBLIC_URL || `http://localhost:${env.MINIO_PORT}`;
 
     const answers = responses.reduce((acc: any, resp: any) => {
-      acc[resp.questionId.toString()] = resp.response;
+      // Prefer `answer` (Mixed, full data) over `response` (strict schema, strips complex fields)
+      let response = resp.answer ?? resp.response;
+      console.log(`📋 [ResumeExam] Q:${resp.questionId} — answer field:`, JSON.stringify(resp.answer), '| response field:', JSON.stringify(resp.response));
+      if (response?.audioUrl && internalBase && response.audioUrl.startsWith(internalBase)) {
+        response = { ...response, audioUrl: response.audioUrl.replace(internalBase, publicBase) };
+      }
+      acc[resp.questionId.toString()] = response;
       return acc;
     }, {});
 

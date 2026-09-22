@@ -91,7 +91,7 @@ const RecentResults = ({
       animate={false}
       variant="cosmic"
     >
-      <Card className="bg-card backdrop-blur-sm border border-line">
+      <Card className="bg-card backdrop-blur-sm border border-line shadow-none">
         <CardHeader className="pb-3">
           <CardTitle className="text-foreground flex items-center gap-2">
             <FileText className="h-5 w-5 text-muted-foreground" />
@@ -175,8 +175,8 @@ const RecentResults = ({
 
           <div className="pt-2">
             <Button
-              variant="outline"
-              className="w-full border-border text-muted-foreground hover:border-yellow-500 bg-card transition-colors hover:cursor-pointer"
+              variant="default"
+              className="w-full"
               onClick={() => navigate("/student/results")}
             >
               Ver Todos los Resultados

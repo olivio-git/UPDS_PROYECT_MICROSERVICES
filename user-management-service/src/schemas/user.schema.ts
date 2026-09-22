@@ -16,8 +16,27 @@ export const CreateUserSchema = z.object({
   metadata: z.record(z.any()).optional()
 });
 
+// Schema for profile update (nested)
+export const ProfileUpdateSchema = z.object({
+  phone: z.string().optional(),
+  address: z.string().optional(),
+  dateOfBirth: z.string().optional(),
+  bio: z.string().max(300).optional(),
+  nationality: z.string().optional(),
+  avatar: z.string().optional(),
+  preferences: z.object({
+    notifications: z.object({
+      email: z.boolean().optional(),
+      push: z.boolean().optional(),
+      sms: z.boolean().optional(),
+    }).optional(),
+  }).optional(),
+});
+
 // Schema for user update
-export const UpdateUserSchema = CreateUserSchema.partial();
+export const UpdateUserSchema = CreateUserSchema.partial().extend({
+  profile: ProfileUpdateSchema.optional(),
+});
 
 // Schema for user list query parameters
 export const getUsersQuerySchema = z.object({
@@ -27,5 +46,7 @@ export const getUsersQuerySchema = z.object({
   role: z.enum(['student', 'teacher', 'admin', 'proctor']).optional(),
   status: z.enum(['active', 'inactive', 'suspended']).optional(),
   sortBy: z.string().optional(),
-  sortOrder: z.enum(['asc', 'desc']).optional()
+  sortOrder: z.enum(['asc', 'desc']).optional(),
+  dateFrom: z.string().optional(),
+  dateTo: z.string().optional(),
 });

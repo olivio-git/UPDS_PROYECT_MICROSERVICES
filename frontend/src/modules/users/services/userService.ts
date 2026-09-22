@@ -68,6 +68,8 @@ class UserService {
       if (filters.status) queryParams.append('status', filters.status);
       if (filters.sortBy) queryParams.append('sortBy', filters.sortBy);
       if (filters.sortOrder) queryParams.append('sortOrder', filters.sortOrder);
+      if (filters.dateFrom) queryParams.append('dateFrom', filters.dateFrom);
+      if (filters.dateTo) queryParams.append('dateTo', filters.dateTo);
       const response = await this.makeAuthenticatedRequest(() =>
         axios.get(
           `${this.baseUrl}/api/v1/users?${queryParams.toString()}`,
@@ -137,7 +139,6 @@ class UserService {
       );
 
       console.log('✅ Usuario creado exitosamente:', response.data);
-      toast.success(`Usuario ${userData.firstName} ${userData.lastName} creado exitosamente`);
 
       return {
         success: true,
@@ -169,7 +170,6 @@ class UserService {
       );
 
       console.log('✅ Usuario actualizado exitosamente:', response.data);
-      toast.success('Usuario actualizado exitosamente');
 
       return {
         success: true,
@@ -197,7 +197,6 @@ class UserService {
       );
 
       console.log('✅ Usuario eliminado exitosamente');
-      toast.success('Usuario eliminado exitosamente');
 
       return {
         success: true,
@@ -222,8 +221,6 @@ class UserService {
         )
       );
 
-      toast.success('Usuario activado exitosamente');
-
       return {
         success: true,
         message: 'Usuario activado exitosamente',
@@ -246,8 +243,6 @@ class UserService {
           { headers: this.getAuthHeaders() }
         )
       );
-
-      toast.success('Usuario desactivado exitosamente');
 
       return {
         success: true,
@@ -280,8 +275,6 @@ class UserService {
         ? 'Contraseña temporal enviada por email'
         : 'Contraseña temporal generada';
       
-      toast.success(message);
-
       return {
         success: true,
         message: response.data.message || message,
@@ -304,8 +297,6 @@ class UserService {
           { headers: this.getAuthHeaders() }
         )
       );
-
-      toast.success('Rol asignado exitosamente');
 
       return {
         success: true,
@@ -365,7 +356,6 @@ class UserService {
       window.URL.revokeObjectURL(url);
 
       console.log('✅ Usuarios exportados exitosamente');
-      toast.success('Usuarios exportados exitosamente');
 
       return {
         success: true,
@@ -434,7 +424,6 @@ class UserService {
       console.log('✅ Usuarios importados exitosamente:', response.data);
 
       const successMessage = response.data.message || 'Usuarios importados exitosamente';
-      toast.success(successMessage);
 
       return {
         success: true,

@@ -18,7 +18,10 @@ interface ExamState {
   
   // Timing
   timeRemaining: number | null;
-  
+
+  // Settings
+  browserLockdown: boolean;
+
   // Actions
   setSessionData: (data: {
     sessionId: string;
@@ -27,8 +30,11 @@ interface ExamState {
     timeRemaining?: number;
     isActive?: boolean;
     sessionType?: 'individual' | 'group';
+    browserLockdown?: boolean;
   }) => void;
   
+  addTimeExtension: (seconds: number) => void;
+
   setAnswer: (questionId: string, answer: any) => void;
   
   updateSectionProgress: (sectionId: string, updates: Partial<SectionProgress>) => void;
@@ -49,6 +55,7 @@ export const useExamStore = create<ExamState>((set) => ({
   sectionProgress: {},
   currentSectionId: null,
   timeRemaining: null,
+  browserLockdown: false,
 
   // Actions
   setSessionData: (data) => {
@@ -65,8 +72,15 @@ export const useExamStore = create<ExamState>((set) => ({
       questions,
       hasSections,
       currentSectionId: sections.length > 0 ? sections[0].id : null,
-      timeRemaining: data.timeRemaining || null
+      timeRemaining: data.timeRemaining || null,
+      browserLockdown: data.browserLockdown ?? false,
     });
+  },
+
+  addTimeExtension: (seconds) => {
+    set((state) => ({
+      timeRemaining: state.timeRemaining !== null ? state.timeRemaining + seconds : null,
+    }));
   },
 
   setAnswer: (questionId, answer) => {
@@ -105,7 +119,8 @@ export const useExamStore = create<ExamState>((set) => ({
       answers: {},
       sectionProgress: {},
       currentSectionId: null,
-      timeRemaining: null
+      timeRemaining: null,
+      browserLockdown: false,
     });
   }
 }));

@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import { Types } from 'mongoose';
+import { auditLog } from '../services/audit-client.service';
 import { Question } from '../models/question.model';
 import { RubricService } from '../services/rubric.service';
 import { logger } from '../utils/logger';
@@ -19,6 +20,12 @@ export class RubricController {
       };
 
       const rubric = await this.rubricService.create(rubricData);
+
+      auditLog({
+        action: 'rubric.created',
+        target: { type: 'rubric', id: String((rubric as any)._id ?? ''), name: (rubric as any).name },
+        actor: { userId: req.user?.id, email: req.user?.email, role: req.user?.role },
+      });
 
       res.status(201).json({
         success: true,
@@ -93,6 +100,12 @@ export class RubricController {
         });
       }
 
+      auditLog({
+        action: 'rubric.updated',
+        target: { type: 'rubric', id: req.params.id!, name: (rubric as any).name },
+        actor: { userId: req.user?.id, email: req.user?.email, role: req.user?.role },
+      });
+
       return res.json({
         success: true,
         message: 'Rúbrica actualizada exitosamente',
@@ -125,6 +138,12 @@ export class RubricController {
           message: 'Rúbrica no encontrada'
         });
       }
+
+      auditLog({
+        action: 'rubric.deleted',
+        target: { type: 'rubric', id: req.params.id! },
+        actor: { userId: req.user?.id, email: req.user?.email, role: req.user?.role },
+      });
 
       return res.json({
         success: true,
@@ -173,6 +192,13 @@ export class RubricController {
         });
       }
 
+      auditLog({
+        action: 'rubric.cloned',
+        target: { type: 'rubric', id: String((rubric as any)._id ?? ''), name: (rubric as any).name },
+        actor: { userId: req.user?.id, email: req.user?.email, role: req.user?.role },
+        details: { sourceId: req.params.id },
+      });
+
       return res.status(201).json({
         success: true,
         message: 'Rúbrica clonada exitosamente',
@@ -196,6 +222,12 @@ export class RubricController {
         });
       }
 
+      auditLog({
+        action: 'rubric.activated',
+        target: { type: 'rubric', id: req.params.id!, name: (rubric as any).name },
+        actor: { userId: req.user?.id, email: req.user?.email, role: req.user?.role },
+      });
+
       return res.json({
         success: true,
         message: 'Rúbrica activada exitosamente',
@@ -218,6 +250,12 @@ export class RubricController {
           message: 'Rúbrica no encontrada'
         });
       }
+
+      auditLog({
+        action: 'rubric.deactivated',
+        target: { type: 'rubric', id: req.params.id!, name: (rubric as any).name },
+        actor: { userId: req.user?.id, email: req.user?.email, role: req.user?.role },
+      });
 
       return res.json({
         success: true,

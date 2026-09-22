@@ -1,23 +1,5 @@
-import { Button } from '@/components/atoms/button';
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '@/components/atoms/card';
-import { Input } from '@/components/atoms/input';
-import { Label } from '@/components/atoms/label';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/atoms/select';
-import { Textarea } from '@/components/atoms/textarea';
-import { Image as ImageIcon, Mic, Plus, Sparkles, Trash2, Volume2 } from 'lucide-react';
-import React, { useEffect, useMemo, useState } from 'react';
+import { ChevronLeft, ChevronRight, Image as ImageIcon, Mic, Plus, Sparkles, Trash2, Volume2 } from 'lucide-react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { toast } from 'sonner';
 
 // Importar los nuevos componentes de audio elegantes
@@ -170,7 +152,29 @@ const QuestionForm: React.FC<Props> = ({ question, onCancel, onSaved }) => {
     [itemIndex: number]: { audio?: File; image?: File };
   }>({});
   // Estado para el generador AI
-  const [showAIGenerator, setShowAIGenerator] = useState(false);
+  const [showAIGenerator, setShowAIGenerator] = useState(true);
+  const [panelWidth, setPanelWidth] = useState(384);
+  const isResizingRef = useRef(false);
+
+  const handleResizeStart = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    const startX = e.clientX;
+    const startWidth = panelWidth;
+    isResizingRef.current = true;
+
+    const onMove = (e: MouseEvent) => {
+      if (!isResizingRef.current) return;
+      const delta = startX - e.clientX;
+      setPanelWidth(Math.min(600, Math.max(280, startWidth + delta)));
+    };
+    const onUp = () => {
+      isResizingRef.current = false;
+      document.removeEventListener('mousemove', onMove);
+      document.removeEventListener('mouseup', onUp);
+    };
+    document.addEventListener('mousemove', onMove);
+    document.addEventListener('mouseup', onUp);
+  }, [panelWidth]);
 
   // Callback para cuando el AI genera una pregunta (audioFile = null para no-listening, File para listening)
   const handleAIQuestionGenerated = (generatedQuestion: Partial<Question>, mediaFile?: File | null) => {
@@ -361,7 +365,7 @@ const QuestionForm: React.FC<Props> = ({ question, onCancel, onSaved }) => {
       const itemsHaveAudioInState = Object.values(itemMediaFiles).some(f => !!f.audio);
 
       if (!hasMainAudio && !itemsHaveAudioInData && !itemsHaveAudioInState) {
-        throw new Error('Las preguntas de listening requieren audio');
+        throw new Error('Sube el archivo de audio en la sección "Audio requerido" antes de guardar');
       }
     }
 
@@ -459,7 +463,7 @@ const QuestionForm: React.FC<Props> = ({ question, onCancel, onSaved }) => {
         // Determinar si necesitamos el endpoint con múltiples archivos
         const hasItemMedia = Object.keys(itemMediaFiles).length > 0;
         const mainMediaFile = audioFile || imageFile;
-        
+
         if (hasItemMedia) {
           // Limpiar blob URLs temporales antes de enviar
           const cleanedDataForMultimedia = { ...cleanedData };
@@ -473,7 +477,7 @@ const QuestionForm: React.FC<Props> = ({ question, onCancel, onSaved }) => {
               return item;
             });
           }
-          
+
           // Usar el nuevo endpoint para múltiples archivos
           saved = await createQuestionWithMultipleMedia(
             cleanedDataForMultimedia,
@@ -502,1142 +506,914 @@ const QuestionForm: React.FC<Props> = ({ question, onCancel, onSaved }) => {
     }
   };
 
-  const baseInputClass =
-    'bg-muted/50 border-border text-foreground placeholder-muted-foreground border-[0.5px] focus:border-blue-500 focus:ring-0 rounded-lg';
-
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
+    <div className="flex gap-4 items-start">
+    <form onSubmit={handleSubmit} className="flex-1 min-w-0 space-y-4">
       {/* Meta */}
-      <Card className="border border-line">
-        <CardHeader className="pb-3">
-          <div className="flex items-center justify-between">
-            <div>
-              <CardTitle className="text-foreground text-lg">Metadatos</CardTitle>
-              <CardDescription className="text-sm">Configura tipo, competencia y nivel</CardDescription>
-            </div>
-            {/* Botón AI integrado en el header */}
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={() => setShowAIGenerator(true)}
-              className="gap-2 bg-gradient-to-r from-purple-500/10 to-blue-600/30 border border-purple-500/30 text-purple-300 hover:from-purple-500/20 hover:to-blue-600/40"
-              disabled={!formData.competency || !formData.level}
-            >
-              <Sparkles className="w-4 h-4" />
-              Generar con IA
-            </Button>
+      <div className="bg-card border border-border rounded-xl p-5 space-y-4">
+        <div className="flex items-start justify-between mb-4">
+          <div>
+            <h3 className="text-base font-semibold text-foreground">Metadatos</h3>
+            <p className="text-xs text-muted-foreground mt-0.5">Configura tipo, competencia y nivel</p>
           </div>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-            {/* Tipo de pregunta — filtrado por competencia */}
-            <div className="space-y-2">
-              <Label>Tipo de Pregunta</Label>
-              {typeIsFixed ? (
-                <div className={`${baseInputClass} flex items-center px-3 h-10 gap-2`}>
-                  <span className="text-foreground text-sm">{TYPE_LABELS[availableTypes[0]]}</span>
-                  <span className="ml-auto text-xs text-muted-foreground italic">único disponible</span>
-                </div>
-              ) : (
-                <Select
-                  value={formData.type as string}
-                  onValueChange={(v: QuestionType) =>
-                    setFormData((p: Partial<Question>) => ({ ...p, type: v }))
-                  }
-                >
-                  <SelectTrigger className={baseInputClass}>
-                    <SelectValue placeholder="Selecciona el tipo" />
-                  </SelectTrigger>
-                  <SelectContent className="bg-card border border-line">
-                    {availableTypes.map(type => (
-                      <SelectItem key={type} className="hover:bg-muted" value={type}>
-                        {TYPE_LABELS[type]}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              )}
-            </div>
+          <button
+            type="button"
+            onClick={() => setShowAIGenerator(v => !v)}
+            disabled={!formData.competency || !formData.level}
+            className="flex items-center gap-1 h-7 px-2 text-xs rounded-md border border-purple-300 dark:border-purple-600/70 bg-purple-100 dark:bg-purple-900/40 text-purple-700 dark:text-purple-300 hover:bg-purple-200 dark:hover:bg-purple-800/50 hover:border-purple-400 dark:hover:border-purple-500 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+          >
+            <Sparkles className="w-3 h-3" />
+            IA
+            {showAIGenerator
+              ? <ChevronLeft className="w-3 h-3" />
+              : <ChevronRight className="w-3 h-3" />
+            }
+          </button>
+        </div>
 
-            {/* Competencia */}
-            <div className="space-y-2">
-              <Label>Competencia</Label>
-              <Select
-                value={formData.competency as string}
-                onValueChange={(v: Competency) => {
-                  const allowed = TYPES_BY_COMPETENCY[v] ?? [];
-                  const currentType = formData.type as QuestionType | undefined;
-                  const newType = currentType && allowed.includes(currentType)
-                    ? currentType
-                    : DEFAULT_TYPE_BY_COMPETENCY[v];
-                  setFormData((p: Partial<Question>) => ({ ...p, competency: v, type: newType }));
-                }}
-              >
-                <SelectTrigger className={baseInputClass}>
-                  <SelectValue placeholder="Selecciona la competencia" />
-                </SelectTrigger>
-                <SelectContent className="bg-card border border-line">
-                  <SelectItem className="hover:bg-muted" value="reading">
-                    Comprensión Lectora
-                  </SelectItem>
-                  <SelectItem className="hover:bg-muted" value="writing">
-                    Expresión Escrita
-                  </SelectItem>
-                  <SelectItem className="hover:bg-muted" value="listening">
-                    Comprensión Auditiva
-                  </SelectItem>
-                  <SelectItem className="hover:bg-muted" value="speaking">
-                    Expresión Oral
-                  </SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            {/* Nivel */}
-            <div className="space-y-2">
-              <Label>Nivel MCER</Label>
-              <Select
-                value={formData.level as string}
-                onValueChange={(v: Level) =>
-                  setFormData((p: Partial<Question>) => ({ ...p, level: v }))
-                }
-                disabled={isLoadingLevels}
-              >
-                <SelectTrigger className={baseInputClass}>
-                  <SelectValue placeholder={isLoadingLevels ? "Cargando niveles..." : "Selecciona el nivel"} />
-                </SelectTrigger>
-                <SelectContent className="bg-card border border-line">
-                  {levels
-                    .filter(level => level.isActive)
-                    .map((level) => (
-                      <SelectItem
-                        key={level._id}
-                        className="hover:bg-muted"
-                        value={level.code}
-                      >
-                        <div className="flex items-center space-x-2">
-                          <span className="font-medium">{level.code}</span>
-                          <span className="text-sm text-muted-foreground">- {level.name}</span>
-                        </div>
-                      </SelectItem>
-                    ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            {/* Rúbrica - Para tipos subjetivos en competencias que la soportan */}
-            {(['essay', 'open_text', 'audio_response'].includes(formData.type || '') &&
-              ['reading', 'writing', 'listening', 'speaking'].includes(formData.competency || '')) && (
-              <div className="space-y-2">
-                <Label>Rúbrica de Evaluación</Label>
-                <Select
-                  value={formData.metadata?.rubricId || ''}
-                  onValueChange={(rubricId: string) =>
-                    setFormData((p: Partial<Question>) => ({
-                      ...p,
-                      metadata: {
-                        topic: p.metadata?.topic || '',
-                        ...p.metadata,
-                        rubricId
-                      }
-                    }))
-                  }
-                  disabled={isLoadingRubrics || availableRubrics.length === 0}
-                >
-                  <SelectTrigger className={baseInputClass}>
-                    <SelectValue
-                      placeholder={
-                        isLoadingRubrics
-                          ? "Cargando rúbricas..."
-                          : availableRubrics.length === 0
-                            ? "No hay rúbricas disponibles"
-                            : "Selecciona una rúbrica"
-                      }
-                    />
-                  </SelectTrigger>
-                  <SelectContent className="bg-card border border-line">
-                    {availableRubrics.map((rubric: Rubric) => (
-                      <SelectItem
-                        key={rubric._id}
-                        className="hover:bg-muted"
-                        value={rubric._id!}
-                      >
-                        <div className="flex flex-col">
-                          <span className="font-medium">{rubric.name}</span>
-                          <span className="text-xs text-muted-foreground">
-                            {rubric.scoringType === 'holistic' ? 'Holística' : 'Analítica'} •
-                            {rubric.criteria.length} criterio(s) • Max: {rubric.maxScore}
-                          </span>
-                        </div>
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-
-                {/* Mensaje informativo */}
-                {availableRubrics.length === 0 && (formData.competency && formData.level) && (
-                  <p className="text-sm text-amber-400">
-                    No hay rúbricas para {({'reading':'Comprensión Lectora','writing':'Expresión Escrita','listening':'Comprensión Auditiva','speaking':'Expresión Oral'} as Record<string,string>)[formData.competency] || formData.competency} nivel {formData.level}.{' '}
-                    <span className="underline cursor-pointer">
-                      Crea una desde Configuración → Rúbricas.
-                    </span>
-                  </p>
-                )}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+          {/* Tipo de pregunta — filtrado por competencia */}
+          <div className="space-y-2">
+            <label className="text-xs font-medium text-foreground/80">Tipo de Pregunta</label>
+            {typeIsFixed ? (
+              <div className="w-full h-9 px-3 text-sm bg-muted/50 border border-border rounded-lg text-foreground flex items-center gap-2">
+                <span>{TYPE_LABELS[availableTypes[0]]}</span>
+                <span className="ml-auto text-xs text-muted-foreground italic">único disponible</span>
               </div>
+            ) : (
+              <select
+                value={formData.type as string}
+                onChange={e => setFormData((p: Partial<Question>) => ({ ...p, type: e.target.value as QuestionType }))}
+                className="w-full h-9 px-2 text-sm bg-muted/50 border border-border rounded-lg text-foreground focus:outline-none focus:ring-1 focus:ring-ring"
+              >
+                {availableTypes.map(type => (
+                  <option key={type} value={type}>{TYPE_LABELS[type]}</option>
+                ))}
+              </select>
             )}
           </div>
 
-          {/* Dificultad / Puntos / Estado */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-            <div className="space-y-2">
-              <Label>Dificultad</Label>
-              <Select
-                value={String(formData.difficulty ?? 3)}
-                onValueChange={v =>
-                  setFormData((p: Partial<Question>) => ({
-                    ...p,
-                    difficulty: Number(v),
-                  }))
-                }
-              >
-                <SelectTrigger className={baseInputClass}>
-                  <SelectValue placeholder="Selecciona la dificultad" />
-                </SelectTrigger>
-                <SelectContent className="bg-card border border-line">
-                  <SelectItem className="hover:bg-muted" value="1">
-                    Muy Fácil
-                  </SelectItem>
-                  <SelectItem className="hover:bg-muted" value="2">
-                    Fácil
-                  </SelectItem>
-                  <SelectItem className="hover:bg-muted" value="3">
-                    Medio
-                  </SelectItem>
-                  <SelectItem className="hover:bg-muted" value="4">
-                    Difícil
-                  </SelectItem>
-                  <SelectItem className="hover:bg-muted" value="5">
-                    Muy Difícil
-                  </SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-2">
-              <Label>Puntos</Label>
-              <Input
-                type="number"
-                min={1}
-                value={formData.points ?? 1}
-                onChange={e =>
-                  setFormData((p: Partial<Question>) => ({
-                    ...p,
-                    points: Number(e.target.value),
-                  }))
-                }
-                className={baseInputClass}
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label>Estado</Label>
-              <Select
-                value={formData.isActive ?? true ? 'true' : 'false'}
-                onValueChange={v =>
-                  setFormData((p: Partial<Question>) => ({
-                    ...p,
-                    isActive: v === 'true',
-                  }))
-                }
-              >
-                <SelectTrigger className={baseInputClass}>
-                  <SelectValue placeholder="Selecciona el estado" />
-                </SelectTrigger>
-                <SelectContent className="bg-card border border-line">
-                  <SelectItem className="hover:bg-muted" value="true">
-                    Activa
-                  </SelectItem>
-                  <SelectItem className="hover:bg-muted" value="false">
-                    Inactiva
-                  </SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+          {/* Competencia */}
+          <div className="space-y-2">
+            <label className="text-xs font-medium text-foreground/80">Competencia</label>
+            <select
+              value={formData.competency as string}
+              onChange={e => {
+                const v = e.target.value as Competency;
+                const allowed = TYPES_BY_COMPETENCY[v] ?? [];
+                const currentType = formData.type as QuestionType | undefined;
+                const newType = currentType && allowed.includes(currentType)
+                  ? currentType
+                  : DEFAULT_TYPE_BY_COMPETENCY[v];
+                setFormData((p: Partial<Question>) => ({ ...p, competency: v, type: newType }));
+              }}
+              className="w-full h-9 px-2 text-sm bg-muted/50 border border-border rounded-lg text-foreground focus:outline-none focus:ring-1 focus:ring-ring"
+            >
+              <option value="reading">Comprensión Lectora</option>
+              <option value="writing">Expresión Escrita</option>
+              <option value="listening">Comprensión Auditiva</option>
+              <option value="speaking">Expresión Oral</option>
+            </select>
           </div>
-        </CardContent>
-      </Card>
+
+          {/* Nivel */}
+          <div className="space-y-2">
+            <label className="text-xs font-medium text-foreground/80">Nivel MCER</label>
+            <select
+              value={formData.level as string}
+              onChange={e => setFormData((p: Partial<Question>) => ({ ...p, level: e.target.value as Level }))}
+              disabled={isLoadingLevels}
+              className="w-full h-9 px-2 text-sm bg-muted/50 border border-border rounded-lg text-foreground focus:outline-none focus:ring-1 focus:ring-ring"
+            >
+              {isLoadingLevels ? (
+                <option value="">Cargando niveles...</option>
+              ) : (
+                levels
+                  .filter(level => level.isActive)
+                  .map((level) => (
+                    <option key={level._id} value={level.code}>
+                      {level.code} - {level.name}
+                    </option>
+                  ))
+              )}
+            </select>
+          </div>
+
+          {/* Rúbrica - Para tipos subjetivos en competencias que la soportan */}
+          {(['essay', 'open_text', 'audio_response'].includes(formData.type || '') &&
+            ['reading', 'writing', 'listening', 'speaking'].includes(formData.competency || '')) && (
+            <div className="space-y-2">
+              <label className="text-xs font-medium text-foreground/80">Rúbrica de Evaluación</label>
+              <select
+                value={formData.metadata?.rubricId || ''}
+                onChange={e => {
+                  const rubricId = e.target.value;
+                  setFormData((p: Partial<Question>) => ({
+                    ...p,
+                    metadata: {
+                      topic: p.metadata?.topic || '',
+                      ...p.metadata,
+                      rubricId
+                    }
+                  }));
+                }}
+                disabled={isLoadingRubrics || availableRubrics.length === 0}
+                className="w-full h-9 px-2 text-sm bg-muted/50 border border-border rounded-lg text-foreground focus:outline-none focus:ring-1 focus:ring-ring"
+              >
+                <option value="">
+                  {isLoadingRubrics
+                    ? "Cargando rúbricas..."
+                    : availableRubrics.length === 0
+                      ? "No hay rúbricas disponibles"
+                      : "Selecciona una rúbrica"}
+                </option>
+                {availableRubrics.map((rubric: Rubric) => (
+                  <option key={rubric._id} value={rubric._id!}>
+                    {rubric.name} — {rubric.scoringType === 'holistic' ? 'Holística' : 'Analítica'} · {rubric.criteria.length} criterio(s) · Max: {rubric.maxScore}
+                  </option>
+                ))}
+              </select>
+
+              {/* Mensaje informativo */}
+              {availableRubrics.length === 0 && (formData.competency && formData.level) && (
+                <p className="text-sm text-amber-600 dark:text-amber-400">
+                  No hay rúbricas para {({'reading':'Comprensión Lectora','writing':'Expresión Escrita','listening':'Comprensión Auditiva','speaking':'Expresión Oral'} as Record<string,string>)[formData.competency] || formData.competency} nivel {formData.level}.{' '}
+                  <span className="underline cursor-pointer">
+                    Crea una desde Configuración → Rúbricas.
+                  </span>
+                </p>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* Dificultad / Puntos / Estado */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+          <div className="space-y-2">
+            <label className="text-xs font-medium text-foreground/80">Dificultad</label>
+            <select
+              value={String(formData.difficulty ?? 3)}
+              onChange={e => setFormData((p: Partial<Question>) => ({ ...p, difficulty: Number(e.target.value) }))}
+              className="w-full h-9 px-2 text-sm bg-muted/50 border border-border rounded-lg text-foreground focus:outline-none focus:ring-1 focus:ring-ring"
+            >
+              <option value="1">Muy Fácil</option>
+              <option value="2">Fácil</option>
+              <option value="3">Medio</option>
+              <option value="4">Difícil</option>
+              <option value="5">Muy Difícil</option>
+            </select>
+          </div>
+
+          <div className="space-y-2">
+            <label className="text-xs font-medium text-foreground/80">Puntos</label>
+            <input
+              type="number"
+              min={1}
+              value={formData.points ?? 1}
+              onChange={e =>
+                setFormData((p: Partial<Question>) => ({
+                  ...p,
+                  points: Number(e.target.value),
+                }))
+              }
+              className="w-full h-9 px-3 text-sm bg-muted/50 border border-border rounded-lg text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring"
+            />
+          </div>
+
+          <div className="space-y-2">
+            <label className="text-xs font-medium text-foreground/80">Estado</label>
+            <select
+              value={formData.isActive ?? true ? 'true' : 'false'}
+              onChange={e => setFormData((p: Partial<Question>) => ({ ...p, isActive: e.target.value === 'true' }))}
+              className="w-full h-9 px-2 text-sm bg-muted/50 border border-border rounded-lg text-foreground focus:outline-none focus:ring-1 focus:ring-ring"
+            >
+              <option value="true">Activa</option>
+              <option value="false">Inactiva</option>
+            </select>
+          </div>
+        </div>
+      </div>
 
       {/* Contenido */}
-      <Card className="border border-line">
-        <CardHeader className="pb-3">
-          <CardTitle className="text-foreground text-lg">Contenido</CardTitle>
-          <CardDescription className="text-sm">Enunciado e instrucciones</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          <div className="grid grid-cols-1 gap-3">
-            <div className="space-y-2">
-              <Label>Pregunta *</Label>
-              <Textarea
-                rows={2}
-                value={formData.content?.question || ''}
-                onChange={e =>
-                  setFormData((p: Partial<Question>) => ({
-                    ...p,
-                    content: { ...p.content!, question: e.target.value },
-                  }))
-                }
-                className={baseInputClass}
-              />
-            </div>
+      <div className="bg-card border border-border rounded-xl p-5 space-y-4">
+        <div className="mb-4">
+          <h3 className="text-base font-semibold text-foreground">Contenido</h3>
+          <p className="text-xs text-muted-foreground mt-0.5">Enunciado e instrucciones</p>
+        </div>
 
-            <div className="space-y-2">
-              <Label>Instrucciones (opcional)</Label>
-              <Textarea
-                rows={2}
-                value={formData.content?.instructions || ''}
-                onChange={e =>
-                  setFormData((p: Partial<Question>) => ({
-                    ...p,
-                    content: { ...p.content!, instructions: e.target.value },
-                  }))
-                }
-                className={baseInputClass}
-              />
-            </div>
+        <div className="grid grid-cols-1 gap-3">
+          <div className="space-y-2">
+            <label className="text-xs font-medium text-foreground/80">Pregunta *</label>
+            <textarea
+              rows={2}
+              value={formData.content?.question || ''}
+              onChange={e =>
+                setFormData((p: Partial<Question>) => ({
+                  ...p,
+                  content: { ...p.content!, question: e.target.value },
+                }))
+              }
+              className="w-full px-3 py-2 text-sm bg-muted/50 border border-border rounded-lg text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring resize-y"
+            />
+          </div>
 
-            {/* Campo de Contexto para Reading Comprehension */}
-            {(formData.competency === 'reading' || formData.competency === 'listening') && (
-              <div className="space-y-2">
-                <Label className="flex items-center gap-2">
-                  Contexto {formData.competency === 'reading' ? '(Texto para leer)' : '(Descripción del audio)'}
-                  {/* {formData.content?.context && (
-                    <span className="text-xs bg-green-500/20 text-green-400 px-2 py-1 rounded">
-                      ✓ Generado por IA
-                    </span>
-                  )} */}
-                  <span className="text-xs text-muted-foreground">
-                    - Texto que los estudiantes usarán para responder
+          <div className="space-y-2">
+            <label className="text-xs font-medium text-foreground/80">Instrucciones (opcional)</label>
+            <textarea
+              rows={2}
+              value={formData.content?.instructions || ''}
+              onChange={e =>
+                setFormData((p: Partial<Question>) => ({
+                  ...p,
+                  content: { ...p.content!, instructions: e.target.value },
+                }))
+              }
+              className="w-full px-3 py-2 text-sm bg-muted/50 border border-border rounded-lg text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring resize-y"
+            />
+          </div>
+
+          {/* Campo de Contexto para Reading Comprehension */}
+          {(formData.competency === 'reading' || formData.competency === 'listening') && (
+            <div className="space-y-2">
+              <label className="text-xs font-medium text-foreground/80 flex items-center gap-2">
+                Contexto {formData.competency === 'reading' ? '(Texto para leer)' : '(Descripción del audio)'}
+                {/* {formData.content?.context && (
+                  <span className="text-xs bg-green-500/20 text-green-600 dark:text-green-400 px-2 py-1 rounded">
+                    ✓ Generado por IA
                   </span>
-                </Label>
-                <Textarea
-                  rows={formData.content?.context ? Math.min(6, Math.ceil((formData.content.context.length || 0) / 100)) : 4}
-                  value={formData.content?.context || ''}
-                  onChange={e =>
+                )} */}
+                <span className="text-xs text-muted-foreground">
+                  - Texto que los estudiantes usarán para responder
+                </span>
+              </label>
+              <textarea
+                rows={formData.content?.context ? Math.min(6, Math.ceil((formData.content.context.length || 0) / 100)) : 4}
+                value={formData.content?.context || ''}
+                onChange={e =>
                   setFormData((p: Partial<Question>) => ({
                     ...p,
                     content: { ...p.content!, context: e.target.value },
                   }))
-                  }
-                  onInput={(e) => {
+                }
+                onInput={(e) => {
                   const t = e.currentTarget;
                   t.style.height = 'auto';
                   t.style.height = Math.min(t.scrollHeight, 320) + 'px';
-                  }}
-                  spellCheck
-                  placeholder={
+                }}
+                spellCheck
+                placeholder={
                   formData.competency === 'reading'
                     ? "Escribe o pega aquí el texto que los estudiantes deben leer para responder la pregunta..."
                     : "Describe el contexto o contenido del audio que los estudiantes escucharán..."
-                  }
-                  className={`${baseInputClass} resize-y min-h-[96px] max-h-[320px] overflow-auto transition-colors duration-150 placeholder:italic ${
+                }
+                className={`w-full px-3 py-2 text-sm bg-muted/50 border border-border rounded-lg text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring resize-y min-h-[96px] max-h-[320px] overflow-auto transition-colors duration-150 placeholder:italic ${
                   formData.content?.context ? 'border-purple-500/30 bg-green-100/5' : ''
-                  } transition-colors focus:outline-none focus-visible:outline-none focus:ring-0 focus-visible:ring-0 focus:ring-offset-0 focus-visible:ring-offset-0 focus:border-purpple-400/50 shadow-none focus:shadow-none`}
-                />
-                {formData.content?.context && (
-                  <p className="text-xs text-muted-foreground mt-1">
+                } shadow-none focus:shadow-none`}
+              />
+              {formData.content?.context && (
+                <p className="text-xs text-muted-foreground mt-1">
                   {formData.content.context.trim().split(/\s+/).filter(Boolean).length} palabras
-                  </p>
-                )}
-              </div>
-            )}
-          </div>
+                </p>
+              )}
+            </div>
+          )}
+        </div>
 
-          {/* Opciones */}
-          {needsOptions && (
+        {/* Opciones */}
+        {needsOptions && (
+          <div className="space-y-2">
+            <label className="text-xs font-medium text-foreground/80">Opciones</label>
+            <div className="flex gap-2">
+              <input
+                value={newOption}
+                onChange={e => setNewOption(e.target.value)}
+                onKeyDown={e => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    addOption();
+                  }
+                }}
+                placeholder="Escribe una opción..."
+                className="w-full h-9 px-3 text-sm bg-muted/50 border border-border rounded-lg text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring flex-1"
+              />
+              <button
+                type="button"
+                onClick={addOption}
+                className="h-9 px-4 text-sm rounded-lg border border-border text-foreground hover:bg-muted/60 transition-colors flex items-center gap-1.5"
+              >
+                <Plus className="w-4 h-4" />
+                Agregar
+              </button>
+            </div>
+
             <div className="space-y-2">
-              <Label>Opciones</Label>
-              <div className="flex gap-2">
-                <Input
-                  value={newOption}
-                  onChange={e => setNewOption(e.target.value)}
-                  onKeyDown={e => {
-                    if (e.key === 'Enter') {
-                      e.preventDefault();
-                      addOption();
-                    }
-                  }}
-                  placeholder="Escribe una opción..."
-                  className={baseInputClass + ' flex-1'}
-                />
-                <Button type="button" onClick={addOption} className="gap-1">
-                  <Plus className="w-4 h-4" />
-                  Agregar
-                </Button>
-              </div>
-
-              <div className="space-y-2">
-                {formData.content?.options?.map((opt: QuestionOption) => (
-                  <div
-                    key={opt.id}
-                    className="flex items-center gap-2 p-2 bg-muted/40 border border-border rounded-lg"
+              {formData.content?.options?.map((opt: QuestionOption) => (
+                <div
+                  key={opt.id}
+                  className="flex items-center gap-2 p-2 bg-muted/40 border border-border rounded-lg"
+                >
+                  <input
+                    type="radio"
+                    name="correctOption"
+                    checked={!!opt.isCorrect}
+                    onChange={() => setCorrectOption(opt.id)}
+                    className="w-4 h-4"
+                  />
+                  <span className="flex-1 text-foreground/90">{opt.text}</span>
+                  <button
+                    type="button"
+                    onClick={() => removeOption(opt.id)}
+                    className="h-8 w-8 flex items-center justify-center rounded-lg border border-border hover:bg-muted/60 transition-colors text-red-500"
+                    title="Eliminar opción"
                   >
-                    <input
-                      type="radio"
-                      name="correctOption"
-                      checked={!!opt.isCorrect}
-                      onChange={() => setCorrectOption(opt.id)}
-                      className="w-4 h-4"
-                    />
-                    <span className="flex-1 text-foreground/90">{opt.text}</span>
-                    <Button
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Fill Blanks */}
+        {needsFillBlanks && (
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <label className="text-xs font-medium text-foreground/80">Plantilla con espacios en blanco</label>
+              <p className="text-sm text-muted-foreground">
+                Usa <code className="bg-muted px-1 rounded">___</code> para
+                marcar los espacios en blanco
+              </p>
+              <textarea
+                rows={3}
+                value={formData.content?.template || ''}
+                onChange={e =>
+                  setFormData((p: Partial<Question>) => ({
+                    ...p,
+                    content: { ...p.content!, template: e.target.value },
+                  }))
+                }
+                placeholder="Ejemplo: The cat is ___ the house and the dog is ___ the garden."
+                className="w-full px-3 py-2 text-sm bg-muted/50 border border-border rounded-lg text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring resize-y"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-xs font-medium text-foreground/80">Respuestas correctas (opcional)</label>
+              <p className="text-sm text-muted-foreground">
+                Define respuestas específicas para cada espacio. Si no se
+                definen, se evaluará como texto libre.
+              </p>
+              <input
+                value={
+                  typeof formData.content?.correctAnswer === 'string'
+                    ? formData.content.correctAnswer
+                    : (formData.content?.correctAnswer || []).join(', ')
+                }
+                onChange={e =>
+                  setFormData((p: Partial<Question>) => ({
+                    ...p,
+                    content: {
+                      ...p.content!,
+                      correctAnswer: e.target.value,
+                    },
+                  }))
+                }
+                placeholder="in, outside (separadas por comas)"
+                className="w-full h-9 px-3 text-sm bg-muted/50 border border-border rounded-lg text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring"
+              />
+            </div>
+          </div>
+        )}
+
+        {/* Items para drag_drop, matching, ordering */}
+        {needsItems && (
+          <div className="space-y-4">
+            <label className="text-xs font-medium text-foreground/80">
+              {formData.type === 'drag_drop' &&
+                'Elementos para arrastrar y soltar'}
+              {formData.type === 'matching' && 'Elementos para emparejar'}
+              {formData.type === 'ordering' && 'Elementos para ordenar'}
+            </label>
+
+            <div className="space-y-3">
+              {formData.content?.items?.map((item, index) => (
+                <div
+                  key={item.id}
+                  className="flex flex-col gap-3 p-4 bg-muted/40 border border-border rounded-lg"
+                >
+                  {/* Encabezado del elemento */}
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-foreground/80 font-medium">
+                      Elemento {index + 1}
+                    </span>
+                    <button
                       type="button"
-                      variant="outline"
-                      onClick={() => removeOption(opt.id)}
-                      className="p-2 border-border hover:bg-muted"
-                      title="Eliminar opción"
+                      onClick={() => {
+                        const newItems =
+                          formData.content?.items?.filter(
+                            (_, i) => i !== index
+                          ) || [];
+                        setFormData((p: Partial<Question>) => ({
+                          ...p,
+                          content: { ...p.content!, items: newItems },
+                        }));
+                      }}
+                      className="h-8 w-8 flex items-center justify-center rounded-lg border border-border hover:bg-muted/60 transition-colors text-red-500"
+                      title="Eliminar elemento"
                     >
-                      <Trash2 className="w-4 h-4 text-red-500" />
-                    </Button>
+                      <Trash2 className="w-4 h-4" />
+                    </button>
                   </div>
-                ))}
-              </div>
-            </div>
-          )}
 
-          {/* Fill Blanks */}
-          {needsFillBlanks && (
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <Label>Plantilla con espacios en blanco</Label>
-                <p className="text-sm text-muted-foreground">
-                  Usa <code className="bg-muted px-1 rounded">___</code> para
-                  marcar los espacios en blanco
-                </p>
-                <Textarea
-                  rows={3}
-                  value={formData.content?.template || ''}
-                  onChange={e =>
-                    setFormData((p: Partial<Question>) => ({
-                      ...p,
-                      content: { ...p.content!, template: e.target.value },
-                    }))
-                  }
-                  placeholder="Ejemplo: The cat is ___ the house and the dog is ___ the garden."
-                  className={baseInputClass}
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label>Respuestas correctas (opcional)</Label>
-                <p className="text-sm text-muted-foreground">
-                  Define respuestas específicas para cada espacio. Si no se
-                  definen, se evaluará como texto libre.
-                </p>
-                <Input
-                  value={
-                    typeof formData.content?.correctAnswer === 'string'
-                      ? formData.content.correctAnswer
-                      : (formData.content?.correctAnswer || []).join(', ')
-                  }
-                  onChange={e =>
-                    setFormData((p: Partial<Question>) => ({
-                      ...p,
-                      content: {
-                        ...p.content!,
-                        correctAnswer: e.target.value,
-                      },
-                    }))
-                  }
-                  placeholder="in, outside (separadas por comas)"
-                  className={baseInputClass}
-                />
-              </div>
-            </div>
-          )}
-
-          {/* Items para drag_drop, matching, ordering */}
-          {needsItems && (
-            <div className="space-y-4">
-              <Label>
-                {formData.type === 'drag_drop' &&
-                  'Elementos para arrastrar y soltar'}
-                {formData.type === 'matching' && 'Elementos para emparejar'}
-                {formData.type === 'ordering' && 'Elementos para ordenar'}
-              </Label>
-
-              <div className="space-y-3">
-                {formData.content?.items?.map((item, index) => (
-                  <div
-                    key={item.id}
-                    className="flex flex-col gap-3 p-4 bg-muted/40 border border-border rounded-lg"
-                  >
-                    {/* Encabezado del elemento */}
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm text-foreground/80 font-medium">
-                        Elemento {index + 1}
-                      </span>
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        onClick={() => {
-                          const newItems =
-                            formData.content?.items?.filter(
-                              (_, i) => i !== index
-                            ) || [];
+                  {/* Contenido principal */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <div className="space-y-2">
+                      <label className="text-xs font-medium text-foreground/80">
+                        {formData.type === 'matching' ? 'Elemento A' : 'Contenido'}
+                      </label>
+                      <input
+                        value={item.content}
+                        onChange={e => {
+                          const newItems = [...(formData.content?.items || [])];
+                          newItems[index] = { ...item, content: e.target.value };
                           setFormData((p: Partial<Question>) => ({
                             ...p,
                             content: { ...p.content!, items: newItems },
                           }));
                         }}
-                        className="h-8 w-8 p-0 border-border hover:bg-muted"
-                        title="Eliminar elemento"
-                      >
-                        <Trash2 className="w-4 h-4 text-red-500" />
-                      </Button>
+                        placeholder="Contenido del elemento"
+                        className="w-full h-9 px-3 text-sm bg-muted/50 border border-border rounded-lg text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring"
+                      />
                     </div>
 
-                    {/* Contenido principal */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    {formData.type === 'matching' && (
                       <div className="space-y-2">
-                        <Label className="text-sm">
-                          {formData.type === 'matching' ? 'Elemento A' : 'Contenido'}
-                        </Label>
-                        <Input
-                          value={item.content}
+                        <label className="text-xs font-medium text-foreground/80">Elemento B (pareja)</label>
+                        <input
+                          value={item.matchingPair || ''}
                           onChange={e => {
                             const newItems = [...(formData.content?.items || [])];
-                            newItems[index] = { ...item, content: e.target.value };
+                            newItems[index] = {
+                              ...item,
+                              matchingPair: e.target.value,
+                            };
                             setFormData((p: Partial<Question>) => ({
                               ...p,
                               content: { ...p.content!, items: newItems },
                             }));
                           }}
-                          placeholder="Contenido del elemento"
-                          className={baseInputClass}
+                          placeholder="Pareja correspondiente"
+                          className="w-full h-9 px-3 text-sm bg-muted/50 border border-border rounded-lg text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring"
                         />
                       </div>
+                    )}
 
-                      {formData.type === 'matching' && (
-                        <div className="space-y-2">
-                          <Label className="text-sm">Elemento B (pareja)</Label>
-                          <Input
-                            value={item.matchingPair || ''}
-                            onChange={e => {
-                              const newItems = [...(formData.content?.items || [])];
-                              newItems[index] = {
-                                ...item,
-                                matchingPair: e.target.value,
-                              };
-                              setFormData((p: Partial<Question>) => ({
-                                ...p,
-                                content: { ...p.content!, items: newItems },
-                              }));
-                            }}
-                            placeholder="Pareja correspondiente"
-                            className={baseInputClass}
-                          />
-                        </div>
-                      )}
-
-                      {formData.type === 'ordering' && (
-                        <div className="space-y-2">
-                          <Label className="text-sm">Posición correcta</Label>
-                          <Input
-                            type="number"
-                            value={item.correctPosition || ''}
-                            onChange={e => {
-                              const newItems = [...(formData.content?.items || [])];
-                              newItems[index] = {
-                                ...item,
-                                correctPosition: Number(e.target.value),
-                              };
-                              setFormData((p: Partial<Question>) => ({
-                                ...p,
-                                content: { ...p.content!, items: newItems },
-                              }));
-                            }}
-                            placeholder="Posición correcta"
-                            className={baseInputClass}
-                            min={1}
-                          />
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Multimedia para el elemento */}
-                    <div className="space-y-3 pt-3 border-t border-border">
-                      <Label className="text-sm text-blue-300 flex items-center gap-2">
-                        <Volume2 className="w-4 h-4" />
-                        Multimedia para elemento {index + 1} (opcional)
-                      </Label>
-                      
-                      {/* Mostrar multimedia existente o preview según archivos seleccionados */}
-                      {(() => {
-                        const filesForItem = itemMediaFiles[index];
-                        const hasSelectedAudio = !!(filesForItem && filesForItem.audio);
-                        const hasSelectedImage = !!(filesForItem && filesForItem.image);
-                        const mediaUrl = item.mediaUrl;
-                        const audioRx = /\.(mp3|wav|ogg|m4a|aac)$/i;
-                        const imageRx = /\.(jpe?g|png|gif|webp|svg)$/i;
-
-                        if (hasSelectedAudio || (mediaUrl && audioRx.test(mediaUrl))) {
-                          return (
-                            <div className="p-3 bg-muted/30 border border-border rounded-lg">
-                              <div className="text-sm text-muted-foreground mb-2">Archivo actual:</div>
-                              <AudioPlayer
-                                src={mediaUrl ?? ''}
-                                variant="compact"
-                                title={`Audio elemento ${index + 1}`}
-                                className="max-w-xs"
-                              />
-                            </div>
-                          );
-                        }
-
-                        if (hasSelectedImage || (mediaUrl && imageRx.test(mediaUrl))) {
-                          return (
-                            <div className="p-3 bg-muted/30 border border-border rounded-lg">
-                              <div className="text-sm text-muted-foreground mb-2">Archivo actual:</div>
-                              <img
-                                src={mediaUrl}
-                                alt={`Imagen elemento ${index + 1}`}
-                                className="h-20 w-auto rounded border border-border"
-                                onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
-                              />
-                            </div>
-                          );
-                        }
-
-                        return null;
-                      })()}
-
-                      {/* Controles para subir multimedia: ocultar inputs si ya hay archivo seleccionado para el item */}
-                      <div className="flex gap-2 items-center">
-                        {!(itemMediaFiles[index] && (itemMediaFiles[index].audio || itemMediaFiles[index].image)) ? (
-                          <>
-                            <label
-                              className={`flex items-center gap-2 px-3 py-2 rounded-lg cursor-pointer border border-border hover:bg-muted/50 transition-all text-sm ${baseInputClass}`}
-                            >
-                              <Volume2 className="w-4 h-4" />
-                              <span>Audio</span>
-                              <input
-                                type="file"
-                                accept="audio/*"
-                                onChange={async (e) => {
-                                  const file = e.target.files?.[0];
-                                  if (file) {
-                                    setItemMediaFiles(prev => ({
-                                      ...prev,
-                                      [index]: {
-                                        ...prev[index],
-                                        audio: file
-                                      }
-                                    }));
-
-                                    const tempUrl = URL.createObjectURL(file);
-                                    const newItems = [...(formData.content?.items || [])];
-                                    newItems[index] = { ...item, mediaUrl: tempUrl, mediaType: 'audio' };
-                                    setFormData((p: Partial<Question>) => ({
-                                      ...p,
-                                      content: { ...p.content!, items: newItems },
-                                    }));
-                                  }
-                                }}
-                                className="hidden"
-                              />
-                            </label>
-
-                            <label
-                              className={`flex items-center gap-2 px-3 py-2 rounded-lg cursor-pointer border border-border hover:bg-muted/50 transition-all text-sm ${baseInputClass}`}
-                            >
-                              <ImageIcon className="w-4 h-4" />
-                              <span>Imagen</span>
-                              <input
-                                type="file"
-                                accept="image/*"
-                                onChange={async (e) => {
-                                  const file = e.target.files?.[0];
-                                  if (file) {
-                                    setItemMediaFiles(prev => ({
-                                      ...prev,
-                                      [index]: {
-                                        ...prev[index],
-                                        image: file
-                                      }
-                                    }));
-
-                                    const tempUrl = URL.createObjectURL(file);
-                                    const newItems = [...(formData.content?.items || [])];
-                                    newItems[index] = { ...item, mediaUrl: tempUrl, mediaType: 'image' };
-                                    setFormData((p: Partial<Question>) => ({
-                                      ...p,
-                                      content: { ...p.content!, items: newItems },
-                                    }));
-                                  }
-                                }}
-                                className="hidden"
-                              />
-                            </label>
-                          </>
-                        ) : (
-                          // Mostrar nombre del archivo seleccionado y botón para quitar
-                          <div className="flex items-center gap-2">
-                            <div className="text-sm text-foreground/90">
-                              {itemMediaFiles[index]?.audio?.name || itemMediaFiles[index]?.image?.name}
-                            </div>
-                            <Button
-                              type="button"
-                              variant="outline"
-                              size="sm"
-                              onClick={() => {
-                                // eliminar archivo seleccionado y preview
-                                setItemMediaFiles(prev => {
-                                  const copy = { ...prev };
-                                  if (copy[index]) {
-                                    delete copy[index].audio;
-                                    delete copy[index].image;
-                                    if (Object.keys(copy[index]).length === 0) delete copy[index];
-                                  }
-                                  return copy;
-                                });
-
-                                const newItems = [...(formData.content?.items || [])];
-                                newItems[index] = { ...item, mediaUrl: undefined };
-                                setFormData((p: Partial<Question>) => ({
-                                  ...p,
-                                  content: { ...p.content!, items: newItems },
-                                }));
-                              }}
-                              className="border-red-600 text-red-400 hover:bg-red-600/20"
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </Button>
-                          </div>
-                        )}
+                    {formData.type === 'ordering' && (
+                      <div className="space-y-2">
+                        <label className="text-xs font-medium text-foreground/80">Posición correcta</label>
+                        <input
+                          type="number"
+                          value={item.correctPosition || ''}
+                          onChange={e => {
+                            const newItems = [...(formData.content?.items || [])];
+                            newItems[index] = {
+                              ...item,
+                              correctPosition: Number(e.target.value),
+                            };
+                            setFormData((p: Partial<Question>) => ({
+                              ...p,
+                              content: { ...p.content!, items: newItems },
+                            }));
+                          }}
+                          placeholder="Posición correcta"
+                          className="w-full h-9 px-3 text-sm bg-muted/50 border border-border rounded-lg text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring"
+                          min={1}
+                        />
                       </div>
+                    )}
+                  </div>
+
+                  {/* Multimedia para el elemento — próximamente */}
+                  <div className="pt-3 border-t border-border opacity-50 pointer-events-none select-none">
+                    <div className="flex items-center gap-2">
+                      <Volume2 className="w-3.5 h-3.5 text-muted-foreground" />
+                      <span className="text-xs text-muted-foreground">Multimedia por elemento — próximamente</span>
                     </div>
                   </div>
-                ))}
+                </div>
+              ))}
 
-                <Button
-                  type="button"
-                  onClick={() => {
-                    const newItem = {
-                      id: Date.now().toString(),
-                      content: '',
-                      correctPosition:
-                        formData.type === 'ordering'
-                          ? (formData.content?.items?.length || 0) + 1
-                          : undefined,
-                      matchingPair:
-                        formData.type === 'matching' ? '' : undefined,
-                      mediaUrl: undefined,
-                    };
-                    setFormData((p: Partial<Question>) => ({
-                      ...p,
-                      content: {
-                        ...p.content!,
-                        items: [...(p.content?.items || []), newItem],
-                      },
-                    }));
-                  }}
-                  className="gap-1 w-full"
-                  variant="outline"
-                >
-                  <Plus className="w-4 h-4" />
-                  Agregar elemento
-                </Button>
-
-                {/* Ayuda para matching con multimedia */}
-                {formData.type === 'matching' && (
-                  <div className="p-4 bg-blue-900/20 border border-blue-700 rounded-lg">
-                    <h4 className="text-sm font-medium text-blue-300 mb-2">
-                      💡 Ejemplos de uso con multimedia:
-                    </h4>
-                    <ul className="text-sm text-blue-200 space-y-1">
-                      <li>🔊 Audio + Texto: Emparejar sonidos con palabras</li>
-                      <li>🖼️ Imagen + Texto: Emparejar imágenes con descripciones</li>
-                      <li>🎵 Audio + Audio: Emparejar pronunciaciones</li>
-                      <li>🖼️ Imagen + Imagen: Emparejar conceptos visuales</li>
-                    </ul>
-                  </div>
-                )}
-              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  const newItem = {
+                    id: Date.now().toString(),
+                    content: '',
+                    correctPosition:
+                      formData.type === 'ordering'
+                        ? (formData.content?.items?.length || 0) + 1
+                        : undefined,
+                    matchingPair:
+                      formData.type === 'matching' ? '' : undefined,
+                    mediaUrl: undefined,
+                  };
+                  setFormData((p: Partial<Question>) => ({
+                    ...p,
+                    content: {
+                      ...p.content!,
+                      items: [...(p.content?.items || []), newItem],
+                    },
+                  }));
+                }}
+                className="w-full h-9 text-sm rounded-lg border border-border text-foreground hover:bg-muted/60 transition-colors flex items-center justify-center gap-1.5"
+              >
+                <Plus className="w-4 h-4" />
+                Agregar elemento
+              </button>
             </div>
-          )}
-        </CardContent>
-      </Card>
+          </div>
+        )}
+      </div>
 
       {/* Multimedia mejorado */}
       {showMultimedia && (
-        <Card className="border border-line">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-foreground text-lg flex items-center gap-2">
-              <Volume2 className="w-5 h-5 text-blue-400" />
+        <div className="bg-card border border-border rounded-xl p-5 space-y-4">
+          <div className="mb-4">
+            <h3 className="text-base font-semibold text-foreground flex items-center gap-2">
+              <Volume2 className="w-5 h-5 text-blue-500 dark:text-blue-400" />
               Multimedia
-            </CardTitle>
-            <CardDescription className="text-sm">
+            </h3>
+            <p className="text-xs text-muted-foreground mt-0.5">
               {isListeningQuestion &&
                 'Audio requerido para comprensión auditiva'}
               {needsAudioInput && 'Configuración de respuesta de audio'}
               {!isListeningQuestion &&
                 !needsAudioInput &&
                 'Audio e imagen opcional para enriquecer la pregunta'}
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {/* Audio para listening */}
-            {formData.competency === 'listening' && (
-              <div className="space-y-4">
-                <div className="flex items-center gap-2 mb-3">
-                  <Volume2 className="w-5 h-5 text-blue-400" />
-                  <Label className="text-base font-medium">
-                    Audio para Comprensión Auditiva
-                  </Label>
-                </div>
+            </p>
+          </div>
 
-                {!anyItemHasMedia() ? (
-                  <>
-                    {/* Mostrar reproductor de audio existente */}
-                    {formData.content?.mediaUrl &&
-                      formData.content.mediaType === 'audio' && (
-                        <div className="mb-4">
-                          <div className="text-sm text-muted-foreground mb-3">Audio actual:</div>
-                          {formData.content.mediaUrl.startsWith('blob:') ? (
-                            <div className="text-sm text-amber-400 bg-amber-900/20 border border-amber-700/50 rounded-lg p-3 flex items-start gap-2">
-                              <span className="text-lg leading-none">🎵</span>
-                              <div>
-                                <p className="font-medium">Archivo de audio listo para guardar</p>
-                                <p className="text-xs text-amber-300/80 mt-0.5">
-                                  {audioFile ? `${audioFile.name} — se subirá al guardar la pregunta` : 'Selecciona el archivo de audio abajo para vincularlo'}
-                                </p>
-                              </div>
-                            </div>
-                          ) : (
-                            <AudioPlayer
-                              src={formData.content.mediaUrl}
-                              variant="compact"
-                              title="Audio de la pregunta"
-                              showControls={{ volume: true, speed: true, seek: true, time: true }}
-                              className="max-w-md"
-                            />
-                          )}
-                        </div>
-                      )}
-
-                    {/* Botón para subir nuevo audio */}
-                    <div className="flex items-center gap-3">
-                      <label
-                        className={`flex items-center gap-2 px-4 py-2 rounded-lg cursor-pointer border transition-all hover:bg-muted/50 ${baseInputClass}`}
-                      >
-                        <Volume2 className="w-4 h-4" />
-                        <span>
-                          {formData.content?.mediaUrl &&
-                          formData.content.mediaType === 'audio'
-                            ? 'Cambiar Audio'
-                            : 'Seleccionar Audio'}
-                        </span>
-                        <input
-                          type="file"
-                          accept="audio/*"
-                          onChange={e => setAudioFile(e.target.files?.[0] || null)}
-                          className="hidden"
-                        />
-                      </label>
-                      {audioFile && (
-                        <span className="text-sm text-green-400 flex items-center gap-1">
-                          ✓ {audioFile.name}
-                        </span>
-                      )}
-                    </div>
-                  </>
-                ) : (
-                  <div className="text-sm text-yellow-300">
-                    Se detectó multimedia en los elementos; el audio principal queda oculto.
-                  </div>
-                )}
+          {/* Audio para listening */}
+          {formData.competency === 'listening' && (
+            <div className="space-y-4">
+              <div className="flex items-center gap-2 mb-3">
+                <Volume2 className="w-5 h-5 text-blue-500 dark:text-blue-400" />
+                <label className="text-xs font-medium text-foreground/80">
+                  Audio para Comprensión Auditiva
+                </label>
               </div>
-            )}
 
-            {/* Configuración para audio_response */}
-            {needsAudioInput && (
-              <div className="space-y-4">
-                <div className="flex items-center gap-2 mb-3">
-                  <Mic className="w-5 h-5 text-red-400" />
-                  <Label className="text-base font-medium">
-                    Audio de Pregunta y Configuración
-                  </Label>
-                </div>
-
-                <div className="bg-muted/30 rounded-lg p-4 border border-border">
-                  <p className="text-sm text-muted-foreground mb-4">
-                    Graba un audio con la pregunta o instrucciones que el
-                    estudiante escuchará antes de responder.
-                  </p>
-
-                  {/* Tipo de respuesta esperada */}
-                  <div className="space-y-2 mb-4">
-                    <Label>Tipo de respuesta esperada</Label>
-                    <Select
-                      value={
-                        formData.content?.expectedResponseType || 'sentence'
-                      }
-                      onValueChange={(
-                        value: 'word' | 'sentence' | 'paragraph'
-                      ) =>
-                        setFormData((p: Partial<Question>) => ({
-                          ...p,
-                          content: {
-                            ...p.content!,
-                            expectedResponseType: value,
-                          },
-                        }))
-                      }
-                    >
-                      <SelectTrigger className={baseInputClass}>
-                        <SelectValue placeholder="Selecciona el tipo" />
-                      </SelectTrigger>
-                      <SelectContent className="bg-card border border-line">
-                        <SelectItem value="word">Palabra</SelectItem>
-                        <SelectItem value="sentence">Oración</SelectItem>
-                        <SelectItem value="paragraph">Párrafo</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  {/* Mostrar reproductor si hay audio existente */}
+              {!anyItemHasMedia() ? (
+                <>
+                  {/* Mostrar reproductor de audio existente */}
                   {formData.content?.mediaUrl &&
                     formData.content.mediaType === 'audio' && (
                       <div className="mb-4">
-                        <div className="text-sm text-muted-foreground mb-2">
-                          Audio actual:
-                        </div>
-                        <AudioPlayer
-                          src={formData.content.mediaUrl}
-                          variant="compact"
-                          title="Audio de ejemplo"
-                          showControls={{
-                            volume: true,
-                            speed: true,
-                            seek: true,
-                            time: true,
-                          }}
-                          className="max-w-md"
-                        />
+                        <div className="text-sm text-muted-foreground mb-3">Audio actual:</div>
+                        {formData.content.mediaUrl.startsWith('blob:') ? (
+                          <div className="text-sm text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700/50 rounded-lg p-3 flex items-start gap-2">
+                            <span className="text-lg leading-none">🎵</span>
+                            <div>
+                              <p className="font-medium">Archivo de audio listo para guardar</p>
+                              <p className="text-xs text-amber-700 dark:text-amber-300 mt-0.5">
+                                {audioFile ? `${audioFile.name} — se subirá al guardar la pregunta` : 'Selecciona el archivo de audio abajo para vincularlo'}
+                              </p>
+                            </div>
+                          </div>
+                        ) : (
+                          <AudioPlayer
+                            src={formData.content.mediaUrl}
+                            variant="compact"
+                            title="Audio de la pregunta"
+                            showControls={{ volume: true, speed: true, seek: true, time: true }}
+                            className="max-w-md"
+                          />
+                        )}
                       </div>
                     )}
 
-                  {/* Grabador de audio elegante */}
-                  <AudioRecorder
-                    variant="compact"
-                    maxDuration={180} // 3 minutos máximo
-                    showWaveform={true}
-                    onRecordingComplete={handleRecordingComplete}
-                    onRecordingStart={() =>
-                      console.log('Iniciando grabación...')
-                    }
-                    onRecordingStop={() => console.log('Grabación detenida')}
-                    className="mb-4"
-                  />
-
-                  {/* Opción alternativa para subir archivo */}
-                  <div className="pt-4 border-t border-border">
-                    <div className="text-sm text-muted-foreground mb-2">
-                      O sube un archivo de audio:
-                    </div>
+                  {/* Botón para subir nuevo audio */}
+                  <div className="flex items-center gap-3">
                     <label
-                      className={`inline-flex items-center gap-2 px-3 py-2 rounded-lg cursor-pointer border transition-all hover:bg-muted/50 ${baseInputClass}`}
+                      className="flex items-center gap-2 px-4 py-2 rounded-lg cursor-pointer border border-border transition-all hover:bg-muted/50 text-sm text-foreground bg-muted/50"
                     >
                       <Volume2 className="w-4 h-4" />
-                      <span>Seleccionar archivo</span>
+                      <span>
+                        {formData.content?.mediaUrl &&
+                        formData.content.mediaType === 'audio'
+                          ? 'Cambiar Audio'
+                          : 'Seleccionar Audio'}
+                      </span>
                       <input
                         type="file"
                         accept="audio/*"
-                        onChange={e => {
-                          const file = e.target.files?.[0];
-                          if (file) {
-                            setAudioFile(file);
-                          }
-                        }}
+                        onChange={e => setAudioFile(e.target.files?.[0] || null)}
                         className="hidden"
                       />
                     </label>
+                    {audioFile && (
+                      <span className="text-sm text-green-600 dark:text-green-400 flex items-center gap-1">
+                        ✓ {audioFile.name}
+                      </span>
+                    )}
                   </div>
+                </>
+              ) : (
+                <div className="text-sm text-yellow-700 dark:text-yellow-300">
+                  Se detectó multimedia en los elementos; el audio principal queda oculto.
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Configuración para audio_response */}
+          {needsAudioInput && (
+            <div className="space-y-4">
+              <div className="flex items-center gap-2 mb-3">
+                <Mic className="w-5 h-5 text-red-600 dark:text-red-400" />
+                <label className="text-xs font-medium text-foreground/80">
+                  Audio de Pregunta y Configuración
+                </label>
+              </div>
+
+              <div className="bg-muted/30 rounded-lg p-4 border border-border">
+                <p className="text-sm text-muted-foreground mb-4">
+                  Graba un audio con la pregunta o instrucciones que el
+                  estudiante escuchará antes de responder.
+                </p>
+
+                {/* Tipo de respuesta esperada */}
+                <div className="space-y-2 mb-4">
+                  <label className="text-xs font-medium text-foreground/80">Tipo de respuesta esperada</label>
+                  <select
+                    value={formData.content?.expectedResponseType || 'sentence'}
+                    onChange={e =>
+                      setFormData((p: Partial<Question>) => ({
+                        ...p,
+                        content: {
+                          ...p.content!,
+                          expectedResponseType: e.target.value as 'word' | 'sentence' | 'paragraph',
+                        },
+                      }))
+                    }
+                    className="w-full h-9 px-2 text-sm bg-muted/50 border border-border rounded-lg text-foreground focus:outline-none focus:ring-1 focus:ring-ring"
+                  >
+                    <option value="word">Palabra</option>
+                    <option value="sentence">Oración</option>
+                    <option value="paragraph">Párrafo</option>
+                  </select>
+                </div>
+
+                {/* Mostrar reproductor si hay audio existente */}
+                {formData.content?.mediaUrl &&
+                  formData.content.mediaType === 'audio' && (
+                    <div className="mb-4">
+                      <div className="text-sm text-muted-foreground mb-2">
+                        Audio actual:
+                      </div>
+                      <AudioPlayer
+                        src={formData.content.mediaUrl}
+                        variant="compact"
+                        title="Audio de ejemplo"
+                        showControls={{
+                          volume: true,
+                          speed: true,
+                          seek: true,
+                          time: true,
+                        }}
+                        className="max-w-md"
+                      />
+                    </div>
+                  )}
+
+                {/* Grabador de audio elegante */}
+                <AudioRecorder
+                  variant="compact"
+                  maxDuration={180} // 3 minutos máximo
+                  showWaveform={true}
+                  onRecordingComplete={handleRecordingComplete}
+                  onRecordingStart={() =>
+                    console.log('Iniciando grabación...')
+                  }
+                  onRecordingStop={() => console.log('Grabación detenida')}
+                  className="mb-4"
+                />
+
+                {/* Opción alternativa para subir archivo */}
+                <div className="pt-4 border-t border-border">
+                  <div className="text-sm text-muted-foreground mb-2">
+                    O sube un archivo de audio:
+                  </div>
+                  <label
+                    className="inline-flex items-center gap-2 px-3 py-2 rounded-lg cursor-pointer border border-border transition-all hover:bg-muted/50 text-sm text-foreground bg-muted/50"
+                  >
+                    <Volume2 className="w-4 h-4" />
+                    <span>Seleccionar archivo</span>
+                    <input
+                      type="file"
+                      accept="audio/*"
+                      onChange={e => {
+                        const file = e.target.files?.[0];
+                        if (file) {
+                          setAudioFile(file);
+                        }
+                      }}
+                      className="hidden"
+                    />
+                  </label>
                 </div>
               </div>
-            )}
-
-            {/* Imagen opcional */}
-            <div className="space-y-4">
-              <div className="flex items-center gap-2">
-                <ImageIcon className="w-5 h-5 text-green-400" />
-                <Label className="text-base font-medium">
-                  Imagen (opcional)
-                </Label>
-              </div>
-
-              {/* Mostrar imagen existente si hay */}
-              {formData.content?.mediaUrl &&
-                formData.content.mediaType === 'image' && (
-                  <div className="mb-4 p-3 bg-muted/30 border border-border rounded-lg">
-                    <div className="text-sm text-muted-foreground mb-2">
-                      Imagen actual:
-                    </div>
-                    <img
-                      src={formData.content.mediaUrl}
-                      alt="Imagen actual"
-                      className="h-32 w-auto rounded border border-border cursor-pointer hover:border-blue-500 transition-colors"
-                      onClick={() => {
-                        const url = formData.content?.mediaUrl;
-                        if (url) window.open(url, '_blank');
-                      }}
-                      title="Click para ver imagen completa"
-                    />
-                  </div>
-                )}
-
-              <div className="flex items-center gap-3">
-                <label
-                  className={`flex items-center gap-2 px-4 py-2 rounded-lg cursor-pointer border transition-all hover:bg-muted/50 ${baseInputClass}`}
-                >
-                  <ImageIcon className="w-4 h-4" />
-                  <span>
-                    {formData.content?.mediaUrl &&
-                    formData.content.mediaType === 'image'
-                      ? 'Cambiar Imagen'
-                      : 'Seleccionar Imagen'}
-                  </span>
-                  <input
-                    type="file"
-                    accept="image/*"
-                    onChange={e => setImageFile(e.target.files?.[0] || null)}
-                    className="hidden"
-                  />
-                </label>
-                {imageFile && (
-                  <span className="text-sm text-green-400 flex items-center gap-1">
-                    ✓ {imageFile.name}
-                  </span>
-                )}
-              </div>
             </div>
-          </CardContent>
-        </Card>
+          )}
+
+          {/* Imagen opcional */}
+          <div className="space-y-4">
+            <div className="flex items-center gap-2">
+              <ImageIcon className="w-5 h-5 text-green-500 dark:text-green-400" />
+              <label className="text-xs font-medium text-foreground/80">
+                Imagen (opcional)
+              </label>
+            </div>
+
+            {/* Mostrar imagen existente si hay */}
+            {formData.content?.mediaUrl &&
+              formData.content.mediaType === 'image' && (
+                <div className="mb-4 p-3 bg-muted/30 border border-border rounded-lg">
+                  <div className="text-sm text-muted-foreground mb-2">
+                    Imagen actual:
+                  </div>
+                  <img
+                    src={formData.content.mediaUrl}
+                    alt="Imagen actual"
+                    className="h-32 w-auto rounded border border-border cursor-pointer hover:border-blue-500 transition-colors"
+                    onClick={() => {
+                      const url = formData.content?.mediaUrl;
+                      if (url) window.open(url, '_blank');
+                    }}
+                    title="Click para ver imagen completa"
+                  />
+                </div>
+              )}
+
+            <div className="flex items-center gap-3">
+              <label
+                className="flex items-center gap-2 px-4 py-2 rounded-lg cursor-pointer border border-border transition-all hover:bg-muted/50 text-sm text-foreground bg-muted/50"
+              >
+                <ImageIcon className="w-4 h-4" />
+                <span>
+                  {formData.content?.mediaUrl &&
+                  formData.content.mediaType === 'image'
+                    ? 'Cambiar Imagen'
+                    : 'Seleccionar Imagen'}
+                </span>
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={e => setImageFile(e.target.files?.[0] || null)}
+                  className="hidden"
+                />
+              </label>
+              {imageFile && (
+                <span className="text-sm text-green-600 dark:text-green-400 flex items-center gap-1">
+                  ✓ {imageFile.name}
+                </span>
+              )}
+            </div>
+          </div>
+        </div>
       )}
 
       {/* Metadatos adicionales y Etiquetas combinados */}
-      <Card className="border border-line">
-        <CardHeader className="pb-3">
-          <CardTitle className="text-foreground text-lg">Información adicional</CardTitle>
-          <CardDescription className="text-sm">
+      <div className="bg-card border border-border rounded-xl p-5 space-y-4">
+        <div className="mb-4">
+          <h3 className="text-base font-semibold text-foreground">Información adicional</h3>
+          <p className="text-xs text-muted-foreground mt-0.5">
             Tema, subtema y etiquetas para organización
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            <div className="space-y-2">
-              <Label>Tema</Label>
-              <Input
-                value={formData.metadata?.topic || ''}
-                onChange={e =>
-                  setFormData((p: Partial<Question>) => ({
-                    ...p,
-                    metadata: { ...p.metadata!, topic: e.target.value },
-                  }))
-                }
-                className={baseInputClass}
-                placeholder="Ej: Gramática"
-              />
-            </div>
+          </p>
+        </div>
 
-            <div className="space-y-2">
-              <Label>Subtema</Label>
-              <Input
-                value={formData.metadata?.subtopic || ''}
-                onChange={e =>
-                  setFormData((p: Partial<Question>) => ({
-                    ...p,
-                    metadata: { ...p.metadata!, subtopic: e.target.value },
-                  }))
-                }
-                className={baseInputClass}
-                placeholder="Ej: Present Simple"
-              />
-            </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <div className="space-y-2">
+            <label className="text-xs font-medium text-foreground/80">Tema</label>
+            <input
+              value={formData.metadata?.topic || ''}
+              onChange={e =>
+                setFormData((p: Partial<Question>) => ({
+                  ...p,
+                  metadata: { ...p.metadata!, topic: e.target.value },
+                }))
+              }
+              className="w-full h-9 px-3 text-sm bg-muted/50 border border-border rounded-lg text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring"
+              placeholder="Ej: Gramática"
+            />
           </div>
 
-          {/* Etiquetas integradas */}
-          <div className="space-y-3">
-            <Label>Etiquetas</Label>
-            <div className="flex gap-2">
-              <Input
-                value={tagInput}
-                onChange={e => setTagInput(e.target.value)}
-                onKeyDown={e => {
-                  if (e.key === 'Enter') {
-                    e.preventDefault();
-                    addTag();
-                  }
-                }}
-                placeholder="Agregar etiqueta..."
-                className={baseInputClass + ' flex-1'}
-              />
-              <Button type="button" variant="secondary" size="sm" onClick={addTag}>
-                Agregar
-              </Button>
-            </div>
-            {formData?.metadata?.tags && formData.metadata.tags.length > 0 && (
-              <div className="flex flex-wrap gap-1.5">
-                {formData.metadata.tags.map((tag: string, i: number) => (
-                  <span
-                    key={`${tag}-${i}`}
-                    className="px-2 py-1 bg-muted/50 border border-border text-foreground/90 rounded-full text-xs flex items-center gap-1.5"
+          <div className="space-y-2">
+            <label className="text-xs font-medium text-foreground/80">Subtema</label>
+            <input
+              value={formData.metadata?.subtopic || ''}
+              onChange={e =>
+                setFormData((p: Partial<Question>) => ({
+                  ...p,
+                  metadata: { ...p.metadata!, subtopic: e.target.value },
+                }))
+              }
+              className="w-full h-9 px-3 text-sm bg-muted/50 border border-border rounded-lg text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring"
+              placeholder="Ej: Present Simple"
+            />
+          </div>
+        </div>
+
+        {/* Etiquetas integradas */}
+        <div className="space-y-3">
+          <label className="text-xs font-medium text-foreground/80">Etiquetas</label>
+          <div className="flex gap-2">
+            <input
+              value={tagInput}
+              onChange={e => setTagInput(e.target.value)}
+              onKeyDown={e => {
+                if (e.key === 'Enter') {
+                  e.preventDefault();
+                  addTag();
+                }
+              }}
+              placeholder="Agregar etiqueta..."
+              className="w-full h-9 px-3 text-sm bg-muted/50 border border-border rounded-lg text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring flex-1"
+            />
+            <button
+              type="button"
+              onClick={addTag}
+              className="h-9 px-4 text-sm rounded-lg border border-border text-foreground hover:bg-muted/60 transition-colors flex items-center gap-1.5"
+            >
+              Agregar
+            </button>
+          </div>
+          {formData?.metadata?.tags && formData.metadata.tags.length > 0 && (
+            <div className="flex flex-wrap gap-1.5">
+              {formData.metadata.tags.map((tag: string, i: number) => (
+                <span
+                  key={`${tag}-${i}`}
+                  className="px-2 py-1 bg-muted/50 border border-border text-foreground/90 rounded-full text-xs flex items-center gap-1.5"
+                >
+                  {tag}
+                  <button
+                    type="button"
+                    onClick={() => removeTag(i)}
+                    className="hover:text-red-500 dark:hover:text-red-400 text-xs"
+                    title="Quitar etiqueta"
                   >
-                    {tag}
-                    <button
-                      type="button"
-                      onClick={() => removeTag(i)}
-                      className="hover:text-red-400 text-xs"
-                      title="Quitar etiqueta"
-                    >
-                      ×
-                    </button>
-                  </span>
-                ))}
-              </div>
-            )}
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Acciones */}
-      <div className="flex justify-end gap-3 pt-4 border-t border-line">
-        <Button
-          type="button"
-          variant="outline"
-          onClick={onCancel}
-          className="text-foreground bg-transparent border border-line hover:bg-muted"
-        >
-          Cancelar
-        </Button>
-        <Button
-          type="submit"
-          className="bg-blue-600 hover:bg-blue-700 text-white"
-        >
-          {question ? 'Guardar Cambios' : 'Crear Pregunta'}
-        </Button>
+                    ×
+                  </button>
+                </span>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
 
-      {/* Modal de Generador AI */}
+      {/* Acciones */}
+      <div className="flex justify-end gap-3 pt-4 border-t border-border">
+        <button
+          type="button"
+          onClick={onCancel}
+          className="h-9 px-4 text-sm rounded-lg border border-border text-foreground hover:bg-muted/60 transition-colors"
+        >
+          Cancelar
+        </button>
+        <button
+          type="submit"
+          className="h-9 px-4 text-sm rounded-lg bg-blue-600 hover:bg-blue-700 text-white transition-colors"
+        >
+          {question ? 'Guardar Cambios' : 'Crear Pregunta'}
+        </button>
+      </div>
+
+    </form>
+
+    {/* AI side panel */}
+    <div
+      className="shrink-0 sticky top-4 self-start relative overflow-hidden"
+      style={{
+        width: showAIGenerator ? panelWidth : 0,
+        opacity: showAIGenerator ? 1 : 0,
+        transition: 'width 300ms ease, opacity 200ms ease',
+        pointerEvents: showAIGenerator ? 'auto' : 'none',
+      }}
+    >
+      {/* Resize handle */}
+      <div
+        className="absolute left-0 top-0 bottom-0 w-2 cursor-col-resize z-10 flex items-center justify-center group"
+        onMouseDown={handleResizeStart}
+      >
+        <div className="w-0.5 h-10 rounded-full bg-border group-hover:bg-purple-400 dark:group-hover:bg-purple-500 transition-colors" />
+      </div>
       <AIQuestionGenerator
         formData={formData}
         onQuestionGenerated={handleAIQuestionGenerated}
-        isOpen={showAIGenerator}
         onClose={() => setShowAIGenerator(false)}
       />
-    </form>
+    </div>
+    </div>
   );
 };
 

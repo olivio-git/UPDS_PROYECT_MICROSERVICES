@@ -30,6 +30,13 @@ export const createAuthRoutes = (
     asyncHandler(authController.register)
   );
 
+  // Sincronización interna de datos de usuario (rol, nombre, email)
+  router.patch(
+    '/sync-user/:userId',
+    serviceMiddleware.authenticateService,
+    asyncHandler(authController.syncUser)
+  );
+
   router.post('/change-password',
     authMiddleware.authenticate,
     validateSchema(ChangePasswordSchema),

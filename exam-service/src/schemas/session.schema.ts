@@ -11,8 +11,8 @@ const timeSlotSchema = z.object({
 
 // Scheduling schema
 const schedulingSchema = z.object({
-  startDate: z.string().regex(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}[+-]\d{2}:\d{2}$/),
-  endDate: z.string().regex(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}[+-]\d{2}:\d{2}$/),
+  startDate: z.string().regex(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}(Z|[+-]\d{2}:\d{2})$/),
+  endDate: z.string().regex(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}(Z|[+-]\d{2}:\d{2})$/),
   timeSlots: z.array(timeSlotSchema)
 }).refine((data) => new Date(data.endDate) > new Date(data.startDate), {
   message: "End date must be after start date",
@@ -29,10 +29,10 @@ const participantsSchema = z.object({
 // Settings schema
 const settingsSchema = z.object({
   requireProctor: z.boolean().default(true),
-  enableRecording: z.boolean().default(false),
-  enableLockdown: z.boolean().default(false),
+  recordSession: z.boolean().default(false),
+  browserLockdown: z.boolean().default(false),
   allowLateEntry: z.boolean().default(false),
-  autoStart: z.boolean().default(false),
+  autoStart: z.boolean().default(true),
   lateEntryMinutes: z.number().min(0).max(30).default(0)
 });
 

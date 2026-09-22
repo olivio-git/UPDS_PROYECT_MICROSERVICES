@@ -78,13 +78,14 @@ const AuthWrapper: React.FC<AuthWrapperProps> = ({ route }) => {
     if (route.isAdmin && userData.role !== "admin") {
       const pathsByRole = {
         admin: "/dashboard",
-        student: "/student/dashboard", 
-        teacher: "/teacher/dashboard",
+        student: "/student/dashboard",
+        teacher: "/sessions",
+        proctor: "/sessions",
         all: "/home"
       };
       const userRole = userData.role as UserRole;
       const defaultPath = pathsByRole[userRole] || pathsByRole.admin;
-      
+
       return (
         <div className="min-h-screen flex items-center justify-center bg-gray-50">
           <div className="text-center space-y-4">
@@ -94,7 +95,7 @@ const AuthWrapper: React.FC<AuthWrapperProps> = ({ route }) => {
               href={defaultPath}
               className="inline-block px-4 py-2 bg-black text-white rounded hover:bg-gray-800 transition-colors"
             >
-              Volver al Dashboard
+              Volver al inicio
             </a>
           </div>
         </div>
@@ -110,7 +111,8 @@ const AuthWrapper: React.FC<AuthWrapperProps> = ({ route }) => {
       const pathsByRole = {
         admin: "/dashboard",
         student: "/student/dashboard",
-        teacher: "/teacher/dashboard", 
+        teacher: "/sessions",
+        proctor: "/sessions",
         all: "/home"
       };
       const userRole = userData.role as UserRole;

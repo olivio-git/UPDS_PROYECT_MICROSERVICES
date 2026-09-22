@@ -1,4 +1,6 @@
 import puppeteer from 'puppeteer';
+import fs from 'fs';
+import path from 'path';
 import { CompetencyAnalysisReport, StudentStatsReport, UpcomingSessionsReport, StudentHistoryReport } from './reports.service';
 import { llmInterpretationService, DataInterpretation, InterpretationConfig } from './llm-interpretation.service';
 import { logger } from '../utils/logger';
@@ -61,6 +63,28 @@ export class ProfessionalPDFService {
   }
 
   /**
+   * Carga el logo de la empresa como data URL base64
+   */
+  private getLogoDataUrl(): string | null {
+    try {
+      const candidates = [
+        path.join(process.cwd(), 'src/assets/logocba-color.webp'),  // Docker: /app/src/assets/
+        path.join(process.cwd(), 'dist/assets/logocba-color.webp'), // si se copia al dist
+        path.join(__dirname, '../assets/logocba-color.webp'),       // fallback relativo
+      ];
+      for (const logoPath of candidates) {
+        if (fs.existsSync(logoPath)) {
+          const buf = fs.readFileSync(logoPath);
+          return `data:image/webp;base64,${buf.toString('base64')}`;
+        }
+      }
+    } catch (error) {
+      logger.warn('No se pudo cargar el logo:', error);
+    }
+    return null;
+  }
+
+  /**
    * Genera PDF de análisis de competencias con diseño profesional
    */
   async generateCompetencyReportPDF(
@@ -71,29 +95,28 @@ export class ProfessionalPDFService {
       includeInterpretation: options.includeInterpretation
     });
 
-    // Obtener interpretación LLM si está habilitada
+    // Siempre llamar LLM para obtener recomendaciones (y análisis completo si está habilitado)
     let interpretation: DataInterpretation | null = null;
-    if (options.includeInterpretation) {
-      try {
-        interpretation = await llmInterpretationService.interpretCompetencyData(
-          report,
-          options.interpretationConfig || { language: 'spanish', depth: 'detailed', focus: 'academic' }
-        );
-        logger.info('Interpretación LLM obtenida para competencias:', {
-          summary: interpretation?.summary?.substring(0, 100),
-          hasInsights: interpretation?.keyInsights?.length || 0,
-          hasRecommendations: interpretation?.recommendations?.length || 0
-        });
-      } catch (error) {
-        const errorInfo = {
-          message: error instanceof Error ? error.message : String(error),
-          code: (error as any)?.code
-        };
-        logger.warn('Error obteniendo interpretación LLM para competencias:', errorInfo);
-      }
+    try {
+      interpretation = await llmInterpretationService.interpretCompetencyData(
+        report,
+        options.interpretationConfig || { language: 'spanish', depth: 'detailed', focus: 'academic' }
+      );
+      logger.info('Interpretación LLM obtenida para competencias:', {
+        summary: interpretation?.summary?.substring(0, 100),
+        hasInsights: interpretation?.keyInsights?.length || 0,
+        hasRecommendations: interpretation?.recommendations?.length || 0
+      });
+    } catch (error) {
+      const errorInfo = {
+        message: error instanceof Error ? error.message : String(error),
+        code: (error as any)?.code
+      };
+      logger.warn('LLM no disponible, usando recomendaciones estáticas:', errorInfo);
     }
 
-    const html = this.generateCompetencyHTML(report, interpretation, options);
+    const logoDataUrl = this.getLogoDataUrl();
+    const html = this.generateCompetencyHTML(report, interpretation, options, logoDataUrl);
     return await this.generatePDFFromHTMLInternal(html, options);
   }
 
@@ -128,7 +151,8 @@ export class ProfessionalPDFService {
       }
     }
 
-    const html = this.generateStudentHTML(report, interpretation, options);
+    const logoDataUrl = this.getLogoDataUrl();
+    const html = this.generateStudentHTML(report, interpretation, options, logoDataUrl);
     return await this.generatePDFFromHTMLInternal(html, options);
   }
 
@@ -163,7 +187,8 @@ export class ProfessionalPDFService {
       }
     }
 
-    const html = this.generateUpcomingSessionsHTML(report, interpretation, options);
+    const logoDataUrl = this.getLogoDataUrl();
+    const html = this.generateUpcomingSessionsHTML(report, interpretation, options, logoDataUrl);
     return await this.generatePDFFromHTMLInternal(html, options);
   }
 
@@ -199,7 +224,8 @@ export class ProfessionalPDFService {
       }
     }
 
-    const html = this.generateStudentHistoryHTML(report, interpretation, options);
+    const logoDataUrl = this.getLogoDataUrl();
+    const html = this.generateStudentHistoryHTML(report, interpretation, options, logoDataUrl);
     return await this.generatePDFFromHTMLInternal(html, options);
   }
 
@@ -289,12 +315,38 @@ export class ProfessionalPDFService {
           text-align: center;
         }
 
-        .header .company-info {
+        .header-brand {
           display: flex;
-          justify-content: space-between;
           align-items: center;
-          margin-top: 20px;
-          font-size: 12px;
+          gap: 16px;
+          margin-bottom: 16px;
+        }
+
+        .brand-logo {
+          height: 52px;
+          width: auto;
+          background: white;
+          border-radius: 6px;
+          padding: 5px 10px;
+          box-shadow: 0 2px 6px rgba(0,0,0,0.25);
+          flex-shrink: 0;
+        }
+
+        .brand-text {
+          display: flex;
+          flex-direction: column;
+          gap: 3px;
+        }
+
+        .brand-company {
+          font-size: 13px;
+          font-weight: 600;
+          color: rgba(255,255,255,0.95);
+        }
+
+        .brand-date {
+          font-size: 11px;
+          color: rgba(255,255,255,0.75);
         }
 
         /* AI Analysis Section */
@@ -536,8 +588,7 @@ export class ProfessionalPDFService {
     const isSpanish = options.language !== 'english';
 
     return `
-      <div style="font-size: 9px; padding: 0 15mm; width: 100%; display: flex; justify-content: space-between; align-items: center; color: #64748b;">
-        <span>${isSpanish ? 'Generado automáticamente' : 'Automatically generated'} - ${new Date().toISOString()}</span>
+      <div style="font-size: 9px; padding: 0 15mm; width: 100%; display: flex; justify-content: flex-end; align-items: center; color: #64748b;">
         <span>${isSpanish ? 'Página' : 'Page'} <span class="pageNumber"></span> ${isSpanish ? 'de' : 'of'} <span class="totalPages"></span></span>
       </div>
     `;
@@ -549,7 +600,8 @@ export class ProfessionalPDFService {
   private generateCompetencyHTML(
     report: CompetencyAnalysisReport,
     interpretation: DataInterpretation | null,
-    options: PDFGenerationOptions
+    options: PDFGenerationOptions,
+    logoDataUrl: string | null = null
   ): string {
     const isSpanish = options.language !== 'english';
     const companyName = options.companyName || (isSpanish ? 'Sistema de Evaluación Académica' : 'Academic Evaluation System');
@@ -580,15 +632,18 @@ export class ProfessionalPDFService {
       <body>
         <div class="container">
           <div class="header">
-            <div class="company-info">
-              <span>${companyName}</span>
-              <span>${new Date().toLocaleDateString(isSpanish ? 'es-ES' : 'en-US')}</span>
+            <div class="header-brand">
+              ${logoDataUrl ? `<img src="${logoDataUrl}" alt="CBA Logo" class="brand-logo" />` : ''}
+              <div class="brand-text">
+                <span class="brand-company">${companyName}</span>
+                <span class="brand-date">${new Date().toLocaleDateString(isSpanish ? 'es-ES' : 'en-US')}</span>
+              </div>
             </div>
-            <h1>${isSpanish ? '📊 Análisis por Competencias' : '📊 Competency Analysis'}</h1>
+            <h1>${isSpanish ? 'Análisis por Competencias' : 'Competency Analysis'}</h1>
             <div class="subtitle">${isSpanish ? 'Reporte detallado de rendimiento académico por competencias' : 'Detailed academic performance report by competencies'}</div>
           </div>
 
-          ${interpretation ? this.generateInterpretationHTML(interpretation, isSpanish) : ''}
+          ${options.includeInterpretation && interpretation ? this.generateInterpretationHTML(interpretation, isSpanish) : ''}
 
           <div class="section-header">${isSpanish ? 'Resumen Ejecutivo' : 'Executive Summary'}</div>
           <div class="metrics-grid">
@@ -628,14 +683,19 @@ export class ProfessionalPDFService {
             </table>
           </div>
 
-          ${report.recommendations && report.recommendations.length > 0 ? `
+          ${(() => {
+            const recs = (interpretation?.recommendations && interpretation.recommendations.length > 0)
+              ? interpretation.recommendations
+              : (report.recommendations || []);
+            if (recs.length === 0) return '';
+            return `
             <div class="section-header">${isSpanish ? 'Recomendaciones' : 'Recommendations'}</div>
             <div style="background: #f0f9ff; border: 1px solid #0ea5e9; border-radius: 8px; padding: 20px;">
               <ul style="list-style: none; padding: 0;">
-                ${report.recommendations.map(rec => `<li style="padding: 8px 0; padding-left: 20px; position: relative;"><span style="position: absolute; left: 0;">🎯</span> ${rec}</li>`).join('')}
+                ${recs.map(rec => `<li style="padding: 8px 0; padding-left: 16px; position: relative; border-left: 2px solid #0ea5e9; margin-bottom: 4px;">${rec}</li>`).join('')}
               </ul>
-            </div>
-          ` : ''}
+            </div>`;
+          })()}
         </div>
       </body>
       </html>
@@ -648,7 +708,7 @@ export class ProfessionalPDFService {
   private generateInterpretationHTML(interpretation: DataInterpretation, isSpanish: boolean): string {
     return `
       <div class="ai-analysis">
-        <h2>🤖 ${isSpanish ? 'Análisis Inteligente' : 'AI Analysis'}</h2>
+        <h2>${isSpanish ? 'Análisis Inteligente' : 'AI Analysis'}</h2>
 
         ${interpretation.summary ? `
           <div class="summary">
@@ -660,7 +720,7 @@ export class ProfessionalPDFService {
         <div class="ai-insights">
           ${interpretation.keyInsights && interpretation.keyInsights.length > 0 ? `
             <div class="insight-card">
-              <h3>💡 ${isSpanish ? 'Insights Clave' : 'Key Insights'}</h3>
+              <h3>${isSpanish ? 'Insights Clave' : 'Key Insights'}</h3>
               <ul>
                 ${interpretation.keyInsights.map(insight => `<li>${insight}</li>`).join('')}
               </ul>
@@ -669,7 +729,7 @@ export class ProfessionalPDFService {
 
           ${interpretation.recommendations && interpretation.recommendations.length > 0 ? `
             <div class="insight-card recommendations">
-              <h3>🎯 ${isSpanish ? 'Recomendaciones' : 'Recommendations'}</h3>
+              <h3>${isSpanish ? 'Recomendaciones' : 'Recommendations'}</h3>
               <ul>
                 ${interpretation.recommendations.map(rec => `<li>${rec}</li>`).join('')}
               </ul>
@@ -678,7 +738,7 @@ export class ProfessionalPDFService {
 
           ${interpretation.concerns && interpretation.concerns.length > 0 ? `
             <div class="insight-card concerns">
-              <h3>⚠️ ${isSpanish ? 'Áreas de Atención' : 'Areas of Concern'}</h3>
+              <h3>${isSpanish ? 'Áreas de Atención' : 'Areas of Concern'}</h3>
               <ul>
                 ${interpretation.concerns.map(concern => `<li>${concern}</li>`).join('')}
               </ul>
@@ -687,7 +747,7 @@ export class ProfessionalPDFService {
 
           ${interpretation.trends && interpretation.trends.length > 0 ? `
             <div class="insight-card trends">
-              <h3>📈 ${isSpanish ? 'Tendencias' : 'Trends'}</h3>
+              <h3>${isSpanish ? 'Tendencias' : 'Trends'}</h3>
               <ul>
                 ${interpretation.trends.map(trend => `<li>${trend}</li>`).join('')}
               </ul>
@@ -701,7 +761,7 @@ export class ProfessionalPDFService {
   /**
    * Genera HTML para reporte de estadísticas de estudiantes
    */
-  private generateStudentHTML(report: StudentStatsReport, interpretation: DataInterpretation | null, options: PDFGenerationOptions): string {
+  private generateStudentHTML(report: StudentStatsReport, interpretation: DataInterpretation | null, options: PDFGenerationOptions, logoDataUrl: string | null = null): string {
     const isSpanish = options.language !== 'english';
     const companyName = options.companyName || (isSpanish ? 'Sistema de Evaluación Académica' : 'Academic Evaluation System');
 
@@ -721,7 +781,7 @@ export class ProfessionalPDFService {
     const topPerformersRows = report.topPerformers.slice(0, 10).map((student, index) => `
       <tr>
         <td style="text-align: center;">#${index + 1}</td>
-        <td>${student.candidateId}</td>
+        <td>${(student as any).name || student.candidateId}</td>
         <td style="text-align: center;">${student.averageScore.toFixed(1)}%</td>
         <td style="text-align: center;">${student.examsCompleted}</td>
         <td style="text-align: center;">${student.currentLevel}</td>
@@ -739,11 +799,14 @@ export class ProfessionalPDFService {
       <body>
         <div class="container">
           <div class="header">
-            <div class="company-info">
-              <span>${companyName}</span>
-              <span>${new Date().toLocaleDateString(isSpanish ? 'es-ES' : 'en-US')}</span>
+            <div class="header-brand">
+              ${logoDataUrl ? `<img src="${logoDataUrl}" alt="CBA Logo" class="brand-logo" />` : ''}
+              <div class="brand-text">
+                <span class="brand-company">${companyName}</span>
+                <span class="brand-date">${new Date().toLocaleDateString(isSpanish ? 'es-ES' : 'en-US')}</span>
+              </div>
             </div>
-            <h1>${isSpanish ? '👥 Estadísticas de Estudiantes' : '👥 Student Statistics'}</h1>
+            <h1>${isSpanish ? 'Estadísticas de Estudiantes' : 'Student Statistics'}</h1>
             <div class="subtitle">${isSpanish ? 'Análisis detallado del rendimiento estudiantil' : 'Detailed student performance analysis'}</div>
           </div>
 
@@ -792,7 +855,7 @@ export class ProfessionalPDFService {
                 <thead>
                   <tr>
                     <th style="text-align: center;">${isSpanish ? 'Posición' : 'Rank'}</th>
-                    <th>${isSpanish ? 'ID Estudiante' : 'Student ID'}</th>
+                    <th>${isSpanish ? 'Estudiante' : 'Student'}</th>
                     <th style="text-align: center;">${isSpanish ? 'Promedio' : 'Average'}</th>
                     <th style="text-align: center;">${isSpanish ? 'Exámenes' : 'Exams'}</th>
                     <th style="text-align: center;">${isSpanish ? 'Nivel' : 'Level'}</th>
@@ -813,7 +876,7 @@ export class ProfessionalPDFService {
   /**
    * Genera HTML para reporte de próximas sesiones
    */
-  private generateUpcomingSessionsHTML(report: UpcomingSessionsReport, interpretation: DataInterpretation | null, options: PDFGenerationOptions): string {
+  private generateUpcomingSessionsHTML(report: UpcomingSessionsReport, interpretation: DataInterpretation | null, options: PDFGenerationOptions, logoDataUrl: string | null = null): string {
     const isSpanish = options.language !== 'english';
     const companyName = options.companyName || (isSpanish ? 'Sistema de Evaluación Académica' : 'Academic Evaluation System');
 
@@ -850,11 +913,14 @@ export class ProfessionalPDFService {
       <body>
         <div class="container">
           <div class="header">
-            <div class="company-info">
-              <span>${companyName}</span>
-              <span>${new Date().toLocaleDateString(isSpanish ? 'es-ES' : 'en-US')}</span>
+            <div class="header-brand">
+              ${logoDataUrl ? `<img src="${logoDataUrl}" alt="CBA Logo" class="brand-logo" />` : ''}
+              <div class="brand-text">
+                <span class="brand-company">${companyName}</span>
+                <span class="brand-date">${new Date().toLocaleDateString(isSpanish ? 'es-ES' : 'en-US')}</span>
+              </div>
             </div>
-            <h1>${isSpanish ? '📅 Próximas Programaciones' : '📅 Upcoming Sessions'}</h1>
+            <h1>${isSpanish ? 'Próximas Programaciones' : 'Upcoming Sessions'}</h1>
             <div class="subtitle">${isSpanish ? 'Planificación y gestión de sesiones de examen' : 'Exam session planning and management'}</div>
           </div>
 
@@ -924,7 +990,7 @@ export class ProfessionalPDFService {
   /**
    * Genera HTML para reporte de historial de estudiante
    */
-  private generateStudentHistoryHTML(report: StudentHistoryReport, interpretation: DataInterpretation | null, options: PDFGenerationOptions): string {
+  private generateStudentHistoryHTML(report: StudentHistoryReport, interpretation: DataInterpretation | null, options: PDFGenerationOptions, logoDataUrl: string | null = null): string {
     const isSpanish = options.language !== 'english';
     const companyName = options.companyName || (isSpanish ? 'Sistema de Evaluación Académica' : 'Academic Evaluation System');
 
@@ -963,12 +1029,15 @@ export class ProfessionalPDFService {
       <body>
         <div class="container">
           <div class="header">
-            <div class="company-info">
-              <span>${companyName}</span>
-              <span>${new Date().toLocaleDateString(isSpanish ? 'es-ES' : 'en-US')}</span>
+            <div class="header-brand">
+              ${logoDataUrl ? `<img src="${logoDataUrl}" alt="CBA Logo" class="brand-logo" />` : ''}
+              <div class="brand-text">
+                <span class="brand-company">${companyName}</span>
+                <span class="brand-date">${new Date().toLocaleDateString(isSpanish ? 'es-ES' : 'en-US')}</span>
+              </div>
             </div>
-            <h1>${isSpanish ? '📚 Historial Académico' : '📚 Academic History'}</h1>
-            <div class="subtitle">${report.studentInfo.name} (${report.studentId})</div>
+            <h1>${isSpanish ? 'Historial Académico' : 'Academic History'}</h1>
+            <div class="subtitle">${report.studentInfo.name}</div>
           </div>
 
           ${interpretation ? this.generateInterpretationHTML(interpretation, isSpanish) : ''}

@@ -19,8 +19,8 @@ export const ROUTE_CONFIG = {
   DEFAULT_PATHS: {
     admin: '/dashboard',
     student: '/student/dashboard',
-    teacher: '/teacher/dashboard',
-    proctor: '/proctor/dashboard',
+    teacher: '/sessions',
+    proctor: '/sessions',
     guest: '/'
   } as Record<UserRole, string>,
 

@@ -29,6 +29,9 @@ export const env = {
 
   // Grading Service
   GRADING_SERVICE_URL: process.env.GRADING_SERVICE_URL || 'http://grading-service:3007',
+
+  // User Management Service (internal)
+  USER_MANAGEMENT_SERVICE_URL: process.env.USER_MANAGEMENT_SERVICE_URL || 'http://user-management-service:3002',
   JWT_SECRET: process.env.JWT_SECRET || 'your-secret-key',
   
   // MinIO Configuration

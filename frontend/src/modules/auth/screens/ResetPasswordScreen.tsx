@@ -118,7 +118,7 @@ const ResetPasswordScreen = () => {
 
           <CardContent className="space-y-4">
             {error && (
-              <Alert className="border-destructive/50 bg-destructive/90">
+              <Alert className="border-destructive/50 bg-destructive/10">
                 <AlertDescription className="text-destructive">
                   {error}
                 </AlertDescription>

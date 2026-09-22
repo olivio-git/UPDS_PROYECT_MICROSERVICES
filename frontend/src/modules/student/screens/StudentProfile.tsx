@@ -2,14 +2,18 @@ import { Badge } from "@/components/atoms/badge";
 import { Button } from "@/components/atoms/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/atoms/card";
 import { Input } from "@/components/atoms/input";
+import { UserAvatar } from "@/components/atoms/UserAvatar";
 import { MainLayout } from "@/components/layout";
 import { useAuthStore } from "@/modules/auth/services/authStore";
+import { userManagementService } from "@/services/userManagementService";
 import {
   Bell,
+  BookOpen,
   Camera,
   Edit,
   KeyRound,
   Mail,
+  MapPin,
   Phone,
   Save,
   Shield,
@@ -17,19 +21,16 @@ import {
   User,
   X
 } from "lucide-react";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { toast } from "sonner";
 import { ChangePasswordFlow } from "../components/ChangePasswordFlow";
 
-interface NotificationPrefs {
-  email: boolean;
-  examReminders: boolean;
-  progressUpdates: boolean;
-}
 
 interface PersonalInfo {
   phone: string;
-  nationality: string;
+  address: string;
+  dateOfBirth: string;
+  bio: string;
 }
 
 const tabs = [
@@ -39,37 +40,79 @@ const tabs = [
 ];
 
 const StudentProfile = () => {
-  const { user } = useAuthStore();
+  const { user, patchLocalUser } = useAuthStore();
+  // console.log(user)
   const [isEditing, setIsEditing] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
   const [activeTab, setActiveTab] = useState("personal");
   const [showChangePassword, setShowChangePassword] = useState(false);
+  const avatarInputRef = useRef<HTMLInputElement>(null);
+
+  const rawPhone = user?.profile?.phone || "";
+  const phoneNumber = rawPhone.startsWith("+591") ? rawPhone.slice(4) : rawPhone;
 
   const [personalInfo, setPersonalInfo] = useState<PersonalInfo>({
-    phone: user?.profile?.phone || "",
-    nationality: "Boliviana",
+    phone: phoneNumber,
+    address: (user?.profile as any)?.address || "",
+    dateOfBirth: (user?.profile as any)?.dateOfBirth
+      ? new Date((user.profile as any).dateOfBirth).toISOString().split("T")[0]
+      : "",
+    bio: (user?.profile as any)?.bio || "",
   });
   const [editedInfo, setEditedInfo] = useState<PersonalInfo>(personalInfo);
 
-  const [notifications, setNotifications] = useState<NotificationPrefs>({
-    email: true,
-    examReminders: true,
-    progressUpdates: true,
-  });
+  const [emailNotif, setEmailNotif] = useState<boolean>(
+    user?.profile?.preferences?.notifications?.email ?? true
+  );
+  const [savingNotif, setSavingNotif] = useState(false);
 
   const firstName = user?.firstName || "";
   const lastName = user?.lastName || "";
   const email = user?.email || "";
   const initials = `${firstName.charAt(0)}${lastName.charAt(0)}`.toUpperCase();
 
-  const handleSave = () => {
-    setPersonalInfo(editedInfo);
-    setIsEditing(false);
-    toast.success("Perfil actualizado");
+  const handleSave = async () => {
+    setIsSaving(true);
+    const result = await userManagementService.updateProfile({
+      profile: {
+        phone: editedInfo.phone ? `+591${editedInfo.phone}` : "",
+        address: editedInfo.address,
+        dateOfBirth: editedInfo.dateOfBirth || undefined,
+        bio: editedInfo.bio,
+      },
+    });
+    setIsSaving(false);
+    if (result.success) {
+      setPersonalInfo(editedInfo);
+      patchLocalUser({
+        profile: {
+          phone: editedInfo.phone ? `+591${editedInfo.phone}` : "",
+          address: editedInfo.address,
+          dateOfBirth: editedInfo.dateOfBirth || undefined,
+          bio: editedInfo.bio,
+        },
+      });
+      setIsEditing(false);
+      toast.success("Perfil actualizado");
+    }
   };
 
   const handleCancel = () => {
     setEditedInfo(personalInfo);
     setIsEditing(false);
+  };
+
+  const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !user?.id) return;
+    setIsUploadingAvatar(true);
+    const result = await userManagementService.uploadAvatar(user.id, file);
+    setIsUploadingAvatar(false);
+    if (result.success && result.data?.avatarUrl) {
+      patchLocalUser({ profile: { ...user.profile, avatarUrl: result.data.avatarUrl } });
+      toast.success('Foto de perfil actualizada');
+    }
   };
 
   return (
@@ -78,20 +121,35 @@ const StudentProfile = () => {
         {/* Page title */}
         <h1 className="text-2xl font-bold text-foreground">Mi Perfil</h1>
 
-        <div className="flex flex-col md:flex-row gap-6 items-start">
+        <div className="flex flex-col md:flex-row gap-6 md:items-start">
           {/* ── Left: Profile card ── */}
           <div className="w-full md:w-64 shrink-0">
-            <Card className="bg-card border border-border">
+            <Card className="bg-card border border-border shadow-none">
               <CardContent className="pt-6 pb-5 px-5 space-y-4">
                 {/* Avatar */}
                 <div className="flex flex-col items-center text-center gap-3">
                   <div className="relative">
-                    <div className="w-18 h-18 w-[72px] h-[72px] bg-[#F0003C] rounded-full flex items-center justify-center text-xl font-bold text-white select-none">
-                      {initials || <User className="h-7 w-7" />}
-                    </div>
-                    <button className="absolute -bottom-1 -right-1 w-6 h-6 rounded-full bg-muted border border-border flex items-center justify-center hover:bg-muted/80 transition-colors">
+                    <UserAvatar
+                      avatarUrl={user?.profile?.avatarUrl}
+                      firstName={firstName}
+                      lastName={lastName}
+                      size="lg"
+                    />
+                    <button
+                      className="absolute -bottom-1 -right-1 w-6 h-6 rounded-full bg-muted border border-border flex items-center justify-center hover:bg-muted/80 transition-colors disabled:opacity-50"
+                      onClick={() => avatarInputRef.current?.click()}
+                      disabled={isUploadingAvatar}
+                      title="Cambiar foto de perfil"
+                    >
                       <Camera className="h-3 w-3 text-muted-foreground" />
                     </button>
+                    <input
+                      ref={avatarInputRef}
+                      type="file"
+                      accept="image/jpeg,image/png,image/webp"
+                      className="hidden"
+                      onChange={handleAvatarUpload}
+                    />
                   </div>
 
                   <div>
@@ -104,7 +162,7 @@ const StudentProfile = () => {
                   </div>
 
                   <Badge variant="secondary" className="text-xs">
-                    Estudiante
+                    {{ admin: 'Administrador', teacher: 'Profesor', proctor: 'Supervisor', student: 'Estudiante' }[user?.role as 'admin' | 'teacher' | 'proctor' | 'student' ?? 'student'] ?? 'Estudiante'}
                   </Badge>
                 </div>
 
@@ -116,7 +174,11 @@ const StudentProfile = () => {
                   </div>
                   <div className="flex items-center gap-2 text-xs text-muted-foreground">
                     <Phone className="h-3.5 w-3.5 shrink-0" />
-                    <span>{personalInfo.phone || "Sin teléfono"}</span>
+                    <span>
+                      {personalInfo.phone
+                        ? `+591 ${personalInfo.phone}`
+                        : "Sin teléfono"}
+                    </span>
                   </div>
                 </div>
 
@@ -128,9 +190,10 @@ const StudentProfile = () => {
                         size="sm"
                         className="w-full bg-green-600 hover:bg-green-700 text-white"
                         onClick={handleSave}
+                        disabled={isSaving}
                       >
                         <Save className="h-3.5 w-3.5 mr-1.5" />
-                        Guardar cambios
+                        {isSaving ? "Guardando..." : "Guardar cambios"}
                       </Button>
                       <Button
                         size="sm"
@@ -191,7 +254,7 @@ const StudentProfile = () => {
 
             {/* ── Tab: Personal ── */}
             {activeTab === "personal" && (
-              <Card className="bg-card border border-border">
+              <Card className="bg-card border border-border shadow-none">
                 <CardHeader className="pb-3">
                   <CardTitle className="text-base text-foreground flex items-center gap-2">
                     <span className="icon-wrap-blue p-1.5 rounded-md">
@@ -202,58 +265,117 @@ const StudentProfile = () => {
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    {/* Nombre — readonly (viene de auth) */}
-                    <InfoRow
-                      label="Nombre"
-                      value={firstName}
-                      readonly
-                    />
-                    <InfoRow
-                      label="Apellido"
-                      value={lastName}
-                      readonly
-                    />
-                    <InfoRow
-                      label="Email"
-                      value={email}
-                      readonly
-                    />
+                    {/* Nombre — readonly */}
+                    <InfoRow label="Nombre" value={firstName} readonly />
+                    <InfoRow label="Apellido" value={lastName} readonly />
+                    <InfoRow label="Email" value={email} readonly />
 
-                    {/* Teléfono — editable */}
+                    {/* Teléfono — editable con prefijo +591 */}
                     <div className="space-y-1">
-                      <p className="text-xs text-muted-foreground">Teléfono</p>
+                      <p className="text-xs text-muted-foreground flex items-center gap-1.5">
+                        <Phone className="h-3 w-3" />
+                        Teléfono
+                      </p>
                       {isEditing ? (
-                        <Input
-                          value={editedInfo.phone}
-                          onChange={(e) =>
-                            setEditedInfo((p) => ({ ...p, phone: e.target.value }))
-                          }
-                          placeholder="Ej. +591 7xxxxxxx"
-                          className="h-8 text-sm"
-                        />
+                        <div className="flex h-8 rounded-md border border-input overflow-hidden focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-1 bg-background">
+                          <div className="flex items-center px-2.5 bg-muted border-r border-input shrink-0">
+                            <span className="text-xs font-semibold text-muted-foreground select-none">+591</span>
+                          </div>
+                          <input
+                            type="tel"
+                            value={editedInfo.phone}
+                            onChange={(e) => {
+                              const val = e.target.value.replace(/\D/g, "").slice(0, 8);
+                              setEditedInfo((p) => ({ ...p, phone: val }));
+                            }}
+                            placeholder="7xxxxxxx"
+                            maxLength={8}
+                            className="flex-1 px-2.5 text-sm bg-transparent outline-none text-foreground placeholder:text-muted-foreground"
+                          />
+                        </div>
                       ) : (
                         <p className="text-sm text-foreground">
-                          {personalInfo.phone || (
+                          {personalInfo.phone ? (
+                            <span className="font-medium">+591 {personalInfo.phone}</span>
+                          ) : (
                             <span className="text-muted-foreground italic">Sin teléfono</span>
                           )}
                         </p>
                       )}
                     </div>
 
-                    {/* Nacionalidad — editable */}
+                    {/* Fecha de nacimiento — editable */}
                     <div className="space-y-1">
-                      <p className="text-xs text-muted-foreground">Nacionalidad</p>
+                      <p className="text-xs text-muted-foreground">Fecha de nacimiento</p>
                       {isEditing ? (
                         <Input
-                          value={editedInfo.nationality}
+                          type="date"
+                          value={editedInfo.dateOfBirth}
                           onChange={(e) =>
-                            setEditedInfo((p) => ({ ...p, nationality: e.target.value }))
+                            setEditedInfo((p) => ({ ...p, dateOfBirth: e.target.value }))
                           }
                           className="h-8 text-sm"
-                          disabled
                         />
                       ) : (
-                        <p className="text-sm text-foreground">{personalInfo.nationality}</p>
+                        <p className="text-sm text-foreground">
+                          {personalInfo.dateOfBirth
+                            ? new Date(personalInfo.dateOfBirth).toLocaleDateString("es-BO", {
+                                day: "2-digit",
+                                month: "long",
+                                year: "numeric",
+                              })
+                            : <span className="text-muted-foreground italic">No especificada</span>}
+                        </p>
+                      )}
+                    </div>
+
+                    {/* Dirección — editable, ocupa columna completa */}
+                    <div className="space-y-1 sm:col-span-2">
+                      <p className="text-xs text-muted-foreground flex items-center gap-1.5">
+                        <MapPin className="h-3 w-3" />
+                        Dirección
+                      </p>
+                      {isEditing ? (
+                        <Input
+                          value={editedInfo.address}
+                          onChange={(e) =>
+                            setEditedInfo((p) => ({ ...p, address: e.target.value }))
+                          }
+                          placeholder="Ej. Av. Busch #123, La Paz"
+                          className="h-8 text-sm"
+                        />
+                      ) : (
+                        <p className="text-sm text-foreground">
+                          {personalInfo.address || (
+                            <span className="text-muted-foreground italic">Sin dirección</span>
+                          )}
+                        </p>
+                      )}
+                    </div>
+
+                    {/* Bio — editable, ocupa columna completa */}
+                    <div className="space-y-1 sm:col-span-2">
+                      <p className="text-xs text-muted-foreground flex items-center gap-1.5">
+                        <BookOpen className="h-3 w-3" />
+                        Sobre mí
+                      </p>
+                      {isEditing ? (
+                        <textarea
+                          value={editedInfo.bio}
+                          onChange={(e) =>
+                            setEditedInfo((p) => ({ ...p, bio: e.target.value }))
+                          }
+                          placeholder="Cuéntanos un poco sobre ti..."
+                          maxLength={300}
+                          rows={3}
+                          className="w-full px-3 py-2 text-sm rounded-md border border-input bg-background text-foreground placeholder:text-muted-foreground outline-none focus:ring-2 focus:ring-ring focus:ring-offset-1 resize-none"
+                        />
+                      ) : (
+                        <p className="text-sm text-foreground leading-relaxed">
+                          {personalInfo.bio || (
+                            <span className="text-muted-foreground italic">Sin descripción</span>
+                          )}
+                        </p>
                       )}
                     </div>
                   </div>
@@ -274,7 +396,7 @@ const StudentProfile = () => {
 
             {/* ── Tab: Preferences ── */}
             {activeTab === "preferences" && (
-              <Card className="bg-card border border-border">
+              <Card className="bg-card border border-border shadow-none">
                 <CardHeader className="pb-3">
                   <CardTitle className="text-base text-foreground flex items-center gap-2">
                     <span className="icon-wrap-purple p-1.5 rounded-md">
@@ -283,55 +405,47 @@ const StudentProfile = () => {
                     Notificaciones
                   </CardTitle>
                 </CardHeader>
-                <CardContent className="space-y-1">
-                  {[
-                    {
-                      key: "email" as keyof NotificationPrefs,
-                      label: "Notificaciones por Email",
-                      desc: "Recibir actualizaciones en tu correo",
-                    },
-                    {
-                      key: "examReminders" as keyof NotificationPrefs,
-                      label: "Recordatorios de Exámenes",
-                      desc: "Alerta antes de cada examen programado",
-                    },
-                    {
-                      key: "progressUpdates" as keyof NotificationPrefs,
-                      label: "Actualizaciones de Progreso",
-                      desc: "Reportes periódicos de tu avance",
-                    },
-                  ].map(({ key, label, desc }) => (
-                    <div
-                      key={key}
-                      className="flex items-center justify-between py-3 border-b border-border last:border-0"
-                    >
-                      <div>
-                        <p className="text-sm font-medium text-foreground">{label}</p>
-                        <p className="text-xs text-muted-foreground">{desc}</p>
-                      </div>
-                      <button
-                        onClick={() =>
-                          setNotifications((p) => ({ ...p, [key]: !p[key] }))
-                        }
-                        className={`relative w-9 h-5 rounded-full transition-colors ${
-                          notifications[key] ? "bg-blue-600" : "bg-muted"
-                        }`}
-                      >
-                        <span
-                          className={`absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform ${
-                            notifications[key] ? "translate-x-4" : "translate-x-0"
-                          }`}
-                        />
-                      </button>
+                <CardContent>
+                  <div className="flex items-center justify-between py-3">
+                    <div>
+                      <p className="text-sm font-medium text-foreground">Notificaciones por Email</p>
+                      <p className="text-xs text-muted-foreground">
+                        Recibir resultados de exámenes en tu correo
+                      </p>
                     </div>
-                  ))}
+                    <button
+                      disabled={savingNotif}
+                      onClick={async () => {
+                        const next = !emailNotif;
+                        setSavingNotif(true);
+                        const result = await userManagementService.updateProfile({
+                          profile: { preferences: { notifications: { email: next } } },
+                        });
+                        setSavingNotif(false);
+                        if (result.success) {
+                          setEmailNotif(next);
+                          patchLocalUser({ profile: { preferences: { notifications: { email: next } } } });
+                          toast.success(next ? "Notificaciones activadas" : "Notificaciones desactivadas");
+                        }
+                      }}
+                      className={`relative w-9 h-5 rounded-full transition-colors ${
+                        savingNotif ? "opacity-50 cursor-not-allowed" : ""
+                      } ${emailNotif ? "bg-blue-600" : "bg-muted"}`}
+                    >
+                      <span
+                        className={`absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform ${
+                          emailNotif ? "translate-x-4" : "translate-x-0"
+                        }`}
+                      />
+                    </button>
+                  </div>
                 </CardContent>
               </Card>
             )}
 
             {/* ── Tab: Security ── */}
             {activeTab === "security" && (
-              <Card className="bg-card border border-border">
+              <Card className="bg-card border border-border shadow-none">
                 <CardHeader className="pb-3">
                   <CardTitle className="text-base text-foreground flex items-center gap-2">
                     <span className="icon-wrap-red p-1.5 rounded-md">

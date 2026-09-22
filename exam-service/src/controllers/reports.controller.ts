@@ -1,6 +1,7 @@
 import { NextFunction, Request, Response } from 'express';
-import { ReportFilters, ReportsService, UpcomingSessionsReport, StudentHistoryReport } from '../services/reports.service';
+import { ReportFilters, ReportsService, UpcomingSessionsReport, StudentHistoryReport, StudentListReport } from '../services/reports.service';
 import { PDFService, PDFGenerationOptions } from '../services/pdf.service';
+import { User } from '../models/user.model';
 import { logger } from '../utils/logger';
 
 export class ReportsController {
@@ -67,6 +68,30 @@ export class ReportsController {
   }
 
   /**
+   * Lista paginada de estudiantes con métricas
+   * GET /reports/students/list
+   */
+  async getStudentList(req: Request, res: Response, next: NextFunction) {
+    try {
+      const filters = this.parseFilters(req.query);
+      const page = parseInt(req.query.page as string) || 1;
+      const limit = Math.min(parseInt(req.query.limit as string) || 20, 100);
+      const search = (req.query.search as string) || '';
+
+      const report: StudentListReport = await this.reportsService.getStudentList(filters, page, limit, search);
+
+      res.json({
+        success: true,
+        data: report,
+        meta: { generatedAt: new Date().toISOString(), filters, reportType: 'student_list' }
+      });
+    } catch (error) {
+      logger.error('Error generating student list:', error);
+      next(error);
+    }
+  }
+
+  /**
    * Exportar reporte a CSV o PDF
    * GET /reports/export/:type
    */
@@ -101,23 +126,28 @@ export class ReportsController {
       });
 
       if (format === 'csv') {
-        // Export CSV (existing logic)
-        if (!['competency', 'students'].includes(type as string)) {
+        if (!['competency', 'students', 'student-history'].includes(type as string)) {
           res.status(400).json({
             success: false,
-            message: 'CSV solo disponible para: competency, students'
+            message: 'CSV solo disponible para: competency, students, student-history'
           });
           return;
         }
 
-        const csvContent = await this.reportsService.exportToCSV(
-          type as 'competency' | 'students',
-          filters
-        );
+        let csvContent: string;
+        if (type === 'student-history') {
+          const { studentId } = req.query;
+          if (!studentId || typeof studentId !== 'string') {
+            res.status(400).json({ success: false, message: 'studentId requerido para exportar historial' });
+            return;
+          }
+          csvContent = await this.reportsService.exportStudentHistoryToCSV(studentId);
+        } else {
+          csvContent = await this.reportsService.exportToCSV(type as 'competency' | 'students', filters);
+        }
 
         const filename = `${type}_report_${new Date().toISOString().split('T')[0]}.csv`;
-
-        res.setHeader('Content-Type', 'text/csv');
+        res.setHeader('Content-Type', 'text/csv; charset=utf-8');
         res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
         res.send(csvContent);
 
@@ -287,7 +317,10 @@ export class ReportsController {
       const now = new Date();
       const periods = [];
 
-      for (let i = 5; i >= 0; i--) {
+      // week=12 semanas, month=18 meses, quarter=8 trimestres
+      const periodCount = period === 'week' ? 12 : period === 'quarter' ? 8 : 18;
+
+      for (let i = periodCount - 1; i >= 0; i--) {
         const periodStart = new Date(now);
         const periodEnd = new Date(now);
 
@@ -370,10 +403,22 @@ export class ReportsController {
   async getUpcomingSessions(req: Request, res: Response, next: NextFunction) {
     try {
       const filters = this.parseFilters(req.query);
+      const user = (req as any).user;
+
+      // Teacher solo ve sus propias sesiones; admin ve todas
+      // El JWT tiene el auth-service ID, pero las sesiones guardan el user-management ID
+      // → buscamos por email para obtener el _id correcto
+      if (user?.role === 'teacher') {
+        const umUser = await User.findOne({ email: user.email }, { _id: 1 }).lean();
+        if (umUser) {
+          filters.createdBy = (umUser._id as any).toString();
+        }
+      }
 
       logger.info('Generating upcoming sessions report', {
         filters,
-        user: (req as any).user?.id
+        user: user?.id,
+        role: user?.role,
       });
 
       const report = await this.reportsService.getUpcomingSessions(filters);
@@ -495,6 +540,22 @@ export class ReportsController {
       filters.status = Array.isArray(query.status)
         ? query.status
         : typeof query.status === 'string' ? query.status.split(',') : [];
+    }
+
+    // Sesión específica
+    if (query.sessionId && typeof query.sessionId === 'string') {
+      filters.sessionId = query.sessionId;
+    }
+
+    // Gestión (año)
+    if (query.gestion && typeof query.gestion === 'string') {
+      const gestion = parseInt(query.gestion);
+      if (!isNaN(gestion)) filters.gestion = gestion;
+    }
+
+    // Semestre
+    if (query.semestre === 'H1' || query.semestre === 'H2') {
+      filters.semestre = query.semestre;
     }
 
     return filters;

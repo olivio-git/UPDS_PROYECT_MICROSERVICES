@@ -14,7 +14,7 @@ function getSupportedMimeType(): string {
 }
 
 interface AudioRecorderProps {
-  onRecordingComplete?: (audioBlob: Blob, audioUrl: string) => void;
+  onRecordingComplete?: (audioBlob: Blob, audioUrl: string, duration: number) => void;
   onRecordingStart?: () => void;
   onRecordingStop?: () => void;
   maxDuration?: number; // en segundos
@@ -44,6 +44,7 @@ const AudioRecorder: React.FC<AudioRecorderProps> = ({
   const [audioLevel, setAudioLevel] = useState(0);
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const durationRef = useRef<number>(0);
   const audioContextRef = useRef<AudioContext | null>(null);
   const analyserRef = useRef<AnalyserNode | null>(null);
   const audioRef = useRef<HTMLAudioElement>(null);
@@ -87,7 +88,8 @@ const AudioRecorder: React.FC<AudioRecorderProps> = ({
         const url = URL.createObjectURL(blob);
         setAudioBlob(blob);
         setAudioUrl(url);
-        onRecordingComplete?.(blob, url);
+        // Pass duration from recording timer (reliable for blobs — audio.duration is Infinity)
+        onRecordingComplete?.(blob, url, durationRef.current);
         stream.getTracks().forEach(track => track.stop());
       };
 
@@ -119,6 +121,7 @@ const AudioRecorder: React.FC<AudioRecorderProps> = ({
       intervalRef.current = setInterval(() => {
         setDuration(prev => {
           const newDuration = prev + 1;
+          durationRef.current = newDuration;
           if (autoStop && newDuration >= maxDuration) {
             stopRecording();
             return maxDuration;
@@ -282,99 +285,77 @@ const AudioRecorder: React.FC<AudioRecorderProps> = ({
   }
 
   if (variant === 'compact') {
+    // Post-recording: show a clean "recorded" state — playback is handled by AudioPlayer below
+    if (audioUrl) {
+      return (
+        <div className={cn(
+          "flex items-center gap-3 p-3 rounded-lg border border-green-700/40 bg-green-900/10",
+          className
+        )}>
+          <div className="flex items-center justify-center w-8 h-8 rounded-full bg-green-600/20 border border-green-600/40 flex-shrink-0">
+            <Mic className="w-4 h-4 text-green-400" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-xs font-medium text-green-400">Grabación lista</p>
+            <p className="text-xs text-green-600/70">{formatTime(duration)}</p>
+          </div>
+          <button
+            type="button"
+            onClick={resetRecording}
+            className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs text-muted-foreground hover:text-red-400 hover:bg-red-500/10 rounded-md transition-colors border border-border"
+          >
+            <RotateCcw className="w-3 h-3" />
+            Volver a grabar
+          </button>
+        </div>
+      );
+    }
+
     return (
       <div className={cn(
-        "flex items-center gap-3 p-3 bg-gray-800/50 rounded-lg border border-gray-700/50",
+        "flex items-center gap-3 p-3 rounded-lg border",
+        isRecording ? "border-red-700/50 bg-red-900/10" : "border-border bg-muted/30",
         className
       )}>
-        {audioUrl && <audio ref={audioRef} src={audioUrl} onEnded={() => setIsPlaying(false)} />}
-        <div className="flex items-center gap-2">
-          {!audioUrl ? (
-            <>
-              <button
-                type="button"
-                onClick={isRecording ? stopRecording : startRecording}
-                className={cn(
-                  "flex items-center justify-center w-10 h-10 rounded-full transition-all duration-200",
-                  isRecording 
-                    ? "bg-red-600 hover:bg-red-700" 
-                    : "bg-blue-600 hover:bg-blue-700"
-                )}
-              >
-                {isRecording ? (
-                  <Square className="w-5 h-5 text-white" />
-                ) : (
-                  <Mic className="w-5 h-5 text-white" />
-                )}
-              </button>
-              {isRecording && (
-                <button
-                  type="button"
-                  onClick={pauseRecording}
-                  className="p-2 text-gray-400 hover:text-white rounded transition-colors"
-                >
-                  {isPaused ? <Play className="w-4 h-4" /> : <Pause className="w-4 h-4" />}
-                </button>
+        <button
+          type="button"
+          onClick={isRecording ? stopRecording : startRecording}
+          className={cn(
+            "flex items-center justify-center w-10 h-10 rounded-full transition-all duration-200 flex-shrink-0",
+            isRecording ? "bg-red-600 hover:bg-red-700 animate-pulse" : "bg-blue-600 hover:bg-blue-700"
+          )}
+        >
+          {isRecording ? <Square className="w-5 h-5 text-white" /> : <Mic className="w-5 h-5 text-white" />}
+        </button>
+
+        {isRecording && (
+          <button
+            type="button"
+            onClick={pauseRecording}
+            className="p-2 text-muted-foreground hover:text-foreground rounded transition-colors"
+          >
+            {isPaused ? <Play className="w-4 h-4" /> : <Pause className="w-4 h-4" />}
+          </button>
+        )}
+
+        <div className="flex-1 min-w-0">
+          {isRecording ? (
+            <div className="flex items-center gap-2">
+              <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse flex-shrink-0" />
+              <span className="text-sm text-red-400 tabular-nums font-medium">
+                {isPaused ? 'Pausado' : 'Grabando'} — {formatTime(duration)}
+              </span>
+              {maxDuration && (
+                <span className="text-xs text-muted-foreground">/ {formatTime(maxDuration)}</span>
               )}
-            </>
+            </div>
           ) : (
-            <button
-              type="button"
-              onClick={playRecording}
-              className="flex items-center justify-center w-10 h-10 bg-green-600 hover:bg-green-700 rounded-full transition-all duration-200"
-            >
-              {isPlaying ? (
-                <Pause className="w-5 h-5 text-white" />
-              ) : (
-                <Play className="w-5 h-5 text-white ml-0.5" />
-              )}
-            </button>
+            <p className="text-sm text-muted-foreground">
+              Presiona el micrófono para grabar
+              {maxDuration && <span className="ml-1 text-xs">(máx. {formatTime(maxDuration)})</span>}
+            </p>
           )}
         </div>
-        {showWaveform && isRecording && (
-          <div className="flex items-center gap-1">
-            {Array.from({ length: 5 }, (_, i) => (
-              <div
-                key={i}
-                className={cn(
-                  "w-1 bg-blue-400 rounded-full transition-all duration-150",
-                  audioLevel > (i * 0.2) ? "opacity-100" : "opacity-30"
-                )}
-                style={{ height: `${Math.max(4, audioLevel * 20)}px` }}
-              />
-            ))}
-          </div>
-        )}
-        <div className="flex items-center gap-2 text-sm">
-          <span className="text-gray-400 tabular-nums">
-            {formatTime(duration)}
-          </span>
-          {maxDuration && (
-            <span className="text-gray-500 text-xs">
-              / {formatTime(maxDuration)}
-            </span>
-          )}
-        </div>
-        {audioUrl && (
-          <div className="flex items-center gap-1">
-            <button
-              type="button"
-              onClick={downloadRecording}
-              className="p-2 text-gray-400 hover:text-blue-400 transition-colors"
-              title="Descargar"
-            >
-              <Download className="w-4 h-4" />
-            </button>
-            <button
-              type="button"
-              onClick={resetRecording}
-              className="p-2 text-gray-400 hover:text-red-400 transition-colors"
-              title="Eliminar"
-            >
-              <Trash2 className="w-4 h-4" />
-            </button>
-          </div>
-        )}
       </div>
     );
   }
