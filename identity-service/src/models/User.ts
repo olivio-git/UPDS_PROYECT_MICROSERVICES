@@ -145,14 +145,17 @@ export class UserModel implements User {
     this.updatedAt = new Date();
   }
 
-  public toJSON(): Omit<User, 'passwordHash'> & { authServiceUserId?: string; lastSync?: Date; createdBy?: string } {
-    const result: Omit<User, 'passwordHash'> & { authServiceUserId?: string; lastSync?: Date; createdBy?: string } = {
+  public toJSON(): Omit<User, 'passwordHash'> & { authServiceUserId?: string; lastSync?: Date; createdBy?: string; isActive: boolean } {
+    const result: Omit<User, 'passwordHash'> & { authServiceUserId?: string; lastSync?: Date; createdBy?: string; isActive: boolean } = {
       _id: this._id,
       email: this.email,
       firstName: this.firstName,
       lastName: this.lastName,
       role: this.role,
       status: this.status,
+      // Clients gate access on this flag (see the frontend's RouteRenderer),
+      // and `isActive` is a method here, so it would not be serialized.
+      isActive: this.isActive(),
       profile: this.profile,
       permissions: this.permissions,
       createdAt: this.createdAt,
