@@ -1,4 +1,5 @@
-FROM nginx:alpine
+# 1.27.3+ is required for `server ... resolve` in upstream blocks.
+FROM nginx:1.29-alpine
 
 # Copiar configuración personalizada
 COPY nginx.conf /etc/nginx/nginx.conf
