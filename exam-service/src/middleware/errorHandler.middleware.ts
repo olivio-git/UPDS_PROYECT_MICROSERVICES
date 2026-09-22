@@ -11,13 +11,23 @@ export class AppError extends Error {
   // Optional extra context surfaced to the client alongside the code, e.g.
   // the attempt's actual status when the error is a state-mismatch (409).
   attemptStatus?: string;
+  // Structured reasons for a blocked action, e.g. why technical verification
+  // failed (TECHNICAL_VERIFICATION_REQUIRED) — one entry per failed check.
+  reasons?: { code: string; message: string }[];
 
-  constructor(message: string, statusCode: number, code?: string, attemptStatus?: string) {
+  constructor(
+    message: string,
+    statusCode: number,
+    code?: string,
+    attemptStatus?: string,
+    reasons?: { code: string; message: string }[]
+  ) {
     super(message);
     this.statusCode = statusCode;
     this.isOperational = true;
     this.code = code;
     this.attemptStatus = attemptStatus;
+    this.reasons = reasons;
 
     Error.captureStackTrace(this, this.constructor);
   }
@@ -78,6 +88,7 @@ export const errorHandler = (
     message: error.message || CONSTANTS.ERROR_MESSAGES.INTERNAL_ERROR,
     ...((error as AppError).code && { code: (error as AppError).code }),
     ...((error as AppError).attemptStatus && { attemptStatus: (error as AppError).attemptStatus }),
+    ...((error as AppError).reasons && { reasons: (error as AppError).reasons }),
     ...(process.env.NODE_ENV === 'development' && { stack: err.stack })
   });
 };

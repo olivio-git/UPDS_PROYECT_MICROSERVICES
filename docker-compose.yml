@@ -299,6 +299,8 @@ services:
       - GROQ_API_KEY=${GROQ_API_KEY}
       - GROQ_MODEL=${GROQ_MODEL:-llama-3.3-70b-versatile}
       - JWT_SECRET=${JWT_SECRET}
+      - SESSION_MANAGER_SERVICE_URL=http://session-manager-service:3004
+      - SERVICE_TOKEN=${SERVICE_TOKEN}
       - MINIO_ENDPOINT=${MINIO_ENDPOINT}
       - MINIO_PORT=${MINIO_PORT}
       - MINIO_USE_SSL=false
@@ -366,6 +368,7 @@ services:
       - NOTIFICATION_SERVICE_URL=http://notification-service:3001
       - USER_MANAGEMENT_SERVICE_URL=http://identity-service:3002
       - JWT_SECRET=${JWT_SECRET}
+      - SERVICE_TOKEN=${SERVICE_TOKEN}
       - CORS_ORIGIN=${CORS_ORIGIN}
       - LOG_LEVEL=info
       - WEBSOCKET_PING_TIMEOUT=60000

@@ -9,6 +9,7 @@ import { env } from '../config/env';
 import { SessionService } from './session.service';
 import { publishExamAttemptFinished } from './examEventPublisher';
 import { AppError } from '../middleware/errorHandler.middleware';
+import { checkCanProceed } from '../integrations/session-manager.integration';
 
 export class ExamTakingService {
   private sessionService: SessionService;
@@ -52,6 +53,12 @@ export class ExamTakingService {
       sessionId: session._id,
       candidateId: userCandidateId
     });
+
+    // Technical verification only gates the creation of a NEW attempt — a
+    // student resuming an existing in_progress attempt (e.g. after a page
+    // refresh) must never be blocked, even if their verification has since
+    // expired or was deleted. See PR10.
+    const isNewAttempt = !existingAttempt;
 
     if (existingAttempt) {
       if (existingAttempt.status === 'completed') {
@@ -269,6 +276,28 @@ export class ExamTakingService {
     }
 
     console.log(`🎯 [ExamTaking] Generated ${sections.length} sections with total ${allSelectedQuestions.length} questions`);
+
+    // ── Technical verification gate (new attempts only) ────────────────────────
+    // Product decision: technical verification MUST block starting an exam when
+    // it fails, enforced server-side. requireMicrophone is derived from the
+    // actual questions selected for this attempt: recording a spoken answer
+    // (audio_response) or a speaking-competency question needs a working mic.
+    if (isNewAttempt) {
+      const requireMicrophone = allSelectedQuestions.some(
+        (q: any) => q.type === 'audio_response' || q.competency === 'speaking'
+      );
+      const gate = await checkCanProceed(String(userCandidateId), requireMicrophone);
+      if (!gate.canProceed) {
+        throw new AppError(
+          'Technical verification is required before starting this exam',
+          403,
+          'TECHNICAL_VERIFICATION_REQUIRED',
+          undefined,
+          gate.reasons
+        );
+      }
+    }
+    // ─────────────────────────────────────────────────────────────────────────
 
     // Create or update Attempt — use min(examDuration, sessionRemaining) so late joiners get correct time
     const examDurationSecs = (exam.structure?.totalDuration || 60) * 60;
@@ -898,6 +927,25 @@ export class ExamTakingService {
       // Resume adaptive if attempt already exists
       return this.resumeAdaptiveExam(sessionId, userCandidateId);
     }
+
+    // ── Technical verification gate (new attempts only) ────────────────────────
+    // Adaptive exams only ever draw from ADAPTIVE_AUTO_GRADABLE_TYPES (see
+    // pickAdaptiveQuestion below), which excludes 'audio_response' — adaptive
+    // branching needs an immediate right/wrong, which speaking/audio answers
+    // can't give synchronously. So requireMicrophone is always false here.
+    {
+      const gate = await checkCanProceed(String(userCandidateId), false);
+      if (!gate.canProceed) {
+        throw new AppError(
+          'Technical verification is required before starting this exam',
+          403,
+          'TECHNICAL_VERIFICATION_REQUIRED',
+          undefined,
+          gate.reasons
+        );
+      }
+    }
+    // ─────────────────────────────────────────────────────────────────────────
 
     const placementConfig = (exam as any).placementConfig || {};
     const startingLevel = placementConfig.startingLevel || 'A2';
