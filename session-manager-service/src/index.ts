@@ -7,7 +7,14 @@ import mongoose from 'mongoose';
 
 // Importar servicios y controladores
 import { TechnicalVerificationController } from './controllers/TechnicalVerificationController';
+import {
+  authenticate,
+  requireOwnershipOrReadRole,
+  requireVerificationOwnership,
+  verifyServiceToken,
+} from './middleware/auth.middleware';
 import { logger } from './utils/logger';
+import type { NextFunction, Request, Response } from 'express';
 
 // Cargar variables de entorno
 dotenv.config();
@@ -110,8 +117,14 @@ class SessionManagerServer {
       });
     });
 
-    // Rutas de la API
+    // Rutas de la API (authenticated — see getTechnicalRoutes)
     this.app.use('/api/v1/technical', this.getTechnicalRoutes());
+
+    // Internal, service-to-service routes. NOT proxied by nginx (see
+    // nginx/nginx.conf, only /api/v1/technical is exposed there) — reachable
+    // only from inside the Docker network, and additionally guarded by
+    // verifyServiceToken.
+    this.app.use('/internal/technical', verifyServiceToken, this.getInternalTechnicalRoutes());
 
     // Ruta para métricas (opcional)
     this.app.get('/metrics', async (req, res) => {
@@ -199,22 +212,52 @@ class SessionManagerServer {
    */
   private getTechnicalRoutes() {
     const router = Router();
+    const controller = this.technicalVerificationController;
+    const ownRead = requireVerificationOwnership('read');
+    const ownWrite = requireVerificationOwnership('write');
 
-    router.post('/init', this.technicalVerificationController.initializeVerification.bind(this.technicalVerificationController));
-    router.get('/:verificationId', this.technicalVerificationController.getVerification.bind(this.technicalVerificationController));
-    router.get('/user/:userId', this.technicalVerificationController.getUserVerification.bind(this.technicalVerificationController));
-    router.post('/:verificationId/browser', this.technicalVerificationController.updateBrowserInfo.bind(this.technicalVerificationController));
-    router.post('/:verificationId/permissions', this.technicalVerificationController.updatePermissions.bind(this.technicalVerificationController));
-    router.post('/:verificationId/devices', this.technicalVerificationController.updateDevices.bind(this.technicalVerificationController));
-    router.post('/:verificationId/network-test', this.technicalVerificationController.testNetworkConnection.bind(this.technicalVerificationController));
-    router.post('/:verificationId/microphone-test', this.technicalVerificationController.verifyMicrophone.bind(this.technicalVerificationController));
-    router.post('/:verificationId/camera-test', this.technicalVerificationController.verifyCamera.bind(this.technicalVerificationController));
-    router.post('/:verificationId/audio-test', this.technicalVerificationController.verifyAudio.bind(this.technicalVerificationController));
-    router.post('/:verificationId/finalize', this.technicalVerificationController.finalizeVerification.bind(this.technicalVerificationController));
-    router.get('/user/:userId/can-proceed', this.technicalVerificationController.canUserProceed.bind(this.technicalVerificationController));
-    router.post('/:verificationId/mark-used', this.technicalVerificationController.markVerificationUsed.bind(this.technicalVerificationController));
-    router.get('/stats', this.technicalVerificationController.getVerificationStats.bind(this.technicalVerificationController));
+    // Every route below requires a valid access token. Ownership rules:
+    //  - /:verificationId routes: caller must own the record (write routes),
+    //    or own it / hold admin|teacher|proctor for the GET (read).
+    //  - /user/:userId routes: caller must be that user, or hold
+    //    admin|teacher|proctor for the GET (monitoring), never for writes.
+    router.post('/init', authenticate, this.requireBodyUserIdIsSelf, controller.initializeVerification.bind(controller));
+    router.get('/:verificationId', authenticate, ownRead, controller.getVerification.bind(controller));
+    router.get('/user/:userId', authenticate, requireOwnershipOrReadRole, controller.getUserVerification.bind(controller));
+    router.post('/:verificationId/browser', authenticate, ownWrite, controller.updateBrowserInfo.bind(controller));
+    router.post('/:verificationId/permissions', authenticate, ownWrite, controller.updatePermissions.bind(controller));
+    router.post('/:verificationId/devices', authenticate, ownWrite, controller.updateDevices.bind(controller));
+    router.post('/:verificationId/network-test', authenticate, ownWrite, controller.testNetworkConnection.bind(controller));
+    router.post('/:verificationId/microphone-test', authenticate, ownWrite, controller.verifyMicrophone.bind(controller));
+    router.post('/:verificationId/camera-test', authenticate, ownWrite, controller.verifyCamera.bind(controller));
+    router.post('/:verificationId/audio-test', authenticate, ownWrite, controller.verifyAudio.bind(controller));
+    router.post('/:verificationId/finalize', authenticate, ownWrite, controller.finalizeVerification.bind(controller));
+    router.get('/user/:userId/can-proceed', authenticate, requireOwnershipOrReadRole, controller.canUserProceed.bind(controller));
+    router.post('/:verificationId/mark-used', authenticate, ownWrite, controller.markVerificationUsed.bind(controller));
+    router.get('/stats', authenticate, controller.getVerificationStats.bind(controller));
 
+    return router;
+  }
+
+  /**
+   * POST /init carries userId in the body, not the path — a user may only
+   * initialize their own verification.
+   */
+  private requireBodyUserIdIsSelf(req: Request, res: Response, next: NextFunction): void {
+    const bodyUserId = req.body?.userId;
+    if (bodyUserId && req.user && bodyUserId !== req.user.userId) {
+      res.status(403).json({ success: false, message: 'Forbidden: cannot initialize verification for another user' });
+      return;
+    }
+    next();
+  }
+
+  /**
+   * Internal, service-to-service routes (see verifyServiceToken above).
+   */
+  private getInternalTechnicalRoutes() {
+    const router = Router();
+    router.get('/can-proceed/:userId', this.technicalVerificationController.internalCanProceed.bind(this.technicalVerificationController));
     return router;
   }
 

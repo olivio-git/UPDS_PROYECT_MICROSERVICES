@@ -1,5 +1,4 @@
 import Redis from 'ioredis';
-import { UserManagementIntegration } from '../integrations/user-management.integration';
 import { logger } from '../utils/logger';
 
 export interface TechnicalVerificationData {
@@ -58,12 +57,28 @@ export interface TechnicalCheckResult {
   data?: any;
 }
 
+export interface CanProceedReason {
+  code: 'NOT_FOUND' | 'EXPIRED' | 'LOW_SCORE' | 'BROWSER_INCOMPATIBLE' | 'NETWORK_UNSTABLE' | 'MICROPHONE_FAILED' | 'INTERNAL_ERROR';
+  message: string;
+}
+
+export interface CanProceedResult {
+  canProceed: boolean;
+  reasons: CanProceedReason[];
+  verification?: TechnicalVerificationData;
+}
+
 export class TechnicalVerificationService {
   private redis: Redis;
+  // Matches the Redis key TTL: a verification record disappears from Redis
+  // after this window, so `expiresAt` below is a defense-in-depth check for
+  // clock skew, not the primary expiry mechanism.
   private readonly VERIFICATION_TTL = 3600 * 24; // 24 horas
   private readonly VERIFICATION_PREFIX = 'tech_verify:';
   private readonly USER_VERIFICATION_PREFIX = 'user_tech:';
-  private userManagementIntegration: UserManagementIntegration;
+  // Minimum overall score to proceed — same threshold the UI already shows
+  // the candidate via calculateFinalScore()'s `canProceed: overall >= 60`.
+  private readonly MIN_SCORE_TO_PROCEED = 60;
 
   constructor() {
     this.redis = new Redis({
@@ -82,8 +97,6 @@ export class TechnicalVerificationService {
     this.redis.on('connect', () => {
       logger.info('✅ Conectado a Redis para verificación técnica');
     });
-
-    this.userManagementIntegration = new UserManagementIntegration();
   }
 
   /**
@@ -145,17 +158,24 @@ export class TechnicalVerificationService {
   }
 
   /**
-   * Obtener verificación activa por usuario
+   * Obtener verificación activa por usuario.
+   *
+   * This used to call out to identity-service's candidate.technicalSetup
+   * cache (a second, independent store of the same data — see PR10). That
+   * made this service's own Redis-backed verification record (written by
+   * init/browser/permissions/devices/.../finalize below) dead data: nothing
+   * ever read it back. session-manager's own Redis is now the single source
+   * of truth — look up the user's active verificationId via the
+   * USER_VERIFICATION_PREFIX index set in initializeVerification(), then
+   * fetch the full record.
    */
-  async getActiveVerificationByUser(candidateId: string, token?: string): Promise<any | null> {
+  async getActiveVerificationByUser(userId: string): Promise<TechnicalVerificationData | null> {
     try {
-
-      const technicalSetup = await this.userManagementIntegration.getTechnicalVerification(candidateId, token!);
-      console.log(technicalSetup,' <------- RESPONSE technicalSetup =====')
-      return {
-        canProceed:true,
-        status: technicalSetup
+      const verificationId = await this.redis.get(`${this.USER_VERIFICATION_PREFIX}${userId}`);
+      if (!verificationId) {
+        return null;
       }
+      return await this.getVerification(verificationId);
     } catch (error) {
       logger.error('Error obteniendo verificación activa:', error);
       return null;
@@ -441,47 +461,64 @@ export class TechnicalVerificationService {
   }
 
   /**
-   * Verificar si el usuario puede proceder con el examen
+   * Verificar si el usuario puede proceder con el examen.
+   *
+   * Restores real gating (previously commented out — see PR10). Checks,
+   * against this service's own Redis-backed verification record:
+   *  - a verification exists for the user
+   *  - it has not expired (defense-in-depth; Redis TTL is the primary expiry)
+   *  - overall score >= MIN_SCORE_TO_PROCEED (60 — same cutoff the UI
+   *    already surfaces via calculateFinalScore()'s canProceed flag)
+   *  - browser is compatible
+   *  - network/internet connection is OK
+   *  - microphone is working, but ONLY when the caller says the exam needs
+   *    it (requireMicrophone) — e.g. it has speaking/audio_response
+   *    questions. Camera is intentionally NOT checked: video proctoring is
+   *    disabled platform-wide, the frontend never runs a camera test.
    */
-  async canUserProceed(candidateId: string, token?: string): Promise<{ canProceed: boolean; reason?: string; verification?: TechnicalVerificationData }> {
+  async canUserProceed(userId: string, options?: { requireMicrophone?: boolean }): Promise<CanProceedResult> {
+    const requireMicrophone = options?.requireMicrophone ?? false;
+    const reasons: CanProceedReason[] = [];
+
     try {
-      const verification = await this.getActiveVerificationByUser(candidateId, token);
-      console.log(verification, ' <--- verification in canUserProceed==========');
-      // if (!verification) {
-      //   console.log(verification, ' <--- verification Not proceder=========='); 
-      //   return { canProceed: false, reason: 'No se encontró verificación técnica' };
-      // }
+      const verification = await this.getActiveVerificationByUser(userId);
 
-      // // Verificar si la verificación no ha expirado
-      // if (Date.now() > verification.expiresAt) {
-      //   console.log(verification, ' <--- verification si no ha expirado =========='); 
-      //   return { canProceed: false, reason: 'La verificación técnica ha expirado', verification };
-      // }
+      if (!verification) {
+        reasons.push({ code: 'NOT_FOUND', message: 'No se encontró verificación técnica' });
+        return { canProceed: false, reasons };
+      }
 
-      // // Verificar requisitos mínimos
-      // const v = verification.verification;
-      // const score = verification.scores.overall;
+      if (Date.now() > verification.expiresAt) {
+        reasons.push({ code: 'EXPIRED', message: 'La verificación técnica ha expirado' });
+        return { canProceed: false, reasons, verification };
+      }
 
-      // if (score < 60) {
-      //   console.log(verification, ' <--- verification tecnica minima =========='); 
-      //   return { canProceed: false, reason: 'Puntuación insuficiente de verificación técnica', verification };
-      // }
+      const v = verification.verification;
+      const score = verification.scores?.overall ?? 0;
 
-      // if (!v.browserCompatible) {
-      //   console.log(verification, ' <--- verification browserCompatible ==========');
-      //   return { canProceed: false, reason: 'Navegador no compatible', verification };
-      // }
+      if (score < this.MIN_SCORE_TO_PROCEED) {
+        reasons.push({
+          code: 'LOW_SCORE',
+          message: `Puntuación de verificación técnica insuficiente (${score}/100, mínimo ${this.MIN_SCORE_TO_PROCEED})`
+        });
+      }
 
-      // if (!v.microphoneWorking && !v.cameraWorking) {
-      //   console.log(verification, ' <--- verification microphoneWorking & cameraWorking ==========');
-      //   return { canProceed: false, reason: 'Micrófono y cámara no funcionan', verification };
-      // }
-      console.log(verification, ' <--- verification final ==========');
-      return { canProceed: true, verification };
+      if (!v?.browserCompatible) {
+        reasons.push({ code: 'BROWSER_INCOMPATIBLE', message: 'Navegador no compatible' });
+      }
+
+      if (!v?.internetConnection) {
+        reasons.push({ code: 'NETWORK_UNSTABLE', message: 'La conexión a internet no es estable' });
+      }
+
+      if (requireMicrophone && !v?.microphoneWorking) {
+        reasons.push({ code: 'MICROPHONE_FAILED', message: 'El micrófono no está funcionando' });
+      }
+
+      return { canProceed: reasons.length === 0, reasons, verification };
     } catch (error) {
-      console.log(error, ' <--- error en canUserProceed==========');
       logger.error('Error verificando si puede proceder:', error);
-      return { canProceed: false, reason: 'Error interno' };
+      return { canProceed: false, reasons: [{ code: 'INTERNAL_ERROR', message: 'Error interno' }] };
     }
   }
 
