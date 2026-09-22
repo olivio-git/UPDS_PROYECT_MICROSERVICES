@@ -10,7 +10,15 @@ import { gradingRouter } from './routes/grading.routes.js';
 const app = express();
 
 // Middleware
-app.use(cors({ origin: config.corsOrigin }));
+app.use(cors((req: any, callback: Function) => {
+  // The frontend reaches this service through the gateway, so its origin is
+  // the gateway's own host, which differs per deployment.
+  const origin = req.headers.origin as string | undefined;
+  const host = (req.headers['x-forwarded-host'] as string) || req.headers.host;
+  const sameOrigin = Boolean(origin && host && (origin === `http://${host}` || origin === `https://${host}`));
+  const allowed = !origin || config.corsOrigin === '*' || config.corsOrigin.split(',').map((o) => o.trim()).includes(origin) || sameOrigin;
+  callback(null, { origin: allowed, credentials: true });
+}));
 app.use(express.json({ limit: '20mb' })); // listening audio can be several MB as base64
 
 // Health check

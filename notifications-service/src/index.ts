@@ -1,4 +1,5 @@
 import cors from 'cors';
+import { isSameOriginThroughGateway } from './config/cors';
 import express from 'express';
 import helmet from 'helmet';
 import morgan from 'morgan';
@@ -52,11 +53,21 @@ class NotificationServiceApp {
     this.app.use(helmet());
     
     // CORS
-    this.app.use(cors({
-      origin: config.app.corsOrigin,
-      credentials: true,
-      methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
-      allowedHeaders: ['Content-Type', 'Authorization']
+    this.app.use(cors((req: any, callback: Function) => {
+      const origin = req.headers.origin as string | undefined;
+      const configured = config.app.corsOrigin as string[];
+      const allowed =
+        !origin ||
+        configured.includes(origin) ||
+        configured.includes('*') ||
+        isSameOriginThroughGateway(req, origin);
+
+      callback(null, {
+        origin: allowed,
+        credentials: true,
+        methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
+        allowedHeaders: ['Content-Type', 'Authorization']
+      });
     }));
 
     // Body parsing
