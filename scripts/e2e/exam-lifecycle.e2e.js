@@ -309,16 +309,11 @@ async function main() {
     check('student B sees the session in their upcoming list', !!myBSession, JSON.stringify(myB.json?.data?.sessions?.map((s) => s._id)));
 
     const earlyStart = await api('POST', `/api/v1/exam-taking/${sid}/start`, studentA.token);
-    check('starting before session start time is refused (non-2xx)', earlyStart.status < 200 || earlyStart.status >= 300, `HTTP ${earlyStart.status} ${JSON.stringify(earlyStart.json)}`);
-    if (earlyStart.status === 500) {
-      reportBug(
-        'exam-taking start() returns HTTP 500 for the well-known precondition "session not started yet" instead of a 4xx',
-        `exam-service/src/services/examTaking.service.ts:44 throws a plain Error('Session has not started yet') instead of an AppError(..., 4xx); ` +
-        `errorHandler.middleware.ts falls back to res.status(error.statusCode || 500), so a completely expected client condition (starting too early) surfaces as a 500. ` +
-        `POST ${sid}/start -> HTTP ${earlyStart.status} body=${JSON.stringify(earlyStart.json)}`
-      );
-      check('BUG: early start returns 4xx not 500', false, `got HTTP ${earlyStart.status}`);
-    }
+    // examTaking.service.ts now throws AppError(409, 'SESSION_NOT_STARTED')
+    // for this precondition instead of a plain Error that fell back to a
+    // 500 — starting too early is a completely expected client condition,
+    // not a server fault.
+    check('starting before session start time returns 409 SESSION_NOT_STARTED', earlyStart.status === 409 && earlyStart.json?.code === 'SESSION_NOT_STARTED', `HTTP ${earlyStart.status} ${JSON.stringify(earlyStart.json)}`);
 
     // ══════════════════════════════════════════════════════════════════════
     // STEP 5 — connect sockets BEFORE start time, then wait for Bull auto-start

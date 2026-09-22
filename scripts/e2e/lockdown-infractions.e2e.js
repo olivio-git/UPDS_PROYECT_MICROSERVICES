@@ -9,6 +9,8 @@
  *   - Server-side rate limit: infractions faster than 1/sec per attempt are
  *     accepted (HTTP 200) but NOT counted (`accepted: false`, unchanged
  *     infractionCount) — see ExamTakingService.recordInfraction.
+ *   - That rate limit is atomic: a burst of 5 truly concurrent (Promise.all)
+ *     posts counts as exactly 1, not just a sequential one.
  *   - Accepted infractions persist on the attempt as
  *     `integrity.{infractionCount,lastInfractionAt,events[]}`.
  *   - exam-service publishes `session.candidate.infraction` on exam-events
@@ -304,6 +306,36 @@ async function main() {
     check('progress endpoint returns 200', progressRes.status === 200, `HTTP ${progressRes.status}`);
     const candidateProgress = progressRes.json?.data?.candidates?.find((c) => String(c.candidateId) === String(studentA.id));
     check('progress endpoint includes candidate A infractionCount=2', candidateProgress?.infractionCount === 2, JSON.stringify(candidateProgress));
+
+    // ---- Concurrent burst: 5 parallel posts must count as exactly 1 -------
+    // The earlier burst above proved rate-limiting works for SEQUENTIAL
+    // requests; this proves the atomic findOneAndUpdate (query condition on
+    // status='in_progress' AND lastInfractionAt below the cutoff) actually
+    // prevents a race where several concurrent requests all read the same
+    // stale lastInfractionAt and all get accepted — a read-then-write in JS
+    // would be vulnerable to exactly that.
+    await new Promise((r) => setTimeout(r, 1100)); // clear the 1s rate-limit window first
+    const attemptBeforeConcurrentBurst = await exams.collection('attempts').findOne({ sessionId, candidateId: studentA.id });
+    const countBeforeConcurrentBurst = attemptBeforeConcurrentBurst?.integrity?.infractionCount ?? 0;
+    const concurrentResults = await Promise.all(
+      Array.from({ length: 5 }, (_, i) =>
+        api('POST', `/api/v1/exam-taking/${sid}/infractions`, studentA.token, {
+          type: 'blocked_shortcut', occurredAt: new Date().toISOString(), details: `concurrent-${i}`,
+        })
+      )
+    );
+    const acceptedConcurrent = concurrentResults.filter((r) => r.json?.data?.accepted === true);
+    check(
+      'concurrent burst of 5 parallel infraction posts: exactly 1 is accepted',
+      acceptedConcurrent.length === 1,
+      `accepted=${acceptedConcurrent.length} results=${JSON.stringify(concurrentResults.map((r) => ({ status: r.status, accepted: r.json?.data?.accepted, count: r.json?.data?.infractionCount })))}`
+    );
+    const attemptAfterConcurrentBurst = await exams.collection('attempts').findOne({ sessionId, candidateId: studentA.id });
+    check(
+      `attempt.integrity.infractionCount increased by exactly 1 (from ${countBeforeConcurrentBurst})`,
+      attemptAfterConcurrentBurst?.integrity?.infractionCount === countBeforeConcurrentBurst + 1,
+      `count=${attemptAfterConcurrentBurst?.integrity?.infractionCount}`
+    );
 
     // ---- Finish the exam, then infractions return 409 ----
     const finishRes = await api('POST', `/api/v1/exam-taking/${sid}/finish`, studentA.token);

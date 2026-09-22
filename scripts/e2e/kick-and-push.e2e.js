@@ -11,6 +11,14 @@
  *   - session.time.extended also reaches proctors (recipient resolution
  *     extended to include participants.proctors + createdBy, not just
  *     enrolled candidates).
+ *   - kick hygiene: kicking a candidate not enrolled in the session is
+ *     refused (404); a proctor NOT assigned to the session gets 403 on both
+ *     kick and extend-time, even though their role would otherwise qualify.
+ *   - a candidate kicked BEFORE ever starting is persisted
+ *     (session.participants.kickedCandidates) and start() refuses them with
+ *     403 CANDIDATE_REMOVED — not just a cancelled in-progress attempt.
+ *   - resuming a kicked (cancelled) attempt returns 409
+ *     ATTEMPT_NOT_IN_PROGRESS instead of silently succeeding.
  *
  * Connects socket.io-client sockets to notifications-service the same way
  * the frontend's notificationSocket does: `io(origin, { auth: (cb) =>
@@ -162,7 +170,7 @@ async function main() {
   const exams = mongoose.connection.db; // exam database (cba_platform)
   const people = mongoose.connection.client.db(process.env.MONGO_UMS_DB_NAME || 'cba_identity_db');
   const notif = mongoose.connection.client.db(process.env.MONGO_NOTIFICATION_DB_NAME || 'cba_notification_db');
-  const created = { studentId: null, sessionId: null, examId: null };
+  const created = { studentId: null, studentId2: null, sessionId: null, examId: null };
 
   let studentSocket = null;
   let proctorSocket = null;
@@ -207,19 +215,42 @@ async function main() {
     created.studentId = studentId;
     const studentToken = signToken({ userId: String(studentId), email, role: 'student' });
 
+    // Second student — enrolled but never starts, used for the
+    // "kicked-before-starting" check (CANDIDATE_REMOVED).
+    const studentId2 = new ObjectId();
+    const email2 = `${TAG}-student2@example.com`;
+    await people.collection('users').insertOne({
+      _id: studentId2, authServiceUserId: String(studentId2), email: email2, firstName: 'E2E', lastName: 'Student2',
+      role: 'student', isActive: true, status: 'active', createdAt: new Date(),
+    });
+    await people.collection('candidates').insertOne({
+      _id: studentId2, userId: studentId2, personalInfo: { firstName: 'E2E', lastName: 'Student2', email: email2 },
+      academicInfo: { currentLevel: exam.targetLevel, targetLevel: exam.targetLevel }, createdAt: new Date(),
+    });
+    created.studentId2 = studentId2;
+    const studentToken2 = signToken({ userId: String(studentId2), email: email2, role: 'student' });
+
     // Throwaway proctor + creator — synthetic ids, no DB record needed (see
     // header comment): only used as session.participants.proctors /
     // session.createdBy and as the socket room id / JWT subject.
     const proctorId = new ObjectId();
     const proctorToken = signToken({ userId: String(proctorId), email: `${TAG}-proctor@example.com`, role: 'proctor' });
     const creatorId = new ObjectId();
+    // A proctor that exists but is NOT assigned to this session — used for
+    // the "not assigned" authorization checks (kick/extend must 403 them
+    // even though their role otherwise qualifies).
+    const otherProctorId = new ObjectId();
+    const otherProctorToken = signToken({ userId: String(otherProctorId), email: `${TAG}-other-proctor@example.com`, role: 'proctor' });
+    // A candidate id nobody enrolled — used for the "kick a non-enrolled
+    // candidate" check.
+    const notEnrolledId = new ObjectId();
 
     const sessionId = new ObjectId();
     const now = Date.now();
     await exams.collection('sessions').insertOne({
       _id: sessionId, examId: exam._id, sessionName: TAG,
       scheduling: { startDate: new Date(now - 60_000), endDate: new Date(now + 3_600_000), timeZone: 'America/La_Paz', timeSlots: [] },
-      participants: { maxCandidates: 5, registeredCandidates: [studentId], proctors: [proctorId], currentActive: 0 },
+      participants: { maxCandidates: 5, registeredCandidates: [studentId, studentId2], proctors: [proctorId], currentActive: 0 },
       settings: { requireProctor: true, recordSession: false, browserLockdown: false, allowLateEntry: true, autoStart: false, lateEntryMinutes: 30 },
       status: 'in_progress', createdBy: creatorId, createdAt: new Date(), updatedAt: new Date(),
     });
@@ -260,6 +291,42 @@ async function main() {
     ]);
     check('unverified userId-only handshake is rejected (never connects)', !attackerConnected, `connected=${attackerConnected}`);
     check('rejected handshake gets a connect_error', !!attackerConnectError, attackerConnectError ? attackerConnectError.message : 'none');
+
+    // ---- Kick hygiene: authorization + enrollment checks -------------------
+    // A proctor that exists but isn't assigned to THIS session must be
+    // refused (403) on both kick and extend-time, even though the 'proctor'
+    // role would otherwise qualify under requireRole().
+    const unassignedKickRes = await api(
+      'POST', `/api/v1/sessions/${sid}/candidates/${String(studentId)}/kick`, otherProctorToken, { reason: 'should be refused' }
+    );
+    check('unassigned proctor is refused on kick (403)', unassignedKickRes.status === 403, `HTTP ${unassignedKickRes.status}`);
+    const unassignedExtendRes = await api('POST', `/api/v1/sessions/${sid}/extend`, otherProctorToken, { minutes: 5 });
+    check('unassigned proctor is refused on extend (403)', unassignedExtendRes.status === 403, `HTTP ${unassignedExtendRes.status}`);
+
+    // Kicking a candidate who was never enrolled in this session is refused
+    // (400/404), not silently accepted or a 500.
+    const notEnrolledKickRes = await api(
+      'POST', `/api/v1/sessions/${sid}/candidates/${String(notEnrolledId)}/kick`, proctorToken, { reason: 'not enrolled' }
+    );
+    check(
+      'kicking a non-enrolled candidate is refused (400/404)',
+      notEnrolledKickRes.status === 400 || notEnrolledKickRes.status === 404,
+      `HTTP ${notEnrolledKickRes.status} ${JSON.stringify(notEnrolledKickRes.json)}`
+    );
+
+    // ---- A candidate kicked BEFORE ever starting can't start afterward ----
+    const preStartKickRes = await api(
+      'POST', `/api/v1/sessions/${sid}/candidates/${String(studentId2)}/kick`, proctorToken, { reason: 'kicked before starting' }
+    );
+    check('proctor can kick a candidate who never started', preStartKickRes.status === 200, `HTTP ${preStartKickRes.status}`);
+    const attemptForStudent2 = await exams.collection('attempts').findOne({ sessionId, candidateId: studentId2 });
+    check('no attempt exists for the pre-start-kicked candidate', !attemptForStudent2, JSON.stringify(attemptForStudent2));
+    const startAfterPreKick = await api('POST', `/api/v1/exam-taking/${sid}/start`, studentToken2);
+    check(
+      'start() refuses a candidate kicked before starting (403 CANDIDATE_REMOVED)',
+      startAfterPreKick.status === 403 && startAfterPreKick.json?.code === 'CANDIDATE_REMOVED',
+      `HTTP ${startAfterPreKick.status} code=${startAfterPreKick.json?.code}`
+    );
 
     // ---- Kick the candidate -------------------------------------------
     const studentKickWait = waitForEvent(studentSocket, 'session.candidate.kicked', 10000);
@@ -304,6 +371,15 @@ async function main() {
       JSON.stringify(answerRes.json)
     );
 
+    // ---- Resuming the kicked (cancelled) attempt is refused, not silent ---
+    const resumeRes = await api('GET', `/api/v1/exam-taking/${sid}/resume`, studentToken);
+    check('resume of a cancelled attempt returns 409', resumeRes.status === 409, `HTTP ${resumeRes.status}`);
+    check(
+      'resume 409 carries code=ATTEMPT_NOT_IN_PROGRESS and attemptStatus=cancelled',
+      resumeRes.json?.code === 'ATTEMPT_NOT_IN_PROGRESS' && resumeRes.json?.attemptStatus === 'cancelled',
+      JSON.stringify(resumeRes.json)
+    );
+
     // ---- Extend session time — proctor must get the push -------------------
     const proctorExtendWait = waitForEvent(proctorSocket, 'session.time.extended', 10000);
     const extendRes = await api('POST', `/api/v1/sessions/${sid}/extend`, proctorToken, { minutes: 5 });
@@ -327,6 +403,11 @@ async function main() {
       await notif.collection('user_notifications').deleteMany({ recipientId: String(created.studentId) });
       await people.collection('candidates').deleteMany({ _id: created.studentId });
       await people.collection('users').deleteMany({ _id: created.studentId });
+    }
+    if (created.studentId2) {
+      await notif.collection('user_notifications').deleteMany({ recipientId: String(created.studentId2) });
+      await people.collection('candidates').deleteMany({ _id: created.studentId2 });
+      await people.collection('users').deleteMany({ _id: created.studentId2 });
     }
     console.log('cleanup done');
     await mongoose.disconnect();

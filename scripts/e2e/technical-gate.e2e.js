@@ -19,7 +19,12 @@
  *   (e) no token at all on a technical route -> 401
  *   (f) resuming an existing in_progress attempt is never blocked, even
  *       after the verification record is deleted/expired
+ *   (g) calling the adaptive start endpoint on a non-adaptive exam is
+ *       refused (400, code NOT_ADAPTIVE_EXAM) before any verification gate
+ *       runs — checked ahead of the technical-verification gate in
+ *       examTaking.service.ts, so it doesn't need a passing verification
  *
+
  * Creates two throwaway students (@example.com — RFC 2606 reserved, so any
  * attempted email is never delivered), one throwaway audio_response
  * question (only created if the bank has none active), two throwaway exams
@@ -239,6 +244,18 @@ async function main() {
     await redis.del(`user_tech:${String(a.id)}`);
     const resumeA = await api('POST', `/api/v1/exam-taking/${sidNoAudio}/start`, a.token);
     check('(f) resume works after verification is deleted', resumeA.status === 200, `HTTP ${resumeA.status} ${JSON.stringify(resumeA.json?.message || '')}`);
+
+    // ── (g) adaptive start on a non-adaptive exam is refused ───────────────
+    // `examNoAudioId` (sidNoAudio) is type 'practice', not an adaptive
+    // placement exam — startAdaptiveExam() must reject it before it ever
+    // reaches the technical-verification gate, so `c` (registered on
+    // sidNoAudio but with no verification submitted) is a valid caller here.
+    const adaptiveOnLinear = await api('POST', `/api/v1/exam-taking/${sidNoAudio}/adaptive/start`, c.token);
+    check(
+      '(g) adaptive start on a non-adaptive exam -> 400 NOT_ADAPTIVE_EXAM',
+      adaptiveOnLinear.status === 400 && adaptiveOnLinear.json?.code === 'NOT_ADAPTIVE_EXAM',
+      `HTTP ${adaptiveOnLinear.status} code=${adaptiveOnLinear.json?.code}`
+    );
   } finally {
     // ── Cleanup: Mongo ───────────────────────────────────────────────────────
     for (const sessionId of created.sessionIds) {
