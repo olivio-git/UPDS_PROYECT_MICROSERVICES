@@ -484,17 +484,23 @@ export class KafkaService {
   private async handleCandidateAdded(event: any): Promise<void> {
     try {
       const { ActiveSessionModel } = await import('../models/ActiveSession');
-      
+
+      // exam-service's legacy envelope nests the actual payload under
+      // `event.data` (see config/kafka.ts publishEvent: { type, data,
+      // timestamp, service }); fall back to the top level too in case a
+      // future producer sends a flat shape.
+      const d = event.data ?? event;
+
       // Buscar la sesión activa por sessionId
       await ActiveSessionModel.findOneAndUpdate(
-        { sessionId: event.sessionId },
-        { 
-          $addToSet: { 'participants.registeredCandidates': event.candidateId },
+        { sessionId: d.sessionId },
+        {
+          $addToSet: { 'participants.registeredCandidates': d.candidateId },
           $inc: { 'stats.totalParticipants': 1 }
         }
       );
 
-      logger.info(`Candidate added to session: ${event.candidateId} -> ${event.sessionId}`);
+      logger.info(`Candidate added to session: ${d.candidateId} -> ${d.sessionId}`);
 
     } catch (error) {
       logger.error('Error handling candidate added:', error);
@@ -504,15 +510,18 @@ export class KafkaService {
   private async handleProctorAdded(event: any): Promise<void> {
     try {
       const { ActiveSessionModel } = await import('../models/ActiveSession');
-      
+
+      // Same legacy-envelope nesting as handleCandidateAdded above.
+      const d = event.data ?? event;
+
       await ActiveSessionModel.findOneAndUpdate(
-        { sessionId: event.sessionId },
-        { 
-          $addToSet: { 'participants.proctors': event.proctorId }
+        { sessionId: d.sessionId },
+        {
+          $addToSet: { 'participants.proctors': d.proctorId }
         }
       );
 
-      logger.info(`Proctor added to session: ${event.proctorId} -> ${event.sessionId}`);
+      logger.info(`Proctor added to session: ${d.proctorId} -> ${d.sessionId}`);
 
     } catch (error) {
       logger.error('Error handling proctor added:', error);
