@@ -22,6 +22,18 @@ export class ExamTakingService {
     const session = await this.sessionService.findById(sessionId);
     if (!session) throw new Error('Session not found');
 
+    // A candidate kicked by a proctor/admin — including one kicked BEFORE
+    // ever starting, who has no attempt to key a check off of — must not be
+    // able to (re-)start. This is checked before any other validation.
+    const kickedIds: any[] = (session as any).participants?.kickedCandidates || [];
+    if (kickedIds.some((id: any) => String(id) === String(userCandidateId))) {
+      throw new AppError(
+        'You have been removed from this session',
+        403,
+        'CANDIDATE_REMOVED'
+      );
+    }
+
     // ── Late entry validation ─────────────────────────────────────────────────
     const now = new Date();
     const startDate = new Date((session as any).scheduling.startDate);
@@ -584,7 +596,16 @@ export class ExamTakingService {
     }
 
     if (attempt.status === 'cancelled') {
-      throw new Error('Exam was cancelled');
+      // The attempt was cancelled by a kick — surface the same 409 code the
+      // rest of exam-taking uses for terminal-state mismatches so a kicked
+      // student who reloads the page (resume-on-mount) is routed to the
+      // "removed" screen instead of a generic error.
+      throw new AppError(
+        'Cannot resume exam: attempt was cancelled',
+        409,
+        'ATTEMPT_NOT_IN_PROGRESS',
+        attempt.status
+      );
     }
 
     if (attempt.status === 'expired') {
@@ -842,6 +863,16 @@ export class ExamTakingService {
   async startAdaptiveExam(sessionId: string, userCandidateId: string) {
     const session = await this.sessionService.findById(sessionId);
     if (!session) throw new Error('Session not found');
+
+    // Same kicked-candidate gate as startExam — see comment there.
+    const kickedIds: any[] = (session as any).participants?.kickedCandidates || [];
+    if (kickedIds.some((id: any) => String(id) === String(userCandidateId))) {
+      throw new AppError(
+        'You have been removed from this session',
+        403,
+        'CANDIDATE_REMOVED'
+      );
+    }
 
     // Validate candidate
     const candidate = (session as any).candidatesData?.find(

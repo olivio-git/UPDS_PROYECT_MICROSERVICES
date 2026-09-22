@@ -30,6 +30,11 @@ export interface ExamSessionState {
   // just blocks further interaction and sends the candidate back home.
   kicked: boolean;
   kickReason?: string;
+  // The attempt id for the current session, captured from start/resume so
+  // a remote-termination push (session ended, attempt force-completed
+  // server-side) can go straight to pollForResult without a finish() round
+  // trip that would just 409 against the already-closed attempt.
+  attemptId: string | null;
 }
 
 interface UseExamSessionHTTPOptions {
@@ -66,7 +71,8 @@ export const useExamSessionHTTP = (options: UseExamSessionHTTPOptions = {}) => {
     autoSaveStatus: 'idle',
     totalQuestions: 0,
     kicked: false,
-    kickReason: undefined
+    kickReason: undefined,
+    attemptId: null
   });
 
   const [loading, setLoading] = useState(false);
@@ -84,6 +90,7 @@ export const useExamSessionHTTP = (options: UseExamSessionHTTPOptions = {}) => {
   // Refs estables — evitan que performAutoSave se recree en cada render/keystroke
   const answersRef = useRef<Record<string, any>>({});
   const sessionIdRef = useRef<string | null>(null);
+  const attemptIdRef = useRef<string | null>(null);
   const onAutoSaveRef = useRef(onAutoSave);
   const onTimeWarningRef = useRef(onTimeWarning);
   const onSessionEndRef = useRef(onSessionEnd);
@@ -99,6 +106,7 @@ export const useExamSessionHTTP = (options: UseExamSessionHTTPOptions = {}) => {
   // Mantener refs de callbacks sincronizados sin añadirlos a deps de useCallback
   useEffect(() => { answersRef.current = state.answers; }, [state.answers]);
   useEffect(() => { sessionIdRef.current = state.sessionId; }, [state.sessionId]);
+  useEffect(() => { attemptIdRef.current = state.attemptId; }, [state.attemptId]);
   useEffect(() => { onAutoSaveRef.current = onAutoSave; }, [onAutoSave]);
   useEffect(() => { onTimeWarningRef.current = onTimeWarning; }, [onTimeWarning]);
   useEffect(() => { onSessionEndRef.current = onSessionEnd; }, [onSessionEnd]);
@@ -325,6 +333,21 @@ export const useExamSessionHTTP = (options: UseExamSessionHTTPOptions = {}) => {
           if (timePollingRef.current) clearInterval(timePollingRef.current);
           stopLocalTimer();
 
+          if (sessionEnded) {
+            // The attempt is already terminal server-side (completed/expired,
+            // or the parent session itself was ended/cancelled) — finish()
+            // would just race the server-side close. Go straight to the
+            // completion path with the attemptId this runner already has.
+            if (!terminationHandledRef.current) {
+              terminationHandledRef.current = true;
+              const attemptId = attemptIdRef.current ?? '';
+              setTimeout(() => {
+                onSessionEndRef.current?.(attemptId);
+              }, 500);
+            }
+            return;
+          }
+
           await finishExam();
           return;
         }
@@ -388,8 +411,16 @@ export const useExamSessionHTTP = (options: UseExamSessionHTTPOptions = {}) => {
         return;
       }
 
+      // Any other terminal status (e.g. 'completed') means the attempt was
+      // already closed server-side (endSession force-completes in-progress
+      // attempts and queues grading) — calling finish() here would just hit
+      // the same 409 that got us here. Go straight to the completion path
+      // with the attemptId this runner already has instead.
       setState(prev => ({ ...prev, isActive: false, sessionStatus: 'completed' }));
-      void finishExamRef.current();
+      const attemptId = attemptIdRef.current ?? '';
+      setTimeout(() => {
+        onSessionEndRef.current?.(attemptId);
+      }, 500);
     };
   }, [stopLocalTimer]);
 
@@ -410,15 +441,26 @@ export const useExamSessionHTTP = (options: UseExamSessionHTTPOptions = {}) => {
       if (timePollingRef.current) clearInterval(timePollingRef.current);
       stopLocalTimer();
 
-      // session.ended (status 'completed') already force-completes attempts
-      // server-side and triggers grading; session.cancelled does not, so the
-      // finish() call below submits whatever answers were saved so far.
-      // Either way the candidate sees "your exam was submitted" semantics.
-      toast.error(
-        data.status === 'completed'
-          ? 'La sesión fue finalizada por el supervisor. Tu examen fue enviado.'
-          : 'La sesión fue cancelada por el supervisor. Tu examen fue enviado con tus respuestas actuales.'
-      );
+      if (data.status === 'completed') {
+        // session.ended already force-completes in-progress attempts and
+        // queues grading server-side (see exam-service session.service.ts
+        // endSession). Calling finish() here would race that server-side
+        // close — the autosave inside it would 409 (attempt no longer
+        // in_progress) and, previously, so could finish() itself, leaving
+        // onSessionEnd never invoked and the candidate stuck on the
+        // "Redirigiendo..." spinner. Go straight to the completion path
+        // with the attemptId this runner already has.
+        toast.error('La sesión fue finalizada por el supervisor. Tu examen fue enviado.');
+        const attemptId = attemptIdRef.current ?? '';
+        setTimeout(() => {
+          onSessionEndRef.current?.(attemptId);
+        }, 500);
+        return;
+      }
+
+      // session.cancelled does NOT force-complete attempts server-side, so
+      // the finish() call below submits whatever answers were saved so far.
+      toast.error('La sesión fue cancelada por el supervisor. Tu examen fue enviado con tus respuestas actuales.');
       await finishExamRef.current();
     };
 
@@ -477,7 +519,7 @@ export const useExamSessionHTTP = (options: UseExamSessionHTTPOptions = {}) => {
       const response = await examService.startExam(sessionId);
 
       if (response.success && response.data) {
-        const { sections, timeAllowedSeconds, examId, totalQuestions, answers } = response.data;
+        const { sections, timeAllowedSeconds, examId, totalQuestions, answers, attemptId } = response.data;
 
         // Check if exam time is already expired
         if (timeAllowedSeconds <= 0) {
@@ -489,6 +531,7 @@ export const useExamSessionHTTP = (options: UseExamSessionHTTPOptions = {}) => {
         setState(prev => ({
           ...prev,
           sessionId,
+          attemptId: attemptId ?? null,
           isActive: true,
           sections: sections || [],
           currentSectionIndex: 0,
@@ -549,12 +592,14 @@ export const useExamSessionHTTP = (options: UseExamSessionHTTPOptions = {}) => {
           timeRemaining,
           progress,
           examId,
-          totalQuestions
+          totalQuestions,
+          attemptId
         } = response.data;
 
         setState(prev => ({
           ...prev,
           sessionId,
+          attemptId: attemptId ?? null,
           isActive: true,
           sections: sections || [],
           answers: answers || {},

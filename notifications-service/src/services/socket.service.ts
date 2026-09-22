@@ -13,7 +13,14 @@ interface AccessTokenPayload {
   userId: string;
   email?: string;
   role?: string;
+  exp?: number;
 }
+
+// setTimeout's delay is a 32-bit signed int internally — anything past this
+// fires immediately instead of after the intended delay. Cap it; sockets
+// with a longer-lived token just get re-checked (loop) rather than trusted
+// forever.
+const MAX_TIMEOUT_MS = 2_147_483_647;
 
 function extractToken(socket: Socket): string | null {
   const authToken = (socket.handshake.auth as any)?.token;
@@ -63,6 +70,7 @@ export class SocketService {
         }
 
         (socket.data as any).userId = decoded.userId;
+        (socket.data as any).tokenExp = decoded.exp;
         next();
       } catch (error) {
         next(new Error('Invalid or expired token'));
@@ -73,8 +81,31 @@ export class SocketService {
       const userId = (socket.data as any).userId as string;
       socket.join(`user:${userId}`);
 
+      // Force-disconnect once the handshake token's exp passes, so a
+      // logged-out/deactivated user's socket doesn't keep receiving pushes
+      // indefinitely just because it was never explicitly closed. The
+      // client's `auth` callback fetches the current token on every
+      // reconnection attempt (see notificationSocket.ts), so a still-valid
+      // session picks up a fresh token and reconnects transparently — this
+      // doesn't cause a reconnect storm because it fires once per socket,
+      // exactly at expiry, not on a poll/retry loop.
+      const exp = (socket.data as any).tokenExp as number | undefined;
+      let expiryTimer: ReturnType<typeof setTimeout> | undefined;
+      if (typeof exp === 'number') {
+        const msUntilExpiry = exp * 1000 - Date.now();
+        if (msUntilExpiry > 0) {
+          expiryTimer = setTimeout(() => {
+            socket.disconnect(true);
+          }, Math.min(msUntilExpiry, MAX_TIMEOUT_MS));
+        } else {
+          // Clock skew or a token that was already expired when accepted —
+          // disconnect right away.
+          socket.disconnect(true);
+        }
+      }
+
       socket.on('disconnect', () => {
-        // cleanup if necessary
+        if (expiryTimer) clearTimeout(expiryTimer);
       });
     });
   }

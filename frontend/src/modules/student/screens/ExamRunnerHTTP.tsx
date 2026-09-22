@@ -9,7 +9,7 @@ import GradientWrapper from '@/components/background/GrandWrapperSection';
 import { MainLayout } from '@/components/layout';
 import { useExamSessionHTTP } from '@/hooks/useExamSessionHTTP';
 import { examResultService } from '@/services/examResultService';
-import { examService } from '@/services/examService';
+import { examService, getAttemptTerminationInfo } from '@/services/examService';
 import { notificationSocket } from '@/services/notifications/notificationSocket';
 import {
   AlertCircle,
@@ -210,6 +210,24 @@ const ExamRunnerHTTP: React.FC = () => {
         }
       } catch (error: any) {
         console.error('Failed to initialize exam:', error);
+
+        // A candidate kicked by a proctor/admin (including before ever
+        // starting) is refused by startExam with 403 CANDIDATE_REMOVED.
+        if (error?.response?.data?.code === 'CANDIDATE_REMOVED') {
+          toast.error('Has sido expulsado de esta sesión por el supervisor.', { duration: 6000 });
+          navigate('/student/dashboard');
+          return;
+        }
+
+        // A candidate kicked mid-exam who reloads the page hits resumeExam,
+        // which 409s with attemptStatus 'cancelled' (the attempt itself is
+        // already terminal server-side).
+        const terminationInfo = getAttemptTerminationInfo(error);
+        if (terminationInfo?.attemptStatus === 'cancelled') {
+          toast.error('Has sido expulsado de esta sesión por el supervisor.', { duration: 6000 });
+          navigate('/student/dashboard');
+          return;
+        }
 
         // Check if error is related to expired exam
         if (error?.message?.includes('expired') || error?.message?.includes('time')) {

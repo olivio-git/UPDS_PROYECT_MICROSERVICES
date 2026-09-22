@@ -408,15 +408,18 @@ export class KafkaConsumerService {
             return;
           }
 
-          const kickedPayload = {
+          // kickedBy is staff-facing only (who kicked the candidate) — the
+          // candidate's own push must not include it.
+          const kickedPayloadBase = {
             sessionId: String(data.sessionId),
             sessionName: data.sessionName,
             candidateId: String(candidateId),
             attemptId: data.attemptId ? String(data.attemptId) : undefined,
             reason: data.reason,
-            kickedBy: data.kickedBy,
             kickedAt: data.kickedAt,
           };
+          const candidateKickedPayload = kickedPayloadBase;
+          const staffKickedPayload = { ...kickedPayloadBase, kickedBy: data.kickedBy };
 
           // In-app notification + socket push for the kicked candidate.
           // This replaces the direct best-effort HTTP call exam-service used
@@ -439,14 +442,14 @@ export class KafkaConsumerService {
           };
           await this.notificationService.createInAppNotification(notifPayload);
 
-          this.notificationService.emitToUser(String(candidateId), 'session.candidate.kicked', kickedPayload);
+          this.notificationService.emitToUser(String(candidateId), 'session.candidate.kicked', candidateKickedPayload);
 
           // Also notify proctors/creator so their monitor screens refresh
           // immediately instead of waiting for the 10s poll.
           const recipients = resolveSessionRecipients(data);
           recipients.delete(String(candidateId));
           for (const recipientId of recipients) {
-            this.notificationService.emitToUser(recipientId, 'session.candidate.kicked', kickedPayload);
+            this.notificationService.emitToUser(recipientId, 'session.candidate.kicked', staffKickedPayload);
           }
 
           console.log(`🔔 session.candidate.kicked emitido a candidate ${candidateId} + ${recipients.size} proctor(es)/creador`);

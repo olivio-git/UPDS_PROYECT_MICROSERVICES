@@ -28,13 +28,24 @@ class NotificationSocketService {
   // the token is stale/invalid — log the first one, stay quiet after that
   // until a connection actually succeeds.
   private loggedConnectError = false;
+  // The user id the current socket is authenticated as. Used so connect()
+  // can tell "already connected for this user, no-op" apart from "connected
+  // as a different (stale) user, must reconnect" — e.g. logging out and
+  // back in as someone else without a full page reload.
+  private connectedUserId: string | null = null;
 
   async connect(): Promise<void> {
+    const currentUser = authSDK.getCurrentUser();
+
     if (this.socket?.connected) {
-      console.log('[NotificationSocket] connect() called but already connected');
-      return;
-    }
-    if (this.connectPromise) {
+      if (currentUser && String(currentUser.id) === String(this.connectedUserId)) {
+        console.log('[NotificationSocket] connect() called but already connected for this user');
+        return;
+      }
+      console.log('[NotificationSocket] connect() called but connected user changed — reconnecting');
+      // Fall through: _doConnect() below disconnects the stale socket and
+      // opens a fresh one authenticated as the current user.
+    } else if (this.connectPromise) {
       console.log('[NotificationSocket] connect() called while connecting — reusing promise');
       return this.connectPromise;
     }
@@ -55,6 +66,8 @@ class NotificationSocketService {
       console.warn('[NotificationSocket] No token or user — aborting connect');
       return;
     }
+
+    this.connectedUserId = String(currentUser.id);
 
     const rawUrl =
       NOTIFICATION_WS_URL;
@@ -169,6 +182,7 @@ class NotificationSocketService {
     this.socket?.disconnect();
     this.socket = null;
     this.listeners.clear();
+    this.connectedUserId = null;
   }
 
   isConnected(): boolean {

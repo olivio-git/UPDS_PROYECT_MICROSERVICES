@@ -64,6 +64,11 @@ const AdaptiveExamRunner: React.FC = () => {
   const terminatedRef = useRef(false);
 
   const handleFinished = useCallback((reason?: string) => {
+    // Gate the kick/status-changed socket listeners the same way a 409
+    // fallback does — without this, a late push (session ended by the
+    // supervisor right after the candidate naturally finished) could replace
+    // the results screen with the kicked/terminated one, or re-run finish().
+    terminatedRef.current = true;
     setIsFinished(true);
     setStopReason(reason);
     toast.success('Examen de nivelación completado. Calculando tu nivel...');
@@ -177,6 +182,11 @@ const AdaptiveExamRunner: React.FC = () => {
         }
       }
     } catch (err: any) {
+      if (err?.response?.data?.code === 'CANDIDATE_REMOVED') {
+        setKicked(true);
+        setKickReason(err?.response?.data?.message);
+        return;
+      }
       const msg = err?.response?.data?.message || err.message || 'Error al iniciar el examen';
       if (msg.includes('already completed')) {
         handleFinished();

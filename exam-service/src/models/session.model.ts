@@ -21,6 +21,11 @@ export interface ISession extends Document {
     registeredCandidates: Types.ObjectId[];
     proctors: Types.ObjectId[];
     currentActive: number;
+    // Candidates removed by a proctor/admin (kickCandidate). Kept separate
+    // from registeredCandidates — kicking must not drop the candidate from
+    // the roster the monitor screen and stats.totalRegistered rely on — and
+    // checked by startExam/startAdaptiveExam to refuse re-entry.
+    kickedCandidates: Types.ObjectId[];
   };
   settings: {
     requireProctor: boolean;
@@ -98,7 +103,12 @@ const sessionSchema = new Schema<ISession>({
     currentActive: {
       type: Number,
       default: 0
-    }
+    },
+    kickedCandidates: [{
+      type: Schema.Types.ObjectId
+      // Same note as registeredCandidates: no ref, candidate data lives in
+      // user-management-service.
+    }]
   },
   settings: {
     requireProctor: { type: Boolean, default: true },

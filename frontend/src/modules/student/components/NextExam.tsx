@@ -96,20 +96,32 @@ const NextExam: React.FC<PropsNextExam> = ({
       if (data?.type === 'session.candidate.added') {
         console.log('🔔 [NextExam] Agregado a sesión, recargando...');
         loadNextExam(true);
-      } else if (data?.type === 'candidate.kicked' || data?.type === 'session.candidate.removed') {
+      } else if (
+        data?.type === 'candidate.kicked' ||
+        data?.type === 'session.candidate.kicked' ||
+        data?.type === 'session.candidate.removed'
+      ) {
         console.log('🚫 [NextExam] Removido/expulsado de sesión, recargando...');
         loadNextExam(true);
       }
     };
+    // notification.created can race the dedicated kick socket push (or vice
+    // versa) — listen to both so a missed/duplicate one doesn't matter.
+    const onCandidateKicked = () => {
+      console.log('🚫 [NextExam] session.candidate.kicked, recargando...');
+      loadNextExam(true);
+    };
 
     notificationSocket.on('session.status.changed', onStatusChanged);
     notificationSocket.on('notification.created', onNotificationCreated);
+    notificationSocket.on('session.candidate.kicked', onCandidateKicked);
     // Ensure socket is connected (Header may have already connected it)
     notificationSocket.connect().catch(() => {});
 
     return () => {
       notificationSocket.off('session.status.changed', onStatusChanged);
       notificationSocket.off('notification.created', onNotificationCreated);
+      notificationSocket.off('session.candidate.kicked', onCandidateKicked);
     };
   }, []);
 
