@@ -218,23 +218,6 @@ router.put('/:id/verify',
 );
 
 /**
- * @route PUT /candidates/:id/technical-setup
- * @desc Actualizar configuración técnica del candidato
- * @access Admin, Teacher, Proctor
- */
-router.put('/:id/technical-setup',
-  ...middlewareStacks.basicAuth,
-  validateParams(idParamsSchema),
-  // candidatePermissions.update,
-  asyncHandler(candidateController.updateTechnicalSetup)
-);
-router.get('/:id/technical-exist',
-  ...middlewareStacks.basicAuth,
-  validateParams(idParamsSchema),
-  // candidatePermissions.update,
-  asyncHandler(candidateController.getTechnicalSetup)
-);
-/**
  * @route PATCH /candidates/:id/technical-verification
  * @desc Guardar verificación técnica específica del candidato
  * @access Admin, Teacher, Proctor, Student (self)

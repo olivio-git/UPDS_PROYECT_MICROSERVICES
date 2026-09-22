@@ -303,40 +303,6 @@ export class CandidateService {
       };
     }
   }
-  async getTechnicalSetupById(id: string): Promise<ApiResponse<any>> {
-    try {
-      // Verificar si el candidato existe
-      const existingCandidate = await this.candidateRepository.findById(id);
-      if (!existingCandidate) {
-        return {
-          success: false,
-          message: 'Candidato no encontrado',
-          error: 'CANDIDATE_NOT_FOUND'
-        };
-      }
-      const technicalSetupRaw = await this.redis.get(`${this.USER_VERIFICATION_PREFIX}${id}`);
-      if (typeof technicalSetupRaw !== 'string' || !technicalSetupRaw) {
-        return {
-          success: false,
-          message: 'No se encontró configuración técnica para este candidato',
-          error: 'TECHNICAL_SETUP_NOT_FOUND'
-        };
-      }
-      // Parsear la configuración técnica almacenada como string JSON
-      return {
-        success: true,
-        message: 'Candidato actualizado exitosamente',
-        data: { technicalSetup: JSON.parse(technicalSetupRaw) }
-      };
-    } catch (error) {
-      console.error('Error actualizando candidato:', error);
-      return {
-        success: false,
-        message: 'Error interno del servidor',
-        error: error instanceof Error ? error.message : 'Unknown error'
-      };
-    }
-  }
   async deleteCandidate(id: string): Promise<ApiResponse<any>> {
     try {
       const candidateExists = await this.candidateRepository.findById(id);
