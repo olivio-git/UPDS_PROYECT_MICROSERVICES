@@ -103,6 +103,75 @@ class SessionManagerTechnicalService {
   }
 
   /**
+   * Reporta al backend lo que este equipo y navegador realmente son. Sin
+   * esto la verificación queda con todo en falso y el servidor no deja
+   * empezar el examen: `browserCompatible` y `screenResolution` sólo se
+   * fijan desde /browser, y el listado de dispositivos desde /devices.
+   * Cada paso es best-effort: un fallo no debe cortar la preparación.
+   */
+  async reportEnvironment(verificationId: string): Promise<void> {
+    try {
+      await this.api.post(`/${verificationId}/browser`, {
+        browserInfo: {
+          userAgent: navigator.userAgent,
+          platform: navigator.platform,
+          language: navigator.language,
+          cookieEnabled: navigator.cookieEnabled,
+          javaEnabled: false,
+        },
+        systemInfo: {
+          screen: {
+            width: window.screen.width,
+            height: window.screen.height,
+            colorDepth: window.screen.colorDepth,
+          },
+          timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+          onlineStatus: navigator.onLine,
+        },
+      });
+    } catch (error) {
+      console.error('No se pudo reportar la información del navegador:', error);
+    }
+
+    try {
+      const devices = await navigator.mediaDevices.enumerateDevices();
+      const pick = (kind: MediaDeviceKind) =>
+        devices
+          .filter((d) => d.kind === kind)
+          .map((d) => ({ deviceId: d.deviceId, label: d.label }));
+      await this.api.post(`/${verificationId}/devices`, {
+        devices: {
+          audioInputs: pick('audioinput'),
+          videoInputs: pick('videoinput'),
+          audioOutputs: pick('audiooutput'),
+        },
+      });
+    } catch (error) {
+      console.error('No se pudo reportar los dispositivos:', error);
+    }
+
+    try {
+      const query = async (name: PermissionName) => {
+        try {
+          const status = await navigator.permissions.query({ name });
+          return status.state;
+        } catch {
+          return 'default';
+        }
+      };
+      await this.api.post(`/${verificationId}/permissions`, {
+        permissions: {
+          microphone: await query('microphone' as PermissionName),
+          camera: await query('camera' as PermissionName),
+          notifications: await query('notifications' as PermissionName),
+        },
+      });
+    } catch (error) {
+      console.error('No se pudo reportar los permisos:', error);
+    }
+  }
+
+  /**
    * Obtener estado de verificación técnica
    */
   async getVerificationStatus(verificationId: string): Promise<TechnicalVerificationResponse['data']> {
