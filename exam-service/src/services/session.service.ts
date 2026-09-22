@@ -1095,7 +1095,9 @@ export class SessionService {
           startedAt,
           finishedAt,
           lastActivity,
-          activeSeconds
+          activeSeconds,
+          infractionCount: attempt?.integrity?.infractionCount ?? 0,
+          lastInfractionAt: attempt?.integrity?.lastInfractionAt ?? null
         };
       });
 

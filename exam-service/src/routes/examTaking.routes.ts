@@ -12,6 +12,7 @@ router.post('/:sessionId/start', authMiddleware, searchRefs, (req, res, next) =>
 router.post('/:sessionId/answer', authMiddleware, searchRefs, (req, res, next) => controller.answer(req, res, next));
 router.post('/:sessionId/finish', authMiddleware, searchRefs, (req, res, next) => controller.finish(req, res, next));
 router.get('/:sessionId/time', authMiddleware, searchRefs, (req, res, next) => controller.time(req, res, next));
+router.post('/:sessionId/infractions', authMiddleware, searchRefs, (req, res, next) => controller.postInfraction(req, res, next));
 
 // New HTTP-based routes
 router.get('/:sessionId/answers', authMiddleware, searchRefs, (req, res, next) => controller.getMyAnswers(req, res, next));

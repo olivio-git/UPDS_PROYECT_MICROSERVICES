@@ -34,6 +34,18 @@ export interface IAttempt extends Document {
     isFinished: boolean;
     stopReason?: 'max_questions' | 'consecutive_wrong' | 'manual';
   };
+  // Browser-lockdown infraction tracking (soft lockdown — deterrence +
+  // proctor visibility, not hard prevention). Populated only when the
+  // session has settings.browserLockdown enabled. `events` is capped at
+  // ~200 entries (oldest dropped) to keep the attempt document bounded.
+  integrity?: {
+    infractionCount: number;
+    lastInfractionAt?: Date;
+    events: Array<{
+      type: 'fullscreen_exit' | 'tab_hidden' | 'window_blur' | 'blocked_shortcut' | 'context_menu' | 'paste_blocked';
+      at: Date;
+    }>;
+  };
 }
 
 const attemptSchema = new Schema<IAttempt>({
@@ -72,6 +84,17 @@ const attemptSchema = new Schema<IAttempt>({
     }],
     isFinished: { type: Boolean, default: false },
     stopReason: { type: String, enum: ['max_questions', 'consecutive_wrong', 'manual'] }
+  },
+  integrity: {
+    infractionCount: { type: Number, default: 0 },
+    lastInfractionAt: Date,
+    events: [{
+      type: {
+        type: String,
+        enum: ['fullscreen_exit', 'tab_hidden', 'window_blur', 'blocked_shortcut', 'context_menu', 'paste_blocked']
+      },
+      at: Date
+    }]
   }
 }, {
   timestamps: true,

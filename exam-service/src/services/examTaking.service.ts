@@ -4,18 +4,29 @@ import { Attempt } from '../models/attempt.model';
 import { Exam } from '../models/exam.model';
 import { Question } from '../models/question.model';
 import { Response as ResponseModel } from '../models/response.model';
+import { Session } from '../models/session.model';
 import { logger } from '../utils/logger';
 import { env } from '../config/env';
 import { SessionService } from './session.service';
+import { KafkaService } from './kafka.service';
 import { publishExamAttemptFinished } from './examEventPublisher';
 import { AppError } from '../middleware/errorHandler.middleware';
 import { checkCanProceed } from '../integrations/session-manager.integration';
 
 export class ExamTakingService {
   private sessionService: SessionService;
+  private kafkaService: KafkaService;
+  // In-memory coalescing so a burst of infractions from one candidate only
+  // publishes `session.candidate.infraction` to proctors once per 10s per
+  // attempt, instead of flooding their monitor screen. Single-instance,
+  // in-process — resets on restart/redeploy, which is acceptable here since
+  // it only throttles a real-time nicety, not the persisted infraction count
+  // (that's written to the attempt on every accepted request regardless).
+  private infractionPublishThrottle: Map<string, number> = new Map();
 
   constructor() {
     this.sessionService = new SessionService();
+    this.kafkaService = new KafkaService();
   }
 
   // Shared session-level gate for both the linear and adaptive start paths:
@@ -409,7 +420,8 @@ export class ExamTakingService {
       answers: answers, // Include existing answers
       timeAllowedSeconds: attempt.timeAllowedSeconds,
       attemptId: attempt._id,
-      totalQuestions: allSelectedQuestions.length
+      totalQuestions: allSelectedQuestions.length,
+      browserLockdown: (session as any).settings?.browserLockdown ?? false
     };
   }
 
@@ -862,13 +874,99 @@ export class ExamTakingService {
           answered: section.questions.filter((q: any) => answers[q._id.toString()]).length,
           total: section.questions.length
         }))
-      }
+      },
+      browserLockdown: (session as any).settings?.browserLockdown ?? false
     };
   }
   async attempts(sessionId: string, candidateId: string, countPermitted: any) {
     const attempts = await Attempt.find({ sessionId, candidateId }).sort({ startedAt: -1 }).exec();
     const isPermitted = attempts.length < countPermitted;
     return { attempts, countPermitted:isPermitted };
+  }
+
+  // ==================== BROWSER LOCKDOWN INFRACTIONS ====================
+
+  private static readonly MAX_INTEGRITY_EVENTS = 200;
+  // Server-side rate limit: a burst of client-side detections (e.g. rapid
+  // blur/focus flicker) is silently dropped past 1/sec per attempt instead
+  // of erroring, so a flaky detector never blocks the candidate's exam flow.
+  private static readonly INFRACTION_MIN_INTERVAL_MS = 1000;
+  // Proctor-facing Kafka push is coalesced to at most once per attempt per
+  // 10s — the persisted count/event log is unaffected, this only throttles
+  // the real-time notification.
+  private static readonly INFRACTION_PUBLISH_INTERVAL_MS = 10000;
+
+  async recordInfraction(
+    sessionId: string,
+    candidateId: string,
+    type: 'fullscreen_exit' | 'tab_hidden' | 'window_blur' | 'blocked_shortcut' | 'context_menu' | 'paste_blocked',
+    occurredAt?: string,
+    details?: string
+  ) {
+    const attempt = await Attempt.findOne({ sessionId, candidateId });
+    if (!attempt) throw new Error('Attempt not found');
+
+    if (attempt.status !== 'in_progress') {
+      throw new AppError(
+        `Cannot record infraction: attempt is ${attempt.status}, not in progress`,
+        409,
+        'ATTEMPT_NOT_IN_PROGRESS',
+        attempt.status
+      );
+    }
+
+    const now = new Date();
+    const eventAt = occurredAt ? new Date(occurredAt) : now;
+    const lastInfractionAt = attempt.integrity?.lastInfractionAt;
+
+    // Rate limit: ignore (accept the request but don't count it) if the
+    // previous accepted infraction for this attempt was under 1s ago.
+    if (lastInfractionAt && now.getTime() - new Date(lastInfractionAt).getTime() < ExamTakingService.INFRACTION_MIN_INTERVAL_MS) {
+      return {
+        accepted: false,
+        infractionCount: attempt.integrity?.infractionCount ?? 0
+      };
+    }
+
+    if (!attempt.integrity) {
+      attempt.integrity = { infractionCount: 0, events: [] };
+    }
+    attempt.integrity.infractionCount = (attempt.integrity.infractionCount ?? 0) + 1;
+    attempt.integrity.lastInfractionAt = now;
+    attempt.integrity.events.push({ type, at: eventAt } as any);
+    if (attempt.integrity.events.length > ExamTakingService.MAX_INTEGRITY_EVENTS) {
+      attempt.integrity.events = attempt.integrity.events.slice(-ExamTakingService.MAX_INTEGRITY_EVENTS);
+    }
+    await attempt.save();
+
+    const infractionCount = attempt.integrity.infractionCount;
+
+    // Throttled proctor push — coalesce bursts to one Kafka publish per
+    // attempt per 10s.
+    const attemptKey = String(attempt._id);
+    const lastPublished = this.infractionPublishThrottle.get(attemptKey) ?? 0;
+    if (now.getTime() - lastPublished >= ExamTakingService.INFRACTION_PUBLISH_INTERVAL_MS) {
+      this.infractionPublishThrottle.set(attemptKey, now.getTime());
+      try {
+        const session = await Session.findById(sessionId).select('sessionName participants.proctors createdBy').lean();
+        await this.kafkaService.publishEvent('session.candidate.infraction', {
+          sessionId,
+          candidateId,
+          attemptId: attemptKey,
+          type,
+          infractionCount,
+          occurredAt: eventAt.toISOString(),
+          details,
+          sessionName: (session as any)?.sessionName,
+          proctorIds: (session as any)?.participants?.proctors?.map(String) || [],
+          createdBy: (session as any)?.createdBy?.toString()
+        });
+      } catch (err) {
+        logger.error('Error publishing session.candidate.infraction:', err);
+      }
+    }
+
+    return { accepted: true, infractionCount };
   }
 
   // ==================== ADAPTIVE EXAM (CAT) METHODS ====================
@@ -1060,7 +1158,8 @@ export class ExamTakingService {
         maxQuestions,
         consecutiveWrongThreshold,
         isFinished: false,
-      }
+      },
+      browserLockdown: (session as any).settings?.browserLockdown ?? false
     };
   }
 
@@ -1283,6 +1382,8 @@ export class ExamTakingService {
       delete questionObj.content.correctAnswer;
     }
 
+    const session = await Session.findById(attempt.sessionId).select('settings.browserLockdown').lean();
+
     return {
       finished: false,
       question: questionObj,
@@ -1294,7 +1395,8 @@ export class ExamTakingService {
         consecutiveWrongThreshold,
         consecutiveWrong: state.consecutiveWrong,
         isFinished: false,
-      }
+      },
+      browserLockdown: (session as any)?.settings?.browserLockdown ?? false
     };
   }
 
