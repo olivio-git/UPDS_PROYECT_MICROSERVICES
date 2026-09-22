@@ -2,6 +2,7 @@ import { Badge } from '@/components/atoms/badge';
 import { Button } from '@/components/atoms/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/atoms/card';
 import { MainLayout } from '@/components/layout';
+import { useBrowserLockdown } from '@/hooks/useBrowserLockdown';
 import { examResultService } from '@/services/examResultService';
 import {
   examService,
@@ -9,7 +10,8 @@ import {
   getTechnicalVerificationRequiredInfo,
 } from '@/services/examService';
 import { notificationSocket } from '@/services/notifications/notificationSocket';
-import { AlertCircle, Brain, CheckCircle, Loader2, UserX, XCircle } from 'lucide-react';
+import { useExamStore } from '@/stores/examStore';
+import { AlertCircle, Brain, CheckCircle, Loader2, Maximize, ShieldAlert, UserX, XCircle } from 'lucide-react';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { toast } from 'sonner';
@@ -66,6 +68,16 @@ const AdaptiveExamRunner: React.FC = () => {
   // Guards the terminal transition so it only runs once, whether triggered
   // by a socket push or by a 409 ATTEMPT_NOT_IN_PROGRESS fallback.
   const terminatedRef = useRef(false);
+
+  // Browser lockdown — armed only while the session has it enabled AND the
+  // attempt is actually active (not loading/errored/kicked/finished).
+  const browserLockdown = useExamStore((s) => s.browserLockdown);
+  const lockdownEnabled = !loading && !error && !kicked && !isFinished && browserLockdown;
+  const {
+    infractionCount: lockdownInfractionCount,
+    showFullscreenPrompt,
+    reenterFullscreen,
+  } = useBrowserLockdown({ enabled: lockdownEnabled, sessionId: sessionId ?? null });
 
   const handleFinished = useCallback((reason?: string) => {
     // Gate the kick/status-changed socket listeners the same way a 409
@@ -158,7 +170,8 @@ const AdaptiveExamRunner: React.FC = () => {
       try {
         const resumeResp = await examService.resumeAdaptiveExam(sessionId);
         if (resumeResp.success && resumeResp.data) {
-          const { finished, question, adaptiveState: state, attemptId: aid } = resumeResp.data;
+          const { finished, question, adaptiveState: state, attemptId: aid, browserLockdown } = resumeResp.data;
+          useExamStore.setState({ browserLockdown: !!browserLockdown });
           if (aid) setAttemptId(aid);
           if (finished) {
             handleFinished();
@@ -178,6 +191,7 @@ const AdaptiveExamRunner: React.FC = () => {
         // Start a new adaptive attempt
         const startResp = await examService.startAdaptiveExam(sessionId);
         if (startResp.success && startResp.data) {
+          useExamStore.setState({ browserLockdown: !!startResp.data.browserLockdown });
           setAttemptId(startResp.data.attemptId);
           setCurrentQuestion(startResp.data.question);
           setAdaptiveState({ ...startResp.data.adaptiveState, consecutiveWrong: 0 });
@@ -369,6 +383,34 @@ const AdaptiveExamRunner: React.FC = () => {
 
   return (
     <MainLayout gradientVariant="primary">
+      {/* ── Fullscreen re-entry overlay (browser lockdown) ─────────────────── */}
+      {lockdownEnabled && showFullscreenPrompt && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+          <Card className="bg-card border border-amber-400/60 dark:border-amber-500/50 w-full max-w-sm">
+            <CardContent className="p-6 text-center space-y-4">
+              <div className="w-12 h-12 rounded-full bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-700/50 flex items-center justify-center mx-auto">
+                <Maximize className="h-6 w-6 text-amber-600 dark:text-amber-400" />
+              </div>
+              <div>
+                <h3 className="text-base font-semibold text-foreground">Pantalla completa requerida</h3>
+                <p className="text-sm text-muted-foreground mt-1">
+                  {/* Also shown right at load when lockdown arms but the page
+                      isn't in fullscreen yet (reload, auto-start, deep link)
+                      — not only after a real exit — so this copy stays
+                      accurate for both instead of implying an infraction
+                      was always just logged. */}
+                  El examen requiere pantalla completa para continuar. Salir de ella queda registrado.
+                </p>
+              </div>
+              <Button onClick={reenterFullscreen} className="w-full">
+                <Maximize className="h-4 w-4 mr-2" />
+                Volver a pantalla completa
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
       <div className="max-w-3xl mx-auto space-y-6">
         {/* Header */}
         <div className="flex items-center justify-between">
@@ -377,6 +419,18 @@ const AdaptiveExamRunner: React.FC = () => {
             <p className="text-muted-foreground text-sm">Sistema Adaptativo (CAT)</p>
           </div>
           <div className="flex items-center gap-3">
+            {lockdownEnabled && (
+              <div
+                className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl border border-amber-400/60 dark:border-amber-500/50 bg-amber-50 dark:bg-amber-500/10 text-amber-700 dark:text-amber-400 text-xs font-medium"
+                title="El examen registra salidas de pantalla completa, cambios de pestaña y atajos bloqueados."
+              >
+                <ShieldAlert className="h-3.5 w-3.5 shrink-0" />
+                <span className="hidden sm:inline">Modo bloqueo activo</span>
+                {lockdownInfractionCount > 0 && (
+                  <span className="tabular-nums">({lockdownInfractionCount})</span>
+                )}
+              </div>
+            )}
             {adaptiveState && (
               <>
                 <Badge className={LEVEL_COLORS[adaptiveState.currentLevel] || 'bg-blue-500/20 text-blue-300 border-blue-500/30'}>

@@ -276,6 +276,47 @@ export class ExamTakingController {
     }
   }
 
+  private static readonly INFRACTION_TYPES = [
+    'fullscreen_exit',
+    'tab_hidden',
+    'window_blur',
+    'blocked_shortcut',
+    'context_menu',
+    'paste_blocked',
+  ];
+
+  async postInfraction(req: Request, res: Response, next: NextFunction) {
+    try {
+      const { sessionId } = req.params;
+      const { type, occurredAt, details } = req.body || {};
+      const userCandidateId = req.userCandidateId;
+      if (!userCandidateId) {
+        res.status(401).json({ success: false, message: 'Unauthorized' });
+        return;
+      }
+      if (!sessionId) {
+        res.status(400).json({ success: false, message: 'sessionId required' });
+        return;
+      }
+      if (!type || !ExamTakingController.INFRACTION_TYPES.includes(type)) {
+        res.status(400).json({ success: false, message: `type must be one of: ${ExamTakingController.INFRACTION_TYPES.join(', ')}` });
+        return;
+      }
+
+      const result = await service.recordInfraction(
+        sessionId,
+        String(userCandidateId),
+        type,
+        typeof occurredAt === 'string' ? occurredAt : undefined,
+        typeof details === 'string' ? details.slice(0, 300) : undefined
+      );
+      res.json({ success: true, data: result });
+    } catch (error) {
+      logger.error('Error recording infraction:', error);
+      next(error);
+    }
+  }
+
   async uploadResponseAudio(req: Request, res: Response, next: NextFunction) {
     try {
       const { sessionId } = req.params;

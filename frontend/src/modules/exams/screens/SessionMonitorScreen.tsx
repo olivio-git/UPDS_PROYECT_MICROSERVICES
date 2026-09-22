@@ -44,7 +44,14 @@ interface CandidateProgress {
   finishedAt: string | null;
   lastActivity: string | null;
   activeSeconds: number;
+  infractionCount?: number;
+  lastInfractionAt?: string | null;
 }
+
+// Candidates at or above this count are highlighted for the proctor as
+// needing attention (browser-lockdown infractions — deterrence + proctor
+// visibility, the proctor decides what to do, no auto-kick/auto-submit).
+const INFRACTION_HIGHLIGHT_THRESHOLD = 3;
 
 interface SessionProgress {
   sessionId: string;
@@ -363,6 +370,35 @@ const SessionMonitorScreen = () => {
     };
   }, [sessionId, fetchProgress]);
 
+  // ── WebSocket: live infraction count (browser lockdown) ───────────────────
+  useEffect(() => {
+    if (!sessionId) return;
+
+    const handleCandidateInfraction = (event: any) => {
+      if (String(event.sessionId) !== String(sessionId)) return;
+      setData((prev) => {
+        if (!prev) return prev;
+        return {
+          ...prev,
+          candidates: prev.candidates.map((c) =>
+            String(c.candidateId) === String(event.candidateId)
+              ? {
+                  ...c,
+                  infractionCount: event.infractionCount ?? (c.infractionCount ?? 0) + 1,
+                  lastInfractionAt: event.occurredAt ?? new Date().toISOString(),
+                }
+              : c
+          ),
+        };
+      });
+    };
+
+    notificationSocket.on("session.candidate.infraction", handleCandidateInfraction);
+    return () => {
+      notificationSocket.off("session.candidate.infraction", handleCandidateInfraction);
+    };
+  }, [sessionId]);
+
   // ── Manual refresh ─────────────────────────────────────────────────────────
 
   const handleManualRefresh = useCallback(async () => {
@@ -455,6 +491,29 @@ const SessionMonitorScreen = () => {
   const sortedCandidates = data ? sortCandidates(data.candidates) : [];
 
   // ── Render helpers ─────────────────────────────────────────────────────────
+
+  const renderInfractionBadge = (candidate: CandidateProgress) => {
+    const count = candidate.infractionCount ?? 0;
+    if (count <= 0) return null;
+    const flagged = count >= INFRACTION_HIGHLIGHT_THRESHOLD;
+    return (
+      <span
+        title={
+          candidate.lastInfractionAt
+            ? `Última infracción: ${formatRelativeTime(candidate.lastInfractionAt)}`
+            : undefined
+        }
+        className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[11px] font-semibold shrink-0 ${
+          flagged
+            ? "bg-red-100 text-red-700 border border-red-300 dark:bg-red-900/30 dark:text-red-300 dark:border-red-700/50"
+            : "bg-amber-100 text-amber-700 border border-amber-200 dark:bg-amber-900/20 dark:text-amber-300 dark:border-amber-700/40"
+        }`}
+      >
+        <AlertCircle className="w-2.5 h-2.5" />
+        {count}
+      </span>
+    );
+  };
 
   const renderStatusBadge = (status: string) => {
     const { label, className } = getStatusConfig(status);
@@ -779,8 +838,15 @@ const SessionMonitorScreen = () => {
                       ? Math.round((candidate.answeredCount / candidate.totalQuestions) * 100)
                       : 0;
 
+                    const isFlagged = (candidate.infractionCount ?? 0) >= INFRACTION_HIGHLIGHT_THRESHOLD;
+
                     return (
-                      <div key={candidate.candidateId} className="px-5 py-3.5 hover:bg-muted/20 transition-colors">
+                      <div
+                        key={candidate.candidateId}
+                        className={`px-5 py-3.5 hover:bg-muted/20 transition-colors ${
+                          isFlagged ? "bg-red-50/60 dark:bg-red-950/20 border-l-2 border-red-400 dark:border-red-600" : ""
+                        }`}
+                      >
                         {/* Mobile */}
                         <div className="md:hidden space-y-2.5">
                           <div className="flex items-center justify-between gap-2">
@@ -792,6 +858,7 @@ const SessionMonitorScreen = () => {
                                 className="shrink-0"
                               />
                               <span className="text-sm font-medium text-foreground truncate">{candidate.name}</span>
+                              {renderInfractionBadge(candidate)}
                             </div>
                             {renderStatusBadge(candidate.status)}
                           </div>
@@ -838,6 +905,7 @@ const SessionMonitorScreen = () => {
                               className="shrink-0"
                             />
                             <span className="text-sm font-medium text-foreground truncate">{candidate.name}</span>
+                            {renderInfractionBadge(candidate)}
                           </div>
                           <div>{renderStatusBadge(candidate.status)}</div>
                           <div>

@@ -456,6 +456,37 @@ export class KafkaConsumerService {
           break;
         }
 
+        case 'session.candidate.infraction': {
+          const candidateId = data.candidateId;
+          if (!candidateId) {
+            console.warn('No candidateId in session.candidate.infraction event');
+            return;
+          }
+
+          // Proctor/creator-only push — no in-app notification row and never
+          // reaches the candidate. This event is already throttled by
+          // exam-service (at most once per attempt per 10s), and the payload
+          // deliberately omits `enrolledCandidateIds` so resolveSessionRecipients
+          // only resolves proctors + the session creator, not the whole roster.
+          const infractionPayload = {
+            sessionId: String(data.sessionId),
+            sessionName: data.sessionName,
+            candidateId: String(candidateId),
+            attemptId: data.attemptId ? String(data.attemptId) : undefined,
+            type: data.type,
+            infractionCount: data.infractionCount,
+            occurredAt: data.occurredAt,
+          };
+
+          const recipients = resolveSessionRecipients(data);
+          for (const recipientId of recipients) {
+            this.notificationService.emitToUser(recipientId, 'session.candidate.infraction', infractionPayload);
+          }
+
+          console.log(`🔔 session.candidate.infraction emitido a ${recipients.size} proctor(es)/creador (candidate ${candidateId}, count ${data.infractionCount})`);
+          break;
+        }
+
         // 'exam.graded' (legacy, raw Kafka message shape) removed: grading-service
         // now publishes a single `grading.result.published` envelope on
         // `grading-events`, consumed by grading-notification.consumer.ts

@@ -872,7 +872,7 @@ class ExamService {
   // ==================== EXAM TAKING ====================
 
   // Iniciar examen (como candidato)
-  async startExam(sessionId: string): Promise<ApiResponse<{ examId: string; questions: Question[]; timeAllowedSeconds: number; attemptId: string }>> {
+  async startExam(sessionId: string): Promise<ApiResponse<{ examId: string; questions: Question[]; timeAllowedSeconds: number; attemptId: string; browserLockdown?: boolean }>> {
     try {
       const response = await this.api.post(`/exam-taking/${sessionId}/start`);
       return response.data;
@@ -929,6 +929,24 @@ class ExamService {
       console.error('Error finishing exam:', error);
       throw error;
     }
+  }
+
+  // Reportar una infracción de bloqueo del navegador (browser lockdown) —
+  // fire-and-forget desde el punto de llamada (useBrowserLockdown), no
+  // necesita reintentos: exam-service ignora (no cuenta, pero responde 200)
+  // ráfagas de más de 1/seg por intento.
+  async postInfraction(
+    sessionId: string,
+    type: 'fullscreen_exit' | 'tab_hidden' | 'window_blur' | 'blocked_shortcut' | 'context_menu' | 'paste_blocked',
+    occurredAt: string,
+    details?: string
+  ): Promise<ApiResponse<{ accepted: boolean; infractionCount: number }>> {
+    const response = await this.api.post(`/exam-taking/${sessionId}/infractions`, {
+      type,
+      occurredAt,
+      details,
+    });
+    return response.data;
   }
 
   // Obtener tiempo restante
@@ -995,6 +1013,7 @@ class ExamService {
       consecutiveWrongThreshold: number;
       isFinished: boolean;
     };
+    browserLockdown?: boolean;
   }>> {
     try {
       const response = await this.api.post(`/exam-taking/${sessionId}/adaptive/start`);
@@ -1041,6 +1060,7 @@ class ExamService {
     question?: any;
     attemptId?: string;
     adaptiveState?: any;
+    browserLockdown?: boolean;
   }>> {
     try {
       const response = await this.api.get(`/exam-taking/${sessionId}/adaptive/resume`);
@@ -1060,6 +1080,7 @@ class ExamService {
     timeRemaining: number;
     attemptId: string;
     progress: { answered: number; total: number };
+    browserLockdown?: boolean;
   }>> {
     try {
       const response = await this.api.get(`/exam-taking/${sessionId}/resume`);

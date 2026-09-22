@@ -7,10 +7,12 @@ import {
 } from '@/components/atoms/card';
 import GradientWrapper from '@/components/background/GrandWrapperSection';
 import { MainLayout } from '@/components/layout';
+import { useBrowserLockdown } from '@/hooks/useBrowserLockdown';
 import { useExamSessionHTTP } from '@/hooks/useExamSessionHTTP';
 import { examResultService } from '@/services/examResultService';
 import { examService, getAttemptTerminationInfo, getTechnicalVerificationRequiredInfo } from '@/services/examService';
 import { notificationSocket } from '@/services/notifications/notificationSocket';
+import { useExamStore } from '@/stores/examStore';
 import {
   AlertCircle,
   AlertTriangle,
@@ -21,7 +23,9 @@ import {
   ChevronRight,
   Flag,
   Loader2,
+  Maximize,
   Save,
+  ShieldAlert,
   Timer,
   UserX,
   X,
@@ -160,6 +164,16 @@ const ExamRunnerHTTP: React.FC = () => {
       }
     }
   });
+
+  // Browser lockdown — armed only while the session has it enabled AND the
+  // attempt is actually in progress (not during load/completion/kicked).
+  const browserLockdown = useExamStore((s) => s.browserLockdown);
+  const lockdownEnabled = isActive && sessionStatus === 'active' && browserLockdown;
+  const {
+    infractionCount: lockdownInfractionCount,
+    showFullscreenPrompt,
+    reenterFullscreen,
+  } = useBrowserLockdown({ enabled: lockdownEnabled, sessionId: sessionId ?? null });
 
   // Initialize exam on component mount
   useEffect(() => {
@@ -513,6 +527,32 @@ const ExamRunnerHTTP: React.FC = () => {
   // Main exam interface
   return (
     <MainLayout hideHeader>
+      {/* ── Fullscreen re-entry overlay (browser lockdown) ─────────────────── */}
+      {lockdownEnabled && showFullscreenPrompt && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+          <div className="bg-card border border-amber-400/60 dark:border-amber-500/50 rounded-2xl shadow-2xl w-full max-w-sm p-6 text-center space-y-4">
+            <div className="w-12 h-12 rounded-full bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-700/50 flex items-center justify-center mx-auto">
+              <Maximize className="h-6 w-6 text-amber-600 dark:text-amber-400" />
+            </div>
+            <div>
+              <h3 className="text-base font-semibold text-foreground">Pantalla completa requerida</h3>
+              <p className="text-sm text-muted-foreground mt-1">
+                {/* Also shown right at load when the session arms lockdown but
+                    the page isn't in fullscreen yet (reload, auto-start,
+                    deep link) — not only after a real exit — so this copy
+                    stays accurate for both instead of implying an
+                    infraction was always just logged. */}
+                El examen requiere pantalla completa para continuar. Salir de ella queda registrado.
+              </p>
+            </div>
+            <Button onClick={reenterFullscreen} className="w-full">
+              <Maximize className="h-4 w-4 mr-2" />
+              Volver a pantalla completa
+            </Button>
+          </div>
+        </div>
+      )}
+
       {/* ── Finish Exam confirmation modal ─────────────────────────────────── */}
       {showFinishConfirm && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
@@ -622,6 +662,21 @@ const ExamRunnerHTTP: React.FC = () => {
                       <Timer className={`h-4 w-4 shrink-0 ${timeRemaining && timeRemaining < 300 ? 'opacity-100' : 'opacity-60'}`} />
                       <span>{timeRemaining ? formatTime(timeRemaining) : '--:--'}</span>
                     </div>
+
+                    {/* Browser lockdown chip — informational, tells the
+                        candidate their activity is being monitored */}
+                    {lockdownEnabled && (
+                      <div
+                        className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl border border-amber-400/60 dark:border-amber-500/50 bg-amber-50 dark:bg-amber-500/10 text-amber-700 dark:text-amber-400 text-xs font-medium"
+                        title="El examen registra salidas de pantalla completa, cambios de pestaña y atajos bloqueados."
+                      >
+                        <ShieldAlert className="h-3.5 w-3.5 shrink-0" />
+                        <span className="hidden sm:inline">Modo bloqueo activo</span>
+                        {lockdownInfractionCount > 0 && (
+                          <span className="tabular-nums">({lockdownInfractionCount})</span>
+                        )}
+                      </div>
+                    )}
 
                     {/* Autosave indicator — estilo Google Docs */}
                     <div className="flex items-center gap-1.5 text-xs w-[100px]">
