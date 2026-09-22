@@ -997,7 +997,7 @@ export class SessionService {
         try {
           await axios.post(`${env.GRADING_SERVICE_URL}/api/v1/grading/regrade-attempt`, {
             attemptId: String(attempt._id)
-          }, { timeout: 120000 });
+          }, { timeout: 120000, headers: { 'X-Service-Token': env.SERVICE_TOKEN } });
           queued++;
           logger.info(`✅ [regradeSession] Regrade triggered for attempt ${attempt._id}`);
         } catch (err: any) {

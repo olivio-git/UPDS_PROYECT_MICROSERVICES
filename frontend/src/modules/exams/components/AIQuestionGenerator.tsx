@@ -17,6 +17,7 @@ import { toast } from 'sonner';
 import { examService } from '@/services/examService';
 import type { Competency, Level, Question, QuestionType } from '../types';
 import { GATEWAY_URL } from '@/lib/serviceUrls';
+import { authSDK } from '@/services/sdk-simple-auth';
 
 interface AIQuestionGeneratorProps {
   formData: Partial<Question>;
@@ -302,7 +303,11 @@ const AIQuestionGenerator: React.FC<AIQuestionGeneratorProps> = ({
     try {
       const res = await fetch(`${gradingUrl}/api/v1/grading/format-transcript`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          // grading-service authenticates every route (teacher/admin only).
+          ...(authSDK.getAccessToken() ? { Authorization: `Bearer ${authSDK.getAccessToken()}` } : {}),
+        },
         body: JSON.stringify({ transcript: raw }),
       });
       const data = await res.json();
@@ -332,7 +337,11 @@ const AIQuestionGenerator: React.FC<AIQuestionGeneratorProps> = ({
       const ext = file.name.split('.').pop()?.toLowerCase() || 'webm';
       const res = await fetch(`${gradingUrl}/api/v1/grading/transcribe-audio`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          // grading-service authenticates every route (teacher/admin only).
+          ...(authSDK.getAccessToken() ? { Authorization: `Bearer ${authSDK.getAccessToken()}` } : {}),
+        },
         body: JSON.stringify({ audioData: base64, mimeType: file.type || 'audio/webm', ext }),
       });
       const data = await res.json();
@@ -364,7 +373,11 @@ const AIQuestionGenerator: React.FC<AIQuestionGeneratorProps> = ({
   const callGenerateEndpoint = async (avoidQuestions: string[]) => {
     const res = await fetch(`${gradingUrl}/api/v1/grading/generate-question`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+          'Content-Type': 'application/json',
+          // grading-service authenticates every route (teacher/admin only).
+          ...(authSDK.getAccessToken() ? { Authorization: `Bearer ${authSDK.getAccessToken()}` } : {}),
+        },
       body: JSON.stringify({
         competency: formData.competency,
         level: formData.level,

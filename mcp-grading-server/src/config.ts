@@ -1,9 +1,23 @@
 import dotenv from 'dotenv';
 dotenv.config();
 
+function requireEnv(name: string): string {
+  const value = process.env[name];
+  if (!value) {
+    // Every route needs one of these to authenticate its caller, so booting
+    // without them would mean an open grading service.
+    throw new Error(`Missing required environment variable ${name}`);
+  }
+  return value;
+}
+
 export const config = {
   port: parseInt(process.env.PORT || '3007', 10),
   corsOrigin: process.env.CORS_ORIGIN || '*',
+  auth: {
+    jwtSecret: requireEnv('JWT_SECRET'),
+    serviceToken: requireEnv('SERVICE_TOKEN'),
+  },
   groq: {
     apiKey: process.env.GROQ_API_KEY || '',
     model: process.env.GROQ_MODEL || 'llama-3.3-70b-versatile',
