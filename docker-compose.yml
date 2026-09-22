@@ -218,8 +218,8 @@ services:
   #NOTIFICATION SERVICE
   notifications-service:
     build:
-      context: ./notifications-service
-      dockerfile: dockerfile
+      context: .
+      dockerfile: notifications-service/dockerfile
     container_name: notification-service
     # ports:
     #   - "${NOTIFICATION_SERVICE_PORT}:3001"
@@ -273,8 +273,8 @@ services:
       retries: 5
   exam-service:
     build:
-      context: ./exam-service
-      dockerfile: dockerfile
+      context: .
+      dockerfile: exam-service/dockerfile
     container_name: exam-service
     # ports:
     #   - "${EXAM_SERVICE_PORT:-3003}:3003"
@@ -427,8 +427,8 @@ services:
   # GRADING SERVICE (REST API - GROQ AI)
   grading-service:
     build:
-      context: ./mcp-grading-server
-      dockerfile: dockerfile
+      context: .
+      dockerfile: mcp-grading-server/dockerfile
     container_name: grading-service
     # ports:
     #   - "3007:3007"
@@ -439,12 +439,16 @@ services:
       - GROQ_MODEL=${GROQ_MODEL:-llama-3.3-70b-versatile}
       - MONGO_URI=mongodb://${MONGO_ROOT_USERNAME}:${MONGO_ROOT_PASSWORD}@mongo:27017/${MONGO_EXAM_DB_NAME:-cba_platform}?authSource=admin
       - MONGO_DB_NAME=${MONGO_EXAM_DB_NAME:-cba_platform}
-      - MONGO_LEVELS_DB_NAME=${MONGO_EXAM_DB_NAME:-cba_platform}
+      - MONGO_CANDIDATES_DB_NAME=${MONGO_USERS_DB_NAME:-cba_identity_db}
       - NOTIFICATION_SERVICE_URL=http://notification-service:3001
       - MINIO_INTERNAL_ENDPOINT=http://minio:9000
       - MINIO_BUCKET_NAME=exam-files
       - CORS_ORIGIN=${CORS_ORIGIN}
       - KAFKA_BROKER=kafka:29092
+      - GRADING_SWEEP_INTERVAL_MS=${GRADING_SWEEP_INTERVAL_MS:-120000}
+      - GRADING_SWEEP_MIN_AGE_MS=${GRADING_SWEEP_MIN_AGE_MS:-180000}
+      - GRADING_SWEEP_MAX_AGE_MS=${GRADING_SWEEP_MAX_AGE_MS:-604800000}
+      - GRADING_SWEEP_BATCH=${GRADING_SWEEP_BATCH:-20}
     depends_on:
       mongo:
         condition: service_healthy

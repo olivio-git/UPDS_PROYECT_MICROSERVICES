@@ -1,0 +1,48 @@
+# Root .dockerignore — only applies to builds whose context is the repo
+# root (currently: exam-service, grading-service/mcp-grading-server,
+# notifications-service). Services that keep their own build context
+# (identity-service, session-manager-service, frontend, api-gateway, ...)
+# are unaffected by this file.
+
+# Live data volumes — must NEVER be sent to the Docker daemon
+data/
+backups/
+
+# Dependencies and build output — reinstalled/rebuilt inside the image
+**/node_modules
+**/dist
+**/dist-test
+*.tgz
+
+# Version control and editor/tooling metadata
+.git
+.claude/
+.atl/
+
+# Secrets — never send any .env* file to the daemon
+**/.env
+**/.env.*
+
+# Logs and runtime/upload data — not build input
+**/*.log
+logs/
+uploads/
+
+# Other services and infra not used by the exam-service / grading-service /
+# notifications-service build contexts
+auth-service/
+identity-service/
+session-manager-service/
+frontend/
+nginx/
+docker/
+scripts/
+
+# Docs, diagrams, and misc project assets — not needed to build these services
+docs/
+openspec/
+*.mdj
+*.pdf
+*.webp
+README.md
+migrate-users.js

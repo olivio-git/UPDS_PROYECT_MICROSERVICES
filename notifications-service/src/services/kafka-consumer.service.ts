@@ -3,7 +3,11 @@ import { config } from '../config';
 import { NotificationService } from '../services/notification.service';
 import { KafkaMessage, Notification, OtpEmailData } from '../types';
 
-async function fetchExamResultPDF(params: {
+// Exported for reuse by grading-notification.consumer.ts, which now handles
+// the grading.result.published envelope that replaced the legacy exam.graded
+// message this file used to consume (see the removed 'exam.graded' case
+// below).
+export async function fetchExamResultPDF(params: {
   examResultId: string;
   firstName?: string;
   lastName?: string;
@@ -39,7 +43,8 @@ async function fetchExamResultPDF(params: {
   }
 }
 
-async function isEmailNotificationsEnabled(email: string): Promise<boolean> {
+// Also exported for reuse by grading-notification.consumer.ts.
+export async function isEmailNotificationsEnabled(email: string): Promise<boolean> {
   return new Promise((resolve) => {
     const url = new URL(`${config.services.userManagementUrl}/internal/preferences`);
     url.searchParams.set('email', email);
@@ -375,49 +380,11 @@ export class KafkaConsumerService {
           break;
         }
 
-        case 'exam.graded': {
-          if (!data.candidateEmail) {
-            console.warn('⚠️ exam.graded: sin candidateEmail en el evento — omitiendo email');
-            break;
-          }
-          const emailEnabled = await isEmailNotificationsEnabled(data.candidateEmail);
-          if (!emailEnabled) {
-            console.log(`🔕 exam.graded → notificaciones por email desactivadas para: ${data.candidateEmail}`);
-            break;
-          }
-          console.log(`📧 exam.graded → enviando email a: ${data.candidateEmail}`);
-
-          // Fetch PDF from exam-service (best-effort) — done here so Kafka messages stay small
-          let pdfBase64: string | undefined;
-          let pdfFilename: string | undefined;
-          if (data.examResultId) {
-            const pdf = await fetchExamResultPDF({
-              examResultId: String(data.examResultId),
-              firstName: data.candidateFirstName,
-              lastName: data.candidateLastName,
-              email: data.candidateEmail,
-              candidateId: String(data.candidateId || ''),
-            });
-            if (pdf) {
-              pdfBase64 = pdf;
-              pdfFilename = `Resultado_${String(data.examName || 'Examen').replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.pdf`;
-            }
-          }
-
-          await this.notificationService.sendExamGradedEmail({
-            email: data.candidateEmail,
-            firstName: data.candidateFirstName || 'Estudiante',
-            lastName: data.candidateLastName || '',
-            examName: data.examName || 'Examen',
-            score: Number(data.score) || 0,
-            maxScore: Number(data.maxScore) || 0,
-            percentage: Number(data.percentage) || 0,
-            status: data.status || 'completed',
-            pdfBase64,
-            pdfFilename,
-          });
-          break;
-        }
+        // 'exam.graded' (legacy, raw Kafka message shape) removed: grading-service
+        // now publishes a single `grading.result.published` envelope on
+        // `grading-events`, consumed by grading-notification.consumer.ts
+        // (groupId 'notifications-grading'), which does the email + in-app
+        // notification this case used to do.
 
         default:
           console.log(`⚠️ Evento de exam no manejado: ${eventType}`);

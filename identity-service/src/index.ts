@@ -87,12 +87,10 @@ async function startServer() {
     // INICIALIZAR EVENT SERVICE (Kafka)
     // ================================
     console.log('📨 Inicializando EventService...');
-    try {
-      await eventService.initialize();
-      console.log('✅ EventService inicializado');
-    } catch (error) {
-      console.warn('⚠️ EventService no pudo iniciarse (continuará sin Kafka):', error);
-    }
+    // Not awaited: the HTTP server must start even if Kafka is down or slow.
+    eventService.initialize()
+      .then(() => console.log('✅ EventService inicializado'))
+      .catch((error) => console.warn('⚠️ EventService no pudo iniciarse (continuará sin Kafka):', error));
 
     // ================================
     // RUTAS (Se cargan DESPUÉS de conectar a la BD)

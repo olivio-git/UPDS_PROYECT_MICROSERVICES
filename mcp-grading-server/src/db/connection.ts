@@ -30,3 +30,23 @@ export async function closeDB(): Promise<void> {
     db = null;
   }
 }
+
+/**
+ * Ensures the indexes grading-service relies on exist. `createIndex()` is
+ * idempotent (a no-op if the index already matches), so this is safe to call
+ * on every startup. Failure is logged and swallowed — an index issue must
+ * never prevent the service from booting.
+ */
+export async function ensureIndexes(): Promise<void> {
+  try {
+    // Enforces at-most-one exam_result per attempt: a duplicate insert (e.g.
+    // the Kafka consumer and a concurrent HTTP /api/v1/grading/exam call
+    // both grading the same attempt) fails with a duplicate-key error
+    // instead of creating a second result — grade-exam.ts treats that error
+    // as "already graded" (see gradeExam()).
+    await getDB().collection('exam_results').createIndex({ attemptId: 1 }, { unique: true });
+    console.log('[grading-service] Unique index ensured on exam_results.attemptId');
+  } catch (error: any) {
+    console.error('[grading-service] Failed to ensure unique index on exam_results.attemptId:', error?.message || error);
+  }
+}

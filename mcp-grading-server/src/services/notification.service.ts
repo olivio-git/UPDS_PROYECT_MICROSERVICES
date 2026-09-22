@@ -1,52 +1,41 @@
 import axios from 'axios';
+import { TOPICS, GRADING_RESULT_PUBLISHED, type GradingResultPublishedDataV1 } from '@cba/events';
 import { config } from '../config.js';
-import { publishKafkaEvent } from './kafka.service.js';
+import { publishEnvelopeEvent } from './kafka.service.js';
 
-/**
- * Fetch the exam result PDF from exam-service's internal endpoint.
- * Returns the PDF as a base64 string, or null if unavailable (best-effort).
- */
-async function fetchExamResultPDF(params: {
-  examResultId: string;
-  firstName?: string;
-  lastName?: string;
-  email?: string;
-  candidateId: string;
-}): Promise<string | null> {
-  try {
-    const { examResultId, firstName, lastName, email, candidateId } = params;
-    const url = `${config.examService.url}/internal/exam-results/${examResultId}/pdf`;
-
-    const response = await axios.get(url, {
-      params: { firstName, lastName, email, candidateId },
-      responseType: 'arraybuffer',
-      timeout: 30000,
-    });
-
-    const buffer = Buffer.from(response.data);
-    return buffer.toString('base64');
-  } catch {
-    // PDF fetch is best-effort — never block the email from sending
-    return null;
-  }
-}
-
-/**
- * Send notification via the notification-service.
- */
-export async function sendGradingNotification(params: {
+export interface GradingNotificationParams {
+  attemptId: string;
+  examId?: string;
   candidateEmail?: string;
   candidateFirstName?: string;
   candidateLastName?: string;
   candidateId: string;
   examName: string;
-  examResultId?: string;
+  examResultId: string;
   score: number;
   maxScore: number;
   percentage: number;
   status: string;
-}): Promise<void> {
+}
+
+/**
+ * Publishes a single `grading.result.published` envelope on `grading-events`
+ * (key = attemptId). This replaces both the legacy `exam.graded` Kafka
+ * message (raw, non-envelope shape) and the direct HTTP POST this service
+ * used to make to notifications-service's `/notifications/inapp` endpoint.
+ * notifications-service derives both the email and the in-app notification
+ * from this one event (see its 'notifications-grading' consumer).
+ *
+ * Best-effort: if Kafka is unavailable this logs a warning and returns — the
+ * grading result is already saved by the time this is called, so a failed
+ * notification must never fail or retry the grading flow. If the publish
+ * fails, the in-app notification is still created over HTTP (the path this
+ * service used before Kafka); only the email is skipped in that case.
+ */
+export async function sendGradingNotification(params: GradingNotificationParams): Promise<void> {
   const {
+    attemptId,
+    examId,
     candidateEmail,
     candidateFirstName,
     candidateLastName,
@@ -59,43 +48,53 @@ export async function sendGradingNotification(params: {
     status,
   } = params;
 
-  // Create in-app notification
+  const data: GradingResultPublishedDataV1 = {
+    examResultId,
+    attemptId,
+    candidateId,
+    examId,
+    examName,
+    status,
+    totalScore: score,
+    maxScore,
+    percentage: parseFloat(percentage.toFixed(1)),
+    candidateEmail,
+    candidateFirstName: candidateFirstName || 'Estudiante',
+    candidateLastName: candidateLastName || '',
+  };
+
+  const published = await publishEnvelopeEvent(TOPICS.GRADING_EVENTS, GRADING_RESULT_PUBLISHED, attemptId, data);
+
+  if (!published) {
+    console.warn(
+      `[grading-service] Kafka publish failed for grading.result.published (attempt=${attemptId}, examResultId=${examResultId}) — falling back to HTTP in-app notification, email skipped`
+    );
+    await sendInAppFallback(data);
+  }
+}
+
+async function sendInAppFallback(data: GradingResultPublishedDataV1): Promise<void> {
   try {
     await axios.post(`${config.notificationService.url}/notifications/inapp`, {
-      recipientId: candidateId,
+      recipientId: data.candidateId,
       recipientType: 'candidate',
       type: 'exam.graded',
       channel: 'in-app',
       content: {
         title: 'Examen calificado',
-        body: `Tu examen "${examName}" ha sido calificado. Puntaje: ${score}/${maxScore} (${percentage.toFixed(1)}%)`,
+        body: `Tu examen "${data.examName}" ha sido calificado. Puntaje: ${data.totalScore}/${data.maxScore} (${data.percentage.toFixed(1)}%)`,
         link: `/student/results`,
       },
       priority: 'normal',
-      metadata: { examName, score, maxScore, percentage, status },
+      metadata: {
+        examName: data.examName,
+        score: data.totalScore,
+        maxScore: data.maxScore,
+        percentage: data.percentage,
+        status: data.status,
+      },
     });
-  } catch {
-    // In-app notification is best-effort
-  }
-
-  // Send email via Kafka (lightweight — no PDF in message to stay under Kafka's 1MB limit)
-  if (candidateEmail) {
-    console.log(`[grading-service] Publicando exam.graded para: ${candidateEmail}`);
-    try {
-      await publishKafkaEvent('exam.graded', {
-        candidateEmail,
-        candidateFirstName: candidateFirstName || 'Estudiante',
-        candidateLastName: candidateLastName || '',
-        candidateId,
-        examName,
-        examResultId,
-        score,
-        maxScore,
-        percentage: parseFloat(percentage.toFixed(1)),
-        status,
-      });
-    } catch {
-      // Email is best-effort
-    }
+  } catch (error: any) {
+    console.error(`[grading-service] HTTP in-app notification fallback failed (examResultId=${data.examResultId}):`, error?.message || error);
   }
 }

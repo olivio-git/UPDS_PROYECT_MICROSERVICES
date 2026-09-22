@@ -13,7 +13,10 @@ export const config = {
   mongo: {
     uri: process.env.MONGO_URI || 'mongodb://localhost:27017/cba_platform',
     dbName: process.env.MONGO_DB_NAME || 'cba_platform',
-    levelsDbName: process.env.MONGO_LEVELS_DB_NAME || 'cba_user_management_db',
+    // Candidates now live in identity-service's own database (post auth+user-management
+    // merge — see exam-service/src/models/candidate.model.ts useDb('cba_identity_db')).
+    // Levels stay in the exam DB (same as attempts/exams), so getLevels() reuses getDB().
+    candidatesDbName: process.env.MONGO_CANDIDATES_DB_NAME || 'cba_identity_db',
   },
   notificationService: {
     url: process.env.NOTIFICATION_SERVICE_URL || 'http://notifications-service:3003',
@@ -29,5 +32,18 @@ export const config = {
     broker: process.env.KAFKA_BROKER || 'kafka:29092',
     clientId: 'grading-service',
     topic: 'exam-events',
+  },
+  gradingSweep: {
+    // How often the reconciliation sweeper runs. 0 or negative disables it.
+    intervalMs: parseInt(process.env.GRADING_SWEEP_INTERVAL_MS || '120000', 10),
+    // Only sweep attempts finished longer ago than this, so the sweeper never
+    // races the normal fire-and-forget HTTP grading call from exam-service.
+    minAgeMs: parseInt(process.env.GRADING_SWEEP_MIN_AGE_MS || '180000', 10),
+    // Never sweep attempts older than this. Without a ceiling, a first deploy
+    // to a server that already has old completed-but-ungraded attempts would
+    // grade and email students about exams from long ago. Default 7 days.
+    maxAgeMs: parseInt(process.env.GRADING_SWEEP_MAX_AGE_MS || '604800000', 10),
+    // Per-run cap on how many ungraded attempts to grade in a single tick.
+    batchSize: parseInt(process.env.GRADING_SWEEP_BATCH || '20', 10),
   },
 };

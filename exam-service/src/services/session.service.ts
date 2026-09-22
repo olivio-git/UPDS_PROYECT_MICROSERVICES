@@ -9,6 +9,7 @@ import { CONSTANTS } from '../utils/constants';
 import { logger } from '../utils/logger';
 import { KafkaService } from './kafka.service';
 import { SessionSchedulerService } from './session-scheduler.service';
+import { publishExamAttemptFinished } from './examEventPublisher';
 export class SessionService {
   private kafkaService: KafkaService;
   private sessionSchedulerService: SessionSchedulerService;
@@ -568,12 +569,19 @@ export class SessionService {
           attempt.finishedAt = new Date();
           await attempt.save();
 
-          // Fire-and-forget grading — same pattern as examTaking.service.ts finishExam
-          axios.post(`${env.GRADING_SERVICE_URL}/api/v1/grading/exam`, {
-            attemptId: String(attempt._id)
-          }, { timeout: 120000 })
-            .then(() => logger.info(`✅ [endSession] Grading triggered for attempt ${attempt._id}`))
-            .catch((err: any) => logger.error(`❌ [endSession] Grading failed for attempt ${attempt._id}:`, err.message));
+          // Fire-and-forget grading via Kafka (HTTP fallback if Kafka is
+          // unavailable) — one event per closed attempt.
+          void publishExamAttemptFinished(
+            {
+              attemptId: String(attempt._id),
+              examId: String(attempt.examId),
+              candidateId: String(attempt.candidateId),
+              sessionId: String(attempt.sessionId),
+              finishedAt: attempt.finishedAt as Date,
+              reason: 'session_ended',
+            },
+            '[endSession]'
+          );
         }
 
         if (activeAttempts.length > 0) {

@@ -16,6 +16,70 @@ class GradingError extends Error {
   }
 }
 
+interface CandidateContactInfo {
+  candidateEmail?: string;
+  candidateFirstName?: string;
+  candidateLastName?: string;
+}
+
+/**
+ * Builds the "already graded" response for an existing exam_results
+ * document and (best-effort) re-sends the grading.result.published
+ * notification. Shared by:
+ * - the early check (an already-completed result found before grading runs), and
+ * - the duplicate-key race path (a concurrent grader won the insert — see
+ *   the catch block around getExamResults().insertOne() below).
+ */
+function buildAlreadyGradedResponse(
+  attemptId: string,
+  existingResult: IExamResult,
+  candidateId: string,
+  contact: CandidateContactInfo
+): GradeExamResponse {
+  sendGradingNotification({
+    attemptId,
+    examId: existingResult.examId?.toString(),
+    candidateEmail: contact.candidateEmail,
+    candidateFirstName: contact.candidateFirstName,
+    candidateLastName: contact.candidateLastName,
+    candidateId,
+    examName: existingResult.examName,
+    examResultId: existingResult._id!.toString(),
+    score: existingResult.totalScore,
+    maxScore: existingResult.maxScore,
+    percentage: existingResult.percentage,
+    status: existingResult.status,
+  }).catch(() => {});
+
+  return {
+    examResultId: existingResult._id!.toString(),
+    examName: existingResult.examName,
+    examLevel: existingResult.examLevel,
+    status: 'completed',
+    totalScore: existingResult.totalScore,
+    maxScore: existingResult.maxScore,
+    percentage: existingResult.percentage,
+    questionsGraded: existingResult.questionResults.length,
+    autoGraded: existingResult.questionResults.filter(qr => qr.evaluationMethod === 'automatic').length,
+    aiGraded: existingResult.questionResults.filter(qr => qr.evaluationMethod === 'ai_grading').length,
+    pendingManual: existingResult.questionResults.filter(qr => qr.evaluationMethod === 'manual').length,
+    competencyScores: existingResult.competencyScores.map(c => ({
+      competency: c.competency,
+      score: `${c.totalScore}/${c.maxScore}`,
+      percentage: c.percentage,
+    })),
+    sections: existingResult.sections?.map(s => ({
+      name: s.name,
+      competency: s.competency,
+      score: `${s.score}/${s.maxScore}`,
+      percentage: s.percentage,
+    })),
+    recommendedLevel: existingResult.recommendedLevel,
+    placementMode: existingResult.placementMode,
+    levelScores: existingResult.levelScores,
+  };
+}
+
 export async function gradeExam(attemptId: string, options: { force?: boolean } = {}): Promise<GradeExamResponse> {
   // 1. Fetch attempt
   const attempt = await getAttempts().findOne({ _id: new ObjectId(attemptId) });
@@ -43,45 +107,11 @@ export async function gradeExam(attemptId: string, options: { force?: boolean } 
   const existingResult = await getExamResults().findOne({ attemptId: new ObjectId(attemptId) });
   if (!options.force && existingResult && existingResult.status === 'completed') {
     // Re-send notification for already-graded exams (at-least-once delivery via Kafka)
-    sendGradingNotification({
+    return buildAlreadyGradedResponse(attemptId, existingResult, attempt.candidateId.toString(), {
       candidateEmail,
       candidateFirstName,
       candidateLastName,
-      candidateId: attempt.candidateId.toString(),
-      examName: existingResult.examName,
-      examResultId: existingResult._id!.toString(),
-      score: existingResult.totalScore,
-      maxScore: existingResult.maxScore,
-      percentage: existingResult.percentage,
-      status: existingResult.status,
-    }).catch(() => {});
-    return {
-      examResultId: existingResult._id!.toString(),
-      examName: existingResult.examName,
-      examLevel: existingResult.examLevel,
-      status: 'completed',
-      totalScore: existingResult.totalScore,
-      maxScore: existingResult.maxScore,
-      percentage: existingResult.percentage,
-      questionsGraded: existingResult.questionResults.length,
-      autoGraded: existingResult.questionResults.filter(qr => qr.evaluationMethod === 'automatic').length,
-      aiGraded: existingResult.questionResults.filter(qr => qr.evaluationMethod === 'ai_grading').length,
-      pendingManual: existingResult.questionResults.filter(qr => qr.evaluationMethod === 'manual').length,
-      competencyScores: existingResult.competencyScores.map(c => ({
-        competency: c.competency,
-        score: `${c.totalScore}/${c.maxScore}`,
-        percentage: c.percentage,
-      })),
-      sections: existingResult.sections?.map(s => ({
-        name: s.name,
-        competency: s.competency,
-        score: `${s.score}/${s.maxScore}`,
-        percentage: s.percentage,
-      })),
-      recommendedLevel: existingResult.recommendedLevel,
-      placementMode: existingResult.placementMode,
-      levelScores: existingResult.levelScores,
-    };
+    });
   }
 
   // 3. Start timing
@@ -457,12 +487,34 @@ export async function gradeExam(attemptId: string, options: { force?: boolean } 
     );
     resultId = existingResult._id!.toString();
   } else {
-    const inserted = await getExamResults().insertOne(examResult as any);
-    resultId = inserted.insertedId.toString();
+    try {
+      const inserted = await getExamResults().insertOne(examResult as any);
+      resultId = inserted.insertedId.toString();
+    } catch (error: any) {
+      if (error?.code === 11000) {
+        // Duplicate-key on the unique attemptId index: a concurrent grader
+        // (e.g. the Kafka consumer and an HTTP /api/v1/grading/exam call
+        // racing each other) already inserted the result. Treat this exactly
+        // like the "already graded" branch above instead of throwing —
+        // throwing here would send this message to the DLQ even though the
+        // attempt was, in fact, graded successfully by the other caller.
+        const winningResult = await getExamResults().findOne({ attemptId: new ObjectId(attemptId) });
+        if (winningResult) {
+          return buildAlreadyGradedResponse(attemptId, winningResult, attempt.candidateId.toString(), {
+            candidateEmail,
+            candidateFirstName,
+            candidateLastName,
+          });
+        }
+      }
+      throw error;
+    }
   }
 
   // 13. Send notification (best-effort)
   sendGradingNotification({
+    attemptId,
+    examId: attempt.examId?.toString(),
     candidateId: attempt.candidateId.toString(),
     candidateEmail,
     candidateFirstName,

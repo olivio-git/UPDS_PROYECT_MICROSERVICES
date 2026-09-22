@@ -29,6 +29,16 @@ export class EventService {
   private isInitialized: boolean = false;
   private isProducerConnected: boolean = false;
   private isConsumerConnected: boolean = false;
+  private isSubscribed: boolean = false;
+  private isConsumerRunning: boolean = false;
+
+  // Background retry, mirroring src/database/connections.ts's Kafka retry:
+  // never let a failed initialize() be final. USER_CREATED (temp-password
+  // email) and other events would otherwise be lost until the service is
+  // restarted by hand.
+  private retryTimer: NodeJS.Timeout | null = null;
+  private retryDelayMs = 1000;
+  private static readonly MAX_RETRY_DELAY_MS = 30000;
 
   constructor() {
     this.kafka = new Kafka({
@@ -65,42 +75,93 @@ export class EventService {
   // ================================
 
   async initialize(): Promise<void> {
+    if (this.isInitialized) {
+      console.log('⚠️ EventService ya está inicializado');
+      return;
+    }
+
     try {
-      if (this.isInitialized) {
-        console.log('⚠️ EventService ya está inicializado');
-        return;
-      }
-
-      console.log('🔄 Conectando al producer de Kafka...');
-      await this.producer.connect();
-      this.isProducerConnected = true;
-      console.log('✅ Producer conectado exitosamente');
-
-      console.log('🔄 Conectando al consumer de Kafka...');
-      await this.consumer.connect();
-      this.isConsumerConnected = true;
-      console.log('✅ Consumer conectado exitosamente');
-
-      // Suscribirse a los topics necesarios
-      await this.subscribeToTopics();
-
-      // Iniciar consumer
-      await this.startConsumer();
-
+      await this.connectAndSubscribe();
       this.isInitialized = true;
+      this.retryDelayMs = 1000; // reset backoff once we're fully up
       console.log('🎉 EventService inicializado exitosamente');
-
     } catch (error) {
       console.error('❌ Error inicializando EventService:', error);
+      this.scheduleRetry();
       throw error;
     }
   }
 
+  /**
+   * Connects producer/consumer, subscribes and starts the consumer. Safe to
+   * call again after a partial failure: each step is guarded by its own
+   * "already done" flag, so a retry only (re)does the step that failed
+   * last time instead of reconnecting/resubscribing from scratch. This
+   * matters because kafkajs rejects consumer.subscribe() once run() has
+   * already been called on that consumer instance — guarding startConsumer()
+   * behind isConsumerRunning (and subscribeToTopics() behind isSubscribed)
+   * means we never call subscribe() again after run() has succeeded.
+   */
+  private async connectAndSubscribe(): Promise<void> {
+    if (!this.isProducerConnected) {
+      console.log('🔄 Conectando al producer de Kafka...');
+      await this.producer.connect();
+      this.isProducerConnected = true;
+      console.log('✅ Producer conectado exitosamente');
+    }
+
+    if (!this.isConsumerConnected) {
+      console.log('🔄 Conectando al consumer de Kafka...');
+      await this.consumer.connect();
+      this.isConsumerConnected = true;
+      console.log('✅ Consumer conectado exitosamente');
+    }
+
+    if (!this.isSubscribed) {
+      await this.subscribeToTopics();
+      this.isSubscribed = true;
+    }
+
+    if (!this.isConsumerRunning) {
+      await this.startConsumer();
+      this.isConsumerRunning = true;
+    }
+  }
+
+  private scheduleRetry(): void {
+    if (this.retryTimer) return;
+    this.retryTimer = setTimeout(() => {
+      this.retryTimer = null;
+      void this.retryInitialize();
+    }, this.retryDelayMs);
+    this.retryTimer.unref();
+    this.retryDelayMs = Math.min(this.retryDelayMs * 2, EventService.MAX_RETRY_DELAY_MS);
+  }
+
+  private async retryInitialize(): Promise<void> {
+    try {
+      await this.connectAndSubscribe();
+      this.isInitialized = true;
+      this.retryDelayMs = 1000;
+      console.log('🎉 EventService inicializado exitosamente (retry)');
+    } catch (error) {
+      console.warn('⚠️ Reintento de EventService falló, reintentando en background:', error);
+      this.scheduleRetry();
+    }
+  }
+
   async disconnect(): Promise<void> {
+    if (this.retryTimer) {
+      clearTimeout(this.retryTimer);
+      this.retryTimer = null;
+    }
+
     try {
       if (this.isConsumerConnected) {
         await this.consumer.disconnect();
         this.isConsumerConnected = false;
+        this.isSubscribed = false;
+        this.isConsumerRunning = false;
         console.log('✅ Consumer desconectado');
       }
 

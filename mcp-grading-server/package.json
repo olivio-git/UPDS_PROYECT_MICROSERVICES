@@ -10,6 +10,7 @@
     "start": "node dist/index.js"
   },
   "dependencies": {
+    "@cba/events": "file:../shared/events/cba-events.tgz",
     "axios": "^1.7.0",
     "cors": "^2.8.5",
     "dotenv": "^16.4.0",

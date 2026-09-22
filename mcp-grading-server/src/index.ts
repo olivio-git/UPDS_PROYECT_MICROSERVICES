@@ -1,8 +1,10 @@
 import express from 'express';
 import cors from 'cors';
 import { config } from './config.js';
-import { connectDB, closeDB } from './db/connection.js';
+import { connectDB, closeDB, ensureIndexes } from './db/connection.js';
 import { disconnectKafka } from './services/kafka.service.js';
+import { startGradingConsumer, stopGradingConsumer } from './services/grading-consumer.js';
+import { startGradingSweeper, stopGradingSweeper } from './services/grading-sweeper.js';
 import { gradingRouter } from './routes/grading.routes.js';
 
 const app = express();
@@ -29,6 +31,10 @@ async function main() {
   await connectDB();
   console.log('[grading-service] MongoDB conectado');
 
+  await ensureIndexes();
+  await startGradingConsumer();
+  startGradingSweeper();
+
   app.listen(config.port, () => {
     console.log(`[grading-service] Escuchando en puerto ${config.port}`);
     console.log(`[grading-service] Endpoints:`);
@@ -42,6 +48,8 @@ async function main() {
   // Graceful shutdown
   const shutdown = async () => {
     console.log('[grading-service] Cerrando...');
+    stopGradingSweeper();
+    await stopGradingConsumer();
     await closeDB();
     await disconnectKafka();
     process.exit(0);

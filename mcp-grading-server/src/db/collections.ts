@@ -28,11 +28,11 @@ export function getSessions(): Collection {
 }
 
 export function getLevels(): Collection {
-  // Levels are managed by user-management-service in its own DB
-  return getClient().db(config.mongo.levelsDbName).collection('levels');
+  // Levels live in exam-service's own DB (no useDb() override there), same DB grading-service connects to.
+  return getDB().collection('levels');
 }
 
 export function getCandidates(): Collection {
-  // Candidates are managed by user-management-service in its own DB
-  return getClient().db(config.mongo.levelsDbName).collection('candidates');
+  // Candidates live in identity-service's DB (exam-service reads them via useDb('cba_identity_db')).
+  return getClient().db(config.mongo.candidatesDbName).collection('candidates');
 }

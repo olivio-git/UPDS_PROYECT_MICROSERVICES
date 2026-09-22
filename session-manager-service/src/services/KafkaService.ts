@@ -8,6 +8,15 @@ export class KafkaService {
   private consumer: Consumer;
   private connected: boolean = false;
   private io?: SocketIOServer;
+
+  // Kafka must never block server startup: on connect failure we log a
+  // warning and retry in the background with exponential backoff (capped at
+  // 30s) instead of throwing out of connect().
+  private retryTimer: NodeJS.Timeout | null = null;
+  private retryDelayMs = 1000;
+  private readonly maxRetryDelayMs = 30000;
+  private stopped = false;
+
   constructor(io?: SocketIOServer) {
     this.io = io;
     this.kafka = new Kafka({
@@ -34,30 +43,52 @@ export class KafkaService {
   }
 
   /**
-   * Conectar a Kafka
+   * Conectar a Kafka. Nunca lanza: si el broker no está disponible, registra
+   * una advertencia y reintenta en background (backoff exponencial, tope 30s)
+   * en lugar de tumbar el arranque del servicio.
    */
   async connect(): Promise<void> {
+    await this.attemptConnect();
+  }
+
+  private async attemptConnect(): Promise<void> {
     try {
       await this.producer.connect();
       await this.consumer.connect();
       this.connected = true;
-      
+      this.retryDelayMs = 1000; // reset backoff once we're back up
+
       logger.info('✅ Conectado a Kafka successfully');
-      
+
       // Configurar suscripciones
       await this.setupSubscriptions();
-      
+
     } catch (error) {
-      logger.error('❌ Error connecting to Kafka:', error);
       this.connected = false;
-      throw error;
+      logger.warn(`⚠️ Kafka no disponible, reintentando en ${this.retryDelayMs}ms:`, error);
+      this.scheduleRetry();
     }
+  }
+
+  private scheduleRetry(): void {
+    if (this.stopped || this.retryTimer) return;
+    this.retryTimer = setTimeout(() => {
+      this.retryTimer = null;
+      void this.attemptConnect();
+    }, this.retryDelayMs);
+    this.retryTimer.unref();
+    this.retryDelayMs = Math.min(this.retryDelayMs * 2, this.maxRetryDelayMs);
   }
 
   /**
    * Desconectar de Kafka
    */
   async disconnect(): Promise<void> {
+    this.stopped = true;
+    if (this.retryTimer) {
+      clearTimeout(this.retryTimer);
+      this.retryTimer = null;
+    }
     try {
       await this.producer.disconnect();
       await this.consumer.disconnect();
@@ -453,17 +484,23 @@ export class KafkaService {
   private async handleCandidateAdded(event: any): Promise<void> {
     try {
       const { ActiveSessionModel } = await import('../models/ActiveSession');
-      
+
+      // exam-service's legacy envelope nests the actual payload under
+      // `event.data` (see config/kafka.ts publishEvent: { type, data,
+      // timestamp, service }); fall back to the top level too in case a
+      // future producer sends a flat shape.
+      const d = event.data ?? event;
+
       // Buscar la sesión activa por sessionId
       await ActiveSessionModel.findOneAndUpdate(
-        { sessionId: event.sessionId },
-        { 
-          $addToSet: { 'participants.registeredCandidates': event.candidateId },
+        { sessionId: d.sessionId },
+        {
+          $addToSet: { 'participants.registeredCandidates': d.candidateId },
           $inc: { 'stats.totalParticipants': 1 }
         }
       );
 
-      logger.info(`Candidate added to session: ${event.candidateId} -> ${event.sessionId}`);
+      logger.info(`Candidate added to session: ${d.candidateId} -> ${d.sessionId}`);
 
     } catch (error) {
       logger.error('Error handling candidate added:', error);
@@ -473,15 +510,18 @@ export class KafkaService {
   private async handleProctorAdded(event: any): Promise<void> {
     try {
       const { ActiveSessionModel } = await import('../models/ActiveSession');
-      
+
+      // Same legacy-envelope nesting as handleCandidateAdded above.
+      const d = event.data ?? event;
+
       await ActiveSessionModel.findOneAndUpdate(
-        { sessionId: event.sessionId },
-        { 
-          $addToSet: { 'participants.proctors': event.proctorId }
+        { sessionId: d.sessionId },
+        {
+          $addToSet: { 'participants.proctors': d.proctorId }
         }
       );
 
-      logger.info(`Proctor added to session: ${event.proctorId} -> ${event.sessionId}`);
+      logger.info(`Proctor added to session: ${d.proctorId} -> ${d.sessionId}`);
 
     } catch (error) {
       logger.error('Error handling proctor added:', error);

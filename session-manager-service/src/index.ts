@@ -799,9 +799,9 @@ class SessionManagerServer {
    */
   private async initializeServices(): Promise<void> {
     try {
-      // Conectar Kafka
-      await this.kafkaService.connect();
-      logger.info('✅ Kafka conectado');
+      // Conectar Kafka en background: connect() nunca lanza y reintenta solo,
+      // así que el servidor HTTP/WebSocket no espera al broker.
+      void this.kafkaService.connect();
 
       // Inicializar otros servicios si es necesario
       logger.info('✅ Servicios inicializados correctamente');

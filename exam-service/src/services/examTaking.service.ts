@@ -7,6 +7,7 @@ import { Response as ResponseModel } from '../models/response.model';
 import { logger } from '../utils/logger';
 import { env } from '../config/env';
 import { SessionService } from './session.service';
+import { publishExamAttemptFinished } from './examEventPublisher';
 
 export class ExamTakingService {
   private sessionService: SessionService;
@@ -397,16 +398,19 @@ export class ExamTakingService {
 
     logger.info(`🏁 [FinishExam] Attempt ${attempt._id} finished, starting evaluation...`);
 
-    // Delegate grading to grading-service (fire-and-forget)
-    axios.post(`${env.GRADING_SERVICE_URL}/api/v1/grading/exam`, {
-      attemptId: String(attempt._id)
-    }, { timeout: 120000 })
-      .then(result => {
-        logger.info(`✅ [FinishExam] Grading completed for attempt ${String(attempt._id)}, examResultId: ${result.data?.data?.examResultId}`);
-      })
-      .catch(error => {
-        logger.error(`❌ [FinishExam] Grading failed for attempt ${String(attempt._id)}:`, error.message);
-      });
+    // Delegate grading to grading-service asynchronously via Kafka (with an
+    // HTTP fallback if Kafka is unavailable) — fire-and-forget.
+    void publishExamAttemptFinished(
+      {
+        attemptId: String(attempt._id),
+        examId: String(attempt.examId),
+        candidateId: String(attempt.candidateId),
+        sessionId: String(attempt.sessionId),
+        finishedAt: attempt.finishedAt as Date,
+        reason: 'submitted',
+      },
+      '[FinishExam]'
+    );
 
     return {
       success: true,
@@ -1008,13 +1012,20 @@ export class ExamTakingService {
     attempt.adaptiveState = state;
     await attempt.save();
 
-    // Fire-and-forget full exam grading if finished
+    // Fire-and-forget full exam grading if finished, via Kafka (HTTP fallback
+    // if Kafka is unavailable).
     if (finished) {
-      axios.post(`${env.GRADING_SERVICE_URL}/api/v1/grading/exam`, {
-        attemptId: String(attempt._id)
-      }, { timeout: 120000 })
-        .then(r => logger.info(`[AdaptiveExam] Grading done for attempt ${attempt._id}, resultId: ${r.data?.data?.examResultId}`))
-        .catch(e => logger.error(`[AdaptiveExam] Grading failed for attempt ${attempt._id}:`, e.message));
+      void publishExamAttemptFinished(
+        {
+          attemptId: String(attempt._id),
+          examId: String(attempt.examId),
+          candidateId: String(attempt.candidateId),
+          sessionId: String(attempt.sessionId),
+          finishedAt: attempt.finishedAt as Date,
+          reason: 'adaptive_completed',
+        },
+        '[AdaptiveExam]'
+      );
     }
 
     return {

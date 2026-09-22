@@ -95,7 +95,9 @@ export const closeRedis = async (): Promise<void> => {
 export const connectDatabases = async (): Promise<void> => {
   await connectMongoDB();
   await connectRedis();
-  await connectKafka();
+  // Not awaited: kafkajs retries internally before failing, and login must not
+  // wait for that. connectKafka() never throws and keeps retrying in background.
+  void connectKafka();
 };
 
 // Alias para mantener compatibilidad
@@ -115,10 +117,28 @@ let kafka: Kafka;
 let producer: Producer;
 let consumer: Consumer;
 
-export const connectKafka = async (): Promise<void> => {
+// Kafka is not allowed to be a fatal dependency: login/OTP/user CRUD must keep
+// working when the broker is down. connectKafka() below never throws — on
+// failure it logs a warning and keeps retrying in the background with
+// exponential backoff (capped at 30s) until the broker comes back.
+let kafkaRetryTimer: NodeJS.Timeout | null = null;
+let kafkaRetryDelayMs = 1000;
+const KAFKA_MAX_RETRY_DELAY_MS = 30000;
+
+const scheduleKafkaRetry = (): void => {
+  if (kafkaRetryTimer) return;
+  kafkaRetryTimer = setTimeout(() => {
+    kafkaRetryTimer = null;
+    void connectKafkaInternal();
+  }, kafkaRetryDelayMs);
+  kafkaRetryTimer.unref();
+  kafkaRetryDelayMs = Math.min(kafkaRetryDelayMs * 2, KAFKA_MAX_RETRY_DELAY_MS);
+};
+
+const connectKafkaInternal = async (): Promise<void> => {
   try {
     console.log('🔄 Conectando a Kafka...');
-    
+
     kafka = new Kafka({
       clientId: config.kafka.clientId,
       brokers: [config.kafka.broker],
@@ -127,30 +147,36 @@ export const connectKafka = async (): Promise<void> => {
         retries: 8
       }
     });
-    
+
     // Crear producer
     producer = kafka.producer({
       transactionTimeout: 30000,
       idempotent: true,
       maxInFlightRequests: 1
     });
-    
+
     await producer.connect();
-    
+
     // Crear consumer (opcional para este servicio)
     consumer = kafka.consumer({
       groupId: `${config.kafka.clientId}-group`,
       sessionTimeout: 30000,
       heartbeatInterval: 3000
     });
-    
+
     // No conectar consumer por defecto, solo cuando se necesite
-    
+
+    kafkaRetryDelayMs = 1000; // reset backoff once we're back up
     console.log('✅ Kafka conectado exitosamente');
   } catch (error) {
-    console.error('❌ Error conectando a Kafka:', error);
-    throw error;
+    console.warn('⚠️ Kafka no disponible, continuando sin Kafka. Reintentando en background:', error);
+    scheduleKafkaRetry();
   }
+};
+
+// Never throws: startup (connectDatabases) must not die because Kafka is down.
+export const connectKafka = async (): Promise<void> => {
+  await connectKafkaInternal();
 };
 
 export const getKafka = (): Kafka => {
@@ -175,6 +201,10 @@ export const getConsumer = (): Consumer => {
 };
 
 export const closeKafka = async (): Promise<void> => {
+  if (kafkaRetryTimer) {
+    clearTimeout(kafkaRetryTimer);
+    kafkaRetryTimer = null;
+  }
   try {
     if (producer) {
       await producer.disconnect();
