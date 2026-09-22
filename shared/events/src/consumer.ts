@@ -1,4 +1,4 @@
-import type { Consumer, EachMessagePayload, Kafka, Producer } from 'kafkajs';
+import type { Consumer, ConsumerConfig, EachMessagePayload, Kafka, Producer } from 'kafkajs';
 import { EventEnvelopeSchema, type EventEnvelope } from './envelope';
 import { dlqTopic } from './topics';
 
@@ -45,6 +45,13 @@ export interface RunConsumerOptions {
   /** Number of retries before giving up and sending to the DLQ. Default 3. */
   maxRetries?: number;
   logger?: RunConsumerLogger;
+  /**
+   * Optional passthrough config for `kafka.consumer()`, e.g.
+   * `{ sessionTimeout: 60000 }` for handlers that can run longer than
+   * Kafka's default 30s session timeout (GROQ grading calls, for example).
+   * `groupId` is always taken from the `groupId` option above.
+   */
+  consumerConfig?: Omit<ConsumerConfig, 'groupId'>;
 }
 
 export interface ConsumerHandle {
@@ -53,6 +60,29 @@ export interface ConsumerHandle {
 
 const INITIAL_RETRY_DELAY_MS = 1000;
 const MAX_RETRY_DELAY_MS = 30000;
+const HEARTBEAT_INTERVAL_MS = 3000;
+
+/**
+ * Starts a periodic heartbeat call while a long-running handler executes, so
+ * Kafka does not consider the consumer dead mid-handler (e.g. GROQ grading
+ * calls can take well over 30s, past kafkajs's default sessionTimeout).
+ * Returns a stop function that clears the interval. Heartbeat errors are
+ * swallowed with a debug log — a failed heartbeat must never fail the
+ * handler itself.
+ */
+export function startHeartbeat(
+  heartbeat: () => Promise<void>,
+  logger: RunConsumerLogger = console,
+  intervalMs: number = HEARTBEAT_INTERVAL_MS
+): () => void {
+  const interval = setInterval(() => {
+    heartbeat().catch((error) => {
+      logger.debug('[@cba/events] Heartbeat call failed:', error);
+    });
+  }, intervalMs);
+  interval.unref?.();
+  return () => clearInterval(interval);
+}
 
 /**
  * Runs a Kafka consumer that:
@@ -74,9 +104,10 @@ export async function runConsumer(options: RunConsumerOptions): Promise<Consumer
     handlers,
     maxRetries = 3,
     logger = console,
+    consumerConfig,
   } = options;
 
-  const consumer: Consumer = kafka.consumer({ groupId });
+  const consumer: Consumer = kafka.consumer({ groupId, ...consumerConfig });
   const dlqProducer: Producer = kafka.producer();
 
   let stopped = false;
@@ -113,10 +144,12 @@ export async function runConsumer(options: RunConsumerOptions): Promise<Consumer
     topic: string,
     rawValue: string,
     envelope: EventEnvelope<unknown>,
-    handler: EventHandler
+    handler: EventHandler,
+    heartbeat: () => Promise<void>
   ): Promise<void> => {
     let attempt = 0;
     for (;;) {
+      const stopHeartbeat = startHeartbeat(heartbeat, logger);
       try {
         await handler(envelope);
         return;
@@ -136,11 +169,13 @@ export async function runConsumer(options: RunConsumerOptions): Promise<Consumer
           error
         );
         await new Promise((resolve) => setTimeout(resolve, backoffMs));
+      } finally {
+        stopHeartbeat();
       }
     }
   };
 
-  const eachMessage = async ({ topic, message }: EachMessagePayload): Promise<void> => {
+  const eachMessage = async ({ topic, message, heartbeat }: EachMessagePayload): Promise<void> => {
     const raw = message.value?.toString();
     if (!raw) return;
 
@@ -172,7 +207,7 @@ export async function runConsumer(options: RunConsumerOptions): Promise<Consumer
       return;
     }
 
-    await runHandlerWithRetries(topic, raw, envelope, handler);
+    await runHandlerWithRetries(topic, raw, envelope, handler, heartbeat);
   };
 
   // kafkajs restarts the consumer itself on retriable errors; on a

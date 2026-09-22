@@ -27,6 +27,7 @@ export { publishEvent, publishEventOrThrow } from './publish';
 export {
   runConsumer,
   classifyMessage,
+  startHeartbeat,
   type MessageClassification,
   type EventHandler,
   type RunConsumerOptions,
