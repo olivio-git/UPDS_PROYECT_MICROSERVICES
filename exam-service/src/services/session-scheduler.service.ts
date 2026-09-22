@@ -139,32 +139,18 @@ export class SessionSchedulerService {
   private setupProcessors(): void {
     if (!this.schedulerQueue) return;
 
-    // Procesar INICIO - Solo envía evento Kafka, NO cambia status
+    // Procesar INICIO
     this.schedulerQueue.process('start-session', 1, async (job: Bull.Job) => {
-      const { sessionId, scheduledFor, metadata, sessionType, timing } = job.data;
+      const { sessionId, scheduledFor } = job.data;
 
       try {
-        logger.info(`🚀 ENVIANDO evento de inicio para sesión: ${sessionId}`);
+        logger.info(`🚀 Iniciando sesión programada: ${sessionId}`);
 
         const session = await Session.findById(sessionId);
         if (!session) {
           throw new Error(`Sesión ${sessionId} no encontrada`);
         }
 
-        // SOLO enviar evento al session-manager, NO cambiar status aquí
-        await this.kafkaService.publishEvent('session.start_requested', {
-          sessionId,
-          examId: session.examId,
-          scheduledFor,
-          actualStartTime: new Date().toISOString(),
-          sessionName: session.sessionName,
-          participants: session.participants,
-          settings: session.settings,
-          scheduling: session.scheduling,
-          sessionType,
-          createdBy: session.createdBy,
-          timing
-        });
         await this.sessionService.startSession(sessionId);
         auditLog({
           action: 'session.auto_started',
@@ -172,7 +158,7 @@ export class SessionSchedulerService {
           actor: SYSTEM_ACTOR,
           details: { scheduledFor, trigger: 'scheduler' },
         });
-        logger.info(`✅ Evento START_REQUESTED enviado para sesión ${sessionId}`);
+        logger.info(`✅ Sesión ${sessionId} iniciada automáticamente por el scheduler`);
 
       } catch (error: any) {
         auditLog({
@@ -187,25 +173,18 @@ export class SessionSchedulerService {
       }
     });
 
-    // Procesar FIN - Solo envía evento Kafka
+    // Procesar FIN
     this.schedulerQueue.process('end-session', 1, async (job: Bull.Job) => {
       const { sessionId, scheduledFor } = job.data;
 
       try {
-        logger.info(`🛑 ENVIANDO evento de fin para sesión: ${sessionId}`);
+        logger.info(`🛑 Finalizando sesión programada: ${sessionId}`);
 
         const session = await Session.findById(sessionId);
         if (!session) {
           throw new Error(`Sesión ${sessionId} no encontrada`);
         }
 
-        // SOLO enviar evento al session-manager
-        await this.kafkaService.publishEvent('session.end_requested', {
-          sessionId,
-          examId: session.examId,
-          scheduledFor,
-          actualEndTime: new Date().toISOString()
-        });
         await this.sessionService.endSession(sessionId);
         auditLog({
           action: 'session.auto_ended',
@@ -213,7 +192,7 @@ export class SessionSchedulerService {
           actor: SYSTEM_ACTOR,
           details: { scheduledFor, trigger: 'scheduler' },
         });
-        logger.info(`✅ Evento END_REQUESTED enviado para sesión ${sessionId}`);
+        logger.info(`✅ Sesión ${sessionId} finalizada automáticamente por el scheduler`);
 
       } catch (error: any) {
         auditLog({
