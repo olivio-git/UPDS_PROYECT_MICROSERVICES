@@ -12,6 +12,15 @@ export class DatabaseConnections {
   private kafkaProducer: Producer | null = null;
   private kafkaConsumer: Consumer | null = null;
 
+  // Kafka must never block boot or keep the HTTP API / Socket.IO down: on
+  // connect failure we log a warning and retry in the background with
+  // exponential backoff (capped at 30s) instead of throwing.
+  private kafkaReady = false;
+  private kafkaRetryTimer: NodeJS.Timeout | null = null;
+  private kafkaRetryDelayMs = 1000;
+  private readonly kafkaMaxRetryDelayMs = 30000;
+  private kafkaReadyCallbacks: Array<() => void> = [];
+
   private constructor() {}
 
   public static getInstance(): DatabaseConnections {
@@ -76,56 +85,95 @@ export class DatabaseConnections {
     }
   }
 
-  // Kafka Connection
+  // Kafka Connection — returns the client/producer/consumer immediately
+  // (created but possibly not yet connected) and connects in the background,
+  // so a broker outage never blocks the HTTP API / Socket.IO from starting.
   public async connectKafka(): Promise<{ kafka: Kafka; producer: Producer; consumer: Consumer }> {
     if (this.kafkaClient && this.kafkaProducer && this.kafkaConsumer) {
-      return { 
-        kafka: this.kafkaClient, 
-        producer: this.kafkaProducer, 
-        consumer: this.kafkaConsumer 
+      return {
+        kafka: this.kafkaClient,
+        producer: this.kafkaProducer,
+        consumer: this.kafkaConsumer
       };
     }
 
+    console.log('🔌 Conectando a Kafka...');
+    this.kafkaClient = new Kafka({
+      clientId: config.kafka.clientId,
+      brokers: [config.kafka.broker],
+      retry: {
+        initialRetryTime: 100,
+        retries: 8
+      }
+    });
+
+    // Producer
+    this.kafkaProducer = this.kafkaClient.producer();
+
+    // Consumer
+    this.kafkaConsumer = this.kafkaClient.consumer({
+      groupId: config.kafka.groupId,
+      sessionTimeout: 30000,
+      heartbeatInterval: 3000
+    });
+
+    // Fire-and-forget: never throw from here, connect in the background.
+    void this.connectKafkaWithRetry();
+
+    return {
+      kafka: this.kafkaClient,
+      producer: this.kafkaProducer,
+      consumer: this.kafkaConsumer
+    };
+  }
+
+  private async connectKafkaWithRetry(): Promise<void> {
     try {
-      console.log('🔌 Conectando a Kafka...');
-      this.kafkaClient = new Kafka({
-        clientId: config.kafka.clientId,
-        brokers: [config.kafka.broker],
-        retry: {
-          initialRetryTime: 100,
-          retries: 8
-        }
-      });
+      await this.kafkaProducer!.connect();
+      await this.kafkaConsumer!.connect();
 
-      // Producer
-      this.kafkaProducer = this.kafkaClient.producer();
-      await this.kafkaProducer.connect();
-      
-      // Consumer
-      this.kafkaConsumer = this.kafkaClient.consumer({ 
-        groupId: config.kafka.groupId,
-        sessionTimeout: 30000,
-        heartbeatInterval: 3000
-      });
-      await this.kafkaConsumer.connect();
-      
+      this.kafkaReady = true;
+      this.kafkaRetryDelayMs = 1000; // reset backoff once we're back up
       console.log('✅ Kafka conectado exitosamente');
-      
-      return { 
-        kafka: this.kafkaClient, 
-        producer: this.kafkaProducer, 
-        consumer: this.kafkaConsumer 
-      };
+
+      const callbacks = this.kafkaReadyCallbacks.splice(0);
+      callbacks.forEach((cb) => cb());
     } catch (error) {
-      console.error('❌ Error conectando a Kafka:', error);
-      throw error;
+      this.kafkaReady = false;
+      console.warn(`⚠️ Kafka no disponible, reintentando en ${this.kafkaRetryDelayMs}ms:`, error);
+      this.scheduleKafkaRetry();
     }
+  }
+
+  private scheduleKafkaRetry(): void {
+    if (this.kafkaRetryTimer) return;
+    this.kafkaRetryTimer = setTimeout(() => {
+      this.kafkaRetryTimer = null;
+      void this.connectKafkaWithRetry();
+    }, this.kafkaRetryDelayMs);
+    this.kafkaRetryTimer.unref();
+    this.kafkaRetryDelayMs = Math.min(this.kafkaRetryDelayMs * 2, this.kafkaMaxRetryDelayMs);
+  }
+
+  // Registers a one-shot callback fired once Kafka finishes connecting (used
+  // by index.ts to defer consumer.subscribe()/run() until the broker is up).
+  public onKafkaReady(callback: () => void): void {
+    if (this.kafkaReady) {
+      callback();
+      return;
+    }
+    this.kafkaReadyCallbacks.push(callback);
   }
 
   // Graceful shutdown
   public async closeConnections(): Promise<void> {
     console.log('🔄 Cerrando conexiones...');
-    
+
+    if (this.kafkaRetryTimer) {
+      clearTimeout(this.kafkaRetryTimer);
+      this.kafkaRetryTimer = null;
+    }
+
     if (this.kafkaConsumer) {
       await this.kafkaConsumer.disconnect();
     }

@@ -211,12 +211,19 @@ class NotificationServiceApp {
       
       // Inicializar dependencias
       const controllers = await this.initializeDependencies();
-      
-      // Iniciar consumidores de Kafka
+
+      // Iniciar consumidores de Kafka una vez que la conexión esté lista.
+      // Kafka se conecta en background (ver DatabaseConnections.connectKafka),
+      // así que el arranque del HTTP API/Socket.IO nunca queda bloqueado ni
+      // se cae si el broker está caído.
       if (this.kafkaConsumerService) {
-        await this.kafkaConsumerService.startConsumers();
+        this.dbConnections.onKafkaReady(() => {
+          this.kafkaConsumerService!.startConsumers().catch((error) => {
+            console.error('❌ Error iniciando consumidores de Kafka:', error);
+          });
+        });
       }
-      
+
       // Configurar rutas
       this.setupRoutes(controllers);
       
