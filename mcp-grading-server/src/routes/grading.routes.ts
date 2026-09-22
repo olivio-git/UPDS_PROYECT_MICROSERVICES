@@ -26,7 +26,12 @@ import { getQuestions, getExamResults } from '../db/collections.js';
 import { AUTO_GRADABLE_TYPES } from '../types/index.js';
 import type { IQuestion } from '../types/index.js';
 
+import { requireService, requireStaffOrService } from '../middleware/auth.js';
+
 export const gradingRouter = Router();
+
+// Service-only routes are the ones exam-service drives; the rest are teacher
+// tools in the frontend (which may also be called service-to-service).
 
 /**
  * POST /api/v1/grading/exam
@@ -34,6 +39,7 @@ export const gradingRouter = Router();
  */
 gradingRouter.post(
   '/exam',
+  requireService,
   validateBody(GradeExamRequestSchema),
   async (req: Request, res: Response): Promise<void> => {
     try {
@@ -54,6 +60,7 @@ gradingRouter.post(
  */
 gradingRouter.post(
   '/question',
+  requireStaffOrService,
   validateBody(EvaluateQuestionRequestSchema),
   async (req: Request, res: Response): Promise<void> => {
     try {
@@ -74,6 +81,7 @@ gradingRouter.post(
  */
 gradingRouter.post(
   '/feedback',
+  requireStaffOrService,
   validateBody(GenerateFeedbackRequestSchema),
   async (req: Request, res: Response): Promise<void> => {
     try {
@@ -95,6 +103,7 @@ gradingRouter.post(
  */
 gradingRouter.post(
   '/generate-question',
+  requireStaffOrService,
   validateBody(GenerateQuestionRequestSchema),
   async (req: Request, res: Response): Promise<void> => {
     try {
@@ -117,6 +126,7 @@ gradingRouter.post(
  */
 gradingRouter.post(
   '/transcribe-audio',
+  requireStaffOrService,
   validateBody(TranscribeAudioRequestSchema),
   async (req: Request, res: Response): Promise<void> => {
     try {
@@ -150,6 +160,7 @@ gradingRouter.post(
  */
 gradingRouter.post(
   '/format-transcript',
+  requireStaffOrService,
   validateBody(FormatTranscriptRequestSchema),
   async (req: Request, res: Response): Promise<void> => {
     try {
@@ -218,6 +229,7 @@ CRITICAL:
  */
 gradingRouter.post(
   '/save-question',
+  requireStaffOrService,
   validateBody(SaveQuestionRequestSchema),
   async (req: Request, res: Response): Promise<void> => {
     try {
@@ -262,6 +274,7 @@ gradingRouter.post(
  */
 gradingRouter.post(
   '/regrade-session',
+  requireStaffOrService,
   validateBody(RegradeSessionSchema),
   async (req: Request, res: Response): Promise<void> => {
     const { sessionId } = req.body as { sessionId: string };
@@ -412,6 +425,7 @@ gradingRouter.post(
  */
 gradingRouter.post(
   '/regrade-attempt',
+  requireService,
   validateBody(RegradeAttemptSchema),
   async (req: Request, res: Response): Promise<void> => {
     try {
@@ -433,6 +447,7 @@ gradingRouter.post(
  */
 gradingRouter.get(
   '/pending',
+  requireStaffOrService,
   validateQuery(GetPendingExamsQuerySchema),
   async (req: Request, res: Response): Promise<void> => {
     try {

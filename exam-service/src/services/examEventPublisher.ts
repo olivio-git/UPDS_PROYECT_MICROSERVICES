@@ -30,7 +30,7 @@ function fallbackHttpGradeRequest(attemptId: string, logPrefix: string): void {
     .post(
       `${env.GRADING_SERVICE_URL}/api/v1/grading/exam`,
       { attemptId },
-      { timeout: 120000 }
+      { timeout: 120000, headers: { 'X-Service-Token': env.SERVICE_TOKEN } }
     )
     .then((result) => {
       logger.info(

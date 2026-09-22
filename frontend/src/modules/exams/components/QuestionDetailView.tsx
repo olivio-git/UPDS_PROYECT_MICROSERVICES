@@ -6,6 +6,7 @@ import React, { useMemo, useState } from 'react';
 import { toast } from 'sonner';
 import type { Question } from '../types';
 import { GATEWAY_URL } from '@/lib/serviceUrls';
+import { authSDK } from '@/services/sdk-simple-auth';
 
 interface QuestionDetailViewProps {
   question: Question;
@@ -291,7 +292,11 @@ const QuestionDetailView: React.FC<QuestionDetailViewProps> = ({
         toast.info('Transcribiendo y evaluando con IA...');
         const res = await fetch(`${gradingUrl}/api/v1/grading/question`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: {
+          'Content-Type': 'application/json',
+          // grading-service authenticates every route (teacher/admin only).
+          ...(authSDK.getAccessToken() ? { Authorization: `Bearer ${authSDK.getAccessToken()}` } : {}),
+        },
           body: JSON.stringify({
             questionData: question,
             response: { audioUrl },
@@ -321,7 +326,11 @@ const QuestionDetailView: React.FC<QuestionDetailViewProps> = ({
       try {
         const res = await fetch(`${gradingUrl}/api/v1/grading/question`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: {
+          'Content-Type': 'application/json',
+          // grading-service authenticates every route (teacher/admin only).
+          ...(authSDK.getAccessToken() ? { Authorization: `Bearer ${authSDK.getAccessToken()}` } : {}),
+        },
           body: JSON.stringify({
             questionData: question,
             response: { answer: answerText },

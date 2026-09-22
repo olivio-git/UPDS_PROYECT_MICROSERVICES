@@ -1289,7 +1289,7 @@ export class ExamTakingService {
       const gradingResp = await axios.post(
         `${env.GRADING_SERVICE_URL}/api/v1/grading/question`,
         { questionId, response: answer },
-        { timeout: 30000 }
+        { timeout: 30000, headers: { 'X-Service-Token': env.SERVICE_TOKEN } }
       );
       gradeResult = gradingResp.data?.data || gradingResp.data;
     } catch (err: any) {

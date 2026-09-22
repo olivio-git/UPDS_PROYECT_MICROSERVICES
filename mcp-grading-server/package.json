@@ -11,11 +11,13 @@
   },
   "dependencies": {
     "@cba/events": "file:../shared/events/cba-events.tgz",
+    "@types/jsonwebtoken": "^9.0.10",
     "axios": "^1.7.0",
     "cors": "^2.8.5",
     "dotenv": "^16.4.0",
     "express": "^4.21.0",
     "groq-sdk": "^0.8.0",
+    "jsonwebtoken": "^9.0.3",
     "kafkajs": "^2.2.4",
     "mongodb": "^6.3.0",
     "zod": "^3.22.4"
