@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Button } from "@/components/atoms/button";
-import { Menu, X, LogOut, User, Bell, Calendar, BookOpen, TrendingUp } from "lucide-react";
+import { Menu, X, LogOut, User, Bell, BookOpen, TrendingUp } from "lucide-react";
 import { useNavigate, useLocation } from "react-router-dom";
 import useAuth from "@/hooks/useAuth";
 import ImageLogo from "@/assets/images/logo.webp";

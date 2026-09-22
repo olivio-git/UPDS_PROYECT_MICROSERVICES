@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, Upload, Download, FileSpreadsheet, AlertCircle } from 'lucide-react';
+import { X, Upload, FileSpreadsheet, AlertCircle } from 'lucide-react';
 import { useQuestions } from '../hooks/useQuestions';
 import { examService } from '../../../services/examService';
 import { toast } from 'sonner';

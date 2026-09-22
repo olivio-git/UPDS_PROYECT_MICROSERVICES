@@ -1,4 +1,4 @@
-import { UserRole } from '../types/RouteTypes';
+import type { UserRole } from '../types/RouteTypes';
 
 /**
  * Configuración central del sistema de rutas CBA

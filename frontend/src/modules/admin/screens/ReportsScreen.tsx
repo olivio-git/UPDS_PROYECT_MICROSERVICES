@@ -19,7 +19,6 @@ import {
 } from '@/services/reportsService';
 import { cn } from '@/lib/utils';
 import {
-  AlertTriangle,
   Award,
   BarChart3,
   Brain,
@@ -47,7 +46,6 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom';
 import {
   Bar, BarChart, CartesianGrid, Cell,
-  Line, LineChart, ReferenceLine,
   ResponsiveContainer, Tooltip, XAxis, YAxis
 } from 'recharts';
 import { toast } from 'sonner';
@@ -120,7 +118,6 @@ const ReportsScreen: React.FC = () => {
   const [viewTrends, setViewTrends] = useState<ViewMode>('table');
   const [viewCompetency, setViewCompetency] = useState<ViewMode>('table');
   const [viewLevels, setViewLevels] = useState<ViewMode>('table');
-  const [viewCriticalComp, setViewCriticalComp] = useState<ViewMode>('table');
 
   // Trend period
   const [trendPeriod, setTrendPeriod] = useState<'week' | 'month' | 'quarter'>('month');
@@ -162,23 +159,6 @@ const ReportsScreen: React.FC = () => {
           return { level, count, averageScore, passRate };
         })
     : [];
-
-  // Derived: competencies at risk (averageScore < 70), sorted worst first
-  const competenciesAtRisk = useMemo(() => {
-    if (!competencyData?.competencyBreakdown) return [];
-    return Object.entries(competencyData.competencyBreakdown)
-      .map(([comp, data]) => ({ comp, ...data }))
-      .filter(c => c.averageScore < 70)
-      .sort((a, b) => a.averageScore - b.averageScore);
-  }, [competencyData]);
-
-  // Derived: full competency breakdown sorted by score ascending
-  const competencyBreakdownSorted = useMemo(() => {
-    if (!competencyData?.competencyBreakdown) return [];
-    return Object.entries(competencyData.competencyBreakdown)
-      .map(([comp, data]) => ({ comp, ...data }))
-      .sort((a, b) => a.averageScore - b.averageScore);
-  }, [competencyData]);
 
   const buildActiveFilters = (raw: ReportFilters): ReportFilters =>
     Object.fromEntries(
@@ -264,10 +244,6 @@ const ReportsScreen: React.FC = () => {
     }
   };
 
-  const handleFilterChange = (key: keyof ReportFilters, value: any) => {
-    setFilters(prev => ({ ...prev, [key]: value }));
-  };
-
   const handleDateRangeChange = (range: DateRange | undefined) => {
     setDateRange(range);
     setFilters(prev => ({
@@ -350,17 +326,6 @@ const ReportsScreen: React.FC = () => {
 
   const getDifficultyLabel = (d: string) =>
     ({ easy: 'Fácil', medium: 'Medio', hard: 'Difícil' }[d] || d);
-
-  // strugglingStudents may exist in API response even if not in the TS interface
-  const strugglingStudents = studentData
-    ? (studentData as any).strugglingStudents as Array<{
-        studentId: string;
-        studentName: string;
-        averageScore: number;
-        examsCompleted: number;
-        weakCompetencies?: string[];
-      }> | undefined
-    : undefined;
 
   // Compact filter bar rendered at the top of each tab
   const TabFilters: React.FC<{ variant?: 'levels' | 'competencies' | 'dates-only' }> = ({ variant = 'dates-only' }) => (
@@ -1159,314 +1124,6 @@ const ReportsScreen: React.FC = () => {
                 )}
               </div>
             </Card>
-          </div>
-        )}
-
-        {/* ════════════════════════════════════════════════════
-            TAB 4: ÁREAS CRÍTICAS — eliminado, contenido movido a Resumen
-        ════════════════════════════════════════════════════ */}
-        {false && activeTab === 'criticas' && (
-          <div className="space-y-3">
-            <TabFilters variant="competencies" />
-
-            {/* A) Semáforo de Niveles */}
-            {dashboardData && (
-              <Card className="bg-card border-border shadow-none">
-                <div className="flex items-center justify-between px-4 py-2.5 border-b border-border/50">
-                  <div className="flex items-center gap-2 text-sm font-medium text-foreground">
-                    <Users className="h-4 w-4 text-muted-foreground" />
-                    Semáforo de Niveles MCER
-                  </div>
-                </div>
-                <div className="p-4 pb-3">
-                  <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2">
-                    {MCER_LEVELS.map((level, i) => {
-                      const raw = dashboardData.levelDistribution[level];
-                      const val = raw as any;
-                      const count: number = raw == null ? 0 : typeof val === 'number' ? val : (val?.count ?? 0);
-                      const hasData = count > 0;
-                      return (
-                        <div
-                          key={level}
-                          className={cn(
-                            'flex flex-col items-center justify-center gap-1 p-3 rounded-lg border text-center',
-                            hasData
-                              ? 'border-blue-500/20 bg-blue-500/5'
-                              : 'border-border bg-muted/30'
-                          )}
-                        >
-                          <span
-                            className="text-sm font-bold px-2 py-0.5 rounded"
-                            style={{ backgroundColor: hasData ? LEVEL_COLORS[i] + '22' : undefined, color: hasData ? LEVEL_COLORS[i] : undefined }}
-                          >
-                            {level}
-                          </span>
-                          {hasData ? (
-                            <>
-                              <span className="text-xl font-bold text-foreground leading-none">{count}</span>
-                              <span className="text-[10px] text-muted-foreground">evaluados</span>
-                            </>
-                          ) : (
-                            <>
-                              <span className="text-lg font-bold text-muted-foreground/40">—</span>
-                              <span className="text-[10px] text-muted-foreground/60">Sin datos</span>
-                            </>
-                          )}
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              </Card>
-            )}
-
-            {/* B) Competencias en Riesgo */}
-            <Card className="bg-card border-border shadow-none">
-              <div className="flex items-center justify-between px-4 py-2.5 border-b border-border/50">
-                <div className="flex items-center gap-2 text-sm font-medium text-foreground">
-                  <AlertTriangle className="h-4 w-4 text-amber-400" />
-                  Competencias en Riesgo
-                  {competenciesAtRisk.length > 0 && (
-                    <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-red-500/10 border border-red-500/20 text-red-400 font-normal">
-                      {competenciesAtRisk.length} bajo 70%
-                    </span>
-                  )}
-                </div>
-                <SectionToggle view={viewCriticalComp} onChange={setViewCriticalComp} />
-              </div>
-              <div className="p-4 pb-3">
-                {competenciesAtRisk.length === 0 ? (
-                  <div className="h-[180px] flex flex-col items-center justify-center gap-2 text-muted-foreground">
-                    <span className="text-2xl">✓</span>
-                    <p className="text-xs">Todas las competencias superan el 70%</p>
-                  </div>
-                ) : viewCriticalComp === 'chart' ? (
-                  <div className="relative">
-                    <ResponsiveContainer width="100%" height={Math.max(160, competenciesAtRisk.length * 40)}>
-                      <BarChart
-                        data={competenciesAtRisk.map(c => ({
-                          name: c.comp.charAt(0).toUpperCase() + c.comp.slice(1),
-                          promedio: c.averageScore,
-                          fill: c.averageScore < 60 ? '#ef4444' : '#f59e0b',
-                        }))}
-                        layout="vertical"
-                        margin={{ top: 4, right: 48, bottom: 4, left: 8 }}
-                      >
-                        <XAxis type="number" domain={[0, 100]} tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 10 }} axisLine={false} tickLine={false} />
-                        <YAxis type="category" dataKey="name" tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 10 }} axisLine={false} tickLine={false} width={64} />
-                        <Tooltip contentStyle={TOOLTIP_STYLE} cursor={{ fill: 'rgba(128,128,128,0.08)' }}
-                          formatter={(v: number) => [`${v.toFixed(1)}`, 'Promedio']} />
-                        <ReferenceLine x={60} stroke="#ef4444" strokeDasharray="3 3" strokeWidth={1.5}
-                          label={{ value: '60', position: 'top', fontSize: 9, fill: '#ef4444' }} />
-                        <ReferenceLine x={70} stroke="#f59e0b" strokeDasharray="3 3" strokeWidth={1.5}
-                          label={{ value: '70', position: 'top', fontSize: 9, fill: '#f59e0b' }} />
-                        <Bar dataKey="promedio" radius={[0, 4, 4, 0]}>
-                          {competenciesAtRisk.map((c, i) => (
-                            <Cell key={i} fill={c.averageScore < 60 ? '#ef4444' : '#f59e0b'} />
-                          ))}
-                        </Bar>
-                      </BarChart>
-                    </ResponsiveContainer>
-                    <div className="flex gap-3 mt-1 text-[10px] text-muted-foreground justify-end">
-                      <span className="flex items-center gap-1"><span className="w-3 h-0.5 bg-red-500 inline-block" /> Crítico (&lt;60)</span>
-                      <span className="flex items-center gap-1"><span className="w-3 h-0.5 bg-amber-500 inline-block" /> En riesgo (&lt;70)</span>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="overflow-auto max-h-[260px]">
-                    <table className="w-full text-xs">
-                      <thead className="sticky top-0 bg-card">
-                        <tr className="border-b border-border">
-                          <th className="text-left py-1.5 text-muted-foreground font-medium">Competencia</th>
-                          <th className="text-right py-1.5 text-muted-foreground font-medium">Promedio</th>
-                          <th className="text-right py-1.5 text-muted-foreground font-medium">Evaluados</th>
-                          <th title="Nivel de dominio basado en el promedio: Alto ≥75%, Medio 50–74%, Bajo <50%" className="text-right py-1.5 text-muted-foreground font-medium cursor-default">Dominio</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {competenciesAtRisk.map(c => {
-                          const dominio = c.averageScore >= 75
-                            ? { label: 'Alto', cls: 'text-emerald-400 bg-emerald-500/10 border border-emerald-500/20' }
-                            : c.averageScore >= 50
-                            ? { label: 'Medio', cls: 'text-amber-400 bg-amber-500/10 border border-amber-500/20' }
-                            : { label: 'Bajo', cls: 'text-red-400 bg-red-500/10 border border-red-500/20' };
-                          return (
-                            <tr key={c.comp} className="border-b border-border/50">
-                              <td className="py-1.5 text-foreground capitalize">{COMPETENCY_LABELS[c.comp] ?? c.comp.replace('_', ' ')}</td>
-                              <td className="py-1.5 text-right">
-                                <span className={`font-semibold ${c.averageScore < 60 ? 'text-red-400' : 'text-amber-400'}`}>
-                                  {c.averageScore.toFixed(1)}
-                                </span>
-                              </td>
-                              <td className="py-1.5 text-right text-muted-foreground">{c.studentsEvaluated}</td>
-                              <td className="py-1.5 text-right">
-                                <span className={`text-[10px] px-1 rounded ${dominio.cls}`}>
-                                  {dominio.label}
-                                </span>
-                              </td>
-                            </tr>
-                          );
-                        })}
-                      </tbody>
-                    </table>
-                  </div>
-                )}
-              </div>
-            </Card>
-
-            {/* C) Estudiantes en Riesgo */}
-            <Card className="bg-card border-border shadow-none">
-              <div className="flex items-center justify-between px-4 py-2.5 border-b border-border/50">
-                <div className="flex items-center gap-2 text-sm font-medium text-foreground">
-                  <AlertTriangle className="h-4 w-4 text-red-400" />
-                  Estudiantes en Riesgo
-                </div>
-              </div>
-              <div className="p-4">
-                {studentData ? (() => {
-                  const dist = studentData.performanceDistribution;
-                  const total = (dist.excellent ?? 0) + (dist.good ?? 0) + (dist.acceptable ?? 0) + (dist.needsImprovement ?? 0);
-                  const pct = (n: number) => total > 0 ? Math.round((n ?? 0) / total * 100) : 0;
-                  return (
-                  <div className="space-y-3">
-                    {/* Big number */}
-                    <div className="flex items-start gap-4">
-                      <div className="flex flex-col items-center justify-center w-20 h-20 rounded-xl border border-red-500/30 bg-red-500/5 shrink-0">
-                        <span className="text-3xl font-bold text-red-400 leading-none">
-                          {dist.needsImprovement ?? 0}
-                        </span>
-                        <span className="text-[9px] text-red-400/70 text-center leading-tight mt-0.5">necesitan<br/>mejorar</span>
-                      </div>
-                      <div className="space-y-2 flex-1 min-w-0">
-                        <div className="flex items-center justify-between text-xs">
-                          <span className="text-muted-foreground">Excelente</span>
-                          <span className="text-emerald-400 font-medium">{dist.excellent ?? 0} ({pct(dist.excellent ?? 0)}%)</span>
-                        </div>
-                        <div className="h-1.5 rounded-full bg-muted overflow-hidden">
-                          <div className="h-full rounded-full bg-emerald-500" style={{ width: `${pct(dist.excellent ?? 0)}%` }} />
-                        </div>
-                        <div className="flex items-center justify-between text-xs">
-                          <span className="text-muted-foreground">Bueno</span>
-                          <span className="text-blue-400 font-medium">{dist.good ?? 0} ({pct(dist.good ?? 0)}%)</span>
-                        </div>
-                        <div className="h-1.5 rounded-full bg-muted overflow-hidden">
-                          <div className="h-full rounded-full bg-blue-500" style={{ width: `${pct(dist.good ?? 0)}%` }} />
-                        </div>
-                        <div className="flex items-center justify-between text-xs">
-                          <span className="text-muted-foreground">Satisfactorio</span>
-                          <span className="text-amber-400 font-medium">{dist.acceptable ?? 0} ({pct(dist.acceptable ?? 0)}%)</span>
-                        </div>
-                        <div className="h-1.5 rounded-full bg-muted overflow-hidden">
-                          <div className="h-full rounded-full bg-amber-500" style={{ width: `${pct(dist.acceptable ?? 0)}%` }} />
-                        </div>
-                        <div className="flex items-center justify-between text-xs">
-                          <span className="text-muted-foreground">Necesita Mejorar</span>
-                          <span className="text-red-400 font-medium">{dist.needsImprovement ?? 0} ({pct(dist.needsImprovement ?? 0)}%)</span>
-                        </div>
-                        <div className="h-1.5 rounded-full bg-muted overflow-hidden">
-                          <div className="h-full rounded-full bg-red-500" style={{ width: `${pct(dist.needsImprovement ?? 0)}%` }} />
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Struggling students list */}
-                    {strugglingStudents && strugglingStudents.length > 0 ? (
-                      <div className="space-y-1.5 pt-1">
-                        <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-wide">Estudiantes identificados</p>
-                        {strugglingStudents.map((student, index) => (
-                          <div key={student.studentId + index}
-                            className="flex items-center justify-between px-2.5 py-1.5 rounded-lg bg-muted/50 border border-border">
-                            <div className="flex items-center gap-2 min-w-0">
-                              <div className="w-5 h-5 rounded-full flex items-center justify-center bg-red-500/20 border border-red-500/30 shrink-0">
-                                <span className="text-red-400 text-[9px] font-bold">{index + 1}</span>
-                              </div>
-                              <div className="min-w-0">
-                                <p className="text-foreground text-xs font-medium leading-tight truncate">{student.studentName}</p>
-                                {student.weakCompetencies && student.weakCompetencies.length > 0 && (
-                                  <div className="flex gap-1 mt-0.5 flex-wrap">
-                                    {student.weakCompetencies.slice(0, 3).map(comp => (
-                                      <span key={comp} className="text-[9px] px-1 rounded bg-red-500/10 border border-red-500/20 text-red-400">
-                                        {comp}
-                                      </span>
-                                    ))}
-                                  </div>
-                                )}
-                              </div>
-                            </div>
-                            <span className={`px-1.5 py-0.5 rounded text-xs font-semibold shrink-0 ml-2 ${getPerformanceColor(student.averageScore)}`}>
-                              {student.averageScore.toFixed(1)}
-                            </span>
-                          </div>
-                        ))}
-                      </div>
-                    ) : (
-                      <p className="text-xs text-muted-foreground italic pt-1">
-                        {(dist.needsImprovement ?? 0) > 0
-                          ? `${dist.needsImprovement} estudiante(s) necesitan mejora — sin detalle individual disponible`
-                          : 'Sin estudiantes en riesgo identificados'
-                        }
-                      </p>
-                    )}
-                  </div>
-                  );
-                })() : (
-                  <div className="h-[120px] flex items-center justify-center text-muted-foreground text-xs">
-                    Sin datos de estudiantes
-                  </div>
-                )}
-              </div>
-            </Card>
-
-            {/* D) Ranking por Competencia */}
-            {competencyBreakdownSorted.length > 0 && (
-              <Card className="bg-card border-border shadow-none">
-                <div className="flex items-center justify-between px-4 py-2.5 border-b border-border/50">
-                  <div className="flex items-center gap-2 text-sm font-medium text-foreground">
-                    <BarChart3 className="h-4 w-4 text-muted-foreground" />
-                    Ranking por Competencia
-                  </div>
-                </div>
-                <div className="p-4 pb-3">
-                  <div className="overflow-auto max-h-[300px]">
-                    <table className="w-full text-xs">
-                      <thead className="sticky top-0 bg-card">
-                        <tr className="border-b border-border">
-                          <th className="text-left py-1.5 text-muted-foreground font-medium">Competencia</th>
-                          <th className="text-right py-1.5 text-muted-foreground font-medium">Promedio</th>
-                          <th title="Nivel de dominio basado en el promedio: Alto ≥75%, Medio 50–74%, Bajo <50%" className="text-right py-1.5 text-muted-foreground font-medium cursor-default">Dominio</th>
-                          <th className="text-right py-1.5 text-muted-foreground font-medium">Evaluados</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {competencyBreakdownSorted.map(c => {
-                          const dominio = c.averageScore >= 75
-                            ? { label: 'Alto', cls: 'text-emerald-400 bg-emerald-500/10 border border-emerald-500/20' }
-                            : c.averageScore >= 50
-                            ? { label: 'Medio', cls: 'text-amber-400 bg-amber-500/10 border border-amber-500/20' }
-                            : { label: 'Bajo', cls: 'text-red-400 bg-red-500/10 border border-red-500/20' };
-                          return (
-                            <tr key={c.comp} className="border-b border-border/50">
-                              <td className="py-1.5 text-foreground capitalize">{COMPETENCY_LABELS[c.comp] ?? c.comp.replace('_', ' ')}</td>
-                              <td className="py-1.5 text-right">
-                                <span className={`font-semibold ${getPerformanceColor(c.averageScore).split(' ')[0]}`}>
-                                  {c.averageScore.toFixed(1)}
-                                </span>
-                              </td>
-                              <td className="py-1.5 text-right">
-                                <span className={`text-[10px] px-1.5 py-0.5 rounded ${dominio.cls}`}>
-                                  {dominio.label}
-                                </span>
-                              </td>
-                              <td className="py-1.5 text-right text-muted-foreground">{c.studentsEvaluated}</td>
-                            </tr>
-                          );
-                        })}
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-              </Card>
-            )}
           </div>
         )}
 

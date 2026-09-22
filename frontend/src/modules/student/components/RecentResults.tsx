@@ -22,7 +22,6 @@ interface PropsRecentResults {
 
 const RecentResults = ({
   studentData,
-  formatDate = examResultService.formatDate,
   handleViewResults,
 }: PropsRecentResults) => {
   const navigate = useNavigate();

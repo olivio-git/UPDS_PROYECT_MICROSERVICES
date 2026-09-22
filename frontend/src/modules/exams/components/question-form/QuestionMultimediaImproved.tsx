@@ -49,10 +49,10 @@ const QuestionMultimedia: React.FC<Props> = ({
   onImageChange,
 }) => {
   const [recordedAudioUrl, setRecordedAudioUrl] = useState<string | null>(null);
-  const [isRecording, setIsRecording] = useState(false);
+  const [, setIsRecording] = useState(false);
   const audioInputRef = useRef<HTMLInputElement>(null);
   const imageInputRef = useRef<HTMLInputElement>(null);
-  const { createManagedURL, revokeManagedURL, cleanup } = useFileManager();
+  const { createManagedURL, cleanup } = useFileManager();
 
   const isListeningQuestion = formData.competency === 'listening';
   const needsAudioInput = formData.type === 'audio_response';
@@ -72,6 +72,7 @@ const QuestionMultimedia: React.FC<Props> = ({
       ...formData,
       content: {
         ...formData.content,
+        question: formData.content?.question ?? '',
         [field]: value,
       },
     });

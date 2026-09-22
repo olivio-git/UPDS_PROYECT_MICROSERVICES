@@ -24,18 +24,13 @@ import {
 import { auditLogService, type AuditLogEntry, type AuditFilters } from "@/services/auditLogService";
 import {
   Activity,
-  AlertCircle,
   BarChart3,
   BookOpen,
   Brain,
   CheckCircle,
   ChevronRight,
-  Clock,
   Copy,
   Database,
-  Eye,
-  FileText,
-  History,
   Loader2,
   Mail,
   MessageSquare,
@@ -260,7 +255,7 @@ const DiagnosticoScreen = () => {
       (async () => {
         try {
           const r = await notificationService.getEmailStats();
-          if (r?.success) setEmailStats(r.data);
+          if (r?.success) setEmailStats(r.data ?? null);
         } catch {}
       })(),
     ]);
@@ -269,7 +264,7 @@ const DiagnosticoScreen = () => {
   const fetchEmailHistory = async () => {
     try {
       const r = await notificationService.getEmailHistory({ email: historyEmail || undefined });
-      if (r?.success) setEmailHistory(r.data);
+      if (r?.success) setEmailHistory(r.data ?? null);
     } catch {
       toast.error("Error al cargar historial");
     }
@@ -622,7 +617,7 @@ const DiagnosticoScreen = () => {
               <Button variant="secondary" size="sm" onClick={async () => {
                 try {
                   const r = await notificationService.getEmailStats();
-                  if (r?.success) setEmailStats(r.data);
+                  if (r?.success) setEmailStats(r.data ?? null);
                 } catch {}
               }}>
                 Cargar estadísticas

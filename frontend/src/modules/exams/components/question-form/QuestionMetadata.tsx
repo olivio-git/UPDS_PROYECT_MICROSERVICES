@@ -48,6 +48,8 @@ const TYPE_LABELS: Record<QuestionType, string> = {
   ordering:        'Ordenar',
   audio_response:  'Respuesta de Audio',
   file_upload:     'Subir Archivo',
+  speaking:        'Expresión Oral',
+  writing:         'Expresión Escrita',
 };
 
 interface Props {
@@ -70,6 +72,7 @@ const QuestionMetadata: React.FC<Props> = ({
       ...formData,
       metadata: {
         ...formData.metadata,
+        topic: formData.metadata?.topic ?? '',
         [field]: value,
       },
     });

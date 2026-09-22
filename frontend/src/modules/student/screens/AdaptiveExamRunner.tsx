@@ -305,8 +305,7 @@ const AdaptiveExamRunner: React.FC = () => {
               <QuestionRenderer
                 question={currentQuestion}
                 answer={currentAnswer}
-                onAnswerChange={handleAnswerChange}
-                disabled={submitting}
+                onChange={(_questionId, value) => handleAnswerChange(value)}
               />
 
               <div className="mt-6 flex justify-end">

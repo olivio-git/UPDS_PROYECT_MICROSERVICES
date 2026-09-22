@@ -3,6 +3,24 @@ import dotenv from 'dotenv';
 // Load environment variables
 dotenv.config();
 
+/**
+ * Reads a required secret from the environment.
+ *
+ * Throws at startup instead of falling back to a default: a service that signs
+ * or verifies tokens with a guessable literal is worse than one that refuses to
+ * boot, because the failure is silent and each service would pick a different
+ * default, breaking cross-service token validation with no error.
+ */
+function requireEnv(name: string): string {
+  const value = process.env[name];
+  if (!value) {
+    throw new Error(
+      `Missing required environment variable ${name}. Refusing to start with an insecure default.`
+    );
+  }
+  return value;
+}
+
 export const env = {
   // Server
   NODE_ENV: process.env.NODE_ENV || 'development',
@@ -32,7 +50,7 @@ export const env = {
 
   // User Management Service (internal)
   USER_MANAGEMENT_SERVICE_URL: process.env.USER_MANAGEMENT_SERVICE_URL || 'http://user-management-service:3002',
-  JWT_SECRET: process.env.JWT_SECRET || 'your-secret-key',
+  JWT_SECRET: requireEnv('JWT_SECRET'),
   
   // MinIO Configuration
   MINIO_ENDPOINT: process.env.MINIO_ENDPOINT || 'localhost',

@@ -8,8 +8,7 @@ import type {
   SectionProgress
 } from '../types/sectionedExam';
 import {
-  groupQuestionsIntoSections,
-  initializeSectionProgress
+  groupQuestionsIntoSections
 } from '../types/sectionedExam';
 import SectionNavigator from './SectionNavigator';
 import SectionedQuestionRenderer from './SectionedQuestionRenderer';
@@ -40,9 +39,6 @@ interface SectionedExamRendererProps {
 
 const SectionedExamRenderer: React.FC<SectionedExamRendererProps> = ({
   questions,
-  examId,
-  sessionId,
-  timeRemaining,
   onAnswerChange,
   onSave,
   onFinish,
@@ -77,8 +73,6 @@ const SectionedExamRenderer: React.FC<SectionedExamRendererProps> = ({
       
       // Initialize progress for all sections
       setSectionProgress(prev => {
-        const newProgress = initializeSectionProgress(sections);
-        
         // Merge with existing progress, updating counts if questions changed
         const mergedProgress: { [sectionId: string]: SectionProgress } = {};
         sections.forEach(section => {
@@ -115,7 +109,7 @@ const SectionedExamRenderer: React.FC<SectionedExamRendererProps> = ({
       sections.forEach(section => {
         let completed = 0;
         section.questions.forEach(question => {
-          const questionId = question._id || question.id;
+          const questionId = question._id || (question as { id?: string }).id || '';
           if (answers[questionId] && (
             answers[questionId].text ||
             answers[questionId].selectedOptions?.length ||
@@ -148,7 +142,7 @@ const SectionedExamRenderer: React.FC<SectionedExamRendererProps> = ({
     console.log('🗂️ [SectionedExamRenderer] sections:', sections.map(s => ({ id: s.id, competency: s.competency, qCount: s.questions?.length, questionCount: s.questionCount })));
     return sections.map(section => {
     const questionStates = section.questions.map(question => {
-      const questionId = question._id || question.id;
+      const questionId = question._id || (question as { id?: string }).id || '';
       const ans = answers[questionId];
       return {
         id: questionId,

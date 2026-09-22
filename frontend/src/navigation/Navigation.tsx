@@ -63,7 +63,7 @@ const Navigation = () => {
                 </button>
                 <a
                   href={isAuthenticated && user ?
-                    ({ admin: "/dashboard", teacher: "/sessions", proctor: "/sessions", student: "/student/dashboard" }[user.role] ?? "/dashboard")
+                    ({ admin: "/dashboard", teacher: "/sessions", proctor: "/sessions", student: "/student/dashboard" }[user.role as 'admin' | 'teacher' | 'proctor' | 'student'] ?? "/dashboard")
                     : "/"
                   }
                   className="px-4 py-2 bg-black text-white rounded hover:bg-gray-800 transition-colors text-sm"

@@ -1,7 +1,6 @@
 import { examService } from '@/services/examService';
 import { useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { toast } from 'sonner';
 
 interface ActiveSessionData {
   sessionId: string;

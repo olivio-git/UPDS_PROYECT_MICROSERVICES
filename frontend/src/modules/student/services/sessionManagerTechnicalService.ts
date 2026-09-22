@@ -124,8 +124,6 @@ class SessionManagerTechnicalService {
    */
   async performNetworkTest(verificationId: string): Promise<NetworkTestResult> {
     try {
-      const startTime = performance.now();
-      
       // Test básico usando el endpoint de health del session-manager
       const testUrls = [
         `${this.baseURL}/health`,

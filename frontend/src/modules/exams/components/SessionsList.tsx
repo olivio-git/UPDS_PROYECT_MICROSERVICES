@@ -361,21 +361,6 @@ const SessionsList: React.FC = () => {
     }));
   };
 
-  const formatDate = (date: string) => {
-    // Simplemente usar toLocaleString con zona horaria específica
-    const utcDate = new Date(date);
-
-    return utcDate.toLocaleString('es-BO', {
-      timeZone: 'America/La_Paz',
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-      hour12: false,
-    });
-  };
-
   const getStatusBadge = (status: string) => {
     const statusConfig = {
       scheduled: {

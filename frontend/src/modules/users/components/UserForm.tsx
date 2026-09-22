@@ -5,7 +5,7 @@ import { Label } from '@/components/atoms/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/atoms/select';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/atoms/card';
 import { Badge } from '@/components/atoms/badge';
-import { AlertCircle, Save, X, ArrowLeft, Mail, Phone, Shield, Users } from 'lucide-react';
+import { AlertCircle, Save, X, Mail, Phone, Shield, Users } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/atoms/alert';
 import type {  
   CreateUserRequest, 

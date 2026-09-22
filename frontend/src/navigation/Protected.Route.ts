@@ -1,6 +1,4 @@
-import DashboardScreen from "@/modules/dashboard/screens/DashboardScreen";
-import AdaptiveExamRunner from "@/modules/student/screens/AdaptiveExamRunner";
-import TestingScreen from "@/modules/testing/screens/TestingScreen";
+import { lazyRoute } from "./lazyRoute";
 import {
   BarChart3,
   BookOpen,
@@ -19,31 +17,28 @@ import {
   Users
 } from "lucide-react";
 import type RouteType from "./RouteType";
-// import GradientTestScreen from "@/modules/testing/screens/GradientTestScreen";
 
-// Student Screens
-import {
-  ExamPreparation,
-  StudentDashboard,
-  StudentProfile,
-  StudentResults
-} from "@/modules/student/screens";
-import ExamRunnerHTTP from "@/modules/student/screens/ExamRunnerHTTP";
-import UsersScreen from "@/modules/users/screens/UserScreen";
-
-// Exams Module
-// import ExamsModule from "@/modules/exams/pages/ExamsModule";
-import AuditLogsScreen from "@/modules/admin/screens/AuditLogsScreen";
-import ReportsScreen from "@/modules/admin/screens/ReportsScreen";
-import StudentHistoryScreen from "@/modules/admin/screens/StudentHistoryScreen";
-import UpcomingSessionsScreen from "@/modules/admin/screens/UpcomingSessionsScreen";
-import SessionsList from "@/modules/exams/components/SessionsList";
-import SessionMonitorScreen from "@/modules/exams/screens/SessionMonitorScreen";
-import AcademicConfigScreen from "@/modules/exams/screens/AcademicConfigScreen";
-import ExamsScreen from "@/modules/exams/screens/ExamsScreen";
-import LevelsManagementScreen from "@/modules/exams/screens/LevelsManagementScreen";
-import QuestionsScreen from "@/modules/exams/screens/QuestionsScreen";
-import RubricsManagementScreen from "@/modules/exams/screens/RubricsManagementScreen";
+// Each screen is its own chunk, fetched on first navigation to its route.
+const DashboardScreen = lazyRoute(() => import("@/modules/dashboard/screens/DashboardScreen"));
+const AdaptiveExamRunner = lazyRoute(() => import("@/modules/student/screens/AdaptiveExamRunner"));
+const TestingScreen = lazyRoute(() => import("@/modules/testing/screens/TestingScreen"));
+const ExamRunnerHTTP = lazyRoute(() => import("@/modules/student/screens/ExamRunnerHTTP"));
+const UsersScreen = lazyRoute(() => import("@/modules/users/screens/UserScreen"));
+const AuditLogsScreen = lazyRoute(() => import("@/modules/admin/screens/AuditLogsScreen"));
+const ReportsScreen = lazyRoute(() => import("@/modules/admin/screens/ReportsScreen"));
+const StudentHistoryScreen = lazyRoute(() => import("@/modules/admin/screens/StudentHistoryScreen"));
+const UpcomingSessionsScreen = lazyRoute(() => import("@/modules/admin/screens/UpcomingSessionsScreen"));
+const SessionsList = lazyRoute(() => import("@/modules/exams/components/SessionsList"));
+const SessionMonitorScreen = lazyRoute(() => import("@/modules/exams/screens/SessionMonitorScreen"));
+const AcademicConfigScreen = lazyRoute(() => import("@/modules/exams/screens/AcademicConfigScreen"));
+const ExamsScreen = lazyRoute(() => import("@/modules/exams/screens/ExamsScreen"));
+const LevelsManagementScreen = lazyRoute(() => import("@/modules/exams/screens/LevelsManagementScreen"));
+const QuestionsScreen = lazyRoute(() => import("@/modules/exams/screens/QuestionsScreen"));
+const RubricsManagementScreen = lazyRoute(() => import("@/modules/exams/screens/RubricsManagementScreen"));
+const ExamPreparation = lazyRoute(() => import("@/modules/student/screens/ExamPreparation"));
+const StudentDashboard = lazyRoute(() => import("@/modules/student/screens/StudentDashboard"));
+const StudentProfile = lazyRoute(() => import("@/modules/student/screens/StudentProfile"));
+const StudentResults = lazyRoute(() => import("@/modules/student/screens/StudentResults"));
 
 export const protectedRoutes: RouteType[] = [
   // Dashboard general (para todos los roles)
@@ -57,19 +52,6 @@ export const protectedRoutes: RouteType[] = [
     icon: Home,
     hidden: true
   },
-  // Admin Dashboard
-  // {
-  //   path: "/admin/dashboard",
-  //   name: "Panel de Administración",
-  //   type: "protected", 
-  //   element: AdminDashboard,
-  //   isAdmin: true,
-  //   role: ["admin"],
-  //   icon: PanelBottom
-  // },
-  //===PROCTOR DASHBOARD
-  // Rutas específicas para estudiantes
-  /// ===== Aqui empieza el flujo de estudiante para dar examen
   {
     path: "/student/dashboard", //Pantalla de inicio sin funcionalidad logica
     name: "Pannel",

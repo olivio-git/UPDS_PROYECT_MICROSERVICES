@@ -18,7 +18,7 @@ import {
   type SortingState,
 } from '@tanstack/react-table';
 import {
-  Award, BookOpen, Calendar, CheckCircle, ChevronLeft, ChevronRight, Clock,
+  Award, BookOpen, Calendar, CheckCircle, ChevronLeft, Clock,
   Download, Eye, Loader2, MessageSquare, Minus, Search, Star, Target,
   TrendingDown, TrendingUp, User, X, AlertTriangle,
 } from 'lucide-react';
@@ -49,13 +49,12 @@ const StudentHistoryScreen: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [exportModalOpen, setExportModalOpen] = useState(false);
   const [exportLoading, setExportLoading] = useState(false);
-  const [examPage, setExamPage] = useState(1);
+  const [, setExamPage] = useState(1);
   const [examSearch, setExamSearch] = useState('');
   const [filterLevel, setFilterLevel] = useState<string>('all');
   const [filterResult, setFilterResult] = useState<'all' | 'passed' | 'failed'>('all');
   const [showTop, setShowTop] = useState(false);
   const [topCount, setTopCount] = useState(5);
-  const EXAM_PAGE_SIZE = 5;
   const MCER_LEVELS = ['A1', 'A2', 'B1', 'B2', 'C1', 'C2'];
 
   const runSearch = async (value: string) => {
@@ -283,9 +282,6 @@ const StudentHistoryScreen: React.FC = () => {
     getCoreRowModel: getCoreRowModel(),
     getSortedRowModel: getSortedRowModel(),
   });
-
-  const initials = (name: string) =>
-    name.split(' ').slice(0, 2).map(n => n[0]).join('').toUpperCase();
 
   const candName = (c: Candidate) =>
     `${c.personalInfo.firstName} ${c.personalInfo.lastName}`;

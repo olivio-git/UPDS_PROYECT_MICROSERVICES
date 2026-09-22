@@ -1,14 +1,12 @@
-import { useState, useEffect } from "react";
-import { 
-  Calendar, 
-  Clock, 
-  Users, 
+import { useState, useEffect, type JSX } from "react";
+import {
+  Calendar,
+  Clock,
+  Users,
   Play,
   Info,
   CheckCircle,
-  XCircle,
   AlertCircle,
-  Filter,
   Loader2,
   RefreshCcw
 } from "lucide-react";
@@ -16,7 +14,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/atoms/button";
 import { Badge } from "@/components/atoms/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/atoms/tabs";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/atoms/select";
 import { MainLayout } from "@/components/layout";
 import { ContentGradientSection } from "@/components/background";
 import { useNavigate } from "react-router-dom";
@@ -25,8 +22,6 @@ import studentSessionService, { type AvailableSession } from "../services/sessio
 
 const StudentExams = () => {
   const navigate = useNavigate();
-  const [selectedLevel, setSelectedLevel] = useState<string>("all");
-  const [selectedType, setSelectedType] = useState<string>("all");
   const [loading, setLoading] = useState(true);
   const [sessions, setSessions] = useState<AvailableSession[]>([]);
   const [refreshing, setRefreshing] = useState(false);
@@ -133,7 +128,7 @@ const StudentExams = () => {
     }
   };
 
-  const filteredSessions = sessions.filter(session => {
+  const filteredSessions = sessions.filter(() => {
     // Por ahora no filtrar por nivel/tipo ya que no tenemos esos campos
     // Esto se puede expandir cuando se agreguen más metadatos
     return true;

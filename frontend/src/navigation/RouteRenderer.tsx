@@ -1,4 +1,6 @@
+import { Suspense } from "react";
 import type React from "react";
+import { Loader2 } from "lucide-react";
 import type RouteType from "./RouteType";
 import { Navigate } from "react-router";
 
@@ -19,6 +21,17 @@ interface RouteRendererProps {
   redirectTo?: string;
 }
 
+/** Shown while a route's chunk is downloading. */
+const RouteFallback: React.FC = () => (
+  <div
+    className="min-h-screen flex items-center justify-center bg-background"
+    role="status"
+    aria-label="Cargando"
+  >
+    <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+  </div>
+);
+
 const getHomePath = (role: string): string => {
   const paths: Record<string, string> = {
     admin: "/dashboard",
@@ -33,7 +46,7 @@ const RouteRenderer: React.FC<RouteRendererProps> = ({
   route,
   isAuthenticated = false,
   user = null,
-  redirectTo = "/"
+  redirectTo: _redirectTo = "/"
 }) => {
     
   const Component = route.element;
@@ -147,7 +160,11 @@ const RouteRenderer: React.FC<RouteRendererProps> = ({
     }
   }
   
-  return <Component />;
+  return (
+    <Suspense fallback={<RouteFallback />}>
+      <Component />
+    </Suspense>
+  );
 };
 
 export default RouteRenderer;

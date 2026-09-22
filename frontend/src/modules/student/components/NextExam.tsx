@@ -245,7 +245,7 @@ const NextExam: React.FC<PropsNextExam> = ({
               <AlertDescription>{error}</AlertDescription>
             </Alert>
             <Button
-              onClick={loadNextExam}
+              onClick={() => loadNextExam()}
               variant="secondary"
               className="mt-4 w-full"
             >
@@ -277,7 +277,7 @@ const NextExam: React.FC<PropsNextExam> = ({
                 Los nuevos exámenes aparecerán aquí cuando sean programados
               </p>
               <Button
-                onClick={loadNextExam}
+                onClick={() => loadNextExam()}
                 variant="default"
                 className="mt-2 w-full"
               >

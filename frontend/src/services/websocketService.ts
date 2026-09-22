@@ -24,7 +24,6 @@ class WebSocketService {
   private socket: Socket | null = null;
   private isConnected = false;
   private config: WebSocketConfig | null = null;
-  private reconnectAttempts = 0;
   private maxReconnectAttempts = 5;
   private reconnectDelay = 1000;
 
@@ -69,8 +68,7 @@ class WebSocketService {
       this.socket.on('connect', () => {
         console.log('✅ WebSocket conectado exitosamente');
         this.isConnected = true;
-        this.reconnectAttempts = 0;
-        
+
         if (this.onConnectedCallback) {
           this.onConnectedCallback(config.sessionId);
         }

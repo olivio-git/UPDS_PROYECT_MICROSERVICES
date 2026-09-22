@@ -5,6 +5,11 @@ import * as RechartsPrimitive from "recharts"
 
 import { cn } from "@/lib/utils"
 
+// Recharts does not re-export these from its package root (only from internal
+// component/DefaultTooltipContent), so we mirror the exact definitions here.
+type ValueType = number | string | Array<number | string>
+type NameType = number | string
+
 // Format: { THEME_NAME: CSS_SELECTOR }
 const THEMES = { light: "", dark: ".dark" } as const
 
@@ -104,8 +109,8 @@ const ChartTooltip = RechartsPrimitive.Tooltip
 
 const ChartTooltipContent = React.forwardRef<
   HTMLDivElement,
-  React.ComponentProps<typeof RechartsPrimitive.Tooltip> &
-    React.ComponentProps<"div"> & {
+  RechartsPrimitive.TooltipContentProps<ValueType, NameType> &
+    Omit<React.ComponentProps<"div">, "ref"> & {
       hideLabel?: boolean
       hideIndicator?: boolean
       indicator?: "line" | "dot" | "dashed"
@@ -261,7 +266,10 @@ const ChartLegend = RechartsPrimitive.Legend
 const ChartLegendContent = React.forwardRef<
   HTMLDivElement,
   React.ComponentProps<"div"> &
-    Pick<RechartsPrimitive.LegendProps, "payload" | "verticalAlign"> & {
+    Pick<
+      RechartsPrimitive.DefaultLegendContentProps,
+      "payload" | "verticalAlign"
+    > & {
       hideIcon?: boolean
       nameKey?: string
     }

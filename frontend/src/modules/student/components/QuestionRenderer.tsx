@@ -1,5 +1,4 @@
 import { Button } from '@/components/atoms/button';
-import { Input } from '@/components/atoms/input';
 import { AudioPlayer, AudioRecorder } from '@/components/audio';
 import type { Question } from '@/modules/exams/types';
 import {
@@ -233,7 +232,6 @@ const QuestionRenderer: React.FC<Props> = ({
 
   const titleText = content.question || question.title || question.text || 'Pregunta';
   const contextText = content.context || question.context || '';
-  const promptText = content.instructions || question.prompt || '';
   const optionsList = content.options || question.options || [];
   const mediaUrl = content.mediaUrl || question.mediaUrl || null;
 
@@ -267,7 +265,7 @@ const QuestionRenderer: React.FC<Props> = ({
   const [fillBlanksAnswers, setFillBlanksAnswers] = useState<string[]>([]);
   const [matchingPairs, setMatchingPairs] = useState<{[key: string]: string}>({});
   const [orderingItems, setOrderingItems] = useState<string[]>([]);
-  const [dragDropPositions, setDragDropPositions] = useState<{[key: string]: number}>({});
+  const [, setDragDropPositions] = useState<{[key: string]: number}>({});
   // dragDropOrder: ordered list of item IDs (index+1 = current position for grading)
   const [dragDropOrder, setDragDropOrder] = useState<string[]>([]);
 
@@ -437,7 +435,7 @@ const QuestionRenderer: React.FC<Props> = ({
         setDragDropOrder(sorted);
       } else {
         // Mezclar los items usando Fisher-Yates shuffle para que no vengan en orden correcto
-        const itemIds = items.map((item: any) => item.id);
+        const itemIds: string[] = items.map((item: any) => item.id);
         const shuffled = fisherYatesShuffle(itemIds);
         setDragDropOrder(shuffled);
         // Inicializar las posiciones basadas en el orden mezclado (NO las posiciones correctas)
@@ -644,7 +642,8 @@ const QuestionRenderer: React.FC<Props> = ({
 
   const shuffleOrdering = useCallback(() => {
     const items = content.items || [];
-    const shuffled = fisherYatesShuffle(items.map((item: any) => item.id));
+    const itemIds: string[] = items.map((item: any) => item.id);
+    const shuffled = fisherYatesShuffle(itemIds);
     handleOrdering(shuffled);
   }, [content, handleOrdering, fisherYatesShuffle]);
 
@@ -653,12 +652,6 @@ const QuestionRenderer: React.FC<Props> = ({
     const original = items.map((item:any) => item.id);
     handleOrdering(original);
   }, [content, handleOrdering]);
-
-  const handleDragDrop = useCallback((itemId: string, position: number) => {
-    const newPositions = { ...dragDropPositions, [itemId]: position };
-    setDragDropPositions(newPositions);
-    onChange(id, { positions: newPositions });
-  }, [id, onChange, dragDropPositions]);
 
   // ── dnd-kit handlers ────────────────────────────────────────────────────────
   const handleOrderingDragStart = useCallback((event: DragStartEvent) => {
@@ -1064,7 +1057,7 @@ const QuestionRenderer: React.FC<Props> = ({
 
       {/* Nuevos tipos de pregunta */}
       {effectiveType === 'fill_blanks' && (() => {
-        const parts = (content.template ?? '').split('___');
+        const parts: string[] = (content.template ?? '').split('___');
         const blanksData: Array<{ correctAnswers?: string[] }> = content.blanks ?? [];
 
         return (

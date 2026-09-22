@@ -325,10 +325,6 @@ const UsersScreen = () => {
     setFilters({ ...filters, page });
   };
 
-  const handleItemsPerPageChange = (limit: number) => {
-    setFilters({ ...filters, limit, page: 1 });
-  };
-
   // Manejador de sorting
   const handleSortingChange = (newSorting: SortingState) => {
     setSorting(newSorting);

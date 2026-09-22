@@ -607,8 +607,6 @@ const ExamPreparation = () => {
 
       setSessionData({
         sessionId,
-        examId: examData.examId || examId || "",
-        startTime: new Date().toISOString(),
         browserLockdown: examData.browserLockdown ?? false,
       });
 

@@ -1,4 +1,4 @@
-import { Calendar, Clock, Trophy, TrendingUp, BookOpen, CheckCircle } from "lucide-react";
+import { Calendar, Clock, Trophy, TrendingUp, CheckCircle } from "lucide-react";
 
 interface StatsCardProps {
     title: string;

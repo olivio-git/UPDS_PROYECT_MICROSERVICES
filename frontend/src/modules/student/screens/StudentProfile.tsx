@@ -70,7 +70,6 @@ const StudentProfile = () => {
   const firstName = user?.firstName || "";
   const lastName = user?.lastName || "";
   const email = user?.email || "";
-  const initials = `${firstName.charAt(0)}${lastName.charAt(0)}`.toUpperCase();
 
   const handleSave = async () => {
     setIsSaving(true);
