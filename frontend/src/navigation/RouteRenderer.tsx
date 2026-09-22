@@ -102,8 +102,13 @@ const RouteRenderer: React.FC<RouteRendererProps> = ({
   if (route.type === "protected" && isAuthenticated && user) {
     // console.log("Es ruta protegida y el usuario está autenticado");
     
-    // Verificar si el usuario está activo
-    if (!user.isActive) {
+    // Verificar si el usuario está activo. `isActive` puede no venir en la
+    // respuesta de servicios antiguos, así que sólo se bloquea cuando la
+    // cuenta está explícitamente inactiva.
+    const accountDisabled =
+      (user as { isActive?: boolean }).isActive === false ||
+      ((user as { status?: string }).status !== undefined && (user as { status?: string }).status !== 'active');
+    if (accountDisabled) {
       return (
         <div className="min-h-screen flex items-center justify-center bg-gray-50">
           <div className="text-center space-y-4">
