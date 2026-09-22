@@ -307,12 +307,20 @@ class SessionManagerTechnicalService {
   }
 
   /**
-   * Verificar si el usuario puede proceder con el examen
+   * Verificar si el usuario puede proceder con el examen (self-check contra
+   * Store A — el registro real en session-manager). El backend responde
+   * `{ success, data: { canProceed, reasons, verification } }`; solo se
+   * necesita el booleano aquí, `getTechnicalVerificationRequiredInfo()` en
+   * examService.ts es la vía autoritativa para leer `reasons` cuando el
+   * inicio del examen es rechazado por exam-service.
    */
   async canUserProceed(userId: string): Promise<boolean> {
     try {
-      const response = await this.api.get<{success: boolean; canProceed: boolean}>(`/user/${userId}/can-proceed`);
-      return response.data.success ? response.data.canProceed : false;
+      const response = await this.api.get<{
+        success: boolean;
+        data?: { canProceed: boolean; reasons: { code: string; message: string }[] };
+      }>(`/user/${userId}/can-proceed`);
+      return response.data.success ? (response.data.data?.canProceed ?? false) : false;
     } catch (error) {
       console.warn('Error verificando si puede proceder:', error);
       return false;

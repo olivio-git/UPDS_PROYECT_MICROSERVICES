@@ -3,7 +3,11 @@ import { Button } from '@/components/atoms/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/atoms/card';
 import { MainLayout } from '@/components/layout';
 import { examResultService } from '@/services/examResultService';
-import { examService, getAttemptTerminationInfo } from '@/services/examService';
+import {
+  examService,
+  getAttemptTerminationInfo,
+  getTechnicalVerificationRequiredInfo,
+} from '@/services/examService';
 import { notificationSocket } from '@/services/notifications/notificationSocket';
 import { AlertCircle, Brain, CheckCircle, Loader2, UserX, XCircle } from 'lucide-react';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
@@ -185,6 +189,18 @@ const AdaptiveExamRunner: React.FC = () => {
       if (err?.response?.data?.code === 'CANDIDATE_REMOVED') {
         setKicked(true);
         setKickReason(err?.response?.data?.message);
+        return;
+      }
+      // Deep-link / stale-tab edge case: a brand-new attempt was rejected by
+      // exam-service's server-side technical verification gate. Resuming an
+      // existing in_progress attempt is never blocked this way, so this only
+      // fires when the candidate skipped (or lost) the preparation screen.
+      const technicalInfo = getTechnicalVerificationRequiredInfo(err);
+      if (technicalInfo && sessionId) {
+        navigate(`/student/exam/${sessionId}/preparation`, {
+          replace: true,
+          state: { technicalVerificationReasons: technicalInfo.reasons },
+        });
         return;
       }
       const msg = err?.response?.data?.message || err.message || 'Error al iniciar el examen';

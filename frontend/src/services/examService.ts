@@ -39,6 +39,36 @@ export function getAttemptTerminationInfo(error: any): AttemptTerminationInfo | 
   return null;
 }
 
+/**
+ * exam-service returns `{ success: false, message, code: 'TECHNICAL_VERIFICATION_REQUIRED',
+ * reasons: [{code, message}, ...] }` with HTTP 403 (see
+ * exam-service/src/services/examTaking.service.ts and errorHandler.middleware.ts)
+ * when startExam()/startAdaptiveExam() reject a brand-new attempt because the
+ * candidate's technical verification (session-manager-service's Redis record)
+ * doesn't satisfy `canUserProceed()`. This never fires when resuming an
+ * existing in_progress attempt — only on a genuinely new attempt.
+ */
+export interface TechnicalVerificationReason {
+  code: string;
+  message: string;
+}
+
+export interface TechnicalVerificationRequiredInfo {
+  code: string;
+  reasons: TechnicalVerificationReason[];
+}
+
+export function getTechnicalVerificationRequiredInfo(
+  error: any
+): TechnicalVerificationRequiredInfo | null {
+  const status = error?.response?.status;
+  const code = error?.response?.data?.code;
+  if (status === 403 && code === 'TECHNICAL_VERIFICATION_REQUIRED') {
+    return { code, reasons: error?.response?.data?.reasons ?? [] };
+  }
+  return null;
+}
+
 class ExamService {
   private api: AxiosInstance;
   private baseURL: string;

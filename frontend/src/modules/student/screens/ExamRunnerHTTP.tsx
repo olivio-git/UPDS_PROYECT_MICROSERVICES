@@ -9,7 +9,7 @@ import GradientWrapper from '@/components/background/GrandWrapperSection';
 import { MainLayout } from '@/components/layout';
 import { useExamSessionHTTP } from '@/hooks/useExamSessionHTTP';
 import { examResultService } from '@/services/examResultService';
-import { examService, getAttemptTerminationInfo } from '@/services/examService';
+import { examService, getAttemptTerminationInfo, getTechnicalVerificationRequiredInfo } from '@/services/examService';
 import { notificationSocket } from '@/services/notifications/notificationSocket';
 import {
   AlertCircle,
@@ -226,6 +226,20 @@ const ExamRunnerHTTP: React.FC = () => {
         if (terminationInfo?.attemptStatus === 'cancelled') {
           toast.error('Has sido expulsado de esta sesión por el supervisor.', { duration: 6000 });
           navigate('/student/dashboard');
+          return;
+        }
+
+        // Deep-link / stale-tab edge case: a brand-new attempt was rejected
+        // by exam-service's server-side technical verification gate.
+        // Resuming an existing in_progress attempt is never blocked this
+        // way, so this only fires when the candidate skipped (or lost) the
+        // preparation screen. Send them back there with the reasons.
+        const technicalInfo = getTechnicalVerificationRequiredInfo(error);
+        if (technicalInfo) {
+          navigate(`/student/exam/${sessionId}/preparation`, {
+            replace: true,
+            state: { technicalVerificationReasons: technicalInfo.reasons },
+          });
           return;
         }
 

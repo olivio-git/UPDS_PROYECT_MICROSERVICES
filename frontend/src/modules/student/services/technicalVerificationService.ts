@@ -78,22 +78,6 @@ class TechnicalVerificationService {
     return this.verificationData;
   }
 
-  async technicalVerificationExists(___: string): Promise<boolean> {
-    try {
-      const candidateId = await this.getCandidateId();
-      const response = await axios.get(`${import.meta.env.VITE_USER_MANAGEMENT_URL}/api/v1/candidates/${candidateId}/technical-exist`,{
-        headers: {
-          Authorization: `Bearer ${authSDK.getAccessToken()}`
-        }
-      });
-      if(!response.data.success) return false; 
-      return true;
-    } catch (error) {
-      // console.error("Error checking verification existence:", error);
-      return false;
-    }
-  }
-
   /**
    * Actualiza el estado de una verificación específica
    */
@@ -403,54 +387,6 @@ class TechnicalVerificationService {
     } catch (error) {
       console.error('Error obteniendo ID de candidato:', error);
       return null;
-    }
-  }
-
-  async submitVerificationToBackend(): Promise<{ success: boolean; message: string }> {
-    try {
-      if (!this.verificationData) {
-        throw new Error('No hay datos de verificación para enviar');
-      }
-
-      // TODO: Implementar cuando tengamos el endpoint específico
-      // Por ahora, simularemos el envío al technicalSetup del candidato
-      
-      const {data} = await axios.get(`${import.meta.env.VITE_USER_MANAGEMENT_URL}/api/v1/candidates/by-auth-user/${authSDK.getCurrentUser()?.id}`,{
-        headers:{
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${authSDK.getAccessToken()}`
-        }
-      });
-      if(!data.data._id) throw new Error('No se encontró el candidato asociado al usuario autenticado');
-
-      const payload = {
-        candidateId: data.data._id,
-        examId: this.verificationData.examId,
-        technicalSetup: {
-          verificationData: this.verificationData,
-          lastUpdated: new Date().toISOString(),
-          status: this.verificationData.overallStatus
-        }
-      };
-      
-      // Simular llamada al backend (implementar cuando esté disponible)
-      await axios.put(`${import.meta.env.VITE_USER_MANAGEMENT_URL}/api/v1/candidates/${payload.candidateId}/technical-setup`, payload,{
-        headers:{
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${authSDK.getAccessToken()}`
-        }
-      });
-      return {
-        success: true,
-        message: 'Verificación técnica guardada exitosamente'
-      };
-      
-    } catch (error) {
-      console.error('Error enviando verificación técnica:', error);
-      return {
-        success: false,
-        message: 'Error al guardar la verificación técnica'
-      };
     }
   }
 
