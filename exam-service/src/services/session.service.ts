@@ -528,6 +528,7 @@ export class SessionService {
           sessionName: session.sessionName,
           status: CONSTANTS.SESSION_STATUS.IN_PROGRESS,
           enrolledCandidateIds: session.participants.registeredCandidates.map(String),
+          proctorIds: session.participants.proctors.map(String),
           createdBy: session.createdBy?.toString()
         });
       }
@@ -554,6 +555,7 @@ export class SessionService {
           sessionName: session.sessionName,
           status: CONSTANTS.SESSION_STATUS.COMPLETED,
           enrolledCandidateIds: session.participants.registeredCandidates.map(String),
+          proctorIds: session.participants.proctors.map(String),
           createdBy: session.createdBy?.toString()
         });
 
@@ -615,6 +617,7 @@ export class SessionService {
           sessionName: session.sessionName,
           status: CONSTANTS.SESSION_STATUS.CANCELLED,
           enrolledCandidateIds: session.participants.registeredCandidates.map(String),
+          proctorIds: session.participants.proctors.map(String),
           createdBy: session.createdBy?.toString()
         });
         cache.del('upcoming_sessions:{}').catch(() => {});
@@ -1133,13 +1136,15 @@ export class SessionService {
       // Reschedule the Bull end job
       await this.sessionSchedulerService.rescheduleEndJob(sessionId, newEndDate);
 
-      // Notify all enrolled candidates via Kafka
+      // Notify all enrolled candidates plus proctors/creator via Kafka
       await this.kafkaService.publishEvent('session.time.extended', {
         sessionId: String(session._id),
         sessionName: session.sessionName,
         extraMinutes: minutes,
         newEndDate: newEndDate.toISOString(),
         enrolledCandidateIds: session.participants.registeredCandidates.map(String),
+        proctorIds: session.participants.proctors.map(String),
+        createdBy: session.createdBy?.toString(),
         extendedBy: session.createdBy?.toString()
       });
 
@@ -1151,8 +1156,14 @@ export class SessionService {
     }
   }
 
-  async kickCandidate(sessionId: string, candidateId: string): Promise<void> {
+  async kickCandidate(
+    sessionId: string,
+    candidateId: string,
+    options?: { reason?: string; kickedBy?: string }
+  ): Promise<void> {
     try {
+      const session = await Session.findById(sessionId);
+
       const attempt = await Attempt.findOne({
         sessionId: new Types.ObjectId(sessionId),
         candidateId: new Types.ObjectId(candidateId),
@@ -1165,21 +1176,26 @@ export class SessionService {
       }
       logger.info(`Candidate ${candidateId} kicked from session ${sessionId}`);
 
-      // Notify the student via socket (fire-and-forget)
-      // NOTIFICATION_SERVICE_URL already includes /notifications (e.g. http://notification-service:3001/notifications)
-      const notifUrl = process.env.NOTIFICATION_SERVICE_URL || 'http://notification-service:3001/notifications';
-      axios.post(`${notifUrl}/inapp`, {
-        recipientId: candidateId,
-        recipientType: 'candidate',
-        type: 'candidate.kicked',
-        channel: 'in-app',
-        content: {
-          title: 'Has sido expulsado de la sesión',
-          body: 'El administrador te ha removido de la sesión de examen.',
-        },
-        priority: 'high',
-        metadata: { sessionId },
-      }).catch(() => { /* best-effort */ });
+      // Publish on exam-events via the same legacy producer path the other
+      // session.* events use. notifications-service consumes this to both
+      // create the in-app notification for the candidate AND push a
+      // dedicated `session.candidate.kicked` socket event to the candidate
+      // and the session's proctors/creator — replacing the old direct
+      // best-effort HTTP call to notifications-service's /inapp endpoint
+      // (removed here to avoid double-notifying the candidate).
+      await this.kafkaService.publishEvent('session.candidate.kicked', {
+        sessionId,
+        candidateId,
+        attemptId: attempt ? String(attempt._id) : undefined,
+        reason: options?.reason,
+        kickedBy: options?.kickedBy,
+        kickedAt: new Date().toISOString(),
+        sessionName: session?.sessionName,
+        examId: session?.examId ? String(session.examId) : undefined,
+        enrolledCandidateIds: session?.participants.registeredCandidates.map(String) || [],
+        proctorIds: session?.participants.proctors.map(String) || [],
+        createdBy: session?.createdBy?.toString(),
+      });
     } catch (error) {
       logger.error(`Error kicking candidate ${candidateId} from session ${sessionId}:`, error);
       throw error;

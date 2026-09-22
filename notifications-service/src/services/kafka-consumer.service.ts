@@ -67,6 +67,28 @@ export async function isEmailNotificationsEnabled(email: string): Promise<boolea
   });
 }
 
+// Recipient resolution for session.* socket pushes (session.status.changed,
+// session.time.extended, session.candidate.kicked): candidates + proctors +
+// creator, deduped. exam-service includes proctorIds/createdBy on the event
+// data (it has the session loaded), so notifications-service never needs to
+// query exam-service's DB. `createdByKey` lets callers read a differently
+// named creator field (session.time.extended historically used `extendedBy`).
+// Events published before this change simply lack `proctorIds`, so this
+// degrades gracefully to the old candidates(+createdBy) behavior.
+function resolveSessionRecipients(data: any, opts?: { createdByKey?: string }): Set<string> {
+  const recipients = new Set<string>();
+  const enrolledCandidateIds: string[] = data.enrolledCandidateIds || [];
+  const proctorIds: string[] = data.proctorIds || [];
+  const createdByKey = opts?.createdByKey || 'createdBy';
+  const createdBy = data[createdByKey] || data.createdBy;
+
+  for (const candidateId of enrolledCandidateIds) recipients.add(String(candidateId));
+  for (const proctorId of proctorIds) recipients.add(String(proctorId));
+  if (createdBy) recipients.add(String(createdBy));
+
+  return recipients;
+}
+
 export class KafkaConsumerService {
   constructor(
     private consumer: Consumer,
@@ -343,8 +365,12 @@ export class KafkaConsumerService {
         case 'session.started':
         case 'session.ended':
         case 'session.cancelled': {
-          // Emit session.status.changed to all enrolled candidates and creator via socket
-          const enrolledCandidateIds: string[] = data.enrolledCandidateIds || [];
+          // Emit session.status.changed to enrolled candidates, session
+          // proctors and the creator via socket. proctorIds/createdBy are
+          // only present on events published after this change — older
+          // events (or a producer that hasn't rolled out yet) simply fall
+          // back to candidates + createdBy as before.
+          const recipients = resolveSessionRecipients(data);
           const sessionSocketPayload = {
             sessionId: String(data.sessionId),
             sessionName: data.sessionName,
@@ -352,31 +378,78 @@ export class KafkaConsumerService {
             examId: data.examId ? String(data.examId) : undefined,
           };
 
-          for (const candidateId of enrolledCandidateIds) {
-            this.notificationService.emitToUser(candidateId, 'session.status.changed', sessionSocketPayload);
+          for (const recipientId of recipients) {
+            this.notificationService.emitToUser(recipientId, 'session.status.changed', sessionSocketPayload);
           }
 
-          // Also emit to the creator/teacher so admin views update
-          if (data.createdBy) {
-            this.notificationService.emitToUser(String(data.createdBy), 'session.status.changed', sessionSocketPayload);
-          }
-
-          console.log(`📡 session.status.changed emitido a ${enrolledCandidateIds.length} candidatos (evento: ${eventType})`);
+          console.log(`📡 session.status.changed emitido a ${recipients.size} destinatario(s) (evento: ${eventType})`);
           break;
         }
 
         case 'session.time.extended': {
-          const enrolledCandidateIds: string[] = data.enrolledCandidateIds || [];
+          const recipients = resolveSessionRecipients(data, { createdByKey: 'extendedBy' });
           const extendPayload = {
             sessionId: String(data.sessionId),
             sessionName: data.sessionName,
             extraMinutes: data.extraMinutes,
             newEndDate: data.newEndDate,
           };
-          for (const candidateId of enrolledCandidateIds) {
-            this.notificationService.emitToUser(candidateId, 'session.time.extended', extendPayload);
+          for (const recipientId of recipients) {
+            this.notificationService.emitToUser(recipientId, 'session.time.extended', extendPayload);
           }
-          console.log(`session.time.extended emitido a ${enrolledCandidateIds.length} candidatos (+${data.extraMinutes} min)`);
+          console.log(`session.time.extended emitido a ${recipients.size} destinatario(s) (+${data.extraMinutes} min)`);
+          break;
+        }
+
+        case 'session.candidate.kicked': {
+          const candidateId = data.candidateId;
+          if (!candidateId) {
+            console.warn('No candidateId in session.candidate.kicked event');
+            return;
+          }
+
+          const kickedPayload = {
+            sessionId: String(data.sessionId),
+            sessionName: data.sessionName,
+            candidateId: String(candidateId),
+            attemptId: data.attemptId ? String(data.attemptId) : undefined,
+            reason: data.reason,
+            kickedBy: data.kickedBy,
+            kickedAt: data.kickedAt,
+          };
+
+          // In-app notification + socket push for the kicked candidate.
+          // This replaces the direct best-effort HTTP call exam-service used
+          // to make to /inapp — doing it here (from the same Kafka event that
+          // drives the socket push) avoids a duplicate notification.
+          const notifPayload: Omit<Notification, '_id' | 'createdAt' | 'updatedAt'> = {
+            recipientId: String(candidateId),
+            recipientType: 'candidate',
+            type: 'session.candidate.kicked',
+            channel: 'in-app',
+            content: {
+              title: 'Has sido expulsado de la sesión',
+              body: data.reason
+                ? `El supervisor te ha removido de la sesión de examen. Motivo: ${data.reason}`
+                : 'El supervisor te ha removido de la sesión de examen.',
+            },
+            read: false,
+            priority: 'high',
+            metadata: { sessionId: data.sessionId, attemptId: data.attemptId, kickedBy: data.kickedBy },
+          };
+          await this.notificationService.createInAppNotification(notifPayload);
+
+          this.notificationService.emitToUser(String(candidateId), 'session.candidate.kicked', kickedPayload);
+
+          // Also notify proctors/creator so their monitor screens refresh
+          // immediately instead of waiting for the 10s poll.
+          const recipients = resolveSessionRecipients(data);
+          recipients.delete(String(candidateId));
+          for (const recipientId of recipients) {
+            this.notificationService.emitToUser(recipientId, 'session.candidate.kicked', kickedPayload);
+          }
+
+          console.log(`🔔 session.candidate.kicked emitido a candidate ${candidateId} + ${recipients.size} proctor(es)/creador`);
           break;
         }
 

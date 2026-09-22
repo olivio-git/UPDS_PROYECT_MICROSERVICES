@@ -351,7 +351,12 @@ export class ExamTakingService {
     if (!attempt) throw new Error('Attempt not found');
 
     if (attempt.status !== 'in_progress') {
-      throw new AppError(`Cannot submit an answer: attempt is ${attempt.status}, not in progress`, 409);
+      throw new AppError(
+        `Cannot submit an answer: attempt is ${attempt.status}, not in progress`,
+        409,
+        'ATTEMPT_NOT_IN_PROGRESS',
+        attempt.status
+      );
     }
 
     // Get question to determine competency
@@ -412,7 +417,12 @@ export class ExamTakingService {
     }
 
     if (attempt.status !== 'in_progress') {
-      throw new AppError(`Cannot finish exam: attempt is ${attempt.status}`, 409);
+      throw new AppError(
+        `Cannot finish exam: attempt is ${attempt.status}`,
+        409,
+        'ATTEMPT_NOT_IN_PROGRESS',
+        attempt.status
+      );
     }
 
     attempt.finishedAt = new Date();
@@ -446,9 +456,24 @@ export class ExamTakingService {
     const attempt = await Attempt.findOne({ sessionId, candidateId });
     if (!attempt || !attempt.startedAt) return { timeRemaining: 0, sessionEnded: false };
 
-    // If attempt is already completed or expired, return 0
+    // If attempt is already completed or expired, return 0 — this is a
+    // normal terminal state the frontend already handles via the polling
+    // response, not an error.
     if (attempt.status === 'completed' || attempt.status === 'expired') {
       return { timeRemaining: 0, sessionEnded: true };
+    }
+
+    // A 'cancelled' attempt means the candidate was kicked by a proctor/admin.
+    // Unlike completed/expired, this is not a normal flow — surface it as a
+    // 409 (same code as submitAnswer/finishExam) so the frontend's shared
+    // fallback handler catches it even if the kick socket event was missed.
+    if (attempt.status === 'cancelled') {
+      throw new AppError(
+        'Cannot get time remaining: attempt is cancelled',
+        409,
+        'ATTEMPT_NOT_IN_PROGRESS',
+        attempt.status
+      );
     }
 
     // Check if the parent session was ended/cancelled by admin or teacher
@@ -896,7 +921,12 @@ export class ExamTakingService {
     const attempt = await Attempt.findOne({ sessionId, candidateId: userCandidateId });
     if (!attempt) throw new Error('Attempt not found');
     if (attempt.status !== 'in_progress') {
-      throw new AppError(`Cannot submit an answer: attempt is ${attempt.status}, not in progress`, 409);
+      throw new AppError(
+        `Cannot submit an answer: attempt is ${attempt.status}, not in progress`,
+        409,
+        'ATTEMPT_NOT_IN_PROGRESS',
+        attempt.status
+      );
     }
 
     const question = await Question.findById(questionId);
