@@ -14,8 +14,8 @@ export class StorageService {
       endPoint: env.MINIO_ENDPOINT || 'localhost',
       port: env.MINIO_PORT || 9000,
       useSSL: env.MINIO_USE_SSL || false,
-      accessKey: env.MINIO_ACCESS_KEY || 'minioadmin',
-      secretKey: env.MINIO_SECRET_KEY || 'minioadmin'
+      accessKey: env.MINIO_ACCESS_KEY,
+      secretKey: env.MINIO_SECRET_KEY
     });
 
     this.bucketName = env.MINIO_BUCKET_NAME || 'exam-files';

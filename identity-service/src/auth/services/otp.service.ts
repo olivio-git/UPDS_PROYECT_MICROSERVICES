@@ -52,6 +52,12 @@ export class OtpService {
   }
 
   async generateOtp(email: string, purpose: OtpData['purpose']): Promise<{ success: boolean; message: string; expiresIn?: number }> {
+    // Normalize once at the entry point: the rate-limit key, the OTP key and
+    // the persisted email must all agree, or "Test@x.com" and "test@x.com"
+    // get separate rate-limit budgets and separate OTP slots for the same
+    // account.
+    email = this.normalizeEmail(email);
+
     const user = await this.userRepository.findByEmail(email);
     if (purpose === 'login' && !user) {
       return { success: false, message: 'Usuario no encontrado' };
@@ -109,6 +115,7 @@ export class OtpService {
   }
 
   async verifyOtp(email: string, code: string, purpose: OtpData['purpose']): Promise<{ success: boolean; message: string }> {
+    email = this.normalizeEmail(email);
     const otpKey = this.getOtpKey(email, purpose);
     const otpData = (await this.cacheRepository.get(otpKey)) as OtpData | null;
 
@@ -159,6 +166,7 @@ export class OtpService {
   }
 
   async revokeOtp(email: string, purpose: OtpData['purpose']): Promise<void> {
+    email = this.normalizeEmail(email);
     const otpKey = this.getOtpKey(email, purpose);
     await this.cacheRepository.delete(otpKey);
     await legacyEventService.publishOtpEvent('otp.revoked', { email, purpose, timestamp: new Date() });
@@ -169,6 +177,7 @@ export class OtpService {
     expiresAt?: Date;
     attemptsRemaining?: number;
   }> {
+    email = this.normalizeEmail(email);
     const otpKey = this.getOtpKey(email, purpose);
     const otpData = (await this.cacheRepository.get(otpKey)) as OtpData | null;
 
@@ -189,6 +198,16 @@ export class OtpService {
 
   private getOtpKey(email: string, purpose: string): string {
     return `otp:${email}:${purpose}`;
+  }
+
+  /**
+   * Lowercases and trims an email so the rate-limit key and the OTP key
+   * agree for every case variant of the same address — otherwise
+   * "Test@x.com" and "test@x.com" get separate rate-limit budgets and
+   * separate OTP slots for what is really one account.
+   */
+  private normalizeEmail(email: string): string {
+    return email.trim().toLowerCase();
   }
 
   private getPurposeDisplayName(purpose: OtpData['purpose']): string {
