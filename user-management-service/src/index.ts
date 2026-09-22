@@ -95,19 +95,6 @@ async function startServer() {
     }
 
     // ================================
-    // INICIALIZAR SISTEMA (Roles por defecto, etc.)
-    // ================================
-    console.log('🔧 Inicializando sistema...');
-    // try {
-    //   const { systemInitializer } = await import('./utils/initialization');
-    //   await systemInitializer.initializeSystem();
-    //   console.log('✅ Sistema inicializado');
-    // } catch (error) {
-    //   console.warn('⚠️ Advertencias durante inicialización del sistema:', error);
-    //   // No detener el servidor por errores en la inicialización
-    // }
-
-    // ================================
     // RUTAS (Se cargan DESPUÉS de conectar a la BD)
     // ================================
     // Usamos import() dinámico para asegurar que los controladores se instancien

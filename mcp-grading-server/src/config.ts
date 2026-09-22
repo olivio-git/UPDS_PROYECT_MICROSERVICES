@@ -15,9 +15,6 @@ export const config = {
     dbName: process.env.MONGO_DB_NAME || 'cba_platform',
     levelsDbName: process.env.MONGO_LEVELS_DB_NAME || 'cba_user_management_db',
   },
-  aiGradingService: {
-    url: process.env.AI_GRADING_SERVICE_URL || 'http://localhost:3006',
-  },
   notificationService: {
     url: process.env.NOTIFICATION_SERVICE_URL || 'http://notifications-service:3003',
   },

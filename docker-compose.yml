@@ -15,7 +15,6 @@ services:
       - notifications-service
       - exam-service
       - session-manager-service
-      - ai-grading-service
       - grading-service
     networks:
       - default
@@ -340,9 +339,6 @@ services:
       - MINIO_BUCKET_NAME=exam-files
       - CORS_ORIGIN=${CORS_ORIGIN}
       - LOG_LEVEL=info
-      - OLLAMA_URL=${OLLAMA_URL}
-      - OLLAMA_MODEL=${OLLAMA_MODEL}
-      - LLM_ENABLED=${LLM_ENABLED}
       - GRADING_SERVICE_URL=http://grading-service:3007
       - MINIO_INTERNAL_ENDPOINT=http://minio:9000
       - MONGO_UMS_DB_NAME=${MONGO_DB_NAME:-cba_user_management_db}
@@ -473,7 +469,6 @@ services:
       - MONGO_URI=mongodb://${MONGO_ROOT_USERNAME}:${MONGO_ROOT_PASSWORD}@mongo:27017/${MONGO_DB_NAME}?authSource=admin
       - MONGO_DB_NAME=${MONGO_DB_NAME}
       - MONGO_LEVELS_DB_NAME=${MONGO_DB_NAME_USER_MANAGEMENT:-cba_user_management_db}
-      - AI_GRADING_SERVICE_URL=http://ai-grading-service:3006
       - NOTIFICATION_SERVICE_URL=http://notification-service:3001
       - MINIO_INTERNAL_ENDPOINT=http://minio:9000
       - MINIO_BUCKET_NAME=exam-files
@@ -499,39 +494,6 @@ services:
       timeout: 5s
       retries: 5
 
-  ai-grading-service:
-    build: ./ai-grading-service
-    container_name: ai-grading-service
-    # ports:
-    #   - "3006:3006"
-    environment:
-      - ENV=${NODE_ENV}
-      - MONGODB_URL=mongodb://${MONGO_ROOT_USERNAME}:${MONGO_ROOT_PASSWORD}@mongo:27017
-      - MONGODB_DB_NAME=upds_evaluation # Base de datos específica para AI
-      - REDIS_URL=redis://:${REDIS_PASSWORD}@redis:6379
-      - JWT_SECRET=${JWT_SECRET}
-      - CORS_ORIGIN=${CORS_ORIGIN} # Corregido de CORS_ORIGINS a CORS_ORIGIN
-      - LLM_ENABLED=${LLM_ENABLED}
-      - OLLAMA_URL=${OLLAMA_URL}
-      - OLLAMA_MODEL=${OLLAMA_MODEL}
-      - LLM_TEMPERATURE=${LLM_TEMPERATURE}
-      - LLM_MAX_TOKENS=${LLM_MAX_TOKENS}
-      - LLM_TIMEOUT=${LLM_TIMEOUT}
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
-    depends_on:
-      mongo:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
-      kafka:
-        condition: service_healthy
-    restart: on-failure
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:3006/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
 volumes:
   kafka_data:
     driver: local

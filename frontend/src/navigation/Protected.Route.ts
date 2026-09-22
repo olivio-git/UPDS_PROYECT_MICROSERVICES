@@ -19,7 +19,6 @@ import {
   Users
 } from "lucide-react";
 import type RouteType from "./RouteType";
-// import GradientShowcaseScreen from "@/modules/examples/GradientShowcaseScreen";
 // import GradientTestScreen from "@/modules/testing/screens/GradientTestScreen";
 
 // Student Screens

@@ -7,7 +7,6 @@ import questionRoute from './question.routes';
 import rubricRoute from './rubric.routes';
 import sessionRoute from './session.routes';
 import systemMonitoringRoute from './systemMonitoring.routes';
-import evaluationRoute from './evaluation.routes';
 import { examResultRoutes } from './examResult.routes';
 import reportsRoute from './reports.routes';
 
@@ -22,7 +21,6 @@ router.use('/sessions', sessionRoute);
 router.use('/media', mediaRoute);
 router.use('/exam-taking', examTakingRoute);
 router.use('/system', systemMonitoringRoute);
-router.use('/evaluation', evaluationRoute);
 router.use('/exam-results', examResultRoutes);
 router.use('/reports', reportsRoute);
 
