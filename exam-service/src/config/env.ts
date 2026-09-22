@@ -56,8 +56,8 @@ export const env = {
   MINIO_ENDPOINT: process.env.MINIO_ENDPOINT || 'localhost',
   MINIO_PORT: parseInt(process.env.MINIO_PORT || '9000', 10),
   MINIO_USE_SSL: process.env.MINIO_USE_SSL === 'true',
-  MINIO_ACCESS_KEY: process.env.MINIO_ACCESS_KEY || 'minioadmin',
-  MINIO_SECRET_KEY: process.env.MINIO_SECRET_KEY || 'minioadmin',
+  MINIO_ACCESS_KEY: requireEnv('MINIO_ACCESS_KEY'),
+  MINIO_SECRET_KEY: requireEnv('MINIO_SECRET_KEY'),
   MINIO_BUCKET_NAME: process.env.MINIO_BUCKET_NAME || 'exam-files',
   MINIO_PUBLIC_URL: process.env.MINIO_PUBLIC_URL || '', // URL pública para acceso externo
   MINIO_PUBLIC_ENDPOINT: process.env.MINIO_PUBLIC_ENDPOINT || 'localhost', // Endpoint público para URLs
