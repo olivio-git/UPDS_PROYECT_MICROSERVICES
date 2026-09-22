@@ -61,15 +61,6 @@ app.get('/health', (req, res) => {
   });
 });
 
-// Health check endpoint (simple for connectivity tests)
-app.get('/health', (req, res) => {
-  res.status(200).json({ 
-    status: 'ok', 
-    service: 'exam-service',
-    timestamp: new Date().toISOString()
-  });
-});
-
 // API routes
 app.use('/api/v1', routes);
 
