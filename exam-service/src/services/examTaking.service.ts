@@ -116,7 +116,7 @@ export class ExamTakingService {
       // A student who started via the adaptive (CAT) path has adaptiveState
       // set on their attempt — they can't hop over to the linear path
       // mid-attempt, the question sets/progress tracking are incompatible.
-      if ((existingAttempt as any).adaptiveState) {
+      if (this.isAdaptiveAttempt(existingAttempt)) {
         throw new AppError(
           'This attempt was started as an adaptive exam — use the adaptive endpoints to resume it',
           409,
@@ -138,7 +138,7 @@ export class ExamTakingService {
       const registered: any[] = (session as any).participants?.registeredCandidates || [];
       const isRegistered = registered.some((id: any) => String(id) === String(userCandidateId));
       if (!isRegistered) {
-        throw new Error('Candidate not registered for this session');
+        throw new AppError('Candidate not registered for this session', 403, 'CANDIDATE_NOT_REGISTERED');
       }
       // Build minimal candidate object — _id is all that's needed for attempt creation
       candidate = { _id: userCandidateId };
@@ -916,6 +916,16 @@ export class ExamTakingService {
     return candidates[Math.floor(Math.random() * candidates.length)];
   }
 
+  /**
+   * Which path an attempt belongs to. `adaptiveState` is not a reliable marker:
+   * its subfields have schema defaults, so Mongoose materializes the object on
+   * every attempt. Attempts created before `isAdaptive` existed are recognized
+   * by adaptiveState.currentLevel, which only the adaptive path sets.
+   */
+  private isAdaptiveAttempt(attempt: any): boolean {
+    return Boolean(attempt?.isAdaptive || attempt?.adaptiveState?.currentLevel);
+  }
+
   async startAdaptiveExam(sessionId: string, userCandidateId: string) {
     const session = await this.sessionService.findById(sessionId);
     if (!session) throw new Error('Session not found');
@@ -929,12 +939,6 @@ export class ExamTakingService {
         'CANDIDATE_REMOVED'
       );
     }
-
-    // Validate candidate
-    const candidate = (session as any).candidatesData?.find(
-      (c: any) => String(c._id) === String(userCandidateId)
-    ) || null;
-    if (!candidate) throw new Error('Candidate not registered for this session');
 
     let exam: any = (session as any).exam || (session as any).examId;
     if (exam && typeof exam === 'object' && !exam._id && exam.toString) {
@@ -956,6 +960,14 @@ export class ExamTakingService {
       );
     }
 
+    // Validate candidate
+    const candidate = (session as any).candidatesData?.find(
+      (c: any) => String(c._id) === String(userCandidateId)
+    ) || null;
+    if (!candidate) {
+      throw new AppError('Candidate not registered for this session', 403, 'CANDIDATE_NOT_REGISTERED');
+    }
+
     const now = new Date();
 
     // Check existing attempt
@@ -972,7 +984,7 @@ export class ExamTakingService {
       if (existingAttempt.status === 'cancelled') throw new Error('Exam was cancelled');
       // A student who started via the linear path has no adaptiveState on
       // their attempt — they can't hop over to the adaptive path mid-attempt.
-      if (!(existingAttempt as any).adaptiveState) {
+      if (!this.isAdaptiveAttempt(existingAttempt)) {
         throw new AppError(
           'This attempt was started as a linear exam — use the standard exam endpoints to resume it',
           409,
@@ -1027,6 +1039,7 @@ export class ExamTakingService {
       timeAllowedSeconds: timeInSeconds,
       startedAt: new Date(),
       status: 'in_progress',
+      isAdaptive: true,
       adaptiveState,
     });
     await attempt.save();

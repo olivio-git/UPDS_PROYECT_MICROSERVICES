@@ -19,6 +19,7 @@ export interface IAttempt extends Document {
     questionCount: number;
     questionIds: Types.ObjectId[];
   }>;
+  isAdaptive?: boolean;
   adaptiveState?: {
     currentLevel: string;
     consecutiveWrong: number;
@@ -54,6 +55,10 @@ const attemptSchema = new Schema<IAttempt>({
     questionCount: Number,
     questionIds: [{ type: Schema.Types.ObjectId, ref: 'Question' }]
   }],
+  // Explicit marker for the adaptive (CAT) path. adaptiveState cannot be used
+  // for this: its subfields have defaults, so Mongoose materializes the object
+  // on every attempt, including linear ones.
+  isAdaptive: { type: Boolean, default: false },
   adaptiveState: {
     currentLevel: String,
     consecutiveWrong: { type: Number, default: 0 },
