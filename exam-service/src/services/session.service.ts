@@ -10,6 +10,7 @@ import { logger } from '../utils/logger';
 import { KafkaService } from './kafka.service';
 import { SessionSchedulerService } from './session-scheduler.service';
 import { publishExamAttemptFinished } from './examEventPublisher';
+import { AppError } from '../middleware/errorHandler.middleware';
 export class SessionService {
   private kafkaService: KafkaService;
   private sessionSchedulerService: SessionSchedulerService;
@@ -528,6 +529,7 @@ export class SessionService {
           sessionName: session.sessionName,
           status: CONSTANTS.SESSION_STATUS.IN_PROGRESS,
           enrolledCandidateIds: session.participants.registeredCandidates.map(String),
+          proctorIds: session.participants.proctors.map(String),
           createdBy: session.createdBy?.toString()
         });
       }
@@ -548,17 +550,15 @@ export class SessionService {
       );
 
       if (session) {
-        await this.kafkaService.publishEvent('session.ended', {
-          sessionId: session._id,
-          examId: session.examId,
-          sessionName: session.sessionName,
-          status: CONSTANTS.SESSION_STATUS.COMPLETED,
-          enrolledCandidateIds: session.participants.registeredCandidates.map(String),
-          createdBy: session.createdBy?.toString()
-        });
-
-        // Mark all in-progress attempts for this session as completed and trigger grading
-        // This ensures results are saved even if the student's frontend doesn't respond
+        // Close in-progress attempts BEFORE publishing session.ended. The
+        // Kafka publish fans out to notifications-service, which pushes a
+        // socket event to the candidate almost immediately; if that push
+        // races ahead of these attempts being marked 'completed', the
+        // candidate's own finish() call can land while the attempt is still
+        // 'in_progress' server-side, racing this loop's own close/grade
+        // publish for the same attempt (and vice versa, causing a duplicate
+        // grading event). Closing first means any push the candidate
+        // receives always finds the attempt already 'completed'.
         const activeAttempts = await Attempt.find({
           sessionId: new Types.ObjectId(sessionId),
           status: 'in_progress'
@@ -587,6 +587,16 @@ export class SessionService {
         if (activeAttempts.length > 0) {
           logger.info(`[endSession] Closed and queued grading for ${activeAttempts.length} active attempt(s) in session ${sessionId}`);
         }
+
+        await this.kafkaService.publishEvent('session.ended', {
+          sessionId: session._id,
+          examId: session.examId,
+          sessionName: session.sessionName,
+          status: CONSTANTS.SESSION_STATUS.COMPLETED,
+          enrolledCandidateIds: session.participants.registeredCandidates.map(String),
+          proctorIds: session.participants.proctors.map(String),
+          createdBy: session.createdBy?.toString()
+        });
       }
 
       return session;
@@ -615,6 +625,7 @@ export class SessionService {
           sessionName: session.sessionName,
           status: CONSTANTS.SESSION_STATUS.CANCELLED,
           enrolledCandidateIds: session.participants.registeredCandidates.map(String),
+          proctorIds: session.participants.proctors.map(String),
           createdBy: session.createdBy?.toString()
         });
         cache.del('upcoming_sessions:{}').catch(() => {});
@@ -1133,13 +1144,15 @@ export class SessionService {
       // Reschedule the Bull end job
       await this.sessionSchedulerService.rescheduleEndJob(sessionId, newEndDate);
 
-      // Notify all enrolled candidates via Kafka
+      // Notify all enrolled candidates plus proctors/creator via Kafka
       await this.kafkaService.publishEvent('session.time.extended', {
         sessionId: String(session._id),
         sessionName: session.sessionName,
         extraMinutes: minutes,
         newEndDate: newEndDate.toISOString(),
         enrolledCandidateIds: session.participants.registeredCandidates.map(String),
+        proctorIds: session.participants.proctors.map(String),
+        createdBy: session.createdBy?.toString(),
         extendedBy: session.createdBy?.toString()
       });
 
@@ -1151,7 +1164,31 @@ export class SessionService {
     }
   }
 
-  async kickCandidate(sessionId: string, candidateId: string): Promise<void> {
+  async kickCandidate(
+    sessionId: string,
+    candidateId: string,
+    options?: { reason?: string; kickedBy?: string }
+  ): Promise<void> {
+    if (!Types.ObjectId.isValid(candidateId)) {
+      throw new AppError('Invalid candidate id', 400, 'INVALID_CANDIDATE_ID');
+    }
+
+    const session = await Session.findById(sessionId);
+    if (!session) {
+      throw new AppError('Session not found', 404, 'SESSION_NOT_FOUND');
+    }
+
+    const isEnrolled = session.participants.registeredCandidates.some(
+      id => String(id) === String(candidateId)
+    );
+    if (!isEnrolled) {
+      throw new AppError('Candidate is not enrolled in this session', 404, 'CANDIDATE_NOT_ENROLLED');
+    }
+
+    // Cap reason length — it's stored, published on Kafka and shown to the
+    // candidate/proctors, so bound it against abuse/mistakes.
+    const reason = options?.reason ? options.reason.slice(0, 300) : undefined;
+
     try {
       const attempt = await Attempt.findOne({
         sessionId: new Types.ObjectId(sessionId),
@@ -1163,23 +1200,38 @@ export class SessionService {
         attempt.finishedAt = new Date();
         await attempt.save();
       }
+
+      // Persist the kick so a re-entry attempt (before OR after starting) is
+      // refused server-side by startExam/startAdaptiveExam even if the
+      // socket push is missed — see CANDIDATE_REMOVED in examTaking.service.
+      await Session.findByIdAndUpdate(sessionId, {
+        $addToSet: { 'participants.kickedCandidates': new Types.ObjectId(candidateId) }
+      });
+
       logger.info(`Candidate ${candidateId} kicked from session ${sessionId}`);
 
-      // Notify the student via socket (fire-and-forget)
-      // NOTIFICATION_SERVICE_URL already includes /notifications (e.g. http://notification-service:3001/notifications)
-      const notifUrl = process.env.NOTIFICATION_SERVICE_URL || 'http://notification-service:3001/notifications';
-      axios.post(`${notifUrl}/inapp`, {
-        recipientId: candidateId,
-        recipientType: 'candidate',
-        type: 'candidate.kicked',
-        channel: 'in-app',
-        content: {
-          title: 'Has sido expulsado de la sesión',
-          body: 'El administrador te ha removido de la sesión de examen.',
-        },
-        priority: 'high',
-        metadata: { sessionId },
-      }).catch(() => { /* best-effort */ });
+      // Publish on exam-events via the same legacy producer path the other
+      // session.* events use. notifications-service consumes this to both
+      // create the in-app notification for the candidate AND push a
+      // dedicated `session.candidate.kicked` socket event to the candidate
+      // and the session's proctors/creator — replacing the old direct
+      // best-effort HTTP call to notifications-service's /inapp endpoint
+      // (removed here to avoid double-notifying the candidate).
+      // `kickedBy` is included here for the staff-facing push only —
+      // notifications-service must not forward it to the candidate.
+      await this.kafkaService.publishEvent('session.candidate.kicked', {
+        sessionId,
+        candidateId,
+        attemptId: attempt ? String(attempt._id) : undefined,
+        reason,
+        kickedBy: options?.kickedBy,
+        kickedAt: new Date().toISOString(),
+        sessionName: session.sessionName,
+        examId: session.examId ? String(session.examId) : undefined,
+        enrolledCandidateIds: session.participants.registeredCandidates.map(String) || [],
+        proctorIds: session.participants.proctors.map(String) || [],
+        createdBy: session.createdBy?.toString(),
+      });
     } catch (error) {
       logger.error(`Error kicking candidate ${candidateId} from session ${sessionId}:`, error);
       throw error;

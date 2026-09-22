@@ -5,11 +5,19 @@ import { CONSTANTS } from '../utils/constants';
 export class AppError extends Error {
   statusCode: number;
   isOperational: boolean;
+  // Machine-readable error code (e.g. 'ATTEMPT_NOT_IN_PROGRESS') so clients
+  // can branch on the exact failure instead of parsing the message string.
+  code?: string;
+  // Optional extra context surfaced to the client alongside the code, e.g.
+  // the attempt's actual status when the error is a state-mismatch (409).
+  attemptStatus?: string;
 
-  constructor(message: string, statusCode: number) {
+  constructor(message: string, statusCode: number, code?: string, attemptStatus?: string) {
     super(message);
     this.statusCode = statusCode;
     this.isOperational = true;
+    this.code = code;
+    this.attemptStatus = attemptStatus;
 
     Error.captureStackTrace(this, this.constructor);
   }
@@ -68,6 +76,8 @@ export const errorHandler = (
   res.status((error as AppError).statusCode || 500).json({
     success: false,
     message: error.message || CONSTANTS.ERROR_MESSAGES.INTERNAL_ERROR,
+    ...((error as AppError).code && { code: (error as AppError).code }),
+    ...((error as AppError).attemptStatus && { attemptStatus: (error as AppError).attemptStatus }),
     ...(process.env.NODE_ENV === 'development' && { stack: err.stack })
   });
 };

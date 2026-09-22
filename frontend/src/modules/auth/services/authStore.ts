@@ -2,6 +2,7 @@ import { authSDK } from '@/services/sdk-simple-auth';
 import axios from 'axios';
 import { create } from 'zustand';
 import { authService } from '../services/authService';
+import { notificationSocket } from '@/services/notifications/notificationSocket';
 
 interface OTPState {
   isOTPRequired: boolean;
@@ -330,7 +331,13 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
     try {
       // console.log('🚪 [AuthStore] Cerrando sesión...');
       await authService.logout();
-      
+
+      // Stop receiving pushes for the now-logged-out user — otherwise the
+      // socket stays connected (and, worse, a subsequent login as a
+      // different user would keep reusing this stale connection since
+      // connect() no-ops when already connected).
+      notificationSocket.disconnect();
+
       // Limpiar rutas guardadas
       try {
         sessionStorage.removeItem('cba_current_route');
@@ -338,8 +345,8 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
       } catch (error) {
         // Silencioso
       }
-      
-      set({ 
+
+      set({
         user: null,
         isAuthenticated: false,
         isLoading: false,

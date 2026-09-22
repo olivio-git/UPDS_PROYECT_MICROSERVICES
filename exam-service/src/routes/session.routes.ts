@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { SessionController } from '../controllers/session.controller';
 import { authMiddleware, requireRole } from '../middleware/auth.middleware';
+import { requireSessionAssignment } from '../middleware/sessionAccess.middleware';
 import { validateRequest, validateParams } from '../middleware/validation.middleware';
 import { sessionSchema } from '../schemas/session.schema';
 
@@ -113,6 +114,7 @@ router.post(
 router.post(
   '/:id/end',
   requireRole('admin', 'teacher', 'proctor'),
+  requireSessionAssignment(),
   validateParams(sessionSchema.params),
   sessionController.endSession
 );
@@ -128,6 +130,7 @@ router.post(
 router.post(
   '/:id/candidates/:candidateId/kick',
   requireRole('admin', 'teacher', 'proctor'),
+  requireSessionAssignment(),
   validateParams(sessionSchema.params),
   sessionController.kickCandidate
 );
@@ -136,6 +139,7 @@ router.post(
 router.post(
   '/:id/extend',
   requireRole('admin', 'teacher', 'proctor'),
+  requireSessionAssignment(),
   validateParams(sessionSchema.params),
   sessionController.extendSession
 );
@@ -144,6 +148,7 @@ router.post(
 router.post(
   '/:id/regrade',
   requireRole('admin', 'teacher'),
+  requireSessionAssignment(),
   validateParams(sessionSchema.params),
   sessionController.regradeSession
 );

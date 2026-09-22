@@ -482,7 +482,11 @@ export class SessionController {
 
   kickCandidate = async (req: Request, res: Response, next: NextFunction) => {
     try {
-      await this.sessionService.kickCandidate(req.params.id!, req.params.candidateId!);
+      const reason = typeof req.body?.reason === 'string' ? req.body.reason : undefined;
+      await this.sessionService.kickCandidate(req.params.id!, req.params.candidateId!, {
+        reason,
+        kickedBy: req.user?.id,
+      });
 
       auditLog({
         action: 'session.candidate_kicked',

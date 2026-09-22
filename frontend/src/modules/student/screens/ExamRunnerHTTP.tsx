@@ -9,7 +9,7 @@ import GradientWrapper from '@/components/background/GrandWrapperSection';
 import { MainLayout } from '@/components/layout';
 import { useExamSessionHTTP } from '@/hooks/useExamSessionHTTP';
 import { examResultService } from '@/services/examResultService';
-import { examService } from '@/services/examService';
+import { examService, getAttemptTerminationInfo } from '@/services/examService';
 import { notificationSocket } from '@/services/notifications/notificationSocket';
 import {
   AlertCircle,
@@ -23,6 +23,7 @@ import {
   Loader2,
   Save,
   Timer,
+  UserX,
   X,
 } from 'lucide-react';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
@@ -71,6 +72,8 @@ const ExamRunnerHTTP: React.FC = () => {
     loading,
     error,
     totalQuestions,
+    kicked,
+    kickReason,
 
     // Current section and question helpers
     currentSection,
@@ -208,6 +211,24 @@ const ExamRunnerHTTP: React.FC = () => {
       } catch (error: any) {
         console.error('Failed to initialize exam:', error);
 
+        // A candidate kicked by a proctor/admin (including before ever
+        // starting) is refused by startExam with 403 CANDIDATE_REMOVED.
+        if (error?.response?.data?.code === 'CANDIDATE_REMOVED') {
+          toast.error('Has sido expulsado de esta sesión por el supervisor.', { duration: 6000 });
+          navigate('/student/dashboard');
+          return;
+        }
+
+        // A candidate kicked mid-exam who reloads the page hits resumeExam,
+        // which 409s with attemptStatus 'cancelled' (the attempt itself is
+        // already terminal server-side).
+        const terminationInfo = getAttemptTerminationInfo(error);
+        if (terminationInfo?.attemptStatus === 'cancelled') {
+          toast.error('Has sido expulsado de esta sesión por el supervisor.', { duration: 6000 });
+          navigate('/student/dashboard');
+          return;
+        }
+
         // Check if error is related to expired exam
         if (error?.message?.includes('expired') || error?.message?.includes('time')) {
           toast.error('El tiempo del examen ha expirado');
@@ -319,6 +340,40 @@ const ExamRunnerHTTP: React.FC = () => {
       error: 'Error al guardar respuestas'
     });
   };
+
+  // Kicked state — the candidate was removed from the session by a
+  // proctor/admin. Blocking, no auto-navigation, no further exam-taking
+  // requests: the attempt is already 'cancelled' server-side.
+  if (kicked) {
+    return (
+      <MainLayout hideHeader>
+        <div className="min-h-screen flex items-center justify-center">
+          <GradientWrapper intensity="medium" size="lg">
+            <Card className="w-full max-w-md bg-box backdrop-blur-sm border border-line">
+              <CardContent className="p-8 text-center">
+                <UserX className="h-12 w-12 text-red-500 mx-auto mb-4" />
+                <h3 className="text-lg font-semibold text-foreground mb-2">
+                  Has sido retirado del examen
+                </h3>
+                <p className="text-muted-foreground mb-1">
+                  Has sido retirado del examen por el supervisor.
+                </p>
+                {kickReason && (
+                  <p className="text-muted-foreground text-sm mb-4">Motivo: {kickReason}</p>
+                )}
+                <Button
+                  onClick={() => navigate('/student/dashboard')}
+                  className="w-full mt-4"
+                >
+                  Volver al Dashboard
+                </Button>
+              </CardContent>
+            </Card>
+          </GradientWrapper>
+        </div>
+      </MainLayout>
+    );
+  }
 
   // Completion state - show completion UI
   if (examCompleting || sessionStatus === 'completed') {

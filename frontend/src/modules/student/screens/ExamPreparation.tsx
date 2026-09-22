@@ -454,17 +454,32 @@ const ExamPreparation = () => {
     };
     notificationSocket.on('session.status.changed', handler);
 
+    // notifications-service creates the in-app notification with type
+    // 'session.candidate.kicked' (see kafka-consumer.service.ts) — accept
+    // both that and the older 'candidate.kicked' string so this doesn't
+    // regress again if either side changes independently.
     const handleKicked = (data: any) => {
-      if (data?.type === 'candidate.kicked') {
+      if (data?.type === 'candidate.kicked' || data?.type === 'session.candidate.kicked') {
         toast.error('Has sido expulsado de la sesión por el administrador.', { duration: 6000 });
         navigate('/student/dashboard');
       }
     };
     notificationSocket.on('notification.created', handleKicked);
 
+    // Also listen to the dedicated socket event directly, scoped to this
+    // exam's session — it's pushed alongside (or instead of, if the
+    // in-app notification write races) the notification.created event.
+    const handleKickedSocket = (data: any) => {
+      if (String(data?.sessionId) !== String(sessionId)) return;
+      toast.error('Has sido expulsado de la sesión por el administrador.', { duration: 6000 });
+      navigate('/student/dashboard');
+    };
+    notificationSocket.on('session.candidate.kicked', handleKickedSocket);
+
     return () => {
       notificationSocket.off('session.status.changed', handler);
       notificationSocket.off('notification.created', handleKicked);
+      notificationSocket.off('session.candidate.kicked', handleKickedSocket);
     };
   }, [examData?.sessionId, computeEntryStatus, navigate]);
 
@@ -627,8 +642,13 @@ const ExamPreparation = () => {
 
       // replace: true so the back button doesn't return to preparation
       navigate(`/student/exam/${sessionId}`, { replace: true });
-    } catch (err) {
+    } catch (err: any) {
       console.error("Error starting exam:", err);
+      if (err?.response?.data?.code === "CANDIDATE_REMOVED") {
+        toast.error("Has sido expulsado de esta sesión por el supervisor.", { duration: 6000 });
+        navigate("/student/dashboard");
+        return;
+      }
       toast.error("Error al iniciar el examen");
     } finally {
       setIsStarting(false);

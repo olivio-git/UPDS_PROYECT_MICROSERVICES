@@ -3,8 +3,9 @@ import { Button } from '@/components/atoms/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/atoms/card';
 import { MainLayout } from '@/components/layout';
 import { examResultService } from '@/services/examResultService';
-import { examService } from '@/services/examService';
-import { AlertCircle, Brain, CheckCircle, Loader2, XCircle } from 'lucide-react';
+import { examService, getAttemptTerminationInfo } from '@/services/examService';
+import { notificationSocket } from '@/services/notifications/notificationSocket';
+import { AlertCircle, Brain, CheckCircle, Loader2, UserX, XCircle } from 'lucide-react';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { toast } from 'sonner';
@@ -52,14 +53,47 @@ const AdaptiveExamRunner: React.FC = () => {
   const [stopReason, setStopReason] = useState<string | undefined>(undefined);
   const [attemptId, setAttemptId] = useState<string | null>(null);
   const [navigatingToResult, setNavigatingToResult] = useState(false);
+  // Candidate was removed from the session by a proctor/admin — blocking,
+  // distinct from the normal "finished" screen (no finish request sent).
+  const [kicked, setKicked] = useState(false);
+  const [kickReason, setKickReason] = useState<string | undefined>(undefined);
 
   const feedbackTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Guards the terminal transition so it only runs once, whether triggered
+  // by a socket push or by a 409 ATTEMPT_NOT_IN_PROGRESS fallback.
+  const terminatedRef = useRef(false);
 
   const handleFinished = useCallback((reason?: string) => {
+    // Gate the kick/status-changed socket listeners the same way a 409
+    // fallback does — without this, a late push (session ended by the
+    // supervisor right after the candidate naturally finished) could replace
+    // the results screen with the kicked/terminated one, or re-run finish().
+    terminatedRef.current = true;
     setIsFinished(true);
     setStopReason(reason);
     toast.success('Examen de nivelación completado. Calculando tu nivel...');
   }, []);
+
+  // Shared terminal-state handler: 'cancelled' attemptStatus means kicked
+  // (block, no further requests); anything else (session ended/expired
+  // externally) mirrors the normal finish flow — force-finish (idempotent
+  // if already closed server-side) then show the standard "finished" screen
+  // so the existing pollForResult button flow takes over.
+  const handleTerminated = useCallback((attemptStatus?: string) => {
+    if (terminatedRef.current) return;
+    terminatedRef.current = true;
+    if (feedbackTimerRef.current) clearTimeout(feedbackTimerRef.current);
+
+    if (attemptStatus === 'cancelled') {
+      setKicked(true);
+      return;
+    }
+
+    if (sessionId) {
+      examService.finishExam(sessionId).catch(() => { /* already terminal server-side — ignore */ });
+    }
+    handleFinished('session_ended');
+  }, [sessionId, handleFinished]);
 
   useEffect(() => {
     if (!sessionId) return;
@@ -68,6 +102,47 @@ const AdaptiveExamRunner: React.FC = () => {
       if (feedbackTimerRef.current) clearTimeout(feedbackTimerRef.current);
     };
   }, [sessionId]);
+
+  // Ensure notificationSocket is connected — MainLayout renders the Header
+  // here (unlike ExamRunnerHTTP), which normally connects it, but this makes
+  // the dependency explicit rather than implicit.
+  useEffect(() => {
+    notificationSocket.connect().catch(() => {});
+  }, []);
+
+  // Listen for being kicked, and for the session ending/being cancelled by
+  // a proctor/admin.
+  useEffect(() => {
+    if (!sessionId) return;
+
+    const handleCandidateKicked = (data: any) => {
+      if (String(data.sessionId) !== String(sessionId)) return;
+      if (terminatedRef.current) return;
+      terminatedRef.current = true;
+      setKicked(true);
+      setKickReason(data.reason);
+    };
+
+    const handleSessionStatusChanged = (data: any) => {
+      if (String(data.sessionId) !== String(sessionId)) return;
+      if (data.status !== 'completed' && data.status !== 'cancelled') return;
+      if (terminatedRef.current) return;
+
+      toast.error(
+        data.status === 'completed'
+          ? 'La sesión fue finalizada por el supervisor. Tu examen fue enviado.'
+          : 'La sesión fue cancelada por el supervisor. Tu examen fue enviado con tus respuestas actuales.'
+      );
+      handleTerminated(undefined);
+    };
+
+    notificationSocket.on('session.candidate.kicked', handleCandidateKicked);
+    notificationSocket.on('session.status.changed', handleSessionStatusChanged);
+    return () => {
+      notificationSocket.off('session.candidate.kicked', handleCandidateKicked);
+      notificationSocket.off('session.status.changed', handleSessionStatusChanged);
+    };
+  }, [sessionId, handleTerminated]);
 
   const initializeAdaptiveExam = async () => {
     if (!sessionId) return;
@@ -107,6 +182,11 @@ const AdaptiveExamRunner: React.FC = () => {
         }
       }
     } catch (err: any) {
+      if (err?.response?.data?.code === 'CANDIDATE_REMOVED') {
+        setKicked(true);
+        setKickReason(err?.response?.data?.message);
+        return;
+      }
       const msg = err?.response?.data?.message || err.message || 'Error al iniciar el examen';
       if (msg.includes('already completed')) {
         handleFinished();
@@ -150,7 +230,12 @@ const AdaptiveExamRunner: React.FC = () => {
         }, 1500);
       }
     } catch (err: any) {
-      toast.error(err?.response?.data?.message || err.message || 'Error al enviar respuesta');
+      const terminationInfo = getAttemptTerminationInfo(err);
+      if (terminationInfo) {
+        handleTerminated(terminationInfo.attemptStatus);
+      } else {
+        toast.error(err?.response?.data?.message || err.message || 'Error al enviar respuesta');
+      }
     } finally {
       setSubmitting(false);
     }
@@ -184,6 +269,26 @@ const AdaptiveExamRunner: React.FC = () => {
               Volver al Panel
             </Button>
           </div>
+        </div>
+      </MainLayout>
+    );
+  }
+
+  if (kicked) {
+    return (
+      <MainLayout gradientVariant="primary">
+        <div className="max-w-3xl mx-auto flex items-center justify-center min-h-96">
+          <Card className="bg-card border border-line w-full max-w-md">
+            <CardContent className="p-10 text-center space-y-4">
+              <UserX className="h-12 w-12 text-red-400 mx-auto" />
+              <h2 className="text-xl font-bold text-foreground">Has sido retirado del examen</h2>
+              <p className="text-foreground/80">Has sido retirado del examen por el supervisor.</p>
+              {kickReason && <p className="text-muted-foreground text-sm">Motivo: {kickReason}</p>}
+              <Button onClick={() => navigate('/student/dashboard')} className="w-full">
+                Volver al Panel
+              </Button>
+            </CardContent>
+          </Card>
         </div>
       </MainLayout>
     );

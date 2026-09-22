@@ -346,6 +346,23 @@ const SessionMonitorScreen = () => {
     };
   }, [sessionId, fetchProgress]);
 
+  // ── WebSocket: detect a candidate being kicked in real-time ───────────────
+  useEffect(() => {
+    if (!sessionId) return;
+
+    const handleCandidateKicked = (event: any) => {
+      if (String(event.sessionId) !== String(sessionId)) return;
+      toast.warning("Un candidato fue expulsado de la sesión");
+      // Refetch immediately instead of waiting for the 10s poll
+      fetchProgress(false);
+    };
+
+    notificationSocket.on("session.candidate.kicked", handleCandidateKicked);
+    return () => {
+      notificationSocket.off("session.candidate.kicked", handleCandidateKicked);
+    };
+  }, [sessionId, fetchProgress]);
+
   // ── Manual refresh ─────────────────────────────────────────────────────────
 
   const handleManualRefresh = useCallback(async () => {

@@ -121,19 +121,25 @@ const ExamCalendar = () => {
       if (
         data?.type === 'session.candidate.added' ||
         data?.type === 'candidate.kicked' ||
+        data?.type === 'session.candidate.kicked' ||
         data?.type === 'session.candidate.removed'
       ) {
         loadExams();
       }
     };
+    // notifications-service also pushes the dedicated kick socket event
+    // alongside (or instead of, if the in-app write races) notification.created.
+    const onCandidateKicked = () => loadExams();
 
     notificationSocket.on('session.status.changed', onStatusChanged);
     notificationSocket.on('notification.created', onNotification);
+    notificationSocket.on('session.candidate.kicked', onCandidateKicked);
     notificationSocket.connect().catch(() => {});
 
     return () => {
       notificationSocket.off('session.status.changed', onStatusChanged);
       notificationSocket.off('notification.created', onNotification);
+      notificationSocket.off('session.candidate.kicked', onCandidateKicked);
     };
   }, []);
 
