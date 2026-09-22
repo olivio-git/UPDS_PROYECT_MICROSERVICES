@@ -15,7 +15,7 @@
  *     `integrity.{infractionCount,lastInfractionAt,events[]}`.
  *   - exam-service publishes `session.candidate.infraction` on exam-events
  *     (legacy producer path, same as session.candidate.kicked), throttled to
- *     at most once per attempt per 10s. notifications-service consumes it
+ *     at most once per attempt per 10s, plus one trailing push per window. notifications-service consumes it
  *     and pushes a socket event to the session's proctors + creator ONLY —
  *     never to the candidate, and with no in-app notification row (that
  *     would spam the proctor's bell icon on every infraction).
@@ -270,7 +270,13 @@ async function main() {
     // ---- Proctor push: throttled to <= 1 event within the 10s collection window ----
     const proctorInfractionEvents = await proctorInfractionCollector;
     check('proctor socket receives session.candidate.infraction (at least once)', proctorInfractionEvents.length >= 1, `received=${proctorInfractionEvents.length}`);
-    check('proctor push is throttled: at most 1 event across the burst + follow-up within the 10s window', proctorInfractionEvents.length <= 1, `received=${proctorInfractionEvents.length}: ${JSON.stringify(proctorInfractionEvents)}`);
+    // The throttle coalesces a burst into one immediate push plus, if
+    // infractions were dropped during the window, one trailing push at its
+    // end carrying the latest count — so 2 pushes for 4+ infractions, never
+    // one per infraction.
+    check('proctor push is throttled: at most 2 events (immediate + trailing) for the whole burst', proctorInfractionEvents.length <= 2, `received=${proctorInfractionEvents.length}: ${JSON.stringify(proctorInfractionEvents)}`);
+    const lastEvent = proctorInfractionEvents[proctorInfractionEvents.length - 1];
+    check('the last proctor push carries the current infraction count', lastEvent?.infractionCount === 2, JSON.stringify(lastEvent));
     if (proctorInfractionEvents[0]) {
       check(
         'proctor event carries sessionId/candidateId/current infractionCount',
