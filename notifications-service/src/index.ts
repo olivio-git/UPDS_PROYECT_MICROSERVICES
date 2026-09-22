@@ -16,7 +16,11 @@ import { EmailService } from './services/email.service';
 import { EventService } from './services/event.service';
 import { KafkaConsumerService } from './services/kafka-consumer.service';
 import { NotificationService } from './services/notification.service';
+import { startGradingNotificationConsumer } from './services/grading-notification.consumer';
 import SocketService from './services/socket.service';
+import type { ConsumerHandle } from '@cba/events';
+import type { Kafka } from 'kafkajs';
+import type Redis from 'ioredis';
 
 // Controllers
 import { NotificationController } from './controllers/notification.controller';
@@ -32,6 +36,10 @@ class NotificationServiceApp {
   private dbConnections: DatabaseConnections;
   private kafkaConsumerService?: KafkaConsumerService;
   private socketService?: SocketService;
+  private gradingNotificationConsumerHandle?: ConsumerHandle;
+  private kafkaClient?: Kafka;
+  private notificationService?: NotificationService;
+  private redisClient?: Redis;
 
   constructor() {
     this.app = express();
@@ -72,7 +80,9 @@ class NotificationServiceApp {
     // Conectar a las bases de datos
     const database = await this.dbConnections.connectMongoDB();
     const redisClient = await this.dbConnections.connectRedis();
-    const { producer: kafkaProducer, consumer: kafkaConsumer } = await this.dbConnections.connectKafka();
+    this.redisClient = redisClient;
+    const { kafka: kafkaClient, producer: kafkaProducer, consumer: kafkaConsumer } = await this.dbConnections.connectKafka();
+    this.kafkaClient = kafkaClient;
 
   console.log('📦 Inicializando repositorios...');
   // Repositories
@@ -95,6 +105,7 @@ class NotificationServiceApp {
       notificationInAppRepository,
       this.socketService as any
     );
+    this.notificationService = notificationService;
 
     // Kafka Consumer Service
     this.kafkaConsumerService = new KafkaConsumerService(kafkaConsumer, notificationService);
@@ -181,7 +192,10 @@ class NotificationServiceApp {
       if (this.kafkaConsumerService) {
         await this.kafkaConsumerService.stopConsumers();
       }
-      
+      if (this.gradingNotificationConsumerHandle) {
+        await this.gradingNotificationConsumerHandle.stop();
+      }
+
       // Cerrar conexiones
       await this.dbConnections.closeConnections();
       
@@ -222,6 +236,21 @@ class NotificationServiceApp {
             console.error('❌ Error iniciando consumidores de Kafka:', error);
           });
         });
+      }
+
+      // grading.result.published consumer: independent of the legacy
+      // consumer group above (own groupId 'notifications-grading') and of
+      // onKafkaReady — @cba/events' runConsumer() manages its own
+      // connect/retry loop, so this never blocks or depends on the legacy
+      // Kafka bootstrap.
+      if (this.kafkaClient && this.notificationService && this.redisClient) {
+        startGradingNotificationConsumer(this.kafkaClient, this.notificationService, this.redisClient)
+          .then((handle) => {
+            this.gradingNotificationConsumerHandle = handle;
+          })
+          .catch((error) => {
+            console.error('❌ Error iniciando consumidor grading-notification:', error);
+          });
       }
 
       // Configurar rutas
