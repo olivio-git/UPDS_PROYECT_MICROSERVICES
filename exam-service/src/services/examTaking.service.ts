@@ -8,6 +8,7 @@ import { logger } from '../utils/logger';
 import { env } from '../config/env';
 import { SessionService } from './session.service';
 import { publishExamAttemptFinished } from './examEventPublisher';
+import { AppError } from '../middleware/errorHandler.middleware';
 
 export class ExamTakingService {
   private sessionService: SessionService;
@@ -349,6 +350,10 @@ export class ExamTakingService {
     const attempt = await Attempt.findOne({ sessionId, candidateId });
     if (!attempt) throw new Error('Attempt not found');
 
+    if (attempt.status !== 'in_progress') {
+      throw new AppError(`Cannot submit an answer: attempt is ${attempt.status}, not in progress`, 409);
+    }
+
     // Get question to determine competency
     const question = await Question.findById(questionId);
     if (!question) throw new Error('Question not found');
@@ -391,6 +396,24 @@ export class ExamTakingService {
   async finishExam(sessionId: string, candidateId: string) {
     const attempt = await Attempt.findOne({ sessionId, candidateId });
     if (!attempt) throw new Error('Attempt not found');
+
+    if (attempt.status === 'completed') {
+      // Idempotent: the frontend calls finish() on the "time's up" timer AND
+      // on the manual submit button, and a retry after a dropped response
+      // can also resend it. Return the already-finished state instead of
+      // re-publishing exam.attempt.finished — the frontend just polls for
+      // the result by attemptId, which is unaffected by which finish() call
+      // actually performed the transition.
+      return {
+        success: true,
+        attemptId: attempt._id,
+        message: 'Examen finalizado. Los resultados estarán disponibles en unos momentos.'
+      };
+    }
+
+    if (attempt.status !== 'in_progress') {
+      throw new AppError(`Cannot finish exam: attempt is ${attempt.status}`, 409);
+    }
 
     attempt.finishedAt = new Date();
     attempt.status = 'completed';
@@ -872,7 +895,9 @@ export class ExamTakingService {
   async submitAdaptiveAnswer(sessionId: string, userCandidateId: string, questionId: string, answer: any) {
     const attempt = await Attempt.findOne({ sessionId, candidateId: userCandidateId });
     if (!attempt) throw new Error('Attempt not found');
-    if (attempt.status === 'completed') throw new Error('Exam already completed');
+    if (attempt.status !== 'in_progress') {
+      throw new AppError(`Cannot submit an answer: attempt is ${attempt.status}, not in progress`, 409);
+    }
 
     const question = await Question.findById(questionId);
     if (!question) throw new Error('Question not found');
