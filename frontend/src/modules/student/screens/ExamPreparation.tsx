@@ -452,6 +452,17 @@ const ExamPreparation = () => {
           );
         if (initVerificationId) {
           setVerificationId(initVerificationId);
+          // The backend gate reads these from its own record, so tell it what
+          // this browser and machine are before any check runs.
+          await sessionManagerTechnicalService.reportEnvironment(initVerificationId);
+          // The connection flag is only set by the backend's own test, and the
+          // automatic checks below are local, so run it here too instead of
+          // waiting for the student to press the manual button.
+          try {
+            await sessionManagerTechnicalService.performNetworkTest(initVerificationId);
+          } catch (networkError) {
+            console.error('No se pudo registrar la prueba de red:', networkError);
+          }
         }
 
         // Inicializar servicio local
