@@ -1,5 +1,6 @@
 import { examService, getAttemptTerminationInfo } from '@/services/examService';
 import { notificationSocket } from '@/services/notifications/notificationSocket';
+import { useExamStore } from '@/stores/examStore';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
 
@@ -519,7 +520,13 @@ export const useExamSessionHTTP = (options: UseExamSessionHTTPOptions = {}) => {
       const response = await examService.startExam(sessionId);
 
       if (response.success && response.data) {
-        const { sections, timeAllowedSeconds, examId, totalQuestions, answers, attemptId } = response.data;
+        const { sections, timeAllowedSeconds, examId, totalQuestions, answers, attemptId, browserLockdown } = response.data;
+
+        // Keep examStore's browserLockdown in sync with the authoritative
+        // server value — covers the deep-link/hard-refresh case where the
+        // candidate lands directly on the runner without going through
+        // ExamPreparation (which is the other place this gets set).
+        useExamStore.setState({ browserLockdown: !!browserLockdown });
 
         // Check if exam time is already expired
         if (timeAllowedSeconds <= 0) {
@@ -593,8 +600,11 @@ export const useExamSessionHTTP = (options: UseExamSessionHTTPOptions = {}) => {
           progress,
           examId,
           totalQuestions,
-          attemptId
+          attemptId,
+          browserLockdown
         } = response.data;
+
+        useExamStore.setState({ browserLockdown: !!browserLockdown });
 
         setState(prev => ({
           ...prev,

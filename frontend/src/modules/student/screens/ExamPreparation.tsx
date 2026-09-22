@@ -667,6 +667,24 @@ const ExamPreparation = () => {
 
   const handleStartExam = async () => {
     if (isStarting || !examData) return;
+
+    // Fullscreen must be requested synchronously from a user gesture — this
+    // click is that gesture. Fire it before any `await` below so the
+    // browser still considers it "in response to" the click; do it before
+    // setIsStarting/setVerificationBlocked too, since those state updates
+    // are synchronous and harmless to the gesture but keep this the very
+    // first thing that happens. Best-effort: if the session doesn't have
+    // browserLockdown on, or the browser rejects it, this is a no-op.
+    if (examData.browserLockdown) {
+      try {
+        const el = document.documentElement as any;
+        const req = el.requestFullscreen || el.webkitRequestFullscreen || el.msRequestFullscreen;
+        req?.call(el)?.catch(() => { /* ignore — useBrowserLockdown's overlay covers re-entry */ });
+      } catch {
+        // Fullscreen API unavailable — ignore, lockdown degrades gracefully.
+      }
+    }
+
     setIsStarting(true);
     setVerificationBlocked(null);
     try {

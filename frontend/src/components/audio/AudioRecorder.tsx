@@ -68,6 +68,11 @@ const AudioRecorder: React.FC<AudioRecorderProps> = ({
     }
     try {
       setError(null);
+      // Notify useBrowserLockdown (if armed) that a recording is starting —
+      // the mic permission prompt / recording start can transiently blur
+      // the window on some browser/OS combinations, and that shouldn't
+      // count as a lockdown infraction. No-op if lockdown isn't active.
+      window.dispatchEvent(new Event('lockdown:recording-start'));
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       const mimeType = getSupportedMimeType();
       const mediaRecorder = mimeType
