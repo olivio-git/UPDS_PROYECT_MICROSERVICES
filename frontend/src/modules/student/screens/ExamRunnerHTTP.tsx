@@ -23,6 +23,7 @@ import {
   Loader2,
   Save,
   Timer,
+  UserX,
   X,
 } from 'lucide-react';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
@@ -71,6 +72,8 @@ const ExamRunnerHTTP: React.FC = () => {
     loading,
     error,
     totalQuestions,
+    kicked,
+    kickReason,
 
     // Current section and question helpers
     currentSection,
@@ -319,6 +322,40 @@ const ExamRunnerHTTP: React.FC = () => {
       error: 'Error al guardar respuestas'
     });
   };
+
+  // Kicked state — the candidate was removed from the session by a
+  // proctor/admin. Blocking, no auto-navigation, no further exam-taking
+  // requests: the attempt is already 'cancelled' server-side.
+  if (kicked) {
+    return (
+      <MainLayout hideHeader>
+        <div className="min-h-screen flex items-center justify-center">
+          <GradientWrapper intensity="medium" size="lg">
+            <Card className="w-full max-w-md bg-box backdrop-blur-sm border border-line">
+              <CardContent className="p-8 text-center">
+                <UserX className="h-12 w-12 text-red-500 mx-auto mb-4" />
+                <h3 className="text-lg font-semibold text-foreground mb-2">
+                  Has sido retirado del examen
+                </h3>
+                <p className="text-muted-foreground mb-1">
+                  Has sido retirado del examen por el supervisor.
+                </p>
+                {kickReason && (
+                  <p className="text-muted-foreground text-sm mb-4">Motivo: {kickReason}</p>
+                )}
+                <Button
+                  onClick={() => navigate('/student/dashboard')}
+                  className="w-full mt-4"
+                >
+                  Volver al Dashboard
+                </Button>
+              </CardContent>
+            </Card>
+          </GradientWrapper>
+        </div>
+      </MainLayout>
+    );
+  }
 
   // Completion state - show completion UI
   if (examCompleting || sessionStatus === 'completed') {

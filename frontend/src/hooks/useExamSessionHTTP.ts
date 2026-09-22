@@ -1,4 +1,4 @@
-import { examService } from '@/services/examService';
+import { examService, getAttemptTerminationInfo } from '@/services/examService';
 import { notificationSocket } from '@/services/notifications/notificationSocket';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
@@ -24,6 +24,12 @@ export interface ExamSessionState {
   sessionStatus: 'waiting' | 'active' | 'completed' | 'expired';
   autoSaveStatus: 'idle' | 'dirty' | 'saving' | 'saved' | 'error';
   totalQuestions: number;
+  // The candidate was removed from the session by a proctor/admin. This is a
+  // distinct terminal state from `sessionStatus === 'completed'`: no finish
+  // request is sent (the attempt is already 'cancelled' server-side), the UI
+  // just blocks further interaction and sends the candidate back home.
+  kicked: boolean;
+  kickReason?: string;
 }
 
 interface UseExamSessionHTTPOptions {
@@ -58,7 +64,9 @@ export const useExamSessionHTTP = (options: UseExamSessionHTTPOptions = {}) => {
     timeRemaining: null,
     sessionStatus: 'waiting',
     autoSaveStatus: 'idle',
-    totalQuestions: 0
+    totalQuestions: 0,
+    kicked: false,
+    kickReason: undefined
   });
 
   const [loading, setLoading] = useState(false);
@@ -79,6 +87,14 @@ export const useExamSessionHTTP = (options: UseExamSessionHTTPOptions = {}) => {
   const onAutoSaveRef = useRef(onAutoSave);
   const onTimeWarningRef = useRef(onTimeWarning);
   const onSessionEndRef = useRef(onSessionEnd);
+  // Guards the terminal-state transition (kicked or remotely-finished) so it
+  // only runs once, whether it's triggered by a socket push or by an
+  // exam-taking call's 409 ATTEMPT_NOT_IN_PROGRESS fallback. Without this,
+  // an already-terminal attempt could re-trigger finishExam in a loop.
+  const terminationHandledRef = useRef(false);
+  // Populated once finishExamRef exists (see effect below) — called from
+  // performAutoSave/pollTimeRemaining/finishExam catch blocks on 409.
+  const handleAttemptTerminatedRef = useRef<(attemptStatus?: string) => void>(() => {});
 
   // Mantener refs de callbacks sincronizados sin añadirlos a deps de useCallback
   useEffect(() => { answersRef.current = state.answers; }, [state.answers]);
@@ -126,6 +142,11 @@ export const useExamSessionHTTP = (options: UseExamSessionHTTPOptions = {}) => {
       }, 2000);
 
     } catch (error) {
+      const terminationInfo = getAttemptTerminationInfo(error);
+      if (terminationInfo) {
+        handleAttemptTerminatedRef.current(terminationInfo.attemptStatus);
+        return;
+      }
       console.error('Auto-save failed:', error);
       setState(prev => ({ ...prev, autoSaveStatus: 'error' }));
       hasUnsavedChanges.current = true;
@@ -241,8 +262,13 @@ export const useExamSessionHTTP = (options: UseExamSessionHTTPOptions = {}) => {
       }
 
     } catch (error) {
-      console.error('Error finishing exam:', error);
-      toast.error('Error finalizando el examen');
+      const terminationInfo = getAttemptTerminationInfo(error);
+      if (terminationInfo) {
+        handleAttemptTerminatedRef.current(terminationInfo.attemptStatus);
+      } else {
+        console.error('Error finishing exam:', error);
+        toast.error('Error finalizando el examen');
+      }
     } finally {
       setLoading(false);
     }
@@ -304,6 +330,11 @@ export const useExamSessionHTTP = (options: UseExamSessionHTTPOptions = {}) => {
         }
       }
     } catch (error) {
+      const terminationInfo = getAttemptTerminationInfo(error);
+      if (terminationInfo) {
+        handleAttemptTerminatedRef.current(terminationInfo.attemptStatus);
+        return;
+      }
       console.error('Error polling time:', error);
     }
   }, [state.sessionId, state.isActive, state.sessionStatus, onTimeWarning, finishExam, startLocalTimer, stopLocalTimer]);
@@ -337,6 +368,31 @@ export const useExamSessionHTTP = (options: UseExamSessionHTTPOptions = {}) => {
   const finishExamRef = useRef(finishExam);
   useEffect(() => { finishExamRef.current = finishExam; }, [finishExam]);
 
+  // Wire up the shared 409/kick termination handler now that finishExamRef
+  // exists. `attemptStatus === 'cancelled'` means the candidate was kicked —
+  // block further interaction without calling finish (the attempt is already
+  // terminal server-side). Any other status (session ended/expired) mirrors
+  // the existing "remote finish" flow: force a finish call so grading kicks
+  // off and the caller's onSessionEnd -> pollForResult flow runs.
+  useEffect(() => {
+    handleAttemptTerminatedRef.current = (attemptStatus?: string) => {
+      if (terminationHandledRef.current) return;
+      terminationHandledRef.current = true;
+
+      if (autoSaveRef.current) clearInterval(autoSaveRef.current);
+      if (timePollingRef.current) clearInterval(timePollingRef.current);
+      stopLocalTimer();
+
+      if (attemptStatus === 'cancelled') {
+        setState(prev => ({ ...prev, isActive: false, kicked: true }));
+        return;
+      }
+
+      setState(prev => ({ ...prev, isActive: false, sessionStatus: 'completed' }));
+      void finishExamRef.current();
+    };
+  }, [stopLocalTimer]);
+
   // Listen for remote session termination via WebSocket (teacher/admin ends session)
   useEffect(() => {
     if (!state.sessionId || !state.isActive) return;
@@ -344,6 +400,8 @@ export const useExamSessionHTTP = (options: UseExamSessionHTTPOptions = {}) => {
     const handleSessionStatusChanged = async (data: any) => {
       if (String(data.sessionId) !== String(state.sessionId)) return;
       if (data.status !== 'completed' && data.status !== 'cancelled') return;
+      if (terminationHandledRef.current) return;
+      terminationHandledRef.current = true;
 
       console.log('🔴 [useExamSessionHTTP] Session terminated remotely, status:', data.status);
 
@@ -352,13 +410,52 @@ export const useExamSessionHTTP = (options: UseExamSessionHTTPOptions = {}) => {
       if (timePollingRef.current) clearInterval(timePollingRef.current);
       stopLocalTimer();
 
-      toast.error('La sesión ha sido finalizada por el administrador');
+      // session.ended (status 'completed') already force-completes attempts
+      // server-side and triggers grading; session.cancelled does not, so the
+      // finish() call below submits whatever answers were saved so far.
+      // Either way the candidate sees "your exam was submitted" semantics.
+      toast.error(
+        data.status === 'completed'
+          ? 'La sesión fue finalizada por el supervisor. Tu examen fue enviado.'
+          : 'La sesión fue cancelada por el supervisor. Tu examen fue enviado con tus respuestas actuales.'
+      );
       await finishExamRef.current();
     };
 
     notificationSocket.on('session.status.changed', handleSessionStatusChanged);
     return () => {
       notificationSocket.off('session.status.changed', handleSessionStatusChanged);
+    };
+  }, [state.sessionId, state.isActive, stopLocalTimer]);
+
+  // Listen for being kicked by a proctor/admin — distinct from a session-wide
+  // status change: only this candidate is affected, the attempt is already
+  // 'cancelled' server-side, and no finish request should be sent.
+  useEffect(() => {
+    if (!state.sessionId || !state.isActive) return;
+
+    const handleCandidateKicked = (data: any) => {
+      if (String(data.sessionId) !== String(state.sessionId)) return;
+      if (terminationHandledRef.current) return;
+      terminationHandledRef.current = true;
+
+      console.log('🔴 [useExamSessionHTTP] Kicked from session:', data);
+
+      if (autoSaveRef.current) clearInterval(autoSaveRef.current);
+      if (timePollingRef.current) clearInterval(timePollingRef.current);
+      stopLocalTimer();
+
+      setState(prev => ({
+        ...prev,
+        isActive: false,
+        kicked: true,
+        kickReason: data.reason,
+      }));
+    };
+
+    notificationSocket.on('session.candidate.kicked', handleCandidateKicked);
+    return () => {
+      notificationSocket.off('session.candidate.kicked', handleCandidateKicked);
     };
   }, [state.sessionId, state.isActive, stopLocalTimer]);
 
@@ -376,6 +473,7 @@ export const useExamSessionHTTP = (options: UseExamSessionHTTPOptions = {}) => {
 
       console.log(`🚀 [useExamSessionHTTP] Iniciando sesión: ${sessionId}`);
 
+      terminationHandledRef.current = false;
       const response = await examService.startExam(sessionId);
 
       if (response.success && response.data) {
@@ -439,6 +537,7 @@ export const useExamSessionHTTP = (options: UseExamSessionHTTPOptions = {}) => {
 
       console.log(`🔄 [useExamSessionHTTP] Resumiendo sesión: ${sessionId}`);
 
+      terminationHandledRef.current = false;
       const response = await examService.resumeExam(sessionId);
 
       if (response.success && response.data) {

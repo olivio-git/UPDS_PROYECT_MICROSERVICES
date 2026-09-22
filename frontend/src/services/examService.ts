@@ -16,6 +16,29 @@ import type {
 import { authSDK } from './sdk-simple-auth';
 import { EXAM_SERVICE_URL } from '@/lib/serviceUrls';
 
+/**
+ * exam-service returns `{ success: false, message, code, attemptStatus }`
+ * (see exam-service/src/middleware/errorHandler.middleware.ts) when an
+ * exam-taking call (answer/autosave/time sync/finish) is rejected because
+ * the attempt is no longer 'in_progress' — most commonly because the
+ * candidate was kicked (attemptStatus 'cancelled') or the session ended
+ * externally. This is the HTTP fallback for when the socket push
+ * (session.candidate.kicked / session.status.changed) was missed.
+ */
+export interface AttemptTerminationInfo {
+  code: string;
+  attemptStatus?: string;
+}
+
+export function getAttemptTerminationInfo(error: any): AttemptTerminationInfo | null {
+  const status = error?.response?.status;
+  const code = error?.response?.data?.code;
+  if (status === 409 && code === 'ATTEMPT_NOT_IN_PROGRESS') {
+    return { code, attemptStatus: error?.response?.data?.attemptStatus };
+  }
+  return null;
+}
+
 class ExamService {
   private api: AxiosInstance;
   private baseURL: string;
