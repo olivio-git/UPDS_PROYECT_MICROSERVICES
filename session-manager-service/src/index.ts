@@ -1,4 +1,5 @@
 import cors from 'cors';
+import { isSameOriginThroughGateway } from './cors';
 import dotenv from 'dotenv';
 import express, { Router } from 'express';
 import helmet from 'helmet';
@@ -71,7 +72,14 @@ class SessionManagerServer {
       credentials: true
     };
 
-    this.app.use(cors(corsConfig));
+    this.app.use(cors((req: any, callback: Function) => {
+      const origin = req.headers.origin as string | undefined;
+      if (origin && isSameOriginThroughGateway(req, origin)) {
+        callback(null, { ...corsConfig, origin: true });
+        return;
+      }
+      callback(null, corsConfig);
+    }));
 
     // Body parsing
     this.app.use(express.json({ limit: '10mb' }));

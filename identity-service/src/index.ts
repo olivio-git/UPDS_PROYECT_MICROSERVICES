@@ -1,5 +1,6 @@
 import express from 'express';
 import cors from 'cors';
+import { isSameOriginThroughGateway } from './config/cors';
 import helmet from 'helmet';
 import compression from 'compression';
 import rateLimit from 'express-rate-limit';
@@ -38,20 +39,23 @@ async function startServer() {
       crossOriginEmbedderPolicy: false,
     }));
 
-    const corsOptions = {
-      origin: function (origin: string | undefined, callback: Function) {
-        const allowedOrigins = config.corsOrigin.map((o: string) => o.trim());
-        if (!origin || allowedOrigins.indexOf(origin) !== -1 || allowedOrigins.includes('*')) {
-          callback(null, true);
-        } else {
-          callback(new Error('No permitido por CORS'));
-        }
-      },
-      credentials: true,
-      methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-      allowedHeaders: ['Origin', 'X-Requested-With', 'Content-Type', 'Accept', 'Authorization', 'Cache-Control', 'Pragma'],
+    const corsDelegate = (req: any, callback: Function) => {
+      const origin = req.headers.origin as string | undefined;
+      const allowedOrigins = config.corsOrigin.map((o: string) => o.trim());
+      const allowed =
+        !origin ||
+        allowedOrigins.includes(origin) ||
+        allowedOrigins.includes('*') ||
+        isSameOriginThroughGateway(req, origin);
+
+      callback(allowed ? null : new Error('No permitido por CORS'), {
+        origin: allowed,
+        credentials: true,
+        methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+        allowedHeaders: ['Origin', 'X-Requested-With', 'Content-Type', 'Accept', 'Authorization', 'Cache-Control', 'Pragma'],
+      });
     };
-    app.use(cors(corsOptions));
+    app.use(cors(corsDelegate));
 
     const limiter = rateLimit({
       windowMs: 15 * 60 * 1000, // 15 minutos
