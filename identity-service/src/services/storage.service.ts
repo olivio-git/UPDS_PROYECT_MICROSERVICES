@@ -6,12 +6,30 @@ const ENDPOINT = process.env.MINIO_ENDPOINT || 'minio';
 const PORT = parseInt(process.env.MINIO_PORT || '9000', 10);
 const PUBLIC_URL = process.env.MINIO_PUBLIC_URL || `http://localhost:${PORT}`;
 
+/**
+ * Reads a required MinIO credential from the environment. This is a local
+ * copy of src/config/index.ts's requireEnv rather than a move into that
+ * shared config: this module is only ever imported lazily, on the first
+ * avatar upload (see UserController.uploadAvatar), so a missing credential
+ * fails that request instead of blocking service boot/login for a feature
+ * that is not in the critical path.
+ */
+function requireEnv(name: string): string {
+  const value = process.env[name];
+  if (!value) {
+    throw new Error(
+      `Missing required environment variable ${name}. Refusing to start with an insecure default.`
+    );
+  }
+  return value;
+}
+
 const minioClient = new Client({
   endPoint: ENDPOINT,
   port: PORT,
   useSSL: process.env.MINIO_USE_SSL === 'true',
-  accessKey: process.env.MINIO_ACCESS_KEY || 'olivio',
-  secretKey: process.env.MINIO_SECRET_KEY || 'olivio12',
+  accessKey: requireEnv('MINIO_ACCESS_KEY'),
+  secretKey: requireEnv('MINIO_SECRET_KEY'),
 });
 
 async function ensureBucket(): Promise<void> {

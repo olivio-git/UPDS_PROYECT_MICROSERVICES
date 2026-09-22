@@ -3,7 +3,7 @@ import * as XLSX from 'xlsx';
 import { createError } from '../middleware/error.middleware';
 import { UserService } from '../services/user.service';
 import { auditLog } from '../services/audit.service';
-import { JWTPayload } from '../types/index';
+import { JWTPayload, UserProfile } from '../types/index';
 
 export class UserController {
   private userService: UserService;
@@ -129,7 +129,7 @@ export class UserController {
   updateUser = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const { id } = req.params;
-      const updates = req.body;
+      const currentUser = req.user as JWTPayload;
 
       if (!id) {
         res.status(400).json({
@@ -139,6 +139,22 @@ export class UserController {
         });
         return;
       }
+
+      // Privileged fields (role, status, permissions) may only be set by an
+      // admin. A non-admin may only update themselves, and only with the
+      // same non-privileged field set /users/me accepts.
+      if (currentUser.role !== 'admin') {
+        if (currentUser.userId !== id) {
+          res.status(403).json({
+            success: false,
+            message: 'No tienes permisos para actualizar este usuario',
+            error: 'FORBIDDEN'
+          });
+          return;
+        }
+      }
+
+      const updates = currentUser.role === 'admin' ? req.body : this.buildSelfUpdate(req.body);
 
       const result = await this.userService.updateUser(id, updates);
 
@@ -191,7 +207,13 @@ export class UserController {
         return;
       }
 
-      const result = await this.userService.updateUser(existingUser._id!.toString(), req.body);
+      // Defense in depth: even though UpdateMeSchema already strips role/
+      // status/permissions/teacherData/proctorData at the validation layer,
+      // build the update object explicitly here so a self-service update
+      // can never pass through privileged fields.
+      const selfUpdates = this.buildSelfUpdate(req.body);
+
+      const result = await this.userService.updateUser(existingUser._id!.toString(), selfUpdates);
       if (result.success) {
         res.status(200).json(result);
       } else {
@@ -209,7 +231,7 @@ export class UserController {
   patchUser = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const { id } = req.params;
-      const updates = req.body;
+      const currentUser = req.user as JWTPayload;
 
       if (!id) {
         res.status(400).json({
@@ -220,8 +242,24 @@ export class UserController {
         return;
       }
 
+      // Privileged fields (role, status, permissions) may only be set by an
+      // admin. A non-admin may only patch themselves, and only with the
+      // same non-privileged field set /users/me accepts.
+      if (currentUser.role !== 'admin') {
+        if (currentUser.userId !== id) {
+          res.status(403).json({
+            success: false,
+            message: 'No tienes permisos para actualizar este usuario',
+            error: 'FORBIDDEN'
+          });
+          return;
+        }
+      }
+
+      const updates = currentUser.role === 'admin' ? req.body : this.buildSelfUpdate(req.body);
+
       const result = await this.userService.updateUser(id, updates);
-      
+
       if (result.success) {
         res.status(200).json(result);
       } else {
@@ -231,6 +269,24 @@ export class UserController {
       next(error);
     }
   };
+
+  // ================================
+  // BUILD SELF-SERVICE UPDATE (defense in depth)
+  // ================================
+
+  /**
+   * Picks only the fields a non-admin is allowed to change about themselves
+   * (firstName, lastName, profile). role/status/permissions/teacherData/
+   * proctorData/email are never forwarded, regardless of what the request
+   * body contains.
+   */
+  private buildSelfUpdate(body: any): { firstName?: string; lastName?: string; profile?: Partial<UserProfile> } {
+    const update: { firstName?: string; lastName?: string; profile?: Partial<UserProfile> } = {};
+    if (body?.firstName !== undefined) update.firstName = body.firstName;
+    if (body?.lastName !== undefined) update.lastName = body.lastName;
+    if (body?.profile !== undefined) update.profile = body.profile;
+    return update;
+  }
 
   // ================================
   // DELETE USER

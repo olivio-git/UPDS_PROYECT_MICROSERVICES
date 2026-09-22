@@ -141,11 +141,11 @@ export const DEFAULT_PERMISSIONS: Record<string, Permission[]> = {
     {
       resource: RESOURCES.SESSIONS,
       actions: [ACTIONS.READ] // Solo sesiones asignadas
-    },
-    {
-      resource: RESOURCES.USERS,
-      actions: [ACTIONS.READ,ACTIONS.UPDATE]
     }
+    // No RESOURCES.USERS entry: students must use the /users/me endpoints,
+    // which only require authentication, not a users:read/update permission.
+    // Granting USERS read/update here let any student PATCH /users/me (or
+    // any other user's /users/:id) with { role: 'admin' } and self-promote.
   ]
 };
 

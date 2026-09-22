@@ -243,6 +243,16 @@ export const UpdateUserSchema = z.object({
   proctorData: ProctorDataSchema.optional(),
 });
 
+// Self-service update: deliberately excludes role, status, permissions,
+// teacherData, proctorData and email — a user must never be able to
+// escalate their own privileges through PATCH /users/me, and there is no
+// verified email-change flow in this service yet.
+export const UpdateMeSchema = z.object({
+  firstName: z.string().min(2).optional(),
+  lastName: z.string().min(2).optional(),
+  profile: UserProfileSchema.partial().optional(),
+});
+
 export const UpdateUserPasswordSchema = z.object({
   oldPassword: z.string().min(8, 'Contraseña actual requerida'),
   newPassword: z.string({

@@ -11,6 +11,7 @@ import {
 } from '../middleware';
 import {
   CreateUserSchema,
+  UpdateMeSchema,
   UpdateUserPasswordSchema,
   UpdateUserSchema,
   getUsersQuerySchema,
@@ -172,7 +173,7 @@ router.get('/me',
  */
 router.patch('/me',
   ...middlewareStacks.basicAuth,
-  validateBody(UpdateUserSchema.partial()),
+  validateBody(UpdateMeSchema),
   asyncHandler(userController.updateMe)
 );
 
