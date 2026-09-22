@@ -18,6 +18,42 @@ export class ExamTakingService {
     this.sessionService = new SessionService();
   }
 
+  // Shared session-level gate for both the linear and adaptive start paths:
+  // the session must be in_progress (not scheduled/completed/cancelled),
+  // and a brand-new attempt must fall inside the late-entry window. A
+  // student with an existing attempt (re-entry — refresh/reconnect)
+  // bypasses the late-entry check entirely; only the session-status check
+  // still applies to them.
+  private validateSessionTiming(session: any, hasExistingAttempt: boolean, now: Date): void {
+    if (session.status === 'scheduled') {
+      throw new AppError('Session has not started yet', 409, 'SESSION_NOT_STARTED');
+    }
+    if (session.status !== 'in_progress') {
+      throw new AppError('Session is not active', 409, 'SESSION_NOT_ACTIVE');
+    }
+
+    if (hasExistingAttempt) {
+      // Already entered — changing PC or reconnecting should be allowed
+      // without re-checking the late-entry window.
+      return;
+    }
+
+    const startDate = new Date(session.scheduling.startDate);
+    const GRACE_PERIOD_MS = 2 * 60 * 1000; // 2 min grace always
+    const settings = session.settings || {};
+
+    if (!settings.allowLateEntry) {
+      if (now.getTime() > startDate.getTime() + GRACE_PERIOD_MS) {
+        throw new AppError('Late entry is not allowed for this session', 409, 'LATE_ENTRY_CLOSED');
+      }
+    } else {
+      const lateLimit = (settings.lateEntryMinutes || 0) * 60 * 1000;
+      if (now.getTime() > startDate.getTime() + lateLimit) {
+        throw new AppError('Late entry window has expired', 409, 'LATE_ENTRY_CLOSED');
+      }
+    }
+  }
+
   async startExam(sessionId: string, userCandidateId: string) {
     // Validate session and candidate
     const session = await this.sessionService.findById(sessionId);
@@ -37,22 +73,15 @@ export class ExamTakingService {
 
     // ── Late entry validation ─────────────────────────────────────────────────
     const now = new Date();
-    const startDate = new Date((session as any).scheduling.startDate);
-    const endDate   = new Date((session as any).scheduling.endDate);
-    const GRACE_PERIOD_MS = 2 * 60 * 1000; // 2 min grace always
-
-    if ((session as any).status === 'scheduled') {
-      throw new Error('Session has not started yet');
-    }
-    if ((session as any).status !== 'in_progress') {
-      throw new Error('Session is not active');
-    }
+    const endDate = new Date((session as any).scheduling.endDate);
 
     // ── Check for existing attempt FIRST (re-entry bypasses late-entry check) ─
     const existingAttempt = await Attempt.findOne({
       sessionId: session._id,
       candidateId: userCandidateId
     });
+
+    this.validateSessionTiming(session, !!existingAttempt, now);
 
     // Technical verification only gates the creation of a NEW attempt — a
     // student resuming an existing in_progress attempt (e.g. after a page
@@ -84,21 +113,19 @@ export class ExamTakingService {
         throw new Error('El tiempo del examen ha expirado');
       }
 
+      // A student who started via the adaptive (CAT) path has adaptiveState
+      // set on their attempt — they can't hop over to the linear path
+      // mid-attempt, the question sets/progress tracking are incompatible.
+      if ((existingAttempt as any).adaptiveState) {
+        throw new AppError(
+          'This attempt was started as an adaptive exam — use the adaptive endpoints to resume it',
+          409,
+          'WRONG_EXAM_MODE'
+        );
+      }
+
       // Student has an in-progress attempt → allow re-entry without late-entry check
       // (they already entered, changing PC or reconnecting should be allowed)
-    } else {
-      // No existing attempt → this is a first entry → apply late-entry check
-      const settings = (session as any).settings || {};
-      if (!settings.allowLateEntry) {
-        if (now.getTime() > startDate.getTime() + GRACE_PERIOD_MS) {
-          throw new Error('Late entry is not allowed for this session');
-        }
-      } else {
-        const lateLimit = (settings.lateEntryMinutes || 0) * 60 * 1000;
-        if (now.getTime() > startDate.getTime() + lateLimit) {
-          throw new Error('Late entry window has expired');
-        }
-      }
     }
     // ─────────────────────────────────────────────────────────────────────────
     // resolve candidate — first try populated candidatesData, fallback to raw registeredCandidates
@@ -915,15 +942,43 @@ export class ExamTakingService {
     }
     if (!exam) throw new Error('Exam not found for session');
 
+    // Only a real adaptive (CAT) placement exam can be started this way —
+    // same field the frontend itself checks before routing to this screen
+    // (ExamPreparation.tsx). Without this gate, calling this endpoint
+    // directly for a non-adaptive exam would silently run it through the
+    // adaptive question-picking/grading path it was never configured for.
+    const isAdaptiveExam = exam.type === 'placement' && exam.placementConfig?.mode === 'adaptive';
+    if (!isAdaptiveExam) {
+      throw new AppError(
+        'This exam is not configured as an adaptive placement exam',
+        400,
+        'NOT_ADAPTIVE_EXAM'
+      );
+    }
+
+    const now = new Date();
+
     // Check existing attempt
     const existingAttempt = await Attempt.findOne({
       sessionId: session._id,
       candidateId: candidate._id
     });
+
+    this.validateSessionTiming(session, !!existingAttempt, now);
+
     if (existingAttempt) {
       if (existingAttempt.status === 'completed') throw new Error('Exam already completed');
       if (existingAttempt.status === 'expired') throw new Error('Exam time has expired');
       if (existingAttempt.status === 'cancelled') throw new Error('Exam was cancelled');
+      // A student who started via the linear path has no adaptiveState on
+      // their attempt — they can't hop over to the adaptive path mid-attempt.
+      if (!(existingAttempt as any).adaptiveState) {
+        throw new AppError(
+          'This attempt was started as a linear exam — use the standard exam endpoints to resume it',
+          409,
+          'WRONG_EXAM_MODE'
+        );
+      }
       // Resume adaptive if attempt already exists
       return this.resumeAdaptiveExam(sessionId, userCandidateId);
     }

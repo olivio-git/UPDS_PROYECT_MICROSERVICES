@@ -145,6 +145,24 @@ export const requireVerificationOwnership = (mode: 'read' | 'write') => {
 };
 
 /**
+ * Restricts a route to admins only — used for /stats, an aggregate view
+ * across every user's verifications (not any single user's record, so the
+ * ownership-based gates above don't apply).
+ */
+export const requireAdmin = (req: Request, res: Response, next: NextFunction): void => {
+  const caller = req.user;
+  if (!caller) {
+    res.status(401).json({ success: false, message: 'Authentication required' });
+    return;
+  }
+  if (caller.role !== 'admin') {
+    res.status(403).json({ success: false, message: 'Forbidden: admin only' });
+    return;
+  }
+  next();
+};
+
+/**
  * Guards the /internal/technical/* routes used by exam-service to enforce
  * the technical-verification gate server-side. NOT proxied by nginx (only
  * /api/v1/technical is — see nginx/nginx.conf), so this is only reachable

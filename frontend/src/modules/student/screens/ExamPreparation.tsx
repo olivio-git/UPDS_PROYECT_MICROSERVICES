@@ -385,9 +385,24 @@ const ExamPreparation = () => {
         // removed — it was a separate, unauthenticated-by-ownership cache
         // that exam-service's gate never actually read).
         const authUserId = authSDK.getCurrentUser()?.id;
-        const alreadyVerified = authUserId
-          ? await sessionManagerTechnicalService.canUserProceed(authUserId)
-          : false;
+        const proceedCheck = authUserId
+          ? await sessionManagerTechnicalService.canUserProceedWithReasons(authUserId)
+          : { canProceed: false, reasons: [] };
+        const alreadyVerified = proceedCheck.canProceed;
+
+        if (!alreadyVerified) {
+          // Tell the candidate WHY they're verifying again instead of
+          // silently restarting the checks — most commonly because their
+          // previous verification's Redis record expired or was never found
+          // (first-time visit is also NOT_FOUND, so only show this when a
+          // prior verification clearly lapsed rather than never existing).
+          const expiredReason = proceedCheck.reasons.find(
+            (r) => r.code === 'EXPIRED' || r.code === 'NOT_FOUND'
+          );
+          if (expiredReason) {
+            toast.info('Tu verificación anterior venció, vuelve a verificar tu equipo.', { duration: 6000 });
+          }
+        }
 
         if (alreadyVerified) {
           toast.info("Verificación técnica ya completada anteriormente");
@@ -697,6 +712,11 @@ const ExamPreparation = () => {
       const technicalInfo = getTechnicalVerificationRequiredInfo(err);
       if (technicalInfo) {
         setVerificationBlocked(technicalInfo.reasons);
+      } else if (err?.response?.data?.code === "TECHNICAL_GATE_UNAVAILABLE") {
+        // session-manager-service is reachable but misconfigured/erroring —
+        // fails closed with a specific student-facing message (see
+        // exam-service session-manager.integration.ts).
+        toast.error(err.response.data.message || "No se pudo validar la verificación técnica. Avisa al supervisor.", { duration: 8000 });
       } else {
         toast.error("Error al iniciar el examen");
       }

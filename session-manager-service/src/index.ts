@@ -9,6 +9,7 @@ import mongoose from 'mongoose';
 import { TechnicalVerificationController } from './controllers/TechnicalVerificationController';
 import {
   authenticate,
+  requireAdmin,
   requireOwnershipOrReadRole,
   requireVerificationOwnership,
   verifyServiceToken,
@@ -221,6 +222,14 @@ class SessionManagerServer {
     //    or own it / hold admin|teacher|proctor for the GET (read).
     //  - /user/:userId routes: caller must be that user, or hold
     //    admin|teacher|proctor for the GET (monitoring), never for writes.
+    //
+    // /stats is registered BEFORE the /:verificationId wildcard — Express
+    // matches in registration order, so if it came after, a GET to
+    // /api/v1/technical/stats would be swallowed by
+    // /:verificationId (treating "stats" as a verificationId) and never
+    // reach the real handler. It's an aggregate across every user's
+    // verifications, so it's admin-only rather than ownership-gated.
+    router.get('/stats', authenticate, requireAdmin, controller.getVerificationStats.bind(controller));
     router.post('/init', authenticate, this.requireBodyUserIdIsSelf, controller.initializeVerification.bind(controller));
     router.get('/:verificationId', authenticate, ownRead, controller.getVerification.bind(controller));
     router.get('/user/:userId', authenticate, requireOwnershipOrReadRole, controller.getUserVerification.bind(controller));
@@ -234,7 +243,6 @@ class SessionManagerServer {
     router.post('/:verificationId/finalize', authenticate, ownWrite, controller.finalizeVerification.bind(controller));
     router.get('/user/:userId/can-proceed', authenticate, requireOwnershipOrReadRole, controller.canUserProceed.bind(controller));
     router.post('/:verificationId/mark-used', authenticate, ownWrite, controller.markVerificationUsed.bind(controller));
-    router.get('/stats', authenticate, controller.getVerificationStats.bind(controller));
 
     return router;
   }

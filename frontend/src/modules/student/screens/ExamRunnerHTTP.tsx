@@ -243,6 +243,17 @@ const ExamRunnerHTTP: React.FC = () => {
           return;
         }
 
+        // session-manager-service is reachable but misconfigured/erroring —
+        // the gate fails closed with a specific student-facing message.
+        if (error?.response?.data?.code === 'TECHNICAL_GATE_UNAVAILABLE') {
+          toast.error(
+            error.response.data.message || 'No se pudo validar la verificación técnica. Avisa al supervisor.',
+            { duration: 8000 }
+          );
+          navigate('/student/dashboard');
+          return;
+        }
+
         // Check if error is related to expired exam
         if (error?.message?.includes('expired') || error?.message?.includes('time')) {
           toast.error('El tiempo del examen ha expirado');

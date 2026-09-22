@@ -461,6 +461,64 @@ export class TechnicalVerificationService {
   }
 
   /**
+   * Recomputes the overall score used for the LOW_SCORE gate in
+   * canUserProceed(), scoping the "devices" bucket to only what THIS exam
+   * actually requires.
+   *
+   * calculateFinalScore()'s stored `verification.scores.overall` is a
+   * general-purpose score shown to the candidate right after verification —
+   * before any specific exam/attempt is known — so it always folds in every
+   * device check (microphone, camera, audio) at fixed weights
+   * (microphoneWorking 25 + permissions.microphone 8 + audioInputs present 9
+   * = 42 mic points; cameraWorking 25 + permissions.camera 8 = 33 camera
+   * points). Camera is never required (video proctoring is disabled
+   * platform-wide) and microphone only matters when the exam has
+   * speaking/audio_response questions (requireMicrophone) — using the raw
+   * stored score to gate exam start wrongly penalizes, say, a candidate with
+   * no webcam and a small screen: their unusable mic/camera points drag the
+   * devices bucket down even though nothing in their exam needs either.
+   *
+   * Points for a check that isn't required for this exam are excluded from
+   * BOTH the earned total and the max for the devices bucket (not just
+   * zeroed against the original max), so an irrelevant missing device
+   * doesn't deflate the score — it renormalizes to what was actually
+   * checked. audioWorking (speaker/output) is always counted since nothing
+   * gates on it separately. Compatibility and stability are unchanged.
+   */
+  private calculateGatingScore(
+    verification: TechnicalVerificationData,
+    requireMicrophone: boolean
+  ): number {
+    const v = verification.verification;
+
+    const compatibility = (
+      (v.browserCompatible ? 50 : 0) +
+      (v.screenResolution ? 50 : 0)
+    );
+
+    const stability = (
+      (v.internetConnection ? 34 : 0) +
+      (verification.networkInfo?.quality === 'excellent' ? 33 :
+       verification.networkInfo?.quality === 'good' ? 25 :
+       verification.networkInfo?.quality === 'fair' ? 15 : 0) +
+      (verification.systemInfo?.onlineStatus ? 33 : 0)
+    );
+
+    let deviceEarned = v.audioWorking ? 25 : 0;
+    let deviceMax = 25;
+    if (requireMicrophone) {
+      deviceEarned +=
+        (v.microphoneWorking ? 25 : 0) +
+        (verification.permissions?.microphone === 'granted' ? 8 : 0) +
+        (verification.devices?.audioInputs?.length > 0 ? 9 : 0);
+      deviceMax += 42;
+    }
+    const devices = deviceMax > 0 ? Math.round((deviceEarned / deviceMax) * 100) : 100;
+
+    return Math.round((compatibility + stability + devices) / 3);
+  }
+
+  /**
    * Verificar si el usuario puede proceder con el examen.
    *
    * Restores real gating (previously commented out — see PR10). Checks,
@@ -494,7 +552,7 @@ export class TechnicalVerificationService {
       }
 
       const v = verification.verification;
-      const score = verification.scores?.overall ?? 0;
+      const score = this.calculateGatingScore(verification, requireMicrophone);
 
       if (score < this.MIN_SCORE_TO_PROCEED) {
         reasons.push({
