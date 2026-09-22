@@ -55,11 +55,20 @@ export const config = {
   services: {
     userManagementUrl: process.env.USER_MANAGEMENT_SERVICE_URL || 'http://identity-service:3002',
     examServiceUrl: process.env.EXAM_SERVICE_URL || 'http://exam-service:3003',
+  },
+
+  // Same secret identity-service signs access tokens with (jwt.sign with
+  // issuer 'cba-auth-service' / audience 'cba-platform' — see
+  // identity-service/src/auth/services/jwt.service.ts). Used to authenticate
+  // Socket.IO handshakes so a client can't join an arbitrary `user:<id>`
+  // room just by naming it.
+  jwt: {
+    secret: process.env.JWT_SECRET || ''
   }
 };
 
 // Validación de configuración crítica
-const requiredEnvVars = ['RESEND_API_KEY', 'MONGO_URI'];
+const requiredEnvVars = ['RESEND_API_KEY', 'MONGO_URI', 'JWT_SECRET'];
 
 for (const envVar of requiredEnvVars) {
   if (!process.env[envVar]) {
