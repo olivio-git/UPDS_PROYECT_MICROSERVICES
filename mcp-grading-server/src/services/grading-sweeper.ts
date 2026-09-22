@@ -1,3 +1,4 @@
+import { ObjectId } from 'mongodb';
 import { getAttempts, getExamResults } from '../db/collections.js';
 import { gradeExam } from '../tools/grade-exam.js';
 import { config } from '../config.js';
@@ -20,13 +21,24 @@ const failureCounts = new Map<string, number>();
 const MAX_FAILURES = 3;
 
 interface UngradedAttempt {
-  _id: import('mongodb').ObjectId;
+  _id: ObjectId;
 }
 
-async function findUngradedAttempts(cutoff: Date, limit: number): Promise<UngradedAttempt[]> {
+async function findUngradedAttempts(
+  minAgeCutoff: Date,
+  maxAgeCutoff: Date,
+  excludeIds: ObjectId[],
+  limit: number
+): Promise<UngradedAttempt[]> {
   return getAttempts()
     .aggregate<UngradedAttempt>([
-      { $match: { status: 'completed', finishedAt: { $lte: cutoff } } },
+      {
+        $match: {
+          status: 'completed',
+          finishedAt: { $lte: minAgeCutoff, $gte: maxAgeCutoff },
+          ...(excludeIds.length > 0 ? { _id: { $nin: excludeIds } } : {}),
+        },
+      },
       {
         $lookup: {
           from: 'exam_results',
@@ -51,25 +63,27 @@ async function runSweep(): Promise<void> {
   running = true;
 
   try {
-    const cutoff = new Date(Date.now() - config.gradingSweep.minAgeMs);
-    const candidates = await findUngradedAttempts(cutoff, config.gradingSweep.batchSize);
+    const minAgeCutoff = new Date(Date.now() - config.gradingSweep.minAgeMs);
+    const maxAgeCutoff = new Date(Date.now() - config.gradingSweep.maxAgeMs);
+    const permanentlyFailedIds = [...failureCounts.entries()]
+      .filter(([, count]) => count >= MAX_FAILURES)
+      .map(([id]) => new ObjectId(id));
 
-    const toGrade = candidates.filter(
-      (a) => (failureCounts.get(a._id.toString()) ?? 0) < MAX_FAILURES
+    const candidates = await findUngradedAttempts(
+      minAgeCutoff,
+      maxAgeCutoff,
+      permanentlyFailedIds,
+      config.gradingSweep.batchSize
     );
-    const skipped = candidates.length - toGrade.length;
-    if (skipped > 0) {
-      console.warn(`[grading-sweeper] skipping ${skipped} attempt(s) that failed ${MAX_FAILURES}+ times already`);
-    }
 
-    if (toGrade.length === 0) {
+    if (candidates.length === 0) {
       return;
     }
 
     let graded = 0;
     let failed = 0;
 
-    for (const attempt of toGrade) {
+    for (const attempt of candidates) {
       const attemptId = attempt._id.toString();
       try {
         // Defensive re-check: gradeExam() already no-ops on an existing completed
@@ -114,7 +128,7 @@ export function startGradingSweeper(): void {
   }
   console.log(
     `[grading-sweeper] started: interval=${config.gradingSweep.intervalMs}ms ` +
-    `minAge=${config.gradingSweep.minAgeMs}ms batch=${config.gradingSweep.batchSize}`
+    `minAge=${config.gradingSweep.minAgeMs}ms maxAge=${config.gradingSweep.maxAgeMs}ms batch=${config.gradingSweep.batchSize}`
   );
   stopped = false;
   scheduleNext();

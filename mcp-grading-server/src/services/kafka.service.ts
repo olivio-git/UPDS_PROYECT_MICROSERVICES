@@ -5,6 +5,10 @@ import { config } from '../config.js';
 let kafka: Kafka | null = null;
 let producer: Producer | null = null;
 let producerConnected = false;
+// Guards getProducer() against concurrent callers each creating/connecting
+// their own producer (leaking every one but the last) and against a failed
+// connect leaking its half-open producer.
+let connectingPromise: Promise<Producer | null> | null = null;
 
 function getKafkaClient(): Kafka {
   if (!kafka) {
@@ -24,16 +28,32 @@ export function getKafkaForConsumer(): Kafka {
 
 async function getProducer(): Promise<Producer | null> {
   if (producerConnected && producer) return producer;
-  try {
-    producer = getKafkaClient().producer();
-    await producer.connect();
-    producerConnected = true;
-    console.log('[grading-service] Kafka producer conectado');
-    return producer;
-  } catch (err: any) {
-    console.warn('[grading-service] Kafka no disponible — notificaciones solo via HTTP:', err?.message);
-    return null;
-  }
+  if (connectingPromise) return connectingPromise;
+
+  connectingPromise = (async () => {
+    const candidate = getKafkaClient().producer();
+    try {
+      await candidate.connect();
+      producer = candidate;
+      producerConnected = true;
+      console.log('[grading-service] Kafka producer conectado');
+      return producer;
+    } catch (err: any) {
+      console.warn('[grading-service] Kafka no disponible — notificaciones solo via HTTP:', err?.message);
+      try {
+        await candidate.disconnect();
+      } catch {
+        // best-effort cleanup of a producer that never fully connected
+      }
+      return null;
+    } finally {
+      // Clear regardless of outcome so the next call retries instead of
+      // reusing a stale in-flight promise.
+      connectingPromise = null;
+    }
+  })();
+
+  return connectingPromise;
 }
 
 /**

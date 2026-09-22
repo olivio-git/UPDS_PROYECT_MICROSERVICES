@@ -100,6 +100,10 @@ docker-compose up --build -d
 # http://localhost:5173
 ```
 
+> Running `exam-service`, `mcp-grading-server`, or `notifications-service`
+> outside Docker? See [`shared/events/README.md`](shared/events/README.md)
+> to build the local `@cba/events` package first.
+
 ---
 
 ## Environment Variables

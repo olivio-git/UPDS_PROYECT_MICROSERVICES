@@ -139,7 +139,14 @@ async function sendInAppNotification(
   // 'notification.created' via Socket.IO to room `user:<candidateId>`, and
   // publishes a 'notification.created' event — the same three things the old
   // POST /notifications/inapp -> createInApp() controller did.
-  await notificationService.createInAppNotification({
+  //
+  // It swallows its own errors and returns null on failure (that contract is
+  // shared with other callers, so it isn't changed here). runOnce() already
+  // claims a Redis dedupe key before calling this function and only frees it
+  // on a thrown error, so a null/falsy return has to be treated as a failure
+  // here — otherwise a failed in-app notification would be marked "done" for
+  // 7 days (DEDUPE_TTL_SECONDS) and runConsumer would never retry it.
+  const created = await notificationService.createInAppNotification({
     recipientId: data.candidateId,
     recipientType: 'candidate',
     type: 'exam.graded',
@@ -159,4 +166,10 @@ async function sendInAppNotification(
       status: data.status,
     },
   });
+
+  if (!created) {
+    throw new Error(
+      `createInAppNotification returned null for examResultId=${data.examResultId} candidateId=${data.candidateId}`
+    );
+  }
 }

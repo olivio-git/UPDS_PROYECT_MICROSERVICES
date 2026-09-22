@@ -39,6 +39,10 @@ export const config = {
     // Only sweep attempts finished longer ago than this, so the sweeper never
     // races the normal fire-and-forget HTTP grading call from exam-service.
     minAgeMs: parseInt(process.env.GRADING_SWEEP_MIN_AGE_MS || '180000', 10),
+    // Never sweep attempts older than this. Without a ceiling, a first deploy
+    // to a server that already has old completed-but-ungraded attempts would
+    // grade and email students about exams from long ago. Default 7 days.
+    maxAgeMs: parseInt(process.env.GRADING_SWEEP_MAX_AGE_MS || '604800000', 10),
     // Per-run cap on how many ungraded attempts to grade in a single tick.
     batchSize: parseInt(process.env.GRADING_SWEEP_BATCH || '20', 10),
   },
