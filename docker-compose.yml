@@ -218,8 +218,8 @@ services:
   #NOTIFICATION SERVICE
   notifications-service:
     build:
-      context: ./notifications-service
-      dockerfile: dockerfile
+      context: .
+      dockerfile: notifications-service/dockerfile
     container_name: notification-service
     # ports:
     #   - "${NOTIFICATION_SERVICE_PORT}:3001"
@@ -273,8 +273,8 @@ services:
       retries: 5
   exam-service:
     build:
-      context: ./exam-service
-      dockerfile: dockerfile
+      context: .
+      dockerfile: exam-service/dockerfile
     container_name: exam-service
     # ports:
     #   - "${EXAM_SERVICE_PORT:-3003}:3003"
@@ -427,8 +427,8 @@ services:
   # GRADING SERVICE (REST API - GROQ AI)
   grading-service:
     build:
-      context: ./mcp-grading-server
-      dockerfile: dockerfile
+      context: .
+      dockerfile: mcp-grading-server/dockerfile
     container_name: grading-service
     # ports:
     #   - "3007:3007"

@@ -2,13 +2,31 @@ FROM node:18-alpine
 
 RUN apk add --no-cache dumb-init wget
 
+# Build context is the repo root (see docker-compose.yml), so paths below
+# are relative to it.
+
 WORKDIR /app
 
-COPY package*.json ./
+# Build the shared @cba/events package and pack it into a tarball. Services
+# depend on it via "file:../shared/events/cba-events.tgz" — a real tarball
+# install (not an npm-created symlink) so peerDependencies (kafkajs) resolve
+# from the *service's* node_modules instead of shared/events' realpath.
+COPY shared/events/package*.json shared/events/tsconfig*.json ./shared/events/
+COPY shared/events/src ./shared/events/src
+RUN cd shared/events && npm install && npm run pack:local
 
-RUN npm ci
+WORKDIR /app/grading-service
 
-COPY . .
+COPY mcp-grading-server/package*.json ./
+
+# Using `npm install` instead of `npm ci` here because the @cba/events
+# tarball is rebuilt fresh on every image build (not byte-reproducible), so
+# its recorded lockfile integrity can legitimately differ from the tarball
+# generated in this build — `npm ci` would fail that check, `npm install`
+# reconciles it.
+RUN npm install
+
+COPY mcp-grading-server/. .
 
 RUN npm run build
 

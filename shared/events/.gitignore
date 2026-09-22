@@ -1,0 +1,8 @@
+node_modules
+dist
+dist-test
+*.tgz
+.env
+npm-debug.log
+.DS_Store
+.vscode

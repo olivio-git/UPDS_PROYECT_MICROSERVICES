@@ -1,0 +1,32 @@
+{
+  "name": "@cba/events",
+  "version": "1.0.0",
+  "description": "Shared Kafka event envelope, schemas, and publish/consume helpers for CBA microservices",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "type": "commonjs",
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "pretest": "tsc -p tsconfig.test.json",
+    "test": "node --test dist-test/**/*.test.js",
+    "pack:local": "npm run build && npm pack && mv cba-events-*.tgz cba-events.tgz"
+  },
+  "license": "UNLICENSED",
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "zod": "^3.23.8"
+  },
+  "peerDependencies": {
+    "kafkajs": "^2.2.4"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.0",
+    "kafkajs": "^2.2.4",
+    "typescript": "^5.3.3"
+  }
+}

@@ -4,17 +4,34 @@ FROM node:18-alpine
 # Instalar dependencias del sistema
 RUN apk add --no-cache dumb-init
 
-# Crear directorio de trabajo
+# Build context is the repo root (see docker-compose.yml), so paths below
+# are relative to it.
+
 WORKDIR /app
 
-# Copiar archivos de dependencias
-COPY package*.json ./
+# Build the shared @cba/events package and pack it into a tarball. Services
+# depend on it via "file:../shared/events/cba-events.tgz" — a real tarball
+# install (not an npm-created symlink) so peerDependencies (kafkajs) resolve
+# from the *service's* node_modules instead of shared/events' realpath.
+COPY shared/events/package*.json shared/events/tsconfig*.json ./shared/events/
+COPY shared/events/src ./shared/events/src
+RUN cd shared/events && npm install && npm run pack:local
 
-# Instalar dependencias
-RUN npm ci
+# Crear directorio de trabajo del servicio
+WORKDIR /app/notifications-service
+
+# Copiar archivos de dependencias
+COPY notifications-service/package*.json ./
+
+# Instalar dependencias. Usamos `npm install` en vez de `npm ci` porque el
+# tarball de @cba/events se reconstruye en cada build de la imagen (no es un
+# artefacto reproducible byte a byte), asi que su integrity en el lockfile
+# puede diferir legitimamente del tarball generado en este build — `npm ci`
+# fallaria esa verificacion, `npm install` la reconcilia.
+RUN npm install
 
 # Copiar código fuente
-COPY . .
+COPY notifications-service/. .
 
 # Construir la aplicación
 RUN npm run build
