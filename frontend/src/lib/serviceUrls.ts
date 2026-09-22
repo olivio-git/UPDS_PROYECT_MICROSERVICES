@@ -33,8 +33,6 @@ export const NOTIFICATION_WS_URL =
   trimSlash(import.meta.env.VITE_NOTIFICATION_SERVICE_WS) ||
   trimSlash(import.meta.env.VITE_NOTIFICATION_SERVICE_URL) ||
   GATEWAY_URL;
-export const SESSION_MANAGER_WS_URL =
-  trimSlash(import.meta.env.VITE_SESSION_MANAGER_WS_URL) || GATEWAY_URL;
 
 /** Where the browser can read exam media. The gateway proxies /minio to MinIO. */
 export const MEDIA_BASE_URL = trimSlash(import.meta.env.VITE_MINIO_PUBLIC_URL) || `${GATEWAY_URL}/minio`;
