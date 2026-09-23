@@ -1,0 +1,16 @@
+{
+  "name": "e2e-browser",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Real-browser Playwright E2E suite that catches bugs the API-level e2e scripts (scripts/e2e/*.e2e.js) cannot see: CORS, cookie/session handling, and anything the frontend must actually report to a backend gate.",
+  "scripts": {
+    "test": "playwright test",
+    "test:headed": "playwright test --headed",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.48.0",
+    "@types/node": "^20.0.0",
+    "typescript": "^5.5.0"
+  }
+}
