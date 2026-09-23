@@ -66,6 +66,8 @@ export interface CanProceedResult {
   canProceed: boolean;
   reasons: CanProceedReason[];
   verification?: TechnicalVerificationData;
+  /** Informative only — see canUserProceed for why it does not gate. */
+  score?: number;
 }
 
 export class TechnicalVerificationService {
@@ -78,6 +80,7 @@ export class TechnicalVerificationService {
   private readonly USER_VERIFICATION_PREFIX = 'user_tech:';
   // Minimum overall score to proceed — same threshold the UI already shows
   // the candidate via calculateFinalScore()'s `canProceed: overall >= 60`.
+  /** Kept for the score the UI shows; the gate uses the requirements below. */
   private readonly MIN_SCORE_TO_PROCEED = 60;
 
   constructor() {
@@ -525,8 +528,6 @@ export class TechnicalVerificationService {
    * against this service's own Redis-backed verification record:
    *  - a verification exists for the user
    *  - it has not expired (defense-in-depth; Redis TTL is the primary expiry)
-   *  - overall score >= MIN_SCORE_TO_PROCEED (60 — same cutoff the UI
-   *    already surfaces via calculateFinalScore()'s canProceed flag)
    *  - browser is compatible
    *  - network/internet connection is OK
    *  - microphone is working, but ONLY when the caller says the exam needs
@@ -552,14 +553,14 @@ export class TechnicalVerificationService {
       }
 
       const v = verification.verification;
-      const score = this.calculateGatingScore(verification, requireMicrophone);
 
-      if (score < this.MIN_SCORE_TO_PROCEED) {
-        reasons.push({
-          code: 'LOW_SCORE',
-          message: `Puntuación de verificación técnica insuficiente (${score}/100, mínimo ${this.MIN_SCORE_TO_PROCEED})`
-        });
-      }
+      // The composite score is reported, not gated on: it averages three
+      // buckets, and the audio bucket scores zero for an exam that needs no
+      // audio, so a candidate could be refused while every requirement below
+      // passed and the preparation screen showed a green start button. The
+      // individual requirements are the contract.
+      const score = this.calculateGatingScore(verification, requireMicrophone);
+      logger.info(`Verificación técnica de ${userId}: puntaje ${score}/100 (informativo)`);
 
       if (!v?.browserCompatible) {
         reasons.push({ code: 'BROWSER_INCOMPATIBLE', message: 'Navegador no compatible' });
@@ -573,7 +574,7 @@ export class TechnicalVerificationService {
         reasons.push({ code: 'MICROPHONE_FAILED', message: 'El micrófono no está funcionando' });
       }
 
-      return { canProceed: reasons.length === 0, reasons, verification };
+      return { canProceed: reasons.length === 0, reasons, verification, score };
     } catch (error) {
       logger.error('Error verificando si puede proceder:', error);
       return { canProceed: false, reasons: [{ code: 'INTERNAL_ERROR', message: 'Error interno' }] };
