@@ -9,7 +9,7 @@ import { activePath, menuForRole } from '@/navigation/menu';
 import { Bell, LogOut, Menu, Search, X } from 'lucide-react';
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import logo from '@/assets/images/logo.webp';
+import { BrandLogo } from '@/components/BrandLogo';
 
 const ROLE_LABEL: Record<string, string> = {
   admin: 'Administrador',
@@ -126,7 +126,7 @@ export function AppShell({ children }: { children: ReactNode }) {
         )}
       >
         <div className="h-14 flex items-center gap-2 px-4 border-b border-border">
-          <img src={logo} alt="CBA Tarija" className="h-7 w-auto" />
+          <BrandLogo className="h-7" markOnly />
           <span className="text-sm font-semibold text-foreground truncate">Evaluación</span>
           <button
             type="button"

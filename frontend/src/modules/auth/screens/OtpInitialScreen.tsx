@@ -1,15 +1,17 @@
 import { Alert, AlertDescription } from '@/components/atoms/alert';
-import { Button } from '@/components/atoms/button';
+import { Button } from '@/components/keel/button';
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-} from '@/components/atoms/card';
-import { Input } from '@/components/atoms/input';
-import { Label } from '@/components/atoms/label';
+} from '@/components/keel/card';
+import { Field, FieldLabel } from '@/components/keel/field';
+import { Input } from '@/components/keel/input';
 import GradientWrapper from '@/components/background/GrandWrapperSection';
+import { AuthHeader } from '@/modules/auth/components/AuthHeader';
+import { AUTH_PRIMARY_BUTTON_CLASS } from '@/modules/auth/components/authStyles';
 import { useAuthStore } from '@/modules/auth/services/authStore';
 import GradientBackground from '@/modules/home/screens/GradientBackground';
 import { Mail } from 'lucide-react';
@@ -100,22 +102,18 @@ const OtpInitialScreen = () => {
   return (
     <>
       <GradientBackground grid={false} objs={false} lights={true} size="sm" />
-      {/* <div className="fixed top-4 left-4 z-50">
-        <div className="flex items-center space-x-2">
-          <img className="h-8" src={ImageLogo} alt="Logo" />
-        </div>
-      </div> */}
 
       <div className="min-h-screen flex items-center justify-center p-4 epilogue-uniquifier">
         <Card className="w-full max-w-md bg-transparent shadow-none">
-          <CardHeader className="space-y-1 text-center">
-            <div className="flex items-center border border-border justify-center w-12 h-12 bg-muted rounded-full mx-auto mb-4">
+          <CardHeader className="space-y-1">
+            <AuthHeader step={0} />
+            <div className="flex items-center border border-border justify-center w-12 h-12 bg-muted rounded-full mx-auto mb-2">
               <Mail className="h-6 w-6 text-foreground" />
             </div>
-            <CardTitle className="text-3xl font-medium text-card-foreground">
+            <CardTitle className="text-3xl font-medium text-card-foreground text-center">
               {isResetMode ? 'Recuperar Contraseña' : 'Verificación OTP'}
             </CardTitle>
-            <CardDescription className="text-muted-foreground">
+            <CardDescription className="text-muted-foreground text-center">
               {isResetMode
                 ? 'Ingresa tu email para recibir el código de recuperación'
                 : 'Ingresa tu email para recibir el código de verificación'
@@ -138,13 +136,8 @@ const OtpInitialScreen = () => {
               animate={false}
             >
               <form onSubmit={handleSubmit} className="space-y-4">
-                <div className="space-y-2">
-                  <Label
-                    htmlFor="email"
-                    className="text-card-foreground font-medium"
-                  >
-                    Email
-                  </Label>
+                <Field>
+                  <FieldLabel htmlFor="email">Email</FieldLabel>
                   <Input
                     ref={emailInputRef}
                     id="email"
@@ -156,15 +149,13 @@ const OtpInitialScreen = () => {
                     disabled={isLoading}
                     required
                     autoFocus={true}
-                    className="input-no-bg epilogue-uniquifier block w-full px-0 py-2 border-0 border-b border-border
-                    focus:outline-none focus:border-b-blue-500 pl-2 focus:ring-0 rounded-none font-medium text-card-foreground"
                   />
-                </div>
+                </Field>
 
                 <Button
                   type="submit"
                   size="sm"
-                  className="w-full bg-brand-blue hover:bg-primary/90 text-white font-medium disabled:opacity-50"
+                  className={AUTH_PRIMARY_BUTTON_CLASS}
                   disabled={isLoading}
                 >
                   {isLoading

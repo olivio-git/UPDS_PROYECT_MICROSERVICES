@@ -1,7 +1,9 @@
 import { Alert, AlertDescription } from "@/components/atoms/alert"
-import { Button } from "@/components/atoms/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/atoms/card"
-import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/atoms/input-otp"
+import { Button } from "@/components/keel/button"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/keel/card"
+import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/keel/input-otp"
+import { AuthHeader } from "@/modules/auth/components/AuthHeader"
+import { AUTH_PRIMARY_BUTTON_CLASS } from "@/modules/auth/components/authStyles"
 import { useAuthStore } from "@/modules/auth/services/authStore"
 import GradientBackground from "@/modules/home/screens/GradientBackground"
 import { AlertCircle, ArrowLeft, Clock, KeyRound } from "lucide-react"
@@ -24,13 +26,13 @@ const OtpVerificator = ({
 }: OTPVerificationProps) => {
   const navigate = useNavigate()
   const location = useLocation()
-  const {  
-    verifyOTP, 
-    generateOTP, 
-    isLoading, 
-    error, 
+  const {
+    verifyOTP,
+    generateOTP,
+    isLoading,
+    error,
     clearError,
-    otp, 
+    otp,
     clearOTP,
   } = useAuthStore()
 
@@ -56,7 +58,7 @@ const OtpVerificator = ({
     });
   }, [propPurpose, location.state?.purpose, otp.otpPurpose, purpose, email, location.state?.email, otp.otpEmail]);
 
-  // Redirect if no email 
+  // Redirect if no email
   useEffect(() => {
     if (!email) {
       toast.error("No se proporcionó un email para verificación")
@@ -94,12 +96,12 @@ const OtpVerificator = ({
 
     try {
       console.log(`🔍 Verificando OTP para propósito: ${purpose}`)
-      
+
       const success = await verifyOTP(otpCode)
-      
+
       if (success) {
         toast.success("¡Código verificado exitosamente!")
-        
+
         // Según el propósito, redirigir apropiadamente
         if (purpose === "login") {
           console.log("🔑 OTP verificado para login, redirigiendo a formulario de credenciales")
@@ -131,7 +133,7 @@ const OtpVerificator = ({
 
     try {
       const success = await generateOTP(email, purpose)
-      
+
       if (success) {
         toast.success("¡Código reenviado exitosamente!")
         setTimeLeft(600) // Reset to 10 minutes
@@ -148,7 +150,7 @@ const OtpVerificator = ({
   const handleBack = () => {
     clearOTP()
     clearError()
-    
+
     if (onBack) {
       onBack()
     } else {
@@ -191,24 +193,18 @@ const OtpVerificator = ({
   return (
     <>
       <GradientBackground grid={false} objs={false} lights={true} size="2xl" />
-      
-      {/* Logo en la esquina superior izquierda */}
-      {/* <div className="fixed top-4 left-4 z-50">
-        <div className="flex items-center space-x-2">
-          <img className="h-8" src={ImageLogo} alt="Logo" />
-        </div>
-      </div> */}
 
       <div className="min-h-screen flex items-center justify-center p-4 epilogue-uniquifier">
         <Card className="w-full max-w-md bg-transparent shadow-none">
-          <CardHeader className="space-y-1 text-center">
-            <div className="flex items-center justify-center w-12 h-12 bg-muted rounded-full mx-auto mb-4">
+          <CardHeader className="space-y-1">
+            <AuthHeader step={1} />
+            <div className="flex items-center justify-center w-12 h-12 bg-muted rounded-full mx-auto mb-2">
               <KeyRound className="h-6 w-6 text-foreground" />
             </div>
-            <CardTitle className="text-3xl font-medium text-card-foreground">
+            <CardTitle className="text-3xl font-medium text-card-foreground text-center">
               Verificar Código
             </CardTitle>
-            <CardDescription className="text-muted-foreground">
+            <CardDescription className="text-muted-foreground text-center">
               Hemos enviado un código de 6 dígitos para {getPurposeText()} a
               <br />
               <span className="font-medium text-card-foreground">{email}</span>
@@ -247,19 +243,18 @@ const OtpVerificator = ({
             <div className="space-y-6">
               {/* Input OTP estilizado */}
               <div className="flex justify-center">
-                <InputOTP 
-                  maxLength={6} 
-                  value={otpCode} 
-                  onChange={setOtpCode} 
+                <InputOTP
+                  maxLength={6}
+                  value={otpCode}
+                  onChange={setOtpCode}
                   className="gap-3"
                   disabled={isLoading}
                 >
-                  <InputOTPGroup className="gap-2">  
+                  <InputOTPGroup className="gap-2">
                     {[0, 1, 2, 3, 4, 5].map((index) => (
                       <InputOTPSlot
                         key={index}
                         index={index}
-                        className="focus:border-b-blue-500 focus:outline-none focus:ring-0"
                       />
                     ))}
                   </InputOTPGroup>
@@ -271,9 +266,9 @@ const OtpVerificator = ({
                 onClick={handleVerify}
                 size={'sm'}
                 disabled={otpCode.length !== 6 || isLoading || otp.attemptsRemaining === 0}
-                className="w-full bg-brand-blue hover:bg-primary/90 text-white font-medium disabled:opacity-50"
+                className={AUTH_PRIMARY_BUTTON_CLASS}
               >
-                {isLoading ? "Verificando..." : 
+                {isLoading ? "Verificando..." :
                   purpose === "login" ? "Verificar y Continuar al Login" :
                   purpose === "password_reset" ? "Verificar y Cambiar Contraseña" :
                   "Verificar Código"
