@@ -3,7 +3,8 @@ import { AuthController } from '../controllers/auth.controller';
 import { OtpController } from '../controllers/otp.controller';
 import { authMiddleware } from '../../middleware/auth.middleware';
 import { asyncHandler, validateBody } from '../../middleware';
-import { ChangePasswordSchema, LoginSchema, RefreshTokenSchema, RegisterSchema, ResetPasswordSchema } from '../schemas/auth.schemas';
+import { ChangePasswordSchema,
+  VerifyPasswordSchema, LoginSchema, RefreshTokenSchema, RegisterSchema, ResetPasswordSchema } from '../schemas/auth.schemas';
 import { authRateLimiter } from '../middleware/rate-limit.middleware';
 
 export const createAuthRoutes = (authController: AuthController, otpController: OtpController): Router => {
@@ -26,6 +27,16 @@ export const createAuthRoutes = (authController: AuthController, otpController: 
 
   router.get('/profile', authMiddleware.authenticate, asyncHandler(authController.getProfile));
   router.get('/validate', authMiddleware.authenticate, asyncHandler(authController.validateToken));
+
+  // Confirms the current password of an already signed-in user (used by the
+  // password-change screen); never issues tokens.
+  router.post(
+    '/verify-password',
+    authMiddleware.authenticate,
+    authRateLimiter(10, 5 * 60),
+    validateBody(VerifyPasswordSchema),
+    asyncHandler(authController.verifyPassword)
+  );
 
   router.post(
     '/change-password',

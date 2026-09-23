@@ -65,6 +65,11 @@ interface Config {
   // removed the only caller that used it — see identity-service report).
   serviceToken: string;
 
+  // Server-side OTP-before-password enforcement on /auth/login. See
+  // auth.service.ts login() and otp.service.ts markLoginOtpVerified/
+  // consumeLoginOtpVerification.
+  otpLoginRequired: boolean;
+
   // Security
   jwtSecret: string;
   jwt: {
@@ -138,6 +143,15 @@ const config: Config = {
   // drop the secret.
   serviceToken: requireEnv('SERVICE_TOKEN'),
 
+  // OTP_LOGIN_REQUIRED defaults to TRUE when unset — only the literal string
+  // 'false' turns it off. In production the flag is ignored outright and
+  // enforcement is always on, so a misconfigured/missing env var can never
+  // silently disable two-factor login on a real deployment.
+  otpLoginRequired:
+    (process.env.NODE_ENV || 'development') === 'production'
+      ? true
+      : process.env.OTP_LOGIN_REQUIRED !== 'false',
+
   // Security
   jwtSecret,
   jwt: {
@@ -165,5 +179,10 @@ const config: Config = {
     excelSheetName: process.env.EXCEL_SHEET_NAME || 'Candidates',
   },
 };
+
+console.log(
+  `[identity-service] OTP-before-password login enforcement: ${config.otpLoginRequired ? 'ON' : 'OFF'}` +
+    (config.nodeEnv === 'production' ? ' (forced ON in production, OTP_LOGIN_REQUIRED is ignored)' : ` (OTP_LOGIN_REQUIRED=${process.env.OTP_LOGIN_REQUIRED ?? '<unset, defaults to true>'})`)
+);
 
 export default config;

@@ -181,6 +181,7 @@ services:
       - REFRESH_TOKEN_SECRET=${REFRESH_TOKEN_SECRET}
       - REFRESH_TOKEN_EXPIRES_IN=7d
       - SERVICE_TOKEN=${SERVICE_TOKEN}
+      - OTP_LOGIN_REQUIRED=${OTP_LOGIN_REQUIRED:-true}
       - UPLOAD_MAX_SIZE=10485760
       - UPLOAD_ALLOWED_TYPES="image/jpeg,image/png,application/pdf,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,text/csv"
       - CORS_ORIGIN=${CORS_ORIGIN}

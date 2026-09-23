@@ -86,13 +86,22 @@ const LoginScreen = () => {
     try {
       console.log("🔑 Intentando LOGIN DIRECTO...")
       const success = await login(formData.email, formData.password)
-      
+
       if (success) {
         console.log("✅ Login exitoso")
         toast.success("¡Bienvenido!")
         // La redirección se maneja automáticamente por el estado de autenticación
       } else {
         console.log("❌ Error en login")
+
+        // The backend requires a fresh login OTP verification right before
+        // /auth/login (case: user landed on /login directly, or the OTP
+        // marker expired while they were typing their password). Send them
+        // back to the OTP step instead of showing a generic error here.
+        if (useAuthStore.getState().lastLoginErrorCode === 'OTP_REQUIRED') {
+          toast.error("Verifica el código enviado a tu correo antes de iniciar sesión.")
+          navigate('/', { state: { email: formData.email } })
+        }
       }
     } catch (error) {
       console.error("❌ Error inesperado en login:", error)

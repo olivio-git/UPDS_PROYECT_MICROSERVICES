@@ -28,7 +28,11 @@ interface AuthStore {
   isAuthenticated: boolean;
   error: string | null;
   isInitialized: boolean;
-  
+  // Machine-readable code from the last failed login() call (e.g.
+  // 'OTP_REQUIRED'), so LoginScreen can react to specific failures instead of
+  // string-matching `error`. Cleared on clearError()/a new login attempt.
+  lastLoginErrorCode: string | null;
+
   // Estados OTP
   otp: OTPState;
   
@@ -62,7 +66,8 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
   isAuthenticated: false,
   error: null,
   isInitialized: false,
-  
+  lastLoginErrorCode: null,
+
   otp: {
     isOTPRequired: false,
     otpEmail: '',
@@ -71,11 +76,11 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
   },
 
   // Limpiar errores
-  clearError: () => set({ error: null }),
+  clearError: () => set({ error: null, lastLoginErrorCode: null }),
 
   // 🔐 LOGIN DIRECTO (DESPUÉS DE VERIFICAR OTP)
   login: async (email: string, password: string) => {
-    set({ isLoading: true, error: null });
+    set({ isLoading: true, error: null, lastLoginErrorCode: null });
     
     try {
       // console.log('🔑 [AuthStore] Login DIRECTO con credenciales verificadas');
@@ -114,17 +119,18 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
         }
       } else {
         console.error('❌ [AuthStore] Login falló:', result.message);
-        set({ 
+        set({
           error: result.message,
-          isLoading: false 
+          isLoading: false,
+          lastLoginErrorCode: result.error ?? null,
         });
         return false;
       }
     } catch (error) {
       console.error('❌ [AuthStore] Error inesperado en login:', error);
-      set({ 
+      set({
         error: 'Error de conexión',
-        isLoading: false 
+        isLoading: false
       });
       return false;
     }

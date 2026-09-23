@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
 import { auditLog } from '../../services/audit.service';
-import { AuthService } from '../services/auth.service';
+import { AuthService, OtpRequiredError } from '../services/auth.service';
 import { OtpService } from '../services/otp.service';
 import { ChangePasswordRequest, LoginRequest, RefreshTokenRequest, RegisterRequest, ResetPasswordRequest } from '../schemas/auth.schemas';
 import { ApiResponse, JWTPayload } from '../../types';
@@ -60,16 +60,20 @@ export class AuthController {
         data: result,
       });
     } catch (error: any) {
+      const isOtpRequired = error instanceof OtpRequiredError;
+
       auditLog('user.login', { type: 'user', name: req.body.email }, {
         actor: { email: req.body.email, ip: req.ip },
         status: 'failure',
-        details: { reason: error.message },
+        details: { reason: error.message, otpRequired: isOtpRequired },
         service: 'identity-service',
       });
       res.status(401).json({
         success: false,
         message: error.message || 'Error en el inicio de sesión',
-        error: 'Login failed',
+        // Machine-readable code so the frontend can distinguish "go verify
+        // the OTP" from any other login failure. See OtpRequiredError.
+        error: isOtpRequired ? 'OTP_REQUIRED' : 'Login failed',
       });
     }
   };
@@ -154,6 +158,23 @@ export class AuthController {
       return;
     }
     res.status(200).json({ success: true, message: 'Token válido', data: { user, isValid: true } });
+  };
+
+  verifyPassword = async (req: Request, res: Response<ApiResponse>) => {
+    const user = req.user as JWTPayload | undefined;
+    if (!user) {
+      res.status(401).json({ success: false, message: 'Usuario no autenticado', error: 'Not authenticated' });
+      return;
+    }
+
+    const { password } = req.body as { password: string };
+    const valid = await this.authService.verifyCurrentPassword(user.userId, password);
+
+    res.status(valid ? 200 : 401).json({
+      success: valid,
+      message: valid ? 'Contraseña verificada' : 'Contraseña actual incorrecta',
+      data: { valid },
+    });
   };
 
   changePassword = async (req: Request<{}, ApiResponse, ChangePasswordRequest>, res: Response<ApiResponse>) => {

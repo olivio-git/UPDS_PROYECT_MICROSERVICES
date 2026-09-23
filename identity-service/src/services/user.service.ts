@@ -5,6 +5,7 @@ import { AuthService } from '../auth/services/auth.service';
 import { SessionRepository } from '../auth/repositories/session.repository';
 import { AuthCacheRepository } from '../auth/repositories/auth-cache.repository';
 import { JwtService } from '../auth/services/jwt.service';
+import { OtpService } from '../auth/services/otp.service';
 import {
   ApiResponse,
   CreateUserRequest,
@@ -30,11 +31,16 @@ export class UserService {
 
   constructor() {
     this.userRepository = new UserRepository();
+    const authCacheRepository = new AuthCacheRepository();
     this.authService = new AuthService(
       this.userRepository,
       new SessionRepository(),
-      new AuthCacheRepository(),
-      new JwtService()
+      authCacheRepository,
+      new JwtService(),
+      // UserService never calls AuthService.login() (see the methods it
+      // actually uses below) — this OtpService instance only exists to
+      // satisfy the constructor signature.
+      new OtpService(authCacheRepository, this.userRepository)
     );
     console.log('👤 UserService inicializado');
   }

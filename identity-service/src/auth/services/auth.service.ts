@@ -8,6 +8,7 @@
 
 import bcrypt from 'bcryptjs';
 import { ObjectId } from 'mongodb';
+import config from '../../config';
 import { UserModel } from '../../models/User';
 import { UserRepository } from '../../repositories/user.repository';
 import { User, UserRole } from '../../types';
@@ -15,6 +16,22 @@ import { AuthCacheRepository } from '../repositories/auth-cache.repository';
 import { SessionRepository } from '../repositories/session.repository';
 import { AuthTokenPayload, JwtService } from './jwt.service';
 import { legacyEventService } from './legacy-event.service';
+import { OtpService } from './otp.service';
+
+/**
+ * Thrown by login() when the password is correct but the caller skipped (or
+ * let expire) the required login OTP step. Carries a machine-readable `code`
+ * so the controller can surface `OTP_REQUIRED` to the frontend instead of a
+ * generic invalid-credentials message — see auth.controller.ts login().
+ */
+export class OtpRequiredError extends Error {
+  readonly code = 'OTP_REQUIRED' as const;
+
+  constructor(message: string) {
+    super(message);
+    this.name = 'OtpRequiredError';
+  }
+}
 
 export interface RegisterInput {
   email: string;
@@ -49,7 +66,8 @@ export class AuthService {
     private userRepository: UserRepository,
     private sessionRepository: SessionRepository,
     private cacheRepository: AuthCacheRepository,
-    private jwtService: JwtService
+    private jwtService: JwtService,
+    private otpService: OtpService
   ) {}
 
   // ================================
@@ -114,7 +132,28 @@ export class AuthService {
 
     const isValid = await bcrypt.compare(password, user.passwordHash);
     if (!isValid) {
+      // Password checked FIRST, deliberately: we return here before ever
+      // touching the login-OTP marker, so a wrong password never reveals
+      // (by consuming or not consuming it) whether the OTP step was done.
+      // Consequence: the marker survives a wrong-password attempt — a
+      // deliberate choice, not an oversight. The marker is redeemable only
+      // once and /auth/login is already rate-limited (10/15min), so leaving
+      // it intact does not widen the attack surface (an attacker still needs
+      // the correct password), while it spares a legitimate user who simply
+      // mistypes their password from having to repeat the OTP round trip.
       throw new Error('Credenciales inválidas');
+    }
+
+    // OTP-before-password enforcement: the UI always runs OTP first, then
+    // password — this requires that order server-side too, instead of
+    // trusting the client to have followed it. See otp.controller.ts
+    // markLoginOtpVerified (written on a successful purpose='login' verify)
+    // and config.otpLoginRequired for the enable/disable flag.
+    if (config.otpLoginRequired) {
+      const otpVerified = await this.otpService.consumeLoginOtpVerification(email);
+      if (!otpVerified) {
+        throw new OtpRequiredError('Verifica el código enviado a tu correo antes de iniciar sesión.');
+      }
     }
 
     await this.userRepository.updateLastLogin(user._id as ObjectId);
@@ -209,6 +248,17 @@ export class AuthService {
   // PASSWORD MANAGEMENT (in-process — no more HTTP hop to a separate
   // auth-service)
   // ================================
+
+  /**
+   * Confirms the signed-in user's current password without issuing tokens.
+   * The password-change screen used to do this by calling login(), which no
+   * longer works now that login requires an OTP marker.
+   */
+  async verifyCurrentPassword(userId: string, password: string): Promise<boolean> {
+    const user = await this.userRepository.findById(userId);
+    if (!user || user.status !== 'active' || !user.passwordHash) return false;
+    return bcrypt.compare(password, user.passwordHash);
+  }
 
   async changePassword(userId: string, oldPassword: string, newPassword: string): Promise<boolean> {
     const user = await this.userRepository.findById(userId);
