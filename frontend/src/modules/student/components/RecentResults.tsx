@@ -7,6 +7,22 @@ import {
   CardTitle,
 } from "@/components/atoms/card";
 import GradientWrapper from "@/components/background/GrandWrapperSection";
+import {
+  Empty,
+  EmptyDescription,
+  EmptyHeader,
+  EmptyMedia,
+  EmptyTitle,
+} from "@/components/keel/empty";
+import {
+  Item,
+  ItemActions,
+  ItemContent,
+  ItemDescription,
+  ItemGroup,
+  ItemMedia,
+  ItemTitle,
+} from "@/components/keel/item";
 import { examResultService, type ExamResultSummary } from "@/services/examResultService";
 import { AlertCircle, ChevronRight, FileText, Loader2 } from "lucide-react";
 import { useEffect, useState } from "react";
@@ -84,13 +100,14 @@ const RecentResults = ({
 
   return (
     <GradientWrapper
+      className="h-full"
       intensity="medium"
       size="md"
       position="top-left"
       animate={false}
       variant="cosmic"
     >
-      <Card className="bg-card backdrop-blur-sm border border-line shadow-none">
+      <Card className="flex h-full flex-col bg-card backdrop-blur-sm border border-line shadow-none">
         <CardHeader className="pb-3">
           <CardTitle className="text-foreground flex items-center gap-2">
             <FileText className="h-5 w-5 text-muted-foreground" />
@@ -101,7 +118,7 @@ const RecentResults = ({
           </CardDescription>
         </CardHeader>
 
-        <CardContent className="space-y-1 pt-0">
+        <CardContent className="flex flex-1 flex-col justify-center space-y-1 pt-0">
           {loading && (
             <div className="flex items-center justify-center py-6">
               <Loader2 className="h-5 w-5 animate-spin text-muted-foreground mr-2" />
@@ -117,60 +134,52 @@ const RecentResults = ({
           )}
 
           {!loading && !error && recentResults.length === 0 && (
-            <div className="text-center py-6 text-muted-foreground">
-              <FileText className="h-10 w-10 mx-auto mb-2 opacity-40" />
-              <p className="text-sm">No tienes resultados de examenes aun</p>
-              <p className="text-xs mt-1 text-muted-foreground/70">
-                Completa un examen para ver tus resultados aqui
-              </p>
-            </div>
+            <Empty className="border-0 py-6">
+              <EmptyHeader>
+                <EmptyMedia variant="icon">
+                  <FileText />
+                </EmptyMedia>
+                <EmptyTitle>Aún no tienes resultados</EmptyTitle>
+                <EmptyDescription>
+                  Completa un examen para ver tus resultados aquí.
+                </EmptyDescription>
+              </EmptyHeader>
+            </Empty>
           )}
 
-          {!loading &&
-            !error &&
-            recentResults.map((result) => (
-              <button
-                key={result.id}
-                type="button"
-                className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-muted/20 transition-colors cursor-pointer text-left"
-                onClick={() => handleResultClick(result.id)}
-                aria-label={`Ver resultado: ${result.examName}`}
-              >
-                {/* Indicador de color segun score */}
-                <span
-                  className={`flex-shrink-0 w-2.5 h-2.5 rounded-full ${getScoreIndicatorColor(result.score)}`}
-                  aria-hidden="true"
-                />
-
-                {/* Nombre y fecha */}
-                <div className="flex-1 min-w-0">
-                  <p className="font-medium text-foreground text-sm truncate leading-tight">
-                    {result.examName}
-                  </p>
-                  <p className="text-xs text-muted-foreground leading-tight mt-0.5">
-                    {formatShortDate(result.date)}
-                  </p>
-                </div>
-
-                {/* Score */}
-                <span
-                  className={`flex-shrink-0 text-sm font-semibold ${getScoreColor(result.score)}`}
+          {!loading && !error && recentResults.length > 0 && (
+            <ItemGroup className="gap-1">
+              {recentResults.map((result) => (
+                <Item
+                  key={result.id}
+                  size="sm"
+                  render={<button type="button" aria-label={`Ver resultado: ${result.examName}`} />}
+                  onClick={() => handleResultClick(result.id)}
+                  className="cursor-pointer text-left hover:bg-muted/40"
                 >
-                  {result.score}%
-                </span>
-
-                {/* Badge de nivel */}
-                <span className="flex-shrink-0 inline-flex items-center px-1.5 py-0.5 text-xs font-medium rounded bg-blue-100 text-blue-700 border border-blue-200 dark:bg-blue-500/20 dark:text-blue-300 dark:border-blue-500/30">
-                  {result.level}
-                </span>
-
-                {/* Chevron */}
-                <ChevronRight
-                  className="flex-shrink-0 h-4 w-4 text-muted-foreground/50"
-                  aria-hidden="true"
-                />
-              </button>
-            ))}
+                  <ItemMedia>
+                    <span
+                      className={`h-2.5 w-2.5 shrink-0 rounded-full ${getScoreIndicatorColor(result.score)}`}
+                      aria-hidden="true"
+                    />
+                  </ItemMedia>
+                  <ItemContent>
+                    <ItemTitle>{result.examName}</ItemTitle>
+                    <ItemDescription>{formatShortDate(result.date)}</ItemDescription>
+                  </ItemContent>
+                  <ItemActions>
+                    <span className={`shrink-0 text-sm font-semibold ${getScoreColor(result.score)}`}>
+                      {result.score}%
+                    </span>
+                    <span className="shrink-0 rounded border border-blue-200 bg-blue-100 px-1.5 py-0.5 text-xs font-medium text-blue-700 dark:border-blue-500/30 dark:bg-blue-500/20 dark:text-blue-300">
+                      {result.level}
+                    </span>
+                    <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground/50" aria-hidden="true" />
+                  </ItemActions>
+                </Item>
+              ))}
+            </ItemGroup>
+          )}
 
           <div className="pt-2">
             <Button

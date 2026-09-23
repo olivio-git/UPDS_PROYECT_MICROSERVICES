@@ -2,11 +2,11 @@ import { Alert, AlertDescription } from '@/components/atoms/alert';
 import { Button } from '@/components/atoms/button';
 import {
   Card,
-  CardContent,
-  CardHeader
+  CardContent
 } from '@/components/atoms/card';
 import GradientWrapper from '@/components/background/GrandWrapperSection';
 import { MainLayout } from '@/components/layout';
+import { cn } from '@/lib/utils';
 import { useBrowserLockdown } from '@/hooks/useBrowserLockdown';
 import { useExamSessionHTTP } from '@/hooks/useExamSessionHTTP';
 import { examResultService } from '@/services/examResultService';
@@ -66,7 +66,6 @@ const ExamRunnerHTTP: React.FC = () => {
   const {
     // State
     isActive,
-    sections,
     currentSectionIndex,
     currentQuestionIndex,
     answers,
@@ -618,228 +617,199 @@ const ExamRunnerHTTP: React.FC = () => {
         </div>
       )}
 
-      <div className="min-h-screen p-4">
-        <GradientWrapper intensity="low" size="xl" variant='cosmic' position='left' animate={false}>
-          <div className="max-w-7xl mx-auto">
-
-            {/* Layout with sidebar and main content */}
-            <div className="flex flex-col xl:grid xl:grid-cols-4 gap-6">
-
-              {/* Section Navigator - Top on mobile/tablet, sidebar on desktop */}
-              <div className="xl:col-span-1 order-2 xl:order-1">
-                <SectionNavigator
-                  sections={sectionStats.map(section => ({
-                    ...section,
-                    questionStates: section.questionStates.map(q => ({
-                      ...q,
-                      flagged: flaggedQuestions.has(q.id),
-                    })),
-                  }))}
-                  currentSectionIndex={currentSectionIndex}
-                  currentQuestionIndex={currentQuestionIndex}
-                  onSectionChange={navigateToSection}
-                  onQuestionJump={navigateToQuestionInSection}
-                  className="xl:sticky xl:top-4"
-                />
+      <div className="flex h-full flex-col">
+        {/* ── Top bar: timer gets real weight, position is stated once ── */}
+        <header className="shrink-0 border-b border-line bg-box/90 backdrop-blur-sm px-4 py-3">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="flex flex-wrap items-center gap-3">
+              {/* Timer — the thing that matters most, sized accordingly */}
+              <div
+                className={cn(
+                  'flex items-center gap-2.5 rounded-2xl border-2 px-4 py-2.5 font-mono text-2xl font-bold tabular-nums tracking-wider shadow-sm transition-all duration-500',
+                  timeRemaining && timeRemaining < 60
+                    ? 'scale-105 animate-pulse border-red-600 bg-red-600 text-white'
+                    : timeRemaining && timeRemaining < 300
+                    ? 'border-red-500 bg-red-500 text-white'
+                    : timeRemaining && timeRemaining < 600
+                    ? 'border-amber-400 bg-amber-400 text-white dark:border-amber-500 dark:bg-amber-500'
+                    : 'border-border bg-muted/60 text-foreground'
+                )}
+              >
+                <Timer className={cn('h-5 w-5 shrink-0', timeRemaining && timeRemaining < 300 ? 'opacity-100' : 'opacity-60')} />
+                <span>{timeRemaining ? formatTime(timeRemaining) : '--:--'}</span>
               </div>
 
-              {/* Main Exam Content */}
-              <div className="xl:col-span-3 order-1 xl:order-2">
+              {/* Browser lockdown chip — informational, tells the
+                  candidate their activity is being monitored */}
+              {lockdownEnabled && (
+                <div
+                  className="flex items-center gap-1.5 rounded-xl border border-amber-400/60 bg-amber-50 px-2.5 py-1.5 text-xs font-medium text-amber-700 dark:border-amber-500/50 dark:bg-amber-500/10 dark:text-amber-400"
+                  title="El examen registra salidas de pantalla completa, cambios de pestaña y atajos bloqueados."
+                >
+                  <ShieldAlert className="h-3.5 w-3.5 shrink-0" />
+                  <span className="hidden sm:inline">Modo bloqueo activo</span>
+                  {lockdownInfractionCount > 0 && <span className="tabular-nums">({lockdownInfractionCount})</span>}
+                </div>
+              )}
 
-            {/* Header with timer and progress */}
-            <Card className="mb-6 bg-box backdrop-blur-sm border border-line">
-              <CardHeader className="pb-4">
-                <div className="flex items-center justify-between">
-                  {/* Timer */}
-                  <div className="flex items-center gap-3">
-                    <div className={`flex items-center gap-2 px-3 py-2 rounded-xl border font-mono text-sm font-bold tabular-nums tracking-wider transition-all duration-500 ${
-                      timeRemaining && timeRemaining < 300
-                        ? 'border-red-500 bg-red-500 text-white animate-pulse'
-                        : timeRemaining && timeRemaining < 600
-                        ? 'border-amber-400 dark:border-amber-500 bg-amber-400 dark:bg-amber-500 text-white'
-                        : 'border-border bg-muted/60 text-foreground'
-                    }`}>
-                      <Timer className={`h-4 w-4 shrink-0 ${timeRemaining && timeRemaining < 300 ? 'opacity-100' : 'opacity-60'}`} />
-                      <span>{timeRemaining ? formatTime(timeRemaining) : '--:--'}</span>
-                    </div>
-
-                    {/* Browser lockdown chip — informational, tells the
-                        candidate their activity is being monitored */}
-                    {lockdownEnabled && (
-                      <div
-                        className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl border border-amber-400/60 dark:border-amber-500/50 bg-amber-50 dark:bg-amber-500/10 text-amber-700 dark:text-amber-400 text-xs font-medium"
-                        title="El examen registra salidas de pantalla completa, cambios de pestaña y atajos bloqueados."
-                      >
-                        <ShieldAlert className="h-3.5 w-3.5 shrink-0" />
-                        <span className="hidden sm:inline">Modo bloqueo activo</span>
-                        {lockdownInfractionCount > 0 && (
-                          <span className="tabular-nums">({lockdownInfractionCount})</span>
-                        )}
-                      </div>
-                    )}
-
-                    {/* Autosave indicator — estilo Google Docs */}
-                    <div className="flex items-center gap-1.5 text-xs w-[100px]">
-                      {autoSaveStatus === 'dirty' && (
-                        <>
-                          <span className="relative flex h-2 w-2 shrink-0">
-                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75" />
-                            <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-400" />
-                          </span>
-                          <span className="text-amber-400/80">Sin guardar</span>
-                        </>
-                      )}
-                      {autoSaveStatus === 'saving' && (
-                        <>
-                          <Loader2 className="h-3 w-3 animate-spin text-muted-foreground shrink-0" />
-                          <span className="text-muted-foreground">Guardando...</span>
-                        </>
-                      )}
-                      {autoSaveStatus === 'saved' && (
-                        <>
-                          <CheckCircle className="h-3 w-3 text-emerald-400 shrink-0" />
-                          <span className="text-emerald-400">Guardado</span>
-                        </>
-                      )}
-                      {autoSaveStatus === 'error' && (
-                        <>
-                          <AlertCircle className="h-3 w-3 text-red-400 shrink-0" />
-                          <span className="text-red-400">Error al guardar</span>
-                        </>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Right: progress count + save button */}
-                  <div className="flex items-center gap-3">
-                    <span className="text-muted-foreground text-sm tabular-nums">
-                      <span className="text-foreground font-medium">{answeredCount}</span>
-                      <span className="text-muted-foreground"> / </span>
-                      {totalQuestions}
+              {/* Autosave indicator — estilo Google Docs */}
+              <div className="flex w-[110px] items-center gap-1.5 text-xs">
+                {autoSaveStatus === 'dirty' && (
+                  <>
+                    <span className="relative flex h-2 w-2 shrink-0">
+                      <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-amber-400 opacity-75" />
+                      <span className="relative inline-flex h-2 w-2 rounded-full bg-amber-400" />
                     </span>
-                    <Button
-                      onClick={handleManualSave}
-                      variant="outline"
-                      size="sm"
-                      disabled={autoSaveStatus === 'saving' || autoSaveStatus === 'idle'}
-                      className='text-foreground/80 bg-transparent border-line hover:bg-muted hover:text-foreground disabled:opacity-40 disabled:cursor-not-allowed gap-1.5'
-                    >
-                      <Save className="h-3.5 w-3.5" />
-                      Guardar avance
-                    </Button>
-                  </div>
-                </div>
-
-                {/* Section + question indicator */}
-                {currentSection && (
-                  <div className="mt-3 flex items-center gap-1.5 text-xs text-muted-foreground">
-                    <span className="font-medium text-foreground/70">{currentSection.name}</span>
-                    <span>·</span>
-                    <span>Pregunta {currentQuestionIndex + 1} de {currentSection.questions.length}</span>
-                    <span className="mx-1 text-border">|</span>
-                    <span>{answeredCount} de {totalQuestions} respondidas</span>
-                  </div>
+                    <span className="text-amber-400/80">Sin guardar</span>
+                  </>
                 )}
-              </CardHeader>
-            </Card>
-
-            {/* Question content */}
-            <Card className="mb-6 bg-box border border-line">
-              <CardContent className="p-6">
-                {currentQuestion ? (
-                  <div key={currentQuestion._id as string} className="question-enter">
-                    {/* Flag button */}
-                    <div className="flex justify-end mb-3">
-                      <button
-                        onClick={() => toggleFlag(currentQuestion._id as string)}
-                        className={[
-                          'flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all border',
-                          flaggedQuestions.has(currentQuestion._id as string)
-                            ? 'border-amber-400 dark:border-amber-500 text-amber-600 dark:text-amber-400 hover:bg-muted'
-                            : 'border-border text-muted-foreground hover:bg-muted hover:text-foreground',
-                        ].join(' ')}
-                      >
-                        {flaggedQuestions.has(currentQuestion._id as string)
-                          ? <><BookmarkCheck className="h-3.5 w-3.5 text-amber-500 fill-amber-500/20" /><span>Marcada para revisar</span></>
-                          : <><Bookmark className="h-3.5 w-3.5" /><span>Marcar para revisar</span></>
-                        }
-                      </button>
-                    </div>
-                    <QuestionRenderer
-                      key={currentQuestion._id as string}
-                      question={currentQuestion}
-                      answer={answers[currentQuestion._id]}
-                      onChange={handleAnswerChange}
-                      showQuestionNumber={true}
-                      questionNumber={currentQuestionIndex + 1}
-                      totalQuestions={totalQuestions}
-                      isUploadingAudio={uploadingAudio[currentQuestion._id as string] ?? false}
-                      sectionInfo={currentSection ? {
-                        name: currentSection.name,
-                        competency: currentSection.competency,
-                        questionIndex: currentQuestionIndex - sections.slice(0, currentSectionIndex).reduce((sum, section) => sum + section.questions.length, 0),
-                        totalQuestionsInSection: currentSection.questions.length
-                      } : undefined}
-                    />
-                  </div>
-                ) : (
-                  <div className="text-center py-8">
-                    <AlertCircle className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
-                    <p className="text-muted-foreground">No hay pregunta disponible</p>
-                  </div>
+                {autoSaveStatus === 'saving' && (
+                  <>
+                    <Loader2 className="h-3 w-3 shrink-0 animate-spin text-muted-foreground" />
+                    <span className="text-muted-foreground">Guardando...</span>
+                  </>
                 )}
-              </CardContent>
-            </Card>
-
-            {/* Navigation controls */}
-            <Card className="bg-box backdrop-blur-sm border border-line text-foreground">
-              <CardContent className="p-4">
-                <div className="flex items-center justify-between gap-3">
-                  <Button
-                    onClick={goToPreviousQuestion}
-                    disabled={isFirstQuestionOverall}
-                    variant="outline"
-                    className='text-foreground/80 border-line bg-transparent hover:bg-muted hover:text-foreground disabled:opacity-30 disabled:cursor-not-allowed'
-                  >
-                    <ChevronLeft className="h-4 w-4 mr-1" />
-                    Anterior
-                  </Button>
-
-                  <div className="flex items-center gap-2">
-                    {currentSection && (
-                      <span className="text-xs text-muted-foreground hidden sm:block">
-                        {currentSection.name} · {currentQuestionIndex + 1}/{totalQuestions}
-                      </span>
-                    )}
-
-                    {isLastQuestionOverall ? (
-                      <Button
-                        onClick={handleFinishExam}
-                        className="bg-emerald-600 hover:bg-emerald-500 text-white gap-2"
-                      >
-                        <Flag className="h-4 w-4" />
-                        Entregar examen
-                      </Button>
-                    ) : (
-                      <Button
-                        onClick={goToNextQuestion}
-                        disabled={isLastQuestionOverall}
-                        className='bg-blue-600 hover:bg-blue-700 text-white'
-                      >
-                        {isLastQuestionInSection ? 'Siguiente Sección' : 'Siguiente'}
-                        <ChevronRight className="h-4 w-4 ml-1" />
-                      </Button>
-                    )}
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
+                {autoSaveStatus === 'saved' && (
+                  <>
+                    <CheckCircle className="h-3 w-3 shrink-0 text-emerald-400" />
+                    <span className="text-emerald-400">Guardado</span>
+                  </>
+                )}
+                {autoSaveStatus === 'error' && (
+                  <>
+                    <AlertCircle className="h-3 w-3 shrink-0 text-red-400" />
+                    <span className="text-red-400">Error al guardar</span>
+                  </>
+                )}
               </div>
             </div>
 
+            <div className="flex items-center gap-3">
+              {/* The single, canonical position indicator — replaces the
+                  header badge, the question-card badge and the
+                  section-info line that used to say this three times. */}
+              {currentSection && (
+                <div className="text-right">
+                  <p className="text-sm font-semibold text-foreground">
+                    Pregunta {currentQuestionIndex + 1} de {currentSection.questions.length}
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    {currentSection.name} · {answeredCount}/{totalQuestions} respondidas
+                  </p>
+                </div>
+              )}
+              <Button
+                onClick={handleManualSave}
+                variant="outline"
+                size="sm"
+                disabled={autoSaveStatus === 'saving' || autoSaveStatus === 'idle'}
+                className="gap-1.5 border-line bg-transparent text-foreground/80 hover:bg-muted hover:text-foreground disabled:cursor-not-allowed disabled:opacity-40"
+              >
+                <Save className="h-3.5 w-3.5" />
+                <span className="hidden sm:inline">Guardar avance</span>
+              </Button>
+            </div>
           </div>
-        </GradientWrapper>
+        </header>
+
+        {/* ── Rail (full-height question navigator) + main content ── */}
+        <div className="grid min-h-0 flex-1 grid-cols-1 lg:grid-cols-[300px_1fr]">
+          <div className="order-2 max-h-64 overflow-hidden border-t border-line lg:order-1 lg:h-full lg:max-h-none lg:border-t-0 lg:border-r">
+            <SectionNavigator
+              sections={sectionStats.map(section => ({
+                ...section,
+                questionStates: section.questionStates.map(q => ({
+                  ...q,
+                  flagged: flaggedQuestions.has(q.id),
+                })),
+              }))}
+              currentSectionIndex={currentSectionIndex}
+              currentQuestionIndex={currentQuestionIndex}
+              onSectionChange={navigateToSection}
+              onQuestionJump={navigateToQuestionInSection}
+              className="h-full rounded-none border-0"
+            />
+          </div>
+
+          <div className="order-1 flex min-h-0 flex-col overflow-hidden lg:order-2">
+            {/* Question content — the only scrolling region, so answers stay
+                reachable without scrolling the page itself */}
+            <div className="min-h-0 flex-1 overflow-auto p-4 lg:p-6">
+              <Card className="bg-box border border-line">
+                <CardContent className="p-6">
+                  {currentQuestion ? (
+                    <div key={currentQuestion._id as string} className="question-enter">
+                      {/* Flag button */}
+                      <div className="flex justify-end mb-3">
+                        <button
+                          onClick={() => toggleFlag(currentQuestion._id as string)}
+                          className={[
+                            'flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all border',
+                            flaggedQuestions.has(currentQuestion._id as string)
+                              ? 'border-amber-400 dark:border-amber-500 text-amber-600 dark:text-amber-400 hover:bg-muted'
+                              : 'border-border text-muted-foreground hover:bg-muted hover:text-foreground',
+                          ].join(' ')}
+                        >
+                          {flaggedQuestions.has(currentQuestion._id as string)
+                            ? <><BookmarkCheck className="h-3.5 w-3.5 text-amber-500 fill-amber-500/20" /><span>Marcada para revisar</span></>
+                            : <><Bookmark className="h-3.5 w-3.5" /><span>Marcar para revisar</span></>
+                          }
+                        </button>
+                      </div>
+                      <QuestionRenderer
+                        key={currentQuestion._id as string}
+                        question={currentQuestion}
+                        answer={answers[currentQuestion._id]}
+                        onChange={handleAnswerChange}
+                        showQuestionNumber={false}
+                        isUploadingAudio={uploadingAudio[currentQuestion._id as string] ?? false}
+                      />
+                    </div>
+                  ) : (
+                    <div className="text-center py-8">
+                      <AlertCircle className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
+                      <p className="text-muted-foreground">No hay pregunta disponible</p>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Navigation controls — pinned below the scroll area */}
+            <div className="shrink-0 border-t border-line bg-box px-4 py-3 lg:px-6">
+              <div className="flex items-center justify-between gap-3">
+                <Button
+                  onClick={goToPreviousQuestion}
+                  disabled={isFirstQuestionOverall}
+                  variant="outline"
+                  className="text-foreground/80 border-line bg-transparent hover:bg-muted hover:text-foreground disabled:opacity-30 disabled:cursor-not-allowed"
+                >
+                  <ChevronLeft className="h-4 w-4 mr-1" />
+                  Anterior
+                </Button>
+
+                {isLastQuestionOverall ? (
+                  <Button
+                    onClick={handleFinishExam}
+                    className="bg-emerald-600 hover:bg-emerald-500 text-white gap-2"
+                  >
+                    <Flag className="h-4 w-4" />
+                    Entregar examen
+                  </Button>
+                ) : (
+                  <Button
+                    onClick={goToNextQuestion}
+                    disabled={isLastQuestionOverall}
+                    className="bg-blue-600 hover:bg-blue-700 text-white"
+                  >
+                    {isLastQuestionInSection ? 'Siguiente Sección' : 'Siguiente'}
+                    <ChevronRight className="h-4 w-4 ml-1" />
+                  </Button>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     </MainLayout>
   );

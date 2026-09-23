@@ -217,7 +217,7 @@ const NextExam: React.FC<PropsNextExam> = ({
 
   if (loading) {
     return ( 
-        <Card className="bg-card backdrop-blur-sm border border-line shadow-none">
+        <Card className="flex h-full flex-col bg-card backdrop-blur-sm border border-line shadow-none">
           <CardHeader className="space-y-2 border-b border-line pb-4">
             <CardTitle className="text-foreground flex items-center gap-2 font-bold">
               <Calendar className="h-6 w-6 text-brand-gray bg-muted rounded-full p-1" />
@@ -227,7 +227,7 @@ const NextExam: React.FC<PropsNextExam> = ({
               Cargando información...
             </CardDescription>
           </CardHeader>
-          <CardContent className="py-6">
+          <CardContent className="flex flex-1 flex-col justify-center py-6">
             <div className="flex items-center justify-center h-40">
               <Loader2 className="h-8 w-8 animate-spin text-brand-gray" />
             </div>
@@ -238,7 +238,7 @@ const NextExam: React.FC<PropsNextExam> = ({
 
   if (error) {
     return ( 
-        <Card className="bg-card backdrop-blur-sm border border-line shadow-none">
+        <Card className="flex h-full flex-col bg-card backdrop-blur-sm border border-line shadow-none">
           <CardHeader className="space-y-2 border-b border-line pb-4">
             <CardTitle className="text-foreground flex items-center gap-2 font-bold">
               <Calendar className="h-6 w-6 text-brand-gray bg-muted rounded-full p-1" />
@@ -248,7 +248,7 @@ const NextExam: React.FC<PropsNextExam> = ({
               Error al cargar información
             </CardDescription>
           </CardHeader>
-          <CardContent className="py-6">
+          <CardContent className="flex flex-1 flex-col justify-center py-6">
             <Alert variant="destructive">
               <AlertCircle className="h-4 w-4" />
               <AlertDescription>{error}</AlertDescription>
@@ -266,7 +266,7 @@ const NextExam: React.FC<PropsNextExam> = ({
   }
   if (!nextExam) {
     return ( 
-        <Card className="bg-card backdrop-blur-sm border border-line shadow-none">
+        <Card className="flex h-full flex-col bg-card backdrop-blur-sm border border-line shadow-none">
           <CardHeader className="space-y-2 border-b border-line pb-4">
             <CardTitle className="text-foreground flex items-center gap-2 font-bold">
               <Calendar className="h-6 w-6 text-brand-gray bg-muted rounded-full p-1" />
@@ -276,7 +276,7 @@ const NextExam: React.FC<PropsNextExam> = ({
               Sin exámenes programados
             </CardDescription>
           </CardHeader>
-          <CardContent className="py-6">
+          <CardContent className="flex flex-1 flex-col justify-center py-6">
             <div className="text-center">
               <Calendar className="mx-auto h-8 w-8 text-muted-foreground/50 mb-4" />
               <p className="text-muted-foreground mb-2">
@@ -299,7 +299,7 @@ const NextExam: React.FC<PropsNextExam> = ({
   }
 
   return (
-    <Card className="bg-card backdrop-blur-sm border border-line shadow-none">
+    <Card className="flex h-full flex-col bg-card backdrop-blur-sm border border-line shadow-none">
       <CardHeader className="space-y-2 border-b border-line pb-4">
         <CardTitle className="text-foreground flex items-center gap-2 font-bold">
           <Calendar className="h-6 w-6 text-brand-gray bg-muted rounded-full p-1" />
@@ -309,7 +309,7 @@ const NextExam: React.FC<PropsNextExam> = ({
             Tu siguiente evaluación programada
           </CardDescription>
       </CardHeader>
-      <CardContent className="space-y-6 transition-all py-6">
+      <CardContent className="flex flex-1 flex-col justify-center space-y-6 transition-all py-6">
         <div className="border border-line rounded-lg p-4 transition-colors thin-border">
           <h3 className="text-lg font-semibold text-foreground mb-3">
             {nextExam.name}

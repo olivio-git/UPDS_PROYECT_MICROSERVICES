@@ -668,7 +668,7 @@ const StudentResults = () => {
     if (detailLoading) {
       return (
         <MainLayout gradientVariant="primary">
-          <div className="max-w-6xl mx-auto flex items-center justify-center min-h-96">
+          <div className="flex h-full items-center justify-center">
             <div className="text-center">
               <Loader2 className="h-8 w-8 animate-spin text-muted-foreground mx-auto mb-4" />
               <p className="text-muted-foreground">Cargando resultado...</p>
@@ -681,7 +681,7 @@ const StudentResults = () => {
     if (detailError) {
       return (
         <MainLayout gradientVariant="primary">
-          <div className="max-w-6xl mx-auto flex items-center justify-center min-h-96">
+          <div className="flex h-full items-center justify-center">
             <div className="text-center">
               <AlertCircle className="h-8 w-8 text-red-600 dark:text-red-400 mx-auto mb-4" />
               <p className="text-red-600 dark:text-red-300 mb-4">Error: {detailError}</p>
@@ -697,7 +697,7 @@ const StudentResults = () => {
     if (!currentResult) {
       return (
         <MainLayout gradientVariant="primary">
-          <div className="max-w-6xl mx-auto flex items-center justify-center min-h-96">
+          <div className="flex h-full items-center justify-center">
             <div className="text-center">
               <FileText className="h-8 w-8 text-muted-foreground mx-auto mb-4" />
               <p className="text-muted-foreground mb-4">Resultado no encontrado</p>
@@ -710,23 +710,45 @@ const StudentResults = () => {
       );
     }
 
-    // Vista detallada de un resultado específico
+    // Vista detallada de un resultado específico — el score es la pieza
+    // central (hero), y competencias + retroalimentación se ponen lado a
+    // lado en pantallas anchas en vez de apilarse en una sola columna.
     return (
       <MainLayout gradientVariant="primary">
-        <div id="exam-result-content" className="max-w-3xl mx-auto space-y-4 mt-6 px-4 pb-10">
+        <div id="exam-result-content" className="space-y-4 p-4 pb-10 lg:p-6 xl:p-8">
           <Card className="bg-card backdrop-blur-sm border border-line">
-            <CardContent className="p-5">
-              <div className="flex items-start justify-between gap-4">
+            <CardContent className="p-6">
+              <div className="flex flex-col items-start justify-between gap-6 lg:flex-row lg:items-center">
                 <div className="min-w-0">
-                  <h2 className="text-base font-semibold text-foreground leading-snug truncate">
+                  <h2 className="text-xl font-semibold text-foreground leading-snug">
                     {currentResult.examName}
                   </h2>
-                  <p className="text-xs text-muted-foreground mt-0.5">
+                  <p className="text-sm text-muted-foreground mt-1">
                     {formatDate(currentResult.date)} · {currentResult.duration} min
                   </p>
+                  <div className="flex flex-wrap gap-2 mt-4">
+                    <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium border ${getScoreBadgeColor(currentResult.overallScore)}`}>
+                      {currentResult.passed ? <CheckCircle className="h-3 w-3" /> : <XCircle className="h-3 w-3" />}
+                      {currentResult.passed ? 'Aprobado' : 'No aprobado'}
+                    </span>
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium border border-blue-200 text-blue-700 bg-blue-100 dark:border-blue-500/30 dark:text-blue-300 dark:bg-blue-500/10">
+                      Nivel {currentResult.level}
+                    </span>
+                    {currentResult.nextLevel && (
+                      <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium border border-border text-muted-foreground bg-transparent">
+                        Siguiente: {currentResult.nextLevel}
+                      </span>
+                    )}
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium border border-border text-muted-foreground">
+                      <Clock className="h-3 w-3" />
+                      {currentResult.duration} min
+                    </span>
+                  </div>
                 </div>
-                <div className="flex flex-col items-end gap-2 flex-shrink-0">
-                  <Badge className={`text-sm font-bold px-3 py-1 ${getScoreBadgeColor(currentResult.overallScore)}`}>
+
+                {/* Score — the hero of this screen */}
+                <div className="flex shrink-0 flex-col items-end gap-3">
+                  <Badge className={`px-4 py-2 text-3xl font-bold ${getScoreBadgeColor(currentResult.overallScore)}`}>
                     {currentResult.overallScore}%
                   </Badge>
                   <div className="flex items-center gap-1.5">
@@ -750,28 +772,10 @@ const StudentResults = () => {
                   </div>
                 </div>
               </div>
-              <div className="flex flex-wrap gap-2 mt-4">
-                <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium border ${getScoreBadgeColor(currentResult.overallScore)}`}>
-                  {currentResult.passed ? <CheckCircle className="h-3 w-3" /> : <XCircle className="h-3 w-3" />}
-                  {currentResult.passed ? 'Aprobado' : 'No aprobado'}
-                </span>
-                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium border border-blue-200 text-blue-700 bg-blue-100 dark:border-blue-500/30 dark:text-blue-300 dark:bg-blue-500/10">
-                  Nivel {currentResult.level}
-                </span>
-                {currentResult.nextLevel && (
-                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium border border-border text-muted-foreground bg-transparent">
-                    Siguiente: {currentResult.nextLevel}
-                  </span>
-                )}
-                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium border border-border text-muted-foreground">
-                  <Clock className="h-3 w-3" />
-                  {currentResult.duration} min
-                </span>
-              </div>
             </CardContent>
           </Card>
 
-          <div className="space-y-4">
+          <div className="grid gap-4 xl:grid-cols-2">
               <Card className="bg-card backdrop-blur-sm border border-line">
                 <CardHeader className="pb-3">
                   <CardTitle className="text-foreground flex items-center gap-2 text-sm">
@@ -829,9 +833,11 @@ const StudentResults = () => {
                   )}
                 </CardContent>
               </Card>
+          </div>
 
-              {/* Detalle de preguntas del examen */}
-              {examDetailData?.questionResults && (
+          {/* Detalle de preguntas del examen — full width, its own row below
+              the two-column summary. */}
+          {examDetailData?.questionResults && (
                 <Card className="bg-card backdrop-blur-sm border border-line">
                   <CardHeader className="pb-3">
                     <CardTitle className="text-foreground flex items-center gap-2 text-sm">
@@ -940,8 +946,7 @@ const StudentResults = () => {
                     })}
                   </CardContent>
                 </Card>
-              )}
-          </div>
+          )}
         </div>
       </MainLayout>
     );
@@ -952,7 +957,7 @@ const StudentResults = () => {
 
   return (
     <MainLayout gradientVariant="primary">
-      <div className="max-w-4xl mx-auto px-4 pt-6 pb-12 space-y-6">
+      <div className="h-full space-y-6 p-4 pb-12 lg:p-6 xl:p-8">
 
         {/* Encabezado */}
         <div>
