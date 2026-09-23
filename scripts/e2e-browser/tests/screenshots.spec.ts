@@ -4,7 +4,10 @@
  * screen that has moved does not fail the run — it just does not get a shot.
  *
  * Writes into screenshots/<label>.png (gitignored).
- *   npx playwright test tests/screenshots.spec.ts
+ *   SHOTS=1 npx playwright test tests/screenshots.spec.ts
+ *
+ * Skipped unless SHOTS is set: it sits the same exam the real suite uses, so
+ * running both in one go leaves the second one without an attempt to take.
  */
 import { test, type Page } from '@playwright/test';
 import { execFileSync } from 'node:child_process';
@@ -54,6 +57,7 @@ async function shot(page: Page, label: string): Promise<void> {
 test.use({ video: 'off', trace: 'off' });
 
 test('capture the student flow', async ({ page }) => {
+  test.skip(!process.env.SHOTS, 'capture tool — run with SHOTS=1');
   test.setTimeout(180_000);
   const fixture = loadFixture();
 
