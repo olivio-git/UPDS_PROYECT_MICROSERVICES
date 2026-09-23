@@ -26,6 +26,11 @@ export class OtpService {
 
   private readonly RESET_TOKEN_TTL_SECONDS = 600; // 10 minutos
 
+  // How long a completed login OTP verification stays redeemable by
+  // /auth/login before it must be repeated. See markLoginOtpVerified /
+  // consumeLoginOtpVerification below and auth.service.ts login().
+  private readonly LOGIN_OTP_VERIFIED_TTL_SECONDS = 600; // 10 minutos
+
   constructor(
     private cacheRepository: AuthCacheRepository,
     private userRepository: UserRepository
@@ -49,6 +54,34 @@ export class OtpService {
 
   private getResetTokenKey(token: string): string {
     return `pwreset:${token}`;
+  }
+
+  /**
+   * Marks that `email` just completed a purpose='login' OTP verification, so
+   * the /auth/login call that (per the UI flow) follows immediately can bind
+   * to it. A random nonce is stored, not a boolean — the value itself is
+   * never inspected, only its presence, but a nonce keeps the key from ever
+   * being confused with a cached boolean/flag written by unrelated code.
+   */
+  async markLoginOtpVerified(email: string): Promise<void> {
+    const normalized = this.normalizeEmail(email);
+    const nonce = crypto.randomBytes(16).toString('hex');
+    await this.cacheRepository.set(this.getLoginVerifiedKey(normalized), nonce, this.LOGIN_OTP_VERIFIED_TTL_SECONDS);
+  }
+
+  /**
+   * Atomically reads-and-deletes the login OTP marker for `email` (GETDEL
+   * pattern, same as consumePasswordResetToken) so it can be redeemed exactly
+   * once. Returns true only if a still-valid marker was present.
+   */
+  async consumeLoginOtpVerification(email: string): Promise<boolean> {
+    const normalized = this.normalizeEmail(email);
+    const value = await this.cacheRepository.consume(this.getLoginVerifiedKey(normalized));
+    return value !== null;
+  }
+
+  private getLoginVerifiedKey(email: string): string {
+    return `login_otp_verified:${email}`;
   }
 
   async generateOtp(email: string, purpose: OtpData['purpose']): Promise<{ success: boolean; message: string; expiresIn?: number }> {

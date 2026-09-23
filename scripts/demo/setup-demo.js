@@ -196,15 +196,30 @@ async function main() {
   if (start.status !== 200) throw new Error(`starting the session failed: HTTP ${start.status} ${JSON.stringify(start.json)}`);
   const session = await exams.collection('sessions').findOne({ _id: new ObjectId(sessionId) });
 
+  // Login now requires OTP-before-password server-side (identity-service
+  // enforces it, not just the UI — see auth.service.ts login()), so
+  // "log in with the password" alone no longer works. Print the real flow:
+  // request the code, read it straight out of Redis (this script's own
+  // container has no Redis client handy, but identity-service's does), then
+  // verify + log in with the password within its 10-minute window.
   console.log(`
 ────────────────────────────────────────────────────────────
 DEMO LISTA
 ────────────────────────────────────────────────────────────
-  Entrá por:        ${process.env.DEMO_PUBLIC_URL || 'http://localhost:8088'}/login
+  Entrá por:        ${process.env.DEMO_PUBLIC_URL || 'http://localhost:8088'}/
 
   Estudiante:       ${STUDENT_EMAIL}
   Docente:          ${TEACHER_EMAIL}
   Contraseña:       ${PASSWORD}   (ambas cuentas)
+
+  El login pide el código OTP ANTES que la contraseña (y el backend ahora lo
+  exige, no solo la UI). Pasos:
+    1. En ${process.env.DEMO_PUBLIC_URL || 'http://localhost:8088'}/ pedí el código con el email de arriba.
+    2. Leelo de Redis (nunca se imprime la contraseña de Redis en este comando):
+         docker exec -w /app identity-service node -e "const R=require('ioredis'); const r=new R(process.env.REDIS_URI); r.keys('otp:*').then(async ks=>{for(const k of ks)console.log(k, await r.get(k)); r.disconnect();})"
+    3. Ingresá el código en /otp-verification y después tu contraseña en /login.
+       Tenés 10 minutos entre el paso 2 y completar el login antes de que el
+       código (y la verificación) expiren.
 
   Sesión:           ${session.sessionName}  (estado: ${session.status})\n  Entrada permitida hasta: ${new Date(new Date(session.scheduling.startDate).getTime() + 30 * 60000).toLocaleTimeString("es-BO")}  (ventana de 30 min)
   Examen:           ${questionIds.length} preguntas de opción múltiple, ${DURATION_MINUTES} min

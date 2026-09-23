@@ -92,12 +92,18 @@ class AuthService {
       };
     } catch (error: any) {
       console.error('❌ [AuthService] Error en login:', error);
-      const errorMessage = error.message || 'Error de conexión';
+      // Propagate the backend's machine-readable error code (e.g.
+      // OTP_REQUIRED) when the call actually reached identity-service —
+      // authStore.login() needs it to tell "verify the OTP first" apart from
+      // any other login failure. Falls back to a generic message/code only
+      // when there is no backend response (real network error).
+      const backendData = error.response?.data;
+      const errorMessage = backendData?.message || error.message || 'Error de conexión';
       toast.error(errorMessage);
       return {
         success: false,
         message: errorMessage,
-        error: 'Network error'
+        error: backendData?.error || 'Network error'
       };
     }
   }
@@ -243,14 +249,16 @@ class AuthService {
       };
     }
 
-    // Primero validamos la contraseña actual intentando hacer login
+    // La contraseña actual se confirma con el endpoint autenticado: hacer
+    // login aquí dejó de funcionar cuando el login pasó a exigir el OTP.
     try {
-      const loginValidation = await this.login({
-        email: user.email,
-        password: currentPassword
-      });
+      const validation = await axios.post(
+        `${this.baseUrl}/auth/verify-password`,
+        { password: currentPassword },
+        { headers: { Authorization: `Bearer ${authSDK.getAccessToken()}` } }
+      ).then((res) => res.data).catch((error) => error.response?.data ?? { success: false });
 
-      if (!loginValidation.success) {
+      if (!validation?.success) {
         return {
           success: false,
           message: 'Contraseña actual incorrecta',

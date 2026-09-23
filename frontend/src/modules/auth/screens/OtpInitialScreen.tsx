@@ -14,15 +14,19 @@ import { useAuthStore } from '@/modules/auth/services/authStore';
 import GradientBackground from '@/modules/home/screens/GradientBackground';
 import { Mail } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 
 const OtpInitialScreen = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { generateOTP, isLoading, error, clearError, otp } = useAuthStore();
   const emailInputRef = useRef<HTMLInputElement>(null);
 
-  const [email, setEmail] = useState('');
+  // Prefilled when LoginScreen bounces the user back here because /auth/login
+  // returned OTP_REQUIRED (marker missing or expired) — saves them retyping
+  // the email they already verified once.
+  const [email, setEmail] = useState(location.state?.email || '');
   const [isResetMode, setIsResetMode] = useState(false);
 
   // Clear error on component mount and focus input

@@ -58,6 +58,12 @@ export class OtpController {
       if (purpose === 'password_reset') {
         data.resetToken = await this.otpService.issuePasswordResetToken(email);
       }
+      if (purpose === 'login') {
+        // Binds this verification to the /auth/login call the UI makes right
+        // after — see otp.service.ts markLoginOtpVerified and
+        // auth.service.ts login().
+        await this.otpService.markLoginOtpVerified(email);
+      }
 
       res.status(200).json({ success: true, message: result.message, data });
     } catch (error: any) {

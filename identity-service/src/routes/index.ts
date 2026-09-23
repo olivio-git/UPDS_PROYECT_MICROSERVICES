@@ -40,8 +40,8 @@ const authJwtService = new JwtService();
 const authSessionRepository = new SessionRepository();
 const authCacheRepository = new AuthCacheRepository();
 const authUserRepository = new UserRepository();
-const authService = new AuthService(authUserRepository, authSessionRepository, authCacheRepository, authJwtService);
 const otpService = new OtpService(authCacheRepository, authUserRepository);
+const authService = new AuthService(authUserRepository, authSessionRepository, authCacheRepository, authJwtService, otpService);
 const authController = new AuthController(authService, otpService);
 const otpController = new OtpController(otpService);
 
