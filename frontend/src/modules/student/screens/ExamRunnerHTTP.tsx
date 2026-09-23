@@ -4,6 +4,7 @@ import {
   Card,
   CardContent
 } from '@/components/keel/card';
+import { Kbd, KbdGroup } from '@/components/keel/kbd';
 import { Spinner } from '@/components/keel/spinner';
 import GradientWrapper from '@/components/background/GrandWrapperSection';
 import { MainLayout } from '@/components/layout';
@@ -35,6 +36,77 @@ import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { toast } from 'sonner';
 import QuestionRenderer from '../components/QuestionRenderer';
 import SectionNavigator from '../components/SectionNavigator';
+
+// Thresholds shared between the ring and the rest of the timer's visual
+// state — amber under 5 minutes, red (+ pulse) under 1 minute.
+const TIMER_WARNING_SECONDS = 300;
+const TIMER_CRITICAL_SECONDS = 60;
+
+/** Circular countdown: elapsed vs total time, remaining time printed inside.
+ * Stays the single most prominent element in the header, per the redesign
+ * brief — a plain digital readout was not visually loud enough at a glance. */
+const TimerRing: React.FC<{
+  timeRemaining: number | null;
+  totalTime: number | null;
+  formatTime: (seconds: number) => string;
+}> = ({ timeRemaining, totalTime, formatTime }) => {
+  const size = 84;
+  const stroke = 6;
+  const radius = (size - stroke) / 2;
+  const circumference = 2 * Math.PI * radius;
+
+  const ratio = timeRemaining != null && totalTime && totalTime > 0
+    ? Math.min(1, Math.max(0, timeRemaining / totalTime))
+    : 1;
+  const dashOffset = circumference * (1 - ratio);
+
+  const isCritical = timeRemaining != null && timeRemaining < TIMER_CRITICAL_SECONDS;
+  const isWarning = !isCritical && timeRemaining != null && timeRemaining < TIMER_WARNING_SECONDS;
+
+  return (
+    <div
+      role="timer"
+      aria-label={timeRemaining != null ? `Tiempo restante: ${formatTime(timeRemaining)}` : 'Cargando tiempo restante'}
+      className={cn('relative flex shrink-0 items-center justify-center', isCritical && 'animate-pulse')}
+      style={{ width: size, height: size }}
+    >
+      <svg width={size} height={size} className="-rotate-90">
+        <circle
+          cx={size / 2}
+          cy={size / 2}
+          r={radius}
+          strokeWidth={stroke}
+          fill="none"
+          className={cn(
+            isCritical ? 'stroke-red-100 dark:stroke-red-950/40' : isWarning ? 'stroke-amber-100 dark:stroke-amber-950/40' : 'stroke-muted'
+          )}
+        />
+        <circle
+          cx={size / 2}
+          cy={size / 2}
+          r={radius}
+          strokeWidth={stroke}
+          fill="none"
+          strokeLinecap="round"
+          strokeDasharray={circumference}
+          strokeDashoffset={dashOffset}
+          className={cn(
+            'transition-[stroke-dashoffset] duration-1000 ease-linear',
+            isCritical ? 'stroke-red-600' : isWarning ? 'stroke-amber-500' : 'stroke-primary'
+          )}
+        />
+      </svg>
+      <span
+        className={cn(
+          'absolute font-mono text-[13px] font-bold tabular-nums tracking-tight',
+          isCritical ? 'text-red-600 dark:text-red-400' : isWarning ? 'text-amber-600 dark:text-amber-500' : 'text-foreground'
+        )}
+      >
+        {timeRemaining != null ? formatTime(timeRemaining) : '--:--'}
+      </span>
+    </div>
+  );
+};
 
 const ExamRunnerHTTP: React.FC = () => {
   const params = useParams<{ sessionId: string }>();
@@ -163,6 +235,18 @@ const ExamRunnerHTTP: React.FC = () => {
       }
     }
   });
+
+  // The hook only exposes the current countdown, never the exam's original
+  // duration (resume doesn't get it back from the server either) — capture
+  // the first non-null value locally so the timer ring has an "elapsed vs
+  // total" baseline. A later admin time extension grows this baseline too,
+  // so the ring doesn't just read as "almost full" forever after a bump.
+  const totalTimeRef = useRef<number | null>(null);
+  useEffect(() => {
+    if (timeRemaining != null && totalTimeRef.current == null) {
+      totalTimeRef.current = timeRemaining;
+    }
+  }, [timeRemaining]);
 
   // Browser lockdown — armed only while the session has it enabled AND the
   // attempt is actually in progress (not during load/completion/kicked).
@@ -313,6 +397,7 @@ const ExamRunnerHTTP: React.FC = () => {
       const extra = Number(data?.extraMinutes) || 0;
       if (extra > 0) {
         addTime(extra * 60);
+        if (totalTimeRef.current != null) totalTimeRef.current += extra * 60;
         toast.success(
           `El administrador extendió el tiempo por ${extra} minuto${extra !== 1 ? 's' : ''}.`,
           { duration: 6000 }
@@ -361,6 +446,109 @@ const ExamRunnerHTTP: React.FC = () => {
 
     updateAnswer(qId, actualAnswer);
   }, [currentQuestion, sessionId, updateAnswer, answers]);
+
+  // Selects the option at `index` for the current question, mirroring the
+  // same single/multi-select and true_false logic QuestionRenderer uses so
+  // the digit/letter shortcuts below produce identical answers to a click.
+  const selectOptionByIndex = useCallback((index: number) => {
+    if (!currentQuestion) return;
+    const qId = currentQuestion._id as string;
+    const qType = (currentQuestion as any).type;
+
+    if (qType === 'true_false') {
+      if (index === 0) handleAnswerChange(qId, { answer: true });
+      else if (index === 1) handleAnswerChange(qId, { answer: false });
+      return;
+    }
+
+    if (qType === 'multiple_choice') {
+      const content = (currentQuestion as any).content || {};
+      const options = content.options || (currentQuestion as any).options || [];
+      const opt = options[index];
+      if (!opt) return;
+      const optId = opt.id || opt._id;
+      const correctCount = options.filter((o: any) => o.isCorrect).length;
+      const isSingleSelect = correctCount <= 1 || Boolean(content.correctAnswer);
+
+      if (isSingleSelect) {
+        handleAnswerChange(qId, { selectedOptions: [optId] });
+      } else {
+        const prevSelected: string[] = answers[qId]?.selectedOptions || [];
+        const next = prevSelected.includes(optId)
+          ? prevSelected.filter((s) => s !== optId)
+          : [...prevSelected, optId];
+        handleAnswerChange(qId, { selectedOptions: next });
+      }
+    }
+  }, [currentQuestion, answers, handleAnswerChange]);
+
+  // Exam-wide keyboard shortcuts. Disarmed whenever a text answer (or any
+  // other form control) has focus, so typing an essay/fill-blank answer is
+  // never hijacked — see the isEditableTarget check below.
+  //
+  // NOTE: "f" is reserved exclusively for "marcar para revisar". Letters
+  // A-I map 1:1 to QuestionRenderer's option badges (A=index 0 ... I=index
+  // 8), which means an option that would land on letter F cannot be picked
+  // by its letter — digits 1-9 cover that case instead (option 6 -> "6").
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (!isActive || sessionStatus !== 'active') return;
+      if (showFinishConfirm || (lockdownEnabled && showFullscreenPrompt)) return;
+      if (e.ctrlKey || e.metaKey || e.altKey) return;
+
+      const target = e.target as HTMLElement | null;
+      const tag = target?.tagName;
+      const isEditableTarget = tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || target?.isContentEditable;
+      if (isEditableTarget) return;
+      if (!currentQuestion) return;
+
+      if (e.key >= '1' && e.key <= '9') {
+        selectOptionByIndex(Number(e.key) - 1);
+        return;
+      }
+
+      if (e.key.length === 1) {
+        const lower = e.key.toLowerCase();
+        if (lower === 'f') {
+          toggleFlag(currentQuestion._id as string);
+          return;
+        }
+        if (lower >= 'a' && lower <= 'i') {
+          selectOptionByIndex(lower.charCodeAt(0) - 'a'.charCodeAt(0));
+          return;
+        }
+      }
+
+      if (e.key === 'ArrowLeft') {
+        if (!isFirstQuestionOverall) goToPreviousQuestion();
+        return;
+      }
+      if (e.key === 'ArrowRight') {
+        if (!isLastQuestionOverall) goToNextQuestion();
+        return;
+      }
+      if (e.key === 'Enter') {
+        if (!isLastQuestionOverall) goToNextQuestion();
+        return;
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [
+    isActive,
+    sessionStatus,
+    showFinishConfirm,
+    lockdownEnabled,
+    showFullscreenPrompt,
+    currentQuestion,
+    selectOptionByIndex,
+    toggleFlag,
+    isFirstQuestionOverall,
+    isLastQuestionOverall,
+    goToPreviousQuestion,
+    goToNextQuestion,
+  ]);
 
   const handleFinishExam = () => {
     setShowFinishConfirm(true);
@@ -622,22 +810,10 @@ const ExamRunnerHTTP: React.FC = () => {
         <header className="shrink-0 border-b border-line bg-box/90 backdrop-blur-sm px-4 py-3">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div className="flex flex-wrap items-center gap-3">
-              {/* Timer — the thing that matters most, sized accordingly */}
-              <div
-                className={cn(
-                  'flex items-center gap-2.5 rounded-2xl border-2 px-4 py-2.5 font-mono text-2xl font-bold tabular-nums tracking-wider shadow-sm transition-all duration-500',
-                  timeRemaining && timeRemaining < 60
-                    ? 'scale-105 animate-pulse border-red-600 bg-red-600 text-white'
-                    : timeRemaining && timeRemaining < 300
-                    ? 'border-red-500 bg-red-500 text-white'
-                    : timeRemaining && timeRemaining < 600
-                    ? 'border-amber-400 bg-amber-400 text-white dark:border-amber-500 dark:bg-amber-500'
-                    : 'border-border bg-muted/60 text-foreground'
-                )}
-              >
-                <Timer className={cn('h-5 w-5 shrink-0', timeRemaining && timeRemaining < 300 ? 'opacity-100' : 'opacity-60')} />
-                <span>{timeRemaining ? formatTime(timeRemaining) : '--:--'}</span>
-              </div>
+              {/* Timer — the single most prominent element of the header,
+                  a ring instead of a digital badge so remaining-vs-total
+                  reads at a glance, not just the raw seconds. */}
+              <TimerRing timeRemaining={timeRemaining} totalTime={totalTimeRef.current} formatTime={formatTime} />
 
               {/* Browser lockdown chip — informational, tells the
                   candidate their activity is being monitored */}
@@ -713,8 +889,8 @@ const ExamRunnerHTTP: React.FC = () => {
         </header>
 
         {/* ── Rail (full-height question navigator) + main content ── */}
-        <div className="grid min-h-0 flex-1 grid-cols-1 lg:grid-cols-[300px_1fr]">
-          <div className="order-2 max-h-64 overflow-hidden border-t border-line lg:order-1 lg:h-full lg:max-h-none lg:border-t-0 lg:border-r">
+        <div className="grid min-h-0 flex-1 grid-cols-1 lg:grid-cols-[320px_1fr]">
+          <div className="order-2 max-h-64 overflow-hidden border-t border-line bg-box p-3 lg:order-1 lg:h-full lg:max-h-none lg:border-t-0 lg:border-r">
             <SectionNavigator
               sections={sectionStats.map(section => ({
                 ...section,
@@ -727,16 +903,21 @@ const ExamRunnerHTTP: React.FC = () => {
               currentQuestionIndex={currentQuestionIndex}
               onSectionChange={navigateToSection}
               onQuestionJump={navigateToQuestionInSection}
-              className="h-full rounded-none border-0"
+              className="h-full"
             />
           </div>
 
-          <div className="order-1 flex min-h-0 flex-col overflow-hidden lg:order-2">
+          <div className="order-1 flex min-h-0 flex-col overflow-hidden bg-muted/40 lg:order-2">
             {/* Question content — the only scrolling region, so answers stay
-                reachable without scrolling the page itself */}
-            <div className="min-h-0 flex-1 overflow-auto p-4 lg:p-6">
-              <Card className="bg-box border border-line">
-                <CardContent className="p-6">
+                reachable without scrolling the page itself. The tinted
+                surface behind the elevated white card is what tells the eye
+                "this is the exam area" instead of a card floating on the
+                page background. */}
+            <div className="flex min-h-0 flex-1 flex-col overflow-auto p-4 lg:p-6">
+              {/* The card owns the whole pane: a short question used to leave
+                  a third of the screen as empty tint below it. */}
+              <Card className="flex min-h-full flex-1 flex-col bg-box border border-line shadow-sm">
+                <CardContent className="flex flex-1 flex-col p-6 lg:p-8">
                   {currentQuestion ? (
                     <div key={currentQuestion._id as string} className="question-enter">
                       {/* Flag button */}
@@ -787,6 +968,23 @@ const ExamRunnerHTTP: React.FC = () => {
                   <ChevronLeft className="h-4 w-4 mr-1" />
                   Anterior
                 </Button>
+
+                {/* Discreet keyboard-shortcut hint — desktop only, out of
+                    the way of the primary actions it sits between. */}
+                <div className="hidden items-center gap-4 text-[11px] text-muted-foreground lg:flex">
+                  <span className="flex items-center gap-1.5">
+                    <KbdGroup><Kbd>1-9</Kbd><Kbd>A-I</Kbd></KbdGroup> elegir
+                  </span>
+                  <span className="flex items-center gap-1.5">
+                    <KbdGroup><Kbd>←</Kbd><Kbd>→</Kbd></KbdGroup> pregunta
+                  </span>
+                  <span className="flex items-center gap-1.5">
+                    <Kbd>F</Kbd> marcar
+                  </span>
+                  <span className="flex items-center gap-1.5">
+                    <Kbd>Enter</Kbd> siguiente
+                  </span>
+                </div>
 
                 {isLastQuestionOverall ? (
                   <Button

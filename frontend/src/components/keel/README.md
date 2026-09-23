@@ -26,6 +26,13 @@ of `input-group`), `tooltip`, `portal-container` (transitive dep of `tooltip`), 
 `@/components/keel/portal-container`), and `calendar` — see the note below, this one was **not**
 a like-for-like port.
 
+## Files ported in the exam-runner redesign slice
+
+`kbd` — the keyboard-shortcut caption component, ported as-is from keel's own `kbd.tsx`
+(`Kbd`, `KbdGroup`) except the prop typing uses `ComponentProps` imported from `"react"` instead
+of the ambient `React.ComponentProps` keel's copy relies on, to match this project's named-import
+convention. No behavioral change.
+
 ## Import path changes made on port
 
 - `@/components/ui/*` → `@/components/keel/*`
