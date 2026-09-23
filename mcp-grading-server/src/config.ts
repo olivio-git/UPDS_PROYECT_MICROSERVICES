@@ -20,7 +20,11 @@ export const config = {
   },
   groq: {
     apiKey: process.env.GROQ_API_KEY || '',
-    model: process.env.GROQ_MODEL || 'llama-3.3-70b-versatile',
+    // llama-3.3-70b-versatile was retired: GROQ answers 404 for it, which
+    // silently disabled every AI-graded question. gpt-oss-120b is the
+    // largest chat model the account can reach and honours
+    // response_format: json_object, which the evaluators rely on.
+    model: process.env.GROQ_MODEL || 'openai/gpt-oss-120b',
     temperature: 0.3,
     maxTokens: 1024,
   },

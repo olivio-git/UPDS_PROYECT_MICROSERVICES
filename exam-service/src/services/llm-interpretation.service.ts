@@ -29,7 +29,8 @@ export class LLMInterpretationService {
 
   constructor() {
     this.groqApiKey = process.env.GROQ_API_KEY || '';
-    this.model = process.env.GROQ_MODEL || 'llama-3.3-70b-versatile';
+    // llama-3.3-70b-versatile was retired by GROQ (404). See grading-service's config.ts.
+    this.model = process.env.GROQ_MODEL || 'openai/gpt-oss-120b';
     this.timeout = parseInt(process.env.LLM_TIMEOUT || '30') * 1000;
   }
 
