@@ -91,7 +91,7 @@ const LoginScreen = () => {
 
       if (success) {
         console.log("✅ Login exitoso")
-        toast.success("¡Bienvenido!")
+        // El dashboard ya confirma la entrada; no hace falta un aviso.
         // La redirección se maneja automáticamente por el estado de autenticación
       } else {
         console.log("❌ Error en login")

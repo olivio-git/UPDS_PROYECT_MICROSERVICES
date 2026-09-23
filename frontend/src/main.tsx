@@ -12,7 +12,10 @@ createRoot(document.getElementById("root")!).render(
     <BrowserRouter>
       <ThemeProvider>
         <Navigation />
-        <Toaster position="top-right" />
+        {/* Los avisos se apilaban de a tres o cuatro y tapaban la barra
+            superior: se muestran como máximo dos, duran menos y arrancan
+            por debajo del encabezado (h-14). */}
+        <Toaster position="top-right" duration={3000} visibleToasts={2} offset="72px" closeButton />
       </ThemeProvider>
     </BrowserRouter>
   </QueryClientProvider>

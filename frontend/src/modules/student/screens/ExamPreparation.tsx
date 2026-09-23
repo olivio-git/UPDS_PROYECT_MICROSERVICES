@@ -581,7 +581,7 @@ const ExamPreparation = () => {
         `Latencia: ${result.latency}ms · Velocidad: ${result.downloadSpeed.toFixed(1)} Mbps`
       );
       syncVerification();
-      toast.success("Prueba de conexión completada");
+      // La fila del chequeo ya muestra el resultado.
     } catch {
       technicalVerificationService.updateCheck(
         "Conexión a Internet",
@@ -621,7 +621,7 @@ const ExamPreparation = () => {
       );
       syncVerification();
       if (result.isWorking) {
-        toast.success("Micrófono funcionando correctamente");
+        // La fila del chequeo ya muestra "Correcto".
         startMicLevelMonitor();
       } else {
         toast.error("No se detectó micrófono");
@@ -657,8 +657,8 @@ const ExamPreparation = () => {
     syncVerification();
     setAudioTestStep("idle");
     setIsTestingAudio(false);
-    if (canHear) toast.success("Audio verificado correctamente");
-    else toast.warning("Verifica tus auriculares o altavoces");
+    // El éxito ya se ve en la fila del chequeo; sólo el problema necesita aviso.
+    if (!canHear) toast.warning("Verifica tus auriculares o altavoces");
   };
 
   // Cámara — deshabilitada por ahora

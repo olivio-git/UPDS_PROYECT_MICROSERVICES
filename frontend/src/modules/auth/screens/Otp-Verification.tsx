@@ -100,7 +100,7 @@ const OtpVerificator = ({
       const success = await verifyOTP(otpCode)
 
       if (success) {
-        toast.success("¡Código verificado exitosamente!")
+        // Pasar a la pantalla de contraseña ya confirma el código.
 
         // Según el propósito, redirigir apropiadamente
         if (purpose === "login") {
