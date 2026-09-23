@@ -814,6 +814,10 @@ const QuestionRenderer: React.FC<Props> = ({
               return (
                 <div
                   key={optId}
+                  data-testid="mc-option"
+                  role="radio"
+                  aria-checked={isSelected}
+                  aria-label={opt.text}
                   onClick={() => onChange(id, { selectedOptions: [optId] })}
                   className={isSelected
                     ? "flex items-center gap-3 p-3 rounded-lg border-2 cursor-pointer bg-blue-600 bg-opacity-30 border-blue-400 text-foreground"
@@ -835,6 +839,10 @@ const QuestionRenderer: React.FC<Props> = ({
             return (
               <div
                 key={optId}
+                data-testid="mc-option"
+                role="checkbox"
+                aria-checked={isSelected}
+                aria-label={opt.text}
                 onClick={() => handleOption(optId)}
                 className={isSelected
                   ? "flex items-center gap-3 p-3 rounded-lg border-2 cursor-pointer bg-green-600 bg-opacity-30 border-green-400 text-foreground"

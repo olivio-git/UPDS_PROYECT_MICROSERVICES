@@ -23,7 +23,15 @@ export interface AuthTokenPayload {
 export class JwtService {
   generateAccessToken(payload: AuthTokenPayload): string {
     return jwt.sign(payload, config.jwt.secret, {
-      expiresIn: '2d',
+      // Kept short deliberately: other services (exam-service in
+      // particular) read role/permissions straight off this token and never
+      // re-check the DB, so this TTL is the hard upper bound on how long a
+      // revoked/demoted/suspended user's already-issued token keeps working
+      // once the refresh token has been revoked (see AuthService.
+      // revokeAllSessionsForUser). The refresh token (7d, see below) is what
+      // keeps the session alive across this expiry as long as it has not
+      // itself been revoked.
+      expiresIn: '1h',
       issuer: 'cba-auth-service',
       audience: 'cba-platform',
     });

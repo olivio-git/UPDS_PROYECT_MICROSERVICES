@@ -71,35 +71,8 @@ export class OtpController {
     }
   };
 
-  getOtpStatus = async (req: Request, res: Response<ApiResponse>) => {
-    try {
-      const { email, purpose } = req.query;
-
-      if (!email || !purpose) {
-        res.status(400).json({ success: false, message: 'Email y propósito son requeridos', error: 'Missing required parameters' });
-        return;
-      }
-
-      const status = await this.otpService.getOtpStatus(email as string, purpose as OtpData['purpose']);
-      res.status(200).json({ success: true, message: 'Status de OTP obtenido', data: status });
-    } catch (error: any) {
-      res.status(500).json({ success: false, message: error.message || 'Error obteniendo status de OTP', error: 'OTP status error' });
-    }
-  };
-
-  revokeOtp = async (req: Request, res: Response<ApiResponse>) => {
-    try {
-      const { email, purpose } = req.body;
-
-      if (!email || !purpose) {
-        res.status(400).json({ success: false, message: 'Email y propósito son requeridos', error: 'Missing required fields' });
-        return;
-      }
-
-      await this.otpService.revokeOtp(email, purpose);
-      res.status(200).json({ success: true, message: 'OTP revocado exitosamente' });
-    } catch (error: any) {
-      res.status(500).json({ success: false, message: error.message || 'Error revocando OTP', error: 'OTP revocation error' });
-    }
-  };
+  // getOtpStatus/revokeOtp were removed along with their unauthenticated
+  // GET /auth/otp/status and DELETE /auth/otp/revoke routes — neither had
+  // any caller (frontend or otherwise) and both let anyone probe or cancel
+  // an arbitrary email's in-flight OTP. See auth.routes.ts.
 }

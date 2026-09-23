@@ -182,13 +182,12 @@ test.describe('Student exam flow (real browser, real backend)', () => {
     for (let i = 1; i <= fixture.questionCount; i++) {
       await expect(page.getByText(`Pregunta ${i} de ${fixture.questionCount}`, { exact: true })).toBeVisible();
 
-      // QuestionRenderer has no test ids for multiple_choice options (both
-      // the single-select and multi-select branches render a clickable
-      // `div.cursor-pointer` per option, no button/role/label) — this is
-      // the most fragile selector in this suite. Any option is accepted:
+      // QuestionRenderer marks both the single-select and multi-select
+      // multiple_choice option branches with data-testid="mc-option" (plus
+      // role="radio"/"checkbox" and aria-label). Any option is accepted:
       // the test doesn't assert correctness, only that the exam can be
       // completed and graded.
-      await page.locator('div.cursor-pointer').first().click();
+      await page.getByTestId('mc-option').first().click();
 
       const isLast = i === fixture.questionCount;
       if (isLast) {

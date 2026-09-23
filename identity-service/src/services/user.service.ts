@@ -349,12 +349,32 @@ export class UserService {
 
       const updatedUser = await this.userRepository.update(id, userManagementUpdates);
 
-      // No cross-service sync needed anymore: email/firstName/lastName/role
-      // just changed on the one document both auth and profile reads use.
-      // Invalidate the auth module's cached snapshot so the next
-      // authenticated request (and the next token refresh) picks up the
-      // new role/email immediately instead of waiting out the cache TTL.
-      if (updatedUser && (updates.email || updates.firstName || updates.lastName || updates.role)) {
+      // Privileges must not survive a role/status/permissions change: a
+      // stateless JWT keeps carrying the OLD role/permissions until it
+      // expires, and the cached "active" snapshot (30 min TTL) would let a
+      // just-suspended user keep passing the active-user gate for up to
+      // that long. Revoking all sessions (refresh tokens + cached snapshot)
+      // forces a full re-login before any new token can be issued, and
+      // — for status changes specifically — makes the active-user check in
+      // auth.middleware.ts fail on the very next request instead of
+      // trusting a stale cache entry.
+      const changesPrivileges = Boolean(
+        updates.role !== undefined || updates.status !== undefined || updates.permissions !== undefined
+      );
+
+      if (updatedUser && changesPrivileges) {
+        try {
+          await this.authService.revokeAllSessionsForUser(id);
+        } catch (sessionError) {
+          console.warn('⚠️ Error revocando sesiones tras cambio de rol/estado/permisos:', sessionError);
+        }
+      } else if (updatedUser && (updates.email || updates.firstName || updates.lastName)) {
+        // No cross-service sync needed anymore: email/firstName/lastName
+        // just changed on the one document both auth and profile reads use.
+        // Invalidate the auth module's cached snapshot so the next
+        // authenticated request (and the next token refresh) picks up the
+        // change immediately instead of waiting out the cache TTL. These
+        // fields are not privileges, so existing sessions may keep running.
         try {
           await this.authService.invalidateUserCache(id);
         } catch (cacheError) {

@@ -160,56 +160,12 @@ class AuthService {
     }
   }
 
-  // 📊 ESTADO DEL OTP
-  async getOTPStatus(email: string, purpose: string): Promise<ApiResponse> {
-    console.log('📊 [AuthService] Consultando estado OTP para:', email);
-    
-    try {
-      const response = await axios.get(
-        `${this.baseUrl}/auth/otp/status?email=${encodeURIComponent(email)}&purpose=${purpose}`
-      );
-      
-      return {
-        success: response.data.success,
-        message: response.data.message,
-        data: response.data.data
-      };
-    } catch (error: any) {
-      console.error('❌ [AuthService] Error consultando estado OTP:', error);
-      const errorMessage = error.response?.data?.message || 'Error consultando estado OTP';
-      return {
-        success: false,
-        message: errorMessage,
-        error: 'Network error'
-      };
-    }
-  }
+  // getOTPStatus/revokeOTP were removed along with the backend's
+  // unauthenticated GET /auth/otp/status and DELETE /auth/otp/revoke routes
+  // (identity-service/src/auth/routes/auth.routes.ts) — neither method had
+  // any caller in this codebase, and the routes let anyone probe or cancel
+  // an arbitrary email's in-flight OTP with no proof of ownership.
 
-  // 🗑️ REVOCAR OTP
-  async revokeOTP(email: string, purpose: string): Promise<ApiResponse> {
-    console.log('🗑️ [AuthService] Revocando OTP para:', email);
-    
-    try {
-      const response = await axios.delete(`${this.baseUrl}/auth/otp/revoke`, {
-        data: { email, purpose }
-      });
-
-      return {
-        success: response.data.success,
-        message: response.data.message,
-        data: response.data.data
-      };
-    } catch (error: any) {
-      console.error('❌ [AuthService] Error revocando OTP:', error);
-      const errorMessage = error.response?.data?.message || 'Error revocando OTP';
-      return {
-        success: false,
-        message: errorMessage,
-        error: 'Network error'
-      };
-    }
-  }
- 
   async logout(): Promise<void> {
     console.log('🚪 [AuthService] Cerrando sesión...');
     

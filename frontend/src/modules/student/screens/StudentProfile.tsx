@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/atoms/car
 import { Input } from "@/components/atoms/input";
 import { UserAvatar } from "@/components/atoms/UserAvatar";
 import { MainLayout } from "@/components/layout";
+import { useNavigate } from "react-router-dom";
 import { useAuthStore } from "@/modules/auth/services/authStore";
 import { userManagementService } from "@/services/userManagementService";
 import {
@@ -40,7 +41,8 @@ const tabs = [
 ];
 
 const StudentProfile = () => {
-  const { user, patchLocalUser } = useAuthStore();
+  const { user, patchLocalUser, logout } = useAuthStore();
+  const navigate = useNavigate();
   // console.log(user)
   const [isEditing, setIsEditing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -524,8 +526,12 @@ const StudentProfile = () => {
         isOpen={showChangePassword}
         onClose={() => setShowChangePassword(false)}
         onSuccess={() => {
-          toast.success("Contraseña actualizada exitosamente");
+          // Changing the password revokes every session of this user,
+          // including this one, so send them to sign in again instead of
+          // leaving a tab that will start failing on its own.
+          toast.success("Contraseña actualizada. Inicia sesión nuevamente.");
           setShowChangePassword(false);
+          void logout().finally(() => navigate("/"));
         }}
       />
     </MainLayout>
