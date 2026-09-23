@@ -1,14 +1,14 @@
-import { Alert, AlertDescription } from '@/components/atoms/alert';
-import { Button } from '@/components/atoms/button';
+import { Alert, AlertDescription } from '@/components/keel/alert';
+import { Button } from '@/components/keel/button';
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-} from '@/components/atoms/card';
-import { Input } from '@/components/atoms/input';
-import { Label } from '@/components/atoms/label';
+} from '@/components/keel/card';
+import { Field, FieldGroup, FieldLabel } from '@/components/keel/field';
+import { Input } from '@/components/keel/input';
 import GradientWrapper from '@/components/background/GrandWrapperSection';
 import { useAuthStore } from '@/modules/auth/services/authStore';
 import GradientBackground from '@/modules/home/screens/GradientBackground';
@@ -131,59 +131,61 @@ const ResetPasswordScreen = () => {
               size="xl"
               animate={false}
             >
-              <form onSubmit={handleSubmit} className="space-y-4">
-                <div className="space-y-2">
-                  <Label
-                    htmlFor="newPassword"
-                    className="text-card-foreground font-medium"
-                  >
-                    Nueva Contraseña
-                  </Label>
-                  <Input
-                    ref={passwordInputRef}
-                    id="newPassword"
-                    name="newPassword"
-                    type="password"
-                    value={newPassword}
-                    onChange={e => setNewPassword(e.target.value)}
-                    placeholder="Ingresa tu nueva contraseña"
-                    disabled={isLoading}
-                    required
-                    autoFocus={true}
-                    className="input-no-bg epilogue-uniquifier block w-full px-0 py-2 border-0 border-b border-border
-                    focus:outline-none focus:border-b-blue-500 pl-2 focus:ring-0 rounded-none font-medium text-card-foreground"
-                  />
-                </div>
+              <form onSubmit={handleSubmit}>
+                <FieldGroup>
+                  <Field>
+                    <FieldLabel
+                      htmlFor="newPassword"
+                      className="text-card-foreground font-medium"
+                    >
+                      Nueva Contraseña
+                    </FieldLabel>
+                    <Input
+                      ref={passwordInputRef}
+                      id="newPassword"
+                      name="newPassword"
+                      type="password"
+                      value={newPassword}
+                      onChange={e => setNewPassword(e.target.value)}
+                      placeholder="Ingresa tu nueva contraseña"
+                      disabled={isLoading}
+                      required
+                      autoFocus={true}
+                      className="input-no-bg epilogue-uniquifier block w-full px-0 py-2 border-0 border-b border-border
+                      focus:outline-none focus:border-b-blue-500 pl-2 focus:ring-0 rounded-none font-medium text-card-foreground"
+                    />
+                  </Field>
 
-                <div className="space-y-2">
-                  <Label
-                    htmlFor="confirmPassword"
-                    className="text-card-foreground font-medium"
-                  >
-                    Confirmar Contraseña
-                  </Label>
-                  <Input
-                    id="confirmPassword"
-                    name="confirmPassword"
-                    type="password"
-                    value={confirmPassword}
-                    onChange={e => setConfirmPassword(e.target.value)}
-                    placeholder="Confirma tu nueva contraseña"
-                    disabled={isLoading}
-                    required
-                    className="input-no-bg epilogue-uniquifier block w-full px-0 py-2 border-0 border-b border-border
-                    focus:outline-none focus:border-b-blue-500 pl-2 focus:ring-0 rounded-none font-medium text-card-foreground"
-                  />
-                </div>
+                  <Field>
+                    <FieldLabel
+                      htmlFor="confirmPassword"
+                      className="text-card-foreground font-medium"
+                    >
+                      Confirmar Contraseña
+                    </FieldLabel>
+                    <Input
+                      id="confirmPassword"
+                      name="confirmPassword"
+                      type="password"
+                      value={confirmPassword}
+                      onChange={e => setConfirmPassword(e.target.value)}
+                      placeholder="Confirma tu nueva contraseña"
+                      disabled={isLoading}
+                      required
+                      className="input-no-bg epilogue-uniquifier block w-full px-0 py-2 border-0 border-b border-border
+                      focus:outline-none focus:border-b-blue-500 pl-2 focus:ring-0 rounded-none font-medium text-card-foreground"
+                    />
+                  </Field>
 
-                <Button
-                  type="submit"
-                  size="sm"
-                  className="w-full bg-brand-blue hover:bg-primary/90 text-white font-medium disabled:opacity-50"
-                  disabled={isLoading}
-                >
-                  {isLoading ? 'Restableciendo...' : 'Restablecer Contraseña'}
-                </Button>
+                  <Button
+                    type="submit"
+                    size="sm"
+                    className="w-full bg-brand-blue hover:bg-primary/90 text-white font-medium disabled:opacity-50"
+                    disabled={isLoading}
+                  >
+                    {isLoading ? 'Restableciendo...' : 'Restablecer Contraseña'}
+                  </Button>
+                </FieldGroup>
               </form>
             </GradientWrapper>
 

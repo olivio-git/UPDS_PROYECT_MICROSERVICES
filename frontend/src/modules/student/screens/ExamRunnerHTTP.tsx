@@ -1,9 +1,10 @@
-import { Alert, AlertDescription } from '@/components/atoms/alert';
-import { Button } from '@/components/atoms/button';
+import { Alert, AlertDescription } from '@/components/keel/alert';
+import { Button } from '@/components/keel/button';
 import {
   Card,
   CardContent
-} from '@/components/atoms/card';
+} from '@/components/keel/card';
+import { Spinner } from '@/components/keel/spinner';
 import GradientWrapper from '@/components/background/GrandWrapperSection';
 import { MainLayout } from '@/components/layout';
 import { cn } from '@/lib/utils';
@@ -22,7 +23,6 @@ import {
   ChevronLeft,
   ChevronRight,
   Flag,
-  Loader2,
   Maximize,
   Save,
   ShieldAlert,
@@ -432,7 +432,7 @@ const ExamRunnerHTTP: React.FC = () => {
                       : 'Tu examen ha sido finalizado exitosamente. Redirigiendo...'}
                   </p>
                   <div className="mt-4">
-                    <Loader2 className="h-6 w-6 animate-spin text-blue-500 mx-auto" />
+                    <Spinner className="h-6 w-6 text-blue-500 mx-auto" />
                   </div>
                 </div>
               </CardContent>
@@ -452,7 +452,7 @@ const ExamRunnerHTTP: React.FC = () => {
             <Card className="w-full max-w-md bg-box backdrop-blur-sm border border-line">
               <CardContent className="p-8">
                 <div className="text-center">
-                  <Loader2 className="h-12 w-12 animate-spin text-blue-500 mx-auto mb-4" />
+                  <Spinner className="h-12 w-12 text-blue-500 mx-auto mb-4" />
                   <h3 className="text-lg font-semibold text-foreground mb-2">
                     Iniciando Examen
                   </h3>
@@ -665,7 +665,7 @@ const ExamRunnerHTTP: React.FC = () => {
                 )}
                 {autoSaveStatus === 'saving' && (
                   <>
-                    <Loader2 className="h-3 w-3 shrink-0 animate-spin text-muted-foreground" />
+                    <Spinner className="h-3 w-3 shrink-0 text-muted-foreground" />
                     <span className="text-muted-foreground">Guardando...</span>
                   </>
                 )}

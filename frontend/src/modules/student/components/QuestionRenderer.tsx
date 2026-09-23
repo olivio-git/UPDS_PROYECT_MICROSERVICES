@@ -1,4 +1,5 @@
-import { Button } from '@/components/atoms/button';
+import { Button } from '@/components/keel/button';
+import { Spinner } from '@/components/keel/spinner';
 import { AudioPlayer, AudioRecorder } from '@/components/audio';
 import type { Question } from '@/modules/exams/types';
 import {
@@ -22,7 +23,7 @@ import {
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { AlertTriangle, CheckCircle, GripVertical, Loader2, RotateCcw, Shuffle, Volume2 } from 'lucide-react';
+import { AlertTriangle, CheckCircle, GripVertical, RotateCcw, Shuffle, Volume2 } from 'lucide-react';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { toBrowserMediaUrl } from '@/lib/mediaUrl';
 
@@ -1010,7 +1011,7 @@ const QuestionRenderer: React.FC<Props> = ({
             {/* Estado de subida */}
             {isUploadingAudio && (
               <div className="flex items-center gap-2 text-sm text-blue-700 bg-blue-50 border border-blue-300 rounded-lg p-3 dark:text-blue-400 dark:bg-blue-900/20 dark:border-blue-700">
-                <Loader2 className="w-4 h-4 animate-spin shrink-0" />
+                <Spinner className="w-4 h-4 shrink-0" />
                 <span>Guardando tu respuesta de audio...</span>
               </div>
             )}

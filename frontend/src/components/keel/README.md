@@ -19,6 +19,13 @@ this split is intentional, not a work-in-progress state.
 `card`, `item`, `empty`, `sheet`, `input-otp`, `steps`, `input-group`, `textarea` (transitive dep
 of `input-group`), `tooltip`, `portal-container` (transitive dep of `tooltip`), `sidebar`.
 
+## Files ported in the student-flow migration slice
+
+`alert`, `popover`, `hover-card` (both `popover` and `hover-card` reuse the existing
+`portal-container`, import path rewritten from `@/components/ui/portal-container` to
+`@/components/keel/portal-container`), and `calendar` — see the note below, this one was **not**
+a like-for-like port.
+
 ## Import path changes made on port
 
 - `@/components/ui/*` → `@/components/keel/*`
@@ -43,6 +50,23 @@ of `input-group`), `tooltip`, `portal-container` (transitive dep of `tooltip`), 
 `--sidebar-border`, `--sidebar-ring` tokens (light + dark), reusing this project's existing
 palette (mapped onto card/foreground/primary/muted/border/ring) rather than importing keel's own
 theme. No other tokens were touched.
+
+## Known gap: `calendar.tsx` is not a keel port
+
+keel's own `calendar.tsx` is written against **react-day-picker v9** (`getDefaultClassNames`,
+`DayButton`, `captionLayout`, component slots). This project has react-day-picker pinned to
+`^8.10.1`, used by `src/components/atoms/calendar.tsx` and 4 screens outside the student flow
+(`ReportFiltersBar`, `AuditLogsScreen`, `SessionsList`, `UserTableHeader`) that are out of scope
+for this slice. Bumping react-day-picker to v9 app-wide — a breaking API change — is a deliberate
+follow-up decision, not something to fold into a component-library swap.
+
+So `src/components/keel/calendar.tsx` keeps this project's existing v8-shaped `classNames` API
+(the same one `atoms/calendar.tsx` already uses, and the one `StudentResults.tsx` is already
+written against: `mode="range"`, `numberOfMonths`, `initialFocus` are all v8 `DayPicker` props
+that v9 removed) and is restyled with keel's `buttonVariants` and radii instead of the atoms
+button. It is visually consistent with the rest of keel, but it is not upstream-portable the way
+the other files in this directory are — a real v9 port has to happen in lockstep with the
+dependency bump, in keel first, per the Rule below.
 
 ## Known gap (not fixed in this port)
 

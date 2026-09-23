@@ -1,19 +1,20 @@
-import { Badge } from '@/components/atoms/badge';
-import { Button } from '@/components/atoms/button';
-import { Calendar } from '@/components/atoms/calendar';
+import { Badge } from '@/components/keel/badge';
+import { Button } from '@/components/keel/button';
+import { Calendar } from '@/components/keel/calendar';
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-} from '@/components/atoms/card';
+} from '@/components/keel/card';
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
-} from '@/components/atoms/popover';
-import { Progress } from '@/components/atoms/progress';
+} from '@/components/keel/popover';
+import { Progress } from '@/components/keel/progress';
+import { Spinner } from '@/components/keel/spinner';
 import GradientWrapper from '@/components/background/GrandWrapperSection';
 import { MainLayout } from '@/components/layout';
 import CustomizableTable from '@/components/common/CustomizableTable';
@@ -44,7 +45,6 @@ import {
   Download,
   Eye,
   FileText,
-  Loader2,
   Target,
   TrendingDown,
   TrendingUp,
@@ -670,7 +670,7 @@ const StudentResults = () => {
         <MainLayout gradientVariant="primary">
           <div className="flex h-full items-center justify-center">
             <div className="text-center">
-              <Loader2 className="h-8 w-8 animate-spin text-muted-foreground mx-auto mb-4" />
+              <Spinner className="h-8 w-8 text-muted-foreground mx-auto mb-4" />
               <p className="text-muted-foreground">Cargando resultado...</p>
             </div>
           </div>
@@ -968,7 +968,7 @@ const StudentResults = () => {
         {/* Estado: cargando */}
         {loading && (
           <div className="flex items-center justify-center py-16">
-            <Loader2 className="h-7 w-7 animate-spin text-muted-foreground mr-3" />
+            <Spinner className="h-7 w-7 text-muted-foreground mr-3" />
             <span className="text-muted-foreground">Cargando resultados...</span>
           </div>
         )}
@@ -1050,7 +1050,8 @@ const StudentResults = () => {
 
                       {/* Filtro: Rango de fechas */}
                       <Popover>
-                        <PopoverTrigger asChild>
+                        <PopoverTrigger
+                          render={
                           <button className="h-7 flex items-center gap-1.5 px-2 text-xs rounded border border-border bg-muted/60 text-foreground hover:bg-muted transition-colors whitespace-nowrap">
                             <CalendarIcon className="h-3 w-3 shrink-0 text-muted-foreground" />
                             {dateRange?.from ? (
@@ -1072,7 +1073,8 @@ const StudentResults = () => {
                               </span>
                             )}
                           </button>
-                        </PopoverTrigger>
+                          }
+                        />
                         <PopoverContent className="w-auto p-0" align="end">
                           <Calendar
                             mode="range"

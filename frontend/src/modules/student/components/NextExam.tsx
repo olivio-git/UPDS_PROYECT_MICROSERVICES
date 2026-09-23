@@ -1,18 +1,27 @@
-import { Alert, AlertDescription } from '@/components/atoms/alert';
-import { Badge } from '@/components/atoms/badge';
-import { Button } from '@/components/atoms/button';
+import { Alert, AlertDescription } from '@/components/keel/alert';
+import { Badge } from '@/components/keel/badge';
+import { Button } from '@/components/keel/button';
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-} from '@/components/atoms/card';
+} from '@/components/keel/card';
+import {
+  Empty,
+  EmptyContent,
+  EmptyDescription,
+  EmptyHeader,
+  EmptyMedia,
+  EmptyTitle,
+} from '@/components/keel/empty';
 import {
   HoverCard,
   HoverCardContent,
   HoverCardTrigger,
-} from '@/components/atoms/hover-card';
+} from '@/components/keel/hover-card';
+import { Spinner } from '@/components/keel/spinner';
 import { useToast } from '@/hooks/use-toast';
 import { UserAvatar } from '@/components/atoms/UserAvatar';
 import {
@@ -21,7 +30,6 @@ import {
   Calendar,
   Clock,
   GraduationCap,
-  Loader2,
   Mail,
   Play,
 } from 'lucide-react';
@@ -229,7 +237,7 @@ const NextExam: React.FC<PropsNextExam> = ({
           </CardHeader>
           <CardContent className="flex flex-1 flex-col justify-center py-6">
             <div className="flex items-center justify-center h-40">
-              <Loader2 className="h-8 w-8 animate-spin text-brand-gray" />
+              <Spinner className="h-8 w-8 text-brand-gray" />
             </div>
           </CardContent>
         </Card>
@@ -277,22 +285,26 @@ const NextExam: React.FC<PropsNextExam> = ({
             </CardDescription>
           </CardHeader>
           <CardContent className="flex flex-1 flex-col justify-center py-6">
-            <div className="text-center">
-              <Calendar className="mx-auto h-8 w-8 text-muted-foreground/50 mb-4" />
-              <p className="text-muted-foreground mb-2">
-                No tienes exámenes programados
-              </p>
-              <p className="text-sm text-muted-foreground/70 mb-4">
-                Los nuevos exámenes aparecerán aquí cuando sean programados
-              </p>
-              <Button
-                onClick={() => loadNextExam()}
-                variant="default"
-                className="mt-2 w-full"
-              >
-                Actualizar
-              </Button>
-            </div>
+            <Empty className="border-0 py-0">
+              <EmptyHeader>
+                <EmptyMedia variant="icon">
+                  <Calendar />
+                </EmptyMedia>
+                <EmptyTitle>No tienes exámenes programados</EmptyTitle>
+                <EmptyDescription>
+                  Los nuevos exámenes aparecerán aquí cuando sean programados
+                </EmptyDescription>
+              </EmptyHeader>
+              <EmptyContent>
+                <Button
+                  onClick={() => loadNextExam()}
+                  variant="default"
+                  className="w-full"
+                >
+                  Actualizar
+                </Button>
+              </EmptyContent>
+            </Empty>
           </CardContent>
         </Card>
     );
@@ -352,8 +364,11 @@ const NextExam: React.FC<PropsNextExam> = ({
 
           {/* --- Información del creador --- */}
           {nextExam.createdBy && (
-            <HoverCard openDelay={200} closeDelay={100}>
-              <HoverCardTrigger asChild>
+            <HoverCard>
+              <HoverCardTrigger
+                delay={200}
+                closeDelay={100}
+                render={
                 <div className="bg-muted/20 rounded-lg p-3 mb-4 border border-line cursor-pointer hover:bg-muted/40 hover:border-muted-foreground/20 transition-colors group">
                   <div className="flex items-center gap-3">
                     <UserAvatar
@@ -380,7 +395,8 @@ const NextExam: React.FC<PropsNextExam> = ({
                     )}
                   </div>
                 </div>
-              </HoverCardTrigger>
+                }
+              />
 
               <HoverCardContent
                 side="top"
@@ -496,7 +512,7 @@ const NextExam: React.FC<PropsNextExam> = ({
             >
               {startingExam ? (
                 <>
-                  <Loader2 className="h-5 w-5 mr-2 animate-spin" />
+                  <Spinner className="h-5 w-5 mr-2" />
                   Iniciando...
                 </>
               ) : nextExam.status === 'in_progress' ? (

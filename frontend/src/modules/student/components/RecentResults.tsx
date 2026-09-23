@@ -1,11 +1,11 @@
-import { Button } from "@/components/atoms/button";
+import { Button } from "@/components/keel/button";
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-} from "@/components/atoms/card";
+} from "@/components/keel/card";
 import GradientWrapper from "@/components/background/GrandWrapperSection";
 import {
   Empty,
@@ -23,8 +23,9 @@ import {
   ItemMedia,
   ItemTitle,
 } from "@/components/keel/item";
+import { Spinner } from "@/components/keel/spinner";
 import { examResultService, type ExamResultSummary } from "@/services/examResultService";
-import { AlertCircle, ChevronRight, FileText, Loader2 } from "lucide-react";
+import { AlertCircle, ChevronRight, FileText } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router";
 
@@ -121,7 +122,7 @@ const RecentResults = ({
         <CardContent className="flex flex-1 flex-col justify-center space-y-1 pt-0">
           {loading && (
             <div className="flex items-center justify-center py-6">
-              <Loader2 className="h-5 w-5 animate-spin text-muted-foreground mr-2" />
+              <Spinner className="h-5 w-5 text-muted-foreground mr-2" />
               <span className="text-muted-foreground text-sm">Cargando resultados...</span>
             </div>
           )}

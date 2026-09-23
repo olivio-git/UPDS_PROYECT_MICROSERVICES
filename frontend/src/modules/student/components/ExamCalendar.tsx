@@ -1,5 +1,8 @@
-import { HoverCard, HoverCardContent, HoverCardTrigger } from '@/components/atoms/hover-card';
-import { ChevronLeft, ChevronRight, Calendar, Clock, Loader2, User2 } from 'lucide-react';
+import { Empty, EmptyDescription, EmptyHeader, EmptyMedia } from '@/components/keel/empty';
+import { HoverCard, HoverCardContent, HoverCardTrigger } from '@/components/keel/hover-card';
+import { Item, ItemContent, ItemDescription, ItemMedia, ItemTitle } from '@/components/keel/item';
+import { Spinner } from '@/components/keel/spinner';
+import { ChevronLeft, ChevronRight, Calendar, Clock, User2 } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
 import { notificationSocket } from '@/services/notifications/notificationSocket';
 import { studentExamService, type NextExamData } from '../services/examService';
@@ -219,7 +222,7 @@ const ExamCalendar = () => {
         {/* Calendar grid */}
         {loading ? (
           <div className="flex justify-center py-8">
-            <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+            <Spinner className="h-5 w-5 text-muted-foreground" />
           </div>
         ) : (
           <div className="grid grid-cols-7 gap-0.5">
@@ -273,8 +276,8 @@ const ExamCalendar = () => {
               if (!hasExam) return cell;
 
               return (
-                <HoverCard key={day} openDelay={300} closeDelay={100}>
-                  <HoverCardTrigger asChild>{cell}</HoverCardTrigger>
+                <HoverCard key={day}>
+                  <HoverCardTrigger render={cell} delay={300} closeDelay={100} />
                   <HoverCardContent
                     side="right"
                     align="start"
@@ -290,24 +293,26 @@ const ExamCalendar = () => {
 
         {/* Selected day detail */}
         {selectedExams.length > 0 && (
-          <div className="border border-border rounded-lg p-2.5 space-y-2 bg-muted/30">
+          <div className="border border-border rounded-lg p-1 space-y-1 bg-muted/30">
             {selectedExams.map((exam) => (
-              <div key={exam.sessionId} className="flex items-start gap-2">
-                <span className={`w-1.5 h-1.5 rounded-full mt-1.5 shrink-0 ${statusDot(exam.status)}`} />
-                <div className="min-w-0">
-                  <p className="text-xs font-medium text-foreground truncate">{exam.name}</p>
-                  <p className="text-[10px] text-muted-foreground">
+              <Item key={exam.sessionId} size="sm" variant="default" className="items-start">
+                <ItemMedia>
+                  <span className={`w-1.5 h-1.5 rounded-full mt-1.5 shrink-0 ${statusDot(exam.status)}`} />
+                </ItemMedia>
+                <ItemContent className="min-w-0">
+                  <ItemTitle className="text-xs">{exam.name}</ItemTitle>
+                  <ItemDescription className="text-[10px]">
                     {exam.time} · Nivel {exam.level} · {exam.duration}
-                  </p>
-                </div>
-              </div>
+                  </ItemDescription>
+                </ItemContent>
+              </Item>
             ))}
           </div>
         )}
 
         {/* Upcoming list */}
         {!loading && upcoming.length > 0 && (
-          <div className="pt-1 border-t border-border space-y-2">
+          <div className="pt-1 border-t border-border space-y-1">
             <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">
               Proximos
             </p>
@@ -316,21 +321,23 @@ const ExamCalendar = () => {
               const dayNum = d.getDate();
               const monthAbbr = MONTHS[d.getMonth()].slice(0, 3);
               return (
-                <div key={exam.sessionId} className="flex items-center gap-2.5">
-                  <div className="flex flex-col items-center w-8 shrink-0">
-                    <span className="text-[10px] text-muted-foreground uppercase leading-none">
-                      {monthAbbr}
-                    </span>
-                    <span className="text-sm font-bold text-foreground leading-tight">{dayNum}</span>
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <p className="text-xs font-medium text-foreground truncate">{exam.name}</p>
-                    <p className="text-[10px] text-muted-foreground">
+                <Item key={exam.sessionId} size="sm" variant="default">
+                  <ItemMedia>
+                    <div className="flex flex-col items-center w-8 shrink-0">
+                      <span className="text-[10px] text-muted-foreground uppercase leading-none">
+                        {monthAbbr}
+                      </span>
+                      <span className="text-sm font-bold text-foreground leading-tight">{dayNum}</span>
+                    </div>
+                  </ItemMedia>
+                  <ItemContent className="min-w-0">
+                    <ItemTitle>{exam.name}</ItemTitle>
+                    <ItemDescription className="text-[10px]">
                       {exam.time} · {exam.level}
-                    </p>
-                  </div>
+                    </ItemDescription>
+                  </ItemContent>
                   <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${statusDot(exam.status)}`} />
-                </div>
+                </Item>
               );
             })}
           </div>
@@ -338,10 +345,14 @@ const ExamCalendar = () => {
 
         {/* Empty state */}
         {!loading && exams.length === 0 && (
-          <div className="flex flex-col items-center gap-2 py-6 text-center">
-            <span className="text-3xl">📅</span>
-            <p className="text-xs text-muted-foreground">Sin exámenes programados</p>
-          </div>
+          <Empty className="border-0 py-6">
+            <EmptyHeader>
+              <EmptyMedia variant="icon">
+                <span className="text-lg" aria-hidden="true">📅</span>
+              </EmptyMedia>
+              <EmptyDescription>Sin exámenes programados</EmptyDescription>
+            </EmptyHeader>
+          </Empty>
         )}
       </div>
     </div>

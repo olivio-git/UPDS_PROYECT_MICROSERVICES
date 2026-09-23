@@ -1,4 +1,4 @@
-import { Alert, AlertDescription } from "@/components/atoms/alert"
+import { Alert, AlertDescription } from "@/components/keel/alert"
 import { Button } from "@/components/keel/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/keel/card"
 import { Field, FieldLabel } from "@/components/keel/field"

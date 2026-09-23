@@ -1,8 +1,9 @@
-import { Alert, AlertDescription } from "@/components/atoms/alert";
-import { Button } from "@/components/atoms/button";
+import { Alert, AlertDescription } from "@/components/keel/alert";
+import { Button } from "@/components/keel/button";
 import { MainLayout } from "@/components/layout";
 import { Item, ItemActions, ItemContent, ItemMedia, ItemTitle } from "@/components/keel/item";
 import { Progress } from "@/components/keel/progress";
+import { Spinner } from "@/components/keel/spinner";
 import { cn } from "@/lib/utils";
 import {
   examService,
@@ -22,7 +23,6 @@ import {
   Clock,
   GraduationCap,
   Info,
-  Loader2,
   Mic,
   Monitor,
   Play,
@@ -131,7 +131,7 @@ function CheckStatusIcon({ status }: { status: TechnicalCheck["status"] }) {
       <div className="h-3.5 w-3.5 rounded-full border-2 border-border flex-shrink-0" />
     );
   if (status === "checking")
-    return <Loader2 className="h-3.5 w-3.5 text-blue-600 dark:text-blue-400 animate-spin flex-shrink-0" />;
+    return <Spinner className="h-3.5 w-3.5 text-blue-600 dark:text-blue-400 flex-shrink-0" />;
   if (status === "success")
     return <CheckCircle2 className="h-3.5 w-3.5 text-green-600 dark:text-green-400 flex-shrink-0" />;
   if (status === "warning")
@@ -776,7 +776,7 @@ const ExamPreparation = () => {
           className={btnBase}
         >
           {isTestingInternet ? (
-            <Loader2 className="h-3 w-3 animate-spin" />
+            <Spinner className="h-3 w-3" />
           ) : (
             <RefreshCw className="h-3 w-3" />
           )}
@@ -792,7 +792,7 @@ const ExamPreparation = () => {
           className={btnBase}
         >
           {isTestingMic ? (
-            <Loader2 className="h-3 w-3 animate-spin" />
+            <Spinner className="h-3 w-3" />
           ) : (
             <Mic className="h-3 w-3" />
           )}
@@ -808,7 +808,7 @@ const ExamPreparation = () => {
           className={btnBase}
         >
           {isTestingAudio && audioTestStep === "playing" ? (
-            <Loader2 className="h-3 w-3 animate-spin" />
+            <Spinner className="h-3 w-3" />
           ) : (
             <Volume2 className="h-3 w-3" />
           )}
@@ -826,7 +826,7 @@ const ExamPreparation = () => {
       <MainLayout>
         <div className="flex h-full items-center justify-center">
           <div className="flex flex-col items-center gap-3 text-muted-foreground">
-            <Loader2 className="h-7 w-7 animate-spin text-blue-500" />
+            <Spinner className="h-7 w-7 text-blue-500" />
             <p className="text-sm">Inicializando verificación técnica...</p>
           </div>
         </div>
@@ -1035,7 +1035,7 @@ const ExamPreparation = () => {
               </ul>
             ) : (
               <div className="flex flex-1 items-center justify-center py-12 text-muted-foreground text-sm">
-                <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                <Spinner className="h-4 w-4 mr-2" />
                 Cargando verificaciones...
               </div>
             )}
@@ -1201,7 +1201,7 @@ const ExamPreparation = () => {
               >
                 {isStarting ? (
                   <>
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    <Spinner className="h-4 w-4 mr-2" />
                     {examData?.myAttemptStatus === 'in_progress' ? 'Reconectando...' : 'Iniciando examen...'}
                   </>
                 ) : (
