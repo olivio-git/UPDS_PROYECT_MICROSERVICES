@@ -8,31 +8,22 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/keel/card';
+import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from '@/components/keel/empty';
+import { Item, ItemActions, ItemContent, ItemMedia, ItemTitle } from '@/components/keel/item';
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
 } from '@/components/keel/popover';
-import { Progress } from '@/components/keel/progress';
 import { Spinner } from '@/components/keel/spinner';
-import GradientWrapper from '@/components/background/GrandWrapperSection';
 import { MainLayout } from '@/components/layout';
-import CustomizableTable from '@/components/common/CustomizableTable';
+import { cn } from '@/lib/utils';
 import { api } from '@/services/api.service';
 import {
   examResultService,
   type StudentExamResult,
   type StudentResultsListResponse,
 } from '@/services/examResultService';
-import {
-  createColumnHelper,
-  getCoreRowModel,
-  getPaginationRowModel,
-  getSortedRowModel,
-  type PaginationState,
-  type SortingState,
-  useReactTable,
-} from '@tanstack/react-table';
 import {
   AlertCircle,
   ArrowLeft,
@@ -41,31 +32,32 @@ import {
   CheckCircle,
   ChevronLeft,
   ChevronRight,
-  Clock,
   Download,
   Eye,
   FileText,
+  FileSearch,
+  Sparkles,
   Target,
   TrendingDown,
   TrendingUp,
   X,
   XCircle
 } from 'lucide-react';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, type KeyboardEvent } from 'react';
 import type { DateRange } from 'react-day-picker';
 import { useNavigate, useParams } from 'react-router-dom';
 import { toast } from 'sonner';
 import { toBrowserMediaUrl } from '@/lib/mediaUrl';
+import { ProgressRing } from '../components/ProgressRing';
 
-const columnHelper = createColumnHelper<StudentExamResult>();
+const RESULTS_PAGE_SIZE = 12;
 
 const StudentResults = () => {
   const navigate = useNavigate();
   const { resultId } = useParams();
   const [selectedLevel, setSelectedLevel] = useState('all');
   const [dateRange, setDateRange] = useState<DateRange | undefined>();
-  const [sorting, setSorting] = useState<SortingState>([]);
-  const [pagination, setPagination] = useState<PaginationState>({ pageIndex: 0, pageSize: 10 });
+  const [pageIndex, setPageIndex] = useState(0);
 
   // States for list view
   const [resultsData, setResultsData] =
@@ -86,7 +78,7 @@ const StudentResults = () => {
   // Load results list on mount or when filters change
   useEffect(() => {
     if (!resultId) {
-      setPagination(p => ({ ...p, pageIndex: 0 }));
+      setPageIndex(0);
       loadStudentResults();
     }
   }, [selectedLevel, resultId]);
@@ -156,6 +148,23 @@ const StudentResults = () => {
     if (score >= 60)
       return 'bg-yellow-100 text-yellow-700 border-yellow-200 dark:bg-yellow-500/20 dark:text-yellow-300 dark:border-yellow-500/30';
     return 'bg-red-100 text-red-700 border-red-200 dark:bg-red-500/20 dark:text-red-300 dark:border-red-500/30';
+  };
+
+  // Stroke color for the hero score ring — same thresholds as the badge.
+  const getScoreRingStroke = (score: number) => {
+    if (score >= 80) return 'stroke-green-500 dark:stroke-green-400';
+    if (score >= 60) return 'stroke-yellow-500 dark:stroke-yellow-400';
+    return 'stroke-red-500 dark:stroke-red-400';
+  };
+
+  // Fill color for the per-competency comparison bars — same thresholds,
+  // as a plain filled div (matching the pattern already used by the
+  // exam runner's finish-confirmation progress bar) instead of the keel
+  // `Progress` primitive, which has no per-instance color override.
+  const getScoreBarColor = (score: number) => {
+    if (score >= 80) return 'bg-green-500 dark:bg-green-400';
+    if (score >= 60) return 'bg-yellow-500 dark:bg-yellow-400';
+    return 'bg-red-500 dark:bg-red-400';
   };
 
   const formatDate = (dateString: string) => {
@@ -586,82 +595,11 @@ const StudentResults = () => {
     });
   }, [resultsData, selectedLevel, dateRange]);
 
-  // Columnas de la tabla — una sola línea por celda, sin datos apilados
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  const columns = useMemo(() => [
-    columnHelper.accessor('examName', {
-      id: 'examName',
-      header: 'Examen',
-      cell: ({ getValue }) => (
-        <span className="font-medium text-foreground text-sm truncate max-w-[200px] block">
-          {getValue()}
-        </span>
-      ),
-      enableSorting: true,
-    }),
-    columnHelper.accessor('date', {
-      id: 'date',
-      header: 'Fecha',
-      cell: ({ getValue }) => (
-        <span className="text-sm text-muted-foreground whitespace-nowrap">
-          {new Date(getValue()).toLocaleDateString('es-ES', {
-            day: '2-digit', month: 'short', year: 'numeric',
-          })}
-        </span>
-      ),
-      enableSorting: true,
-    }),
-    columnHelper.display({
-      id: 'level',
-      header: 'Nivel',
-      cell: ({ row }) => (
-        <span className="inline-flex items-center px-1.5 py-0.5 text-xs font-medium rounded bg-blue-100 text-blue-700 border border-blue-200 dark:bg-blue-500/20 dark:text-blue-300 dark:border-blue-500/30">
-          {row.original.level}
-        </span>
-      ),
-      enableSorting: false,
-    }),
-    columnHelper.accessor('overallScore', {
-      id: 'overallScore',
-      header: 'Puntaje',
-      cell: ({ getValue }) => (
-        <span className={`text-sm font-semibold tabular-nums ${getScoreColor(getValue())}`}>
-          {getValue()}%
-        </span>
-      ),
-      enableSorting: true,
-    }),
-    columnHelper.display({
-      id: 'actions',
-      header: '',
-      cell: ({ row }) => (
-        <Button
-          size="sm"
-          variant="ghost"
-          className="h-7 px-2 text-xs text-muted-foreground hover:text-foreground"
-          onClick={() => handleViewDetails(row.original)}
-        >
-          <Eye className="h-3.5 w-3.5 mr-1" />
-          Ver
-        </Button>
-      ),
-      enableSorting: false,
-    }),
-  ], []);
-
-  const resultsTable = useReactTable({
-    data: filteredResults,
-    columns,
-    state: { sorting, pagination },
-    onSortingChange: (updater) => {
-      setSorting(typeof updater === 'function' ? updater(sorting) : updater);
-      setPagination(p => ({ ...p, pageIndex: 0 }));
-    },
-    onPaginationChange: setPagination,
-    getCoreRowModel: getCoreRowModel(),
-    getSortedRowModel: getSortedRowModel(),
-    getPaginationRowModel: getPaginationRowModel(),
-  });
+  const pageCount = Math.max(1, Math.ceil(filteredResults.length / RESULTS_PAGE_SIZE));
+  const pagedResults = useMemo(
+    () => filteredResults.slice(pageIndex * RESULTS_PAGE_SIZE, (pageIndex + 1) * RESULTS_PAGE_SIZE),
+    [filteredResults, pageIndex]
+  );
 
   // Show detail view if resultId exists
   if (resultId) {
@@ -710,121 +648,164 @@ const StudentResults = () => {
       );
     }
 
-    // Vista detallada de un resultado específico — el score es la pieza
-    // central (hero), y competencias + retroalimentación se ponen lado a
-    // lado en pantallas anchas en vez de apilarse en una sola columna.
+    // Vista detallada de un resultado específico. Orden deliberado, de más
+    // a menos importante para el estudiante: (1) el score como hero — un
+    // anillo grande en vez de una badge de texto, (2) competencias como
+    // barras comparables entre sí, (3) la retroalimentación de IA en su
+    // propia superficie (es lo más valioso de una plataforma evaluada por
+    // IA y antes competía en peso visual con todo lo demás), (4) el detalle
+    // pregunta por pregunta.
+    const sortedCompetencies = Object.entries(currentResult.competencies ?? {})
+      .map(([skill, data]) => ({
+        skill,
+        score: (data as { score?: number } | undefined)?.score ?? 0,
+        feedback: (data as { feedback?: string } | undefined)?.feedback ?? '',
+      }))
+      // Débil primero: lo que necesita atención se lee sin tener que buscarlo.
+      .sort((a, b) => a.score - b.score);
+
+    // `/exam-results/:id/detailed` returns the ExamResult document spread at
+    // the top level (see exam-service's examEvaluation.service.ts
+    // getDetailedExamResult, `{ ...result.toObject(), questionResults }`) —
+    // totalScore/maxScore live directly on it, not under a `.details` key.
+    const rawPoints =
+      typeof examDetailData?.totalScore === 'number' && typeof examDetailData?.maxScore === 'number'
+        ? { totalScore: examDetailData.totalScore, maxScore: examDetailData.maxScore }
+        : null;
+
     return (
-      <MainLayout gradientVariant="primary">
-        <div id="exam-result-content" className="space-y-4 p-4 pb-10 lg:p-6 xl:p-8">
-          <Card className="bg-card backdrop-blur-sm border border-line">
+      <MainLayout>
+        <div id="exam-result-content" className="h-full space-y-4 overflow-auto p-4 pb-10 lg:p-6 xl:p-8">
+          {/* Hero: the score ring is the first thing the eye lands on. */}
+          <Card className="bg-card">
             <CardContent className="p-6">
-              <div className="flex flex-col items-start justify-between gap-6 lg:flex-row lg:items-center">
-                <div className="min-w-0">
-                  <h2 className="text-xl font-semibold text-foreground leading-snug">
-                    {currentResult.examName}
-                  </h2>
-                  <p className="text-sm text-muted-foreground mt-1">
-                    {formatDate(currentResult.date)} · {currentResult.duration} min
-                  </p>
-                  <div className="flex flex-wrap gap-2 mt-4">
-                    <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium border ${getScoreBadgeColor(currentResult.overallScore)}`}>
-                      {currentResult.passed ? <CheckCircle className="h-3 w-3" /> : <XCircle className="h-3 w-3" />}
-                      {currentResult.passed ? 'Aprobado' : 'No aprobado'}
-                    </span>
-                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium border border-blue-200 text-blue-700 bg-blue-100 dark:border-blue-500/30 dark:text-blue-300 dark:bg-blue-500/10">
-                      Nivel {currentResult.level}
-                    </span>
-                    {currentResult.nextLevel && (
-                      <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium border border-border text-muted-foreground bg-transparent">
-                        Siguiente: {currentResult.nextLevel}
+              <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
+                <div className="flex flex-col items-center gap-5 text-center sm:flex-row sm:text-left">
+                  <ProgressRing
+                    ratio={currentResult.overallScore / 100}
+                    size={132}
+                    strokeWidth={10}
+                    indicatorClassName={getScoreRingStroke(currentResult.overallScore)}
+                    aria-label={`Puntaje obtenido: ${Math.round(currentResult.overallScore)}%`}
+                  >
+                    <div className="flex flex-col items-center">
+                      <span className="text-3xl font-bold tabular-nums text-foreground">
+                        {Math.round(currentResult.overallScore)}%
                       </span>
-                    )}
-                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium border border-border text-muted-foreground">
-                      <Clock className="h-3 w-3" />
-                      {currentResult.duration} min
-                    </span>
+                      {rawPoints && (
+                        <span className="text-[11px] text-muted-foreground tabular-nums">
+                          {rawPoints.totalScore}/{rawPoints.maxScore} pts
+                        </span>
+                      )}
+                    </div>
+                  </ProgressRing>
+
+                  <div className="min-w-0">
+                    <h2 className="text-xl font-semibold text-foreground leading-snug">
+                      {currentResult.examName}
+                    </h2>
+                    <p className="text-sm text-muted-foreground mt-1">
+                      {formatDate(currentResult.date)} · {currentResult.duration} min
+                    </p>
+                    <div className="flex flex-wrap justify-center gap-2 mt-3 sm:justify-start">
+                      <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium border ${getScoreBadgeColor(currentResult.overallScore)}`}>
+                        {currentResult.passed ? <CheckCircle className="h-3 w-3" /> : <XCircle className="h-3 w-3" />}
+                        {currentResult.passed ? 'Aprobado' : 'No aprobado'}
+                      </span>
+                      <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium border border-blue-200 text-blue-700 bg-blue-100 dark:border-blue-500/30 dark:text-blue-300 dark:bg-blue-500/10">
+                        Nivel {currentResult.level}
+                      </span>
+                      {currentResult.nextLevel && (
+                        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium border border-border text-muted-foreground bg-transparent">
+                          Siguiente: {currentResult.nextLevel}
+                        </span>
+                      )}
+                    </div>
                   </div>
                 </div>
 
-                {/* Score — the hero of this screen */}
-                <div className="flex shrink-0 flex-col items-end gap-3">
-                  <Badge className={`px-4 py-2 text-3xl font-bold ${getScoreBadgeColor(currentResult.overallScore)}`}>
-                    {currentResult.overallScore}%
-                  </Badge>
-                  <div className="flex items-center gap-1.5">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="h-7 px-2.5 text-xs border-line text-muted-foreground hover:bg-muted bg-transparent"
-                      onClick={handleBackToResults}
-                    >
-                      <ArrowLeft className="h-3 w-3 mr-1" />
-                      Volver
-                    </Button>
-                    <Button
-                      size="sm"
-                      onClick={() => handleDownloadPDF(currentResult.id)}
-                      className="h-7 px-2.5 text-xs text-white bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800"
-                    >
-                      <Download className="h-3 w-3 mr-1" />
-                      PDF
-                    </Button>
-                  </div>
+                <div className="flex shrink-0 items-center gap-1.5 self-center lg:self-start">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="h-8 px-3 text-xs border-border text-muted-foreground hover:bg-muted bg-transparent"
+                    onClick={handleBackToResults}
+                  >
+                    <ArrowLeft className="h-3.5 w-3.5 mr-1" />
+                    Volver
+                  </Button>
+                  <Button
+                    size="sm"
+                    onClick={() => handleDownloadPDF(currentResult.id)}
+                    className="h-8 px-3 text-xs bg-blue-600 hover:bg-blue-500"
+                  >
+                    <Download className="h-3.5 w-3.5 mr-1" />
+                    PDF
+                  </Button>
                 </div>
               </div>
             </CardContent>
           </Card>
 
           <div className="grid gap-4 xl:grid-cols-2">
-              <Card className="bg-card backdrop-blur-sm border border-line">
+              <Card className="bg-card">
                 <CardHeader className="pb-3">
                   <CardTitle className="text-foreground flex items-center gap-2 text-sm">
                     <BarChart3 className="h-4 w-4 text-blue-600 dark:text-blue-400" />
                     Desglose por Competencias
                   </CardTitle>
+                  <CardDescription className="text-xs">
+                    De la más débil a la más fuerte
+                  </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4 pt-0">
-                  {Object.entries(currentResult.competencies ?? {}).map(
-                    ([skill, data]) => {
-                      const comp =
-                        (data as { score?: number; feedback?: string }) || {};
-                      const score = comp.score ?? 0;
-                      const feedback = comp.feedback ?? '';
-                      return (
-                        <div key={skill} className="space-y-1.5">
-                          <div className="flex items-center justify-between">
-                            <h4 className="text-sm font-medium text-foreground">
-                              {getCompetencyName(skill)}
-                            </h4>
-                            <span className={`text-sm font-semibold ${getScoreColor(score)}`}>
-                              {score}%
-                            </span>
-                          </div>
-                          <Progress value={score} className="h-1.5 w-full" />
-                          {feedback && <p className="text-xs text-muted-foreground">{feedback}</p>}
-                        </div>
-                      );
-                    }
-                  )}
+                  {sortedCompetencies.map(({ skill, score, feedback }) => (
+                    <div key={skill} className="space-y-1.5">
+                      <div className="flex items-center justify-between gap-2">
+                        <h4 className="text-sm font-medium text-foreground">
+                          {getCompetencyName(skill)}
+                        </h4>
+                        <span className={`text-sm font-semibold tabular-nums ${getScoreColor(score)}`}>
+                          {score}%
+                        </span>
+                      </div>
+                      <div className="h-2 w-full rounded-full bg-muted overflow-hidden">
+                        <div
+                          className={cn('h-full rounded-full transition-all', getScoreBarColor(score))}
+                          style={{ width: `${Math.max(2, Math.min(100, score))}%` }}
+                        />
+                      </div>
+                      {feedback && <p className="text-xs text-muted-foreground">{feedback}</p>}
+                    </div>
+                  ))}
                 </CardContent>
               </Card>
 
-              <Card className="bg-card backdrop-blur-sm border border-line">
+              {/* AI feedback — the most valuable part of an AI-graded
+                  platform, so it gets a distinct tinted surface instead of
+                  a plain card identical to the competencies one next to it. */}
+              <Card className="border-blue-200 bg-blue-50/40 dark:border-blue-500/25 dark:bg-blue-500/[0.06]">
                 <CardHeader className="pb-3">
-                  <CardTitle className="text-foreground flex items-center gap-2 text-sm">
-                    <FileText className="h-4 w-4 text-green-600 dark:text-green-400" />
-                    Retroalimentación General
+                  <CardTitle className="flex items-center gap-2 text-sm text-blue-800 dark:text-blue-200">
+                    <Sparkles className="h-4 w-4" />
+                    Retroalimentación de IA
                   </CardTitle>
                 </CardHeader>
-                <CardContent className="pt-0">
-                  <p className="text-sm text-foreground/80 mb-3 leading-relaxed">{currentResult.feedback}</p>
+                <CardContent className="pt-0 space-y-3">
+                  {currentResult.feedback && (
+                    <blockquote className="border-l-2 border-blue-300 dark:border-blue-500/40 pl-3 text-sm text-foreground/90 italic leading-relaxed">
+                      “{currentResult.feedback}”
+                    </blockquote>
+                  )}
                   {currentResult.recommendations?.length > 0 && (
                     <div>
-                      <p className="text-xs font-medium text-muted-foreground mb-2">Recomendaciones:</p>
-                      <ul className="space-y-1.5">
+                      <p className="text-xs font-medium text-blue-800/80 dark:text-blue-300/80 mb-2">
+                        Recomendaciones
+                      </p>
+                      <ul className="space-y-2">
                         {currentResult.recommendations.map((rec, index) => (
-                          <li key={index} className="flex items-start gap-2 text-xs text-muted-foreground">
-                            <Target className="h-3.5 w-3.5 text-yellow-600 dark:text-yellow-400 mt-0.5 flex-shrink-0" />
+                          <li key={index} className="flex items-start gap-2 text-sm text-foreground/80">
+                            <Target className="h-3.5 w-3.5 text-blue-600 dark:text-blue-400 mt-0.5 flex-shrink-0" />
                             {rec}
                           </li>
                         ))}
@@ -838,14 +819,18 @@ const StudentResults = () => {
           {/* Detalle de preguntas del examen — full width, its own row below
               the two-column summary. */}
           {examDetailData?.questionResults && (
-                <Card className="bg-card backdrop-blur-sm border border-line">
+                <Card className="bg-card">
                   <CardHeader className="pb-3">
                     <CardTitle className="text-foreground flex items-center gap-2 text-sm">
-                      <Eye className="h-4 w-4 text-purple-600 dark:text-purple-400" />
+                      <FileSearch className="h-4 w-4 text-purple-600 dark:text-purple-400" />
                       Preguntas del Examen
                     </CardTitle>
+                    <CardDescription className="text-xs">
+                      {examDetailData.questionResults.length} pregunta
+                      {examDetailData.questionResults.length !== 1 ? 's' : ''}
+                    </CardDescription>
                   </CardHeader>
-                  <CardContent className="p-0">
+                  <CardContent className="p-0 divide-y divide-border/50">
                     {examDetailData.questionResults.map((question: any, index: number) => {
                       // Defensive deduplication: aiAnalysis.feedback is sometimes the same
                       // string as question.feedback (bug in older grading results).
@@ -863,22 +848,29 @@ const StudentResults = () => {
                           ? 'bg-red-100 text-red-700 border-red-200 dark:bg-red-500/20 dark:text-red-300 dark:border-red-500/30'
                           : 'bg-blue-100 text-blue-700 border-blue-200 dark:bg-blue-500/20 dark:text-blue-300 dark:border-blue-500/30';
 
-                      return (
-                        <div key={question.questionId}>
-                          {/* Separador entre preguntas */}
-                          {index > 0 && (
-                            <div className="flex items-center gap-3 px-6">
-                              <div className="flex-1 h-px bg-border/60" />
-                              <span className="text-xs text-muted-foreground/60 font-medium">#{index + 1}</span>
-                              <div className="flex-1 h-px bg-border/60" />
-                            </div>
-                          )}
+                      // Left accent + number-circle color make correct/incorrect
+                      // readable without reading the badge — needed to scan 40
+                      // questions quickly instead of reading every row's text.
+                      const accent =
+                        question.isCorrect === true
+                          ? 'border-l-green-400 dark:border-l-green-500'
+                          : question.isCorrect === false
+                          ? 'border-l-red-400 dark:border-l-red-500'
+                          : 'border-l-blue-300 dark:border-l-blue-600';
+                      const circleColor =
+                        question.isCorrect === true
+                          ? 'bg-green-100 text-green-700 dark:bg-green-500/20 dark:text-green-300'
+                          : question.isCorrect === false
+                          ? 'bg-red-100 text-red-700 dark:bg-red-500/20 dark:text-red-300'
+                          : 'bg-muted text-foreground';
 
-                          <div className="px-5 py-3 space-y-3">
+                      return (
+                        <div key={question.questionId} className={cn('border-l-4', accent)}>
+                          <div className="px-5 py-4 space-y-3">
                             {/* Header */}
                             <div className="flex items-center justify-between gap-3">
                               <div className="flex items-center gap-2.5 flex-wrap">
-                                <span className="w-7 h-7 rounded-full bg-muted flex items-center justify-center text-xs font-semibold text-foreground flex-shrink-0">
+                                <span className={cn('w-7 h-7 rounded-full flex items-center justify-center text-xs font-semibold flex-shrink-0', circleColor)}>
                                   {index + 1}
                                 </span>
                                 <span className="text-sm text-foreground/80">{getQuestionTypeName(question.questionType)}</span>
@@ -955,9 +947,11 @@ const StudentResults = () => {
   // Vista principal de todos los resultados
   const totalRows = filteredResults.length;
 
+  const hasActiveFilters = selectedLevel !== 'all' || !!dateRange?.from;
+
   return (
-    <MainLayout gradientVariant="primary">
-      <div className="h-full space-y-6 p-4 pb-12 lg:p-6 xl:p-8">
+    <MainLayout>
+      <div className="h-full space-y-5 overflow-auto p-4 pb-12 lg:p-6 xl:p-8">
 
         {/* Encabezado */}
         <div>
@@ -975,7 +969,7 @@ const StudentResults = () => {
 
         {/* Estado: error */}
         {error && !loading && (
-          <Card className="bg-card border border-red-700/50">
+          <Card className="bg-card border-red-200 dark:border-red-500/30">
             <CardContent className="p-8 text-center">
               <AlertCircle className="h-10 w-10 text-red-600 dark:text-red-400 mx-auto mb-3" />
               <h3 className="text-base font-semibold text-foreground mb-1">Error al cargar resultados</h3>
@@ -986,150 +980,205 @@ const StudentResults = () => {
         )}
 
         {!loading && !error && resultsData && (
-          <>
-            <GradientWrapper position="top-right" variant="cosmic" intensity="low" size="lg" animate={false}>
-              <Card className="bg-card border border-line shadow-none">
-
-                {/* Stats row */}
-                <div className="grid grid-cols-2 lg:grid-cols-4 border-b border-line">
-                  <div className="p-4 border-r border-line">
-                    <p className="text-xs text-muted-foreground">Promedio</p>
-                    <p className={`text-xl font-semibold ${getScoreColor(resultsData.averageScore)}`}>
-                      {resultsData.averageScore}%
-                    </p>
-                  </div>
-                  <div className="p-4 lg:border-r border-line">
-                    <p className="text-xs text-muted-foreground">Progreso</p>
-                    <div className="flex items-center gap-1 mt-0.5">
-                      <p className={`text-xl font-semibold ${resultsData.progressTrend >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
-                        {resultsData.progressTrend >= 0 ? '+' : ''}{Math.round(resultsData.progressTrend * 10) / 10}
-                      </p>
-                      {resultsData.progressTrend >= 0
-                        ? <TrendingUp className="h-4 w-4 text-green-600 dark:text-green-400" />
-                        : <TrendingDown className="h-4 w-4 text-red-600 dark:text-red-400" />}
-                    </div>
-                  </div>
-                  <div className="p-4 border-r border-t lg:border-t-0 border-line">
-                    <p className="text-xs text-muted-foreground">Total</p>
-                    <p className="text-xl font-semibold text-foreground">{resultsData.totalResults}</p>
-                  </div>
-                  <div className="p-4 border-t lg:border-t-0 border-line">
-                    <p className="text-xs text-muted-foreground">Completados</p>
-                    <p className="text-xl font-semibold text-green-600 dark:text-green-400">
-                      {resultsData.results.filter(r => r.status === 'completed').length}
-                    </p>
-                  </div>
+          <Card className="bg-card">
+            {/* Stats row */}
+            <div className="grid grid-cols-2 lg:grid-cols-4 border-b border-border">
+              <div className="p-4 border-r border-border">
+                <p className="text-xs text-muted-foreground">Promedio</p>
+                <p className={`text-xl font-semibold ${getScoreColor(resultsData.averageScore)}`}>
+                  {resultsData.averageScore}%
+                </p>
+              </div>
+              <div className="p-4 lg:border-r border-border">
+                <p className="text-xs text-muted-foreground">Progreso</p>
+                <div className="flex items-center gap-1 mt-0.5">
+                  <p className={`text-xl font-semibold ${resultsData.progressTrend >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
+                    {resultsData.progressTrend >= 0 ? '+' : ''}{Math.round(resultsData.progressTrend * 10) / 10}
+                  </p>
+                  {resultsData.progressTrend >= 0
+                    ? <TrendingUp className="h-4 w-4 text-green-600 dark:text-green-400" />
+                    : <TrendingDown className="h-4 w-4 text-red-600 dark:text-red-400" />}
                 </div>
+              </div>
+              <div className="p-4 border-r border-t lg:border-t-0 border-border">
+                <p className="text-xs text-muted-foreground">Total</p>
+                <p className="text-xl font-semibold text-foreground">{resultsData.totalResults}</p>
+              </div>
+              <div className="p-4 border-t lg:border-t-0 border-border">
+                <p className="text-xs text-muted-foreground">Completados</p>
+                <p className="text-xl font-semibold text-green-600 dark:text-green-400">
+                  {resultsData.results.filter(r => r.status === 'completed').length}
+                </p>
+              </div>
+            </div>
 
-                {/* Header con filtros inline */}
-                <CardHeader className="border-b border-line pb-4">
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                    <div>
-                      <CardTitle className="text-foreground text-base">Historial de Evaluaciones</CardTitle>
-                      <CardDescription className="text-muted-foreground text-xs mt-0.5">
-                        {filteredResults.length > 0
-                          ? `${filteredResults.length} resultado${filteredResults.length !== 1 ? 's' : ''}`
-                          : 'Sin resultados'}
-                      </CardDescription>
-                    </div>
-                    <div className="flex flex-wrap items-center gap-2">
-                      {/* Filtro: Nivel */}
-                      <select
-                        value={selectedLevel}
-                        onChange={e => { setSelectedLevel(e.target.value); setPagination(p => ({ ...p, pageIndex: 0 })); }}
-                        className="h-7 text-xs bg-muted/60 border border-border rounded px-2 text-foreground focus:outline-none focus:ring-1 focus:ring-ring"
-                      >
-                        <option value="all">Todos los niveles</option>
-                        <option value="A1">A1</option>
-                        <option value="A2">A2</option>
-                        <option value="B1">B1</option>
-                        <option value="B2">B2</option>
-                        <option value="C1">C1</option>
-                        <option value="C2">C2</option>
-                      </select>
+            {/* Header con filtros inline */}
+            <CardHeader className="border-b border-border pb-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div>
+                  <CardTitle className="text-foreground text-base">Historial de Evaluaciones</CardTitle>
+                  <CardDescription className="text-muted-foreground text-xs mt-0.5">
+                    {filteredResults.length > 0
+                      ? `${filteredResults.length} resultado${filteredResults.length !== 1 ? 's' : ''}`
+                      : 'Sin resultados'}
+                  </CardDescription>
+                </div>
+                <div className="flex flex-wrap items-center gap-2">
+                  {/* Filtro: Nivel */}
+                  <select
+                    value={selectedLevel}
+                    onChange={e => { setSelectedLevel(e.target.value); setPageIndex(0); }}
+                    className="h-7 text-xs bg-muted/60 border border-border rounded px-2 text-foreground focus:outline-none focus:ring-1 focus:ring-ring"
+                  >
+                    <option value="all">Todos los niveles</option>
+                    <option value="A1">A1</option>
+                    <option value="A2">A2</option>
+                    <option value="B1">B1</option>
+                    <option value="B2">B2</option>
+                    <option value="C1">C1</option>
+                    <option value="C2">C2</option>
+                  </select>
 
-                      {/* Filtro: Rango de fechas */}
-                      <Popover>
-                        <PopoverTrigger
-                          render={
-                          <button className="h-7 flex items-center gap-1.5 px-2 text-xs rounded border border-border bg-muted/60 text-foreground hover:bg-muted transition-colors whitespace-nowrap">
-                            <CalendarIcon className="h-3 w-3 shrink-0 text-muted-foreground" />
-                            {dateRange?.from ? (
-                              dateRange.to ? (
-                                <>{dateRange.from.toLocaleDateString('es-ES', { day: '2-digit', month: 'short' })} — {dateRange.to.toLocaleDateString('es-ES', { day: '2-digit', month: 'short', year: 'numeric' })}</>
-                              ) : (
-                                <>{dateRange.from.toLocaleDateString('es-ES', { day: '2-digit', month: 'short', year: 'numeric' })}</>
-                              )
-                            ) : (
-                              <span className="text-muted-foreground">Rango de fechas</span>
-                            )}
-                            {dateRange?.from && (
-                              <span
-                                role="button"
-                                onClick={e => { e.stopPropagation(); setDateRange(undefined); setPagination(p => ({ ...p, pageIndex: 0 })); }}
-                                className="ml-1 text-muted-foreground hover:text-foreground"
-                              >
-                                <X className="h-3 w-3" />
-                              </span>
-                            )}
-                          </button>
-                          }
-                        />
-                        <PopoverContent className="w-auto p-0" align="end">
-                          <Calendar
-                            mode="range"
-                            selected={dateRange}
-                            onSelect={range => { setDateRange(range); setPagination(p => ({ ...p, pageIndex: 0 })); }}
-                            numberOfMonths={2}
-                            initialFocus
-                          />
-                        </PopoverContent>
-                      </Popover>
-                    </div>
-                  </div>
-                </CardHeader>
+                  {/* Filtro: Rango de fechas */}
+                  <Popover>
+                    <PopoverTrigger
+                      render={
+                      <button className="h-7 flex items-center gap-1.5 px-2 text-xs rounded border border-border bg-muted/60 text-foreground hover:bg-muted transition-colors whitespace-nowrap">
+                        <CalendarIcon className="h-3 w-3 shrink-0 text-muted-foreground" />
+                        {dateRange?.from ? (
+                          dateRange.to ? (
+                            <>{dateRange.from.toLocaleDateString('es-ES', { day: '2-digit', month: 'short' })} — {dateRange.to.toLocaleDateString('es-ES', { day: '2-digit', month: 'short', year: 'numeric' })}</>
+                          ) : (
+                            <>{dateRange.from.toLocaleDateString('es-ES', { day: '2-digit', month: 'short', year: 'numeric' })}</>
+                          )
+                        ) : (
+                          <span className="text-muted-foreground">Rango de fechas</span>
+                        )}
+                        {dateRange?.from && (
+                          <span
+                            role="button"
+                            onClick={e => { e.stopPropagation(); setDateRange(undefined); setPageIndex(0); }}
+                            className="ml-1 text-muted-foreground hover:text-foreground"
+                          >
+                            <X className="h-3 w-3" />
+                          </span>
+                        )}
+                      </button>
+                      }
+                    />
+                    <PopoverContent className="w-auto p-0" align="end">
+                      <Calendar
+                        mode="range"
+                        selected={dateRange}
+                        onSelect={range => { setDateRange(range); setPageIndex(0); }}
+                        numberOfMonths={2}
+                        initialFocus
+                      />
+                    </PopoverContent>
+                  </Popover>
+                </div>
+              </div>
+            </CardHeader>
 
-                {/* Tabla */}
-                <CardContent className="p-0">
-                  <CustomizableTable
-                    table={resultsTable}
-                    isLoading={loading}
-                    isFetching={false}
-                    isError={!!error}
-                    errorMessage={error ?? undefined}
-                    noDataMessage={
-                      selectedLevel !== 'all' || dateRange?.from
+            {/* Lista de resultados — filas escaneables en vez de una tabla */}
+            <CardContent className="p-0">
+              {pagedResults.length === 0 ? (
+                <Empty className="border-none py-12">
+                  <EmptyHeader>
+                    <EmptyMedia variant="icon">
+                      <FileText className="h-5 w-5" />
+                    </EmptyMedia>
+                    <EmptyTitle>Sin resultados</EmptyTitle>
+                    <EmptyDescription>
+                      {hasActiveFilters
                         ? 'No hay resultados con los filtros seleccionados.'
-                        : 'Aún no has completado ninguna evaluación.'
-                    }
-                    rows={pagination.pageSize}
-                  />
-                </CardContent>
+                        : 'Aún no has completado ninguna evaluación.'}
+                    </EmptyDescription>
+                  </EmptyHeader>
+                </Empty>
+              ) : (
+                <ul className="divide-y divide-border/60">
+                  {pagedResults.map((result) => (
+                    <Item
+                      key={result.id}
+                      render={<li />}
+                      variant="default"
+                      className="cursor-pointer rounded-none hover:bg-muted/50"
+                      role="button"
+                      tabIndex={0}
+                      aria-label={`Ver resultado de ${result.examName}, ${result.overallScore}%`}
+                      onClick={() => handleViewDetails(result)}
+                      onKeyDown={(e: KeyboardEvent) => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                          e.preventDefault();
+                          handleViewDetails(result);
+                        }
+                      }}
+                    >
+                      <ItemMedia
+                        variant="icon"
+                        className={cn(
+                          'h-9 w-9 rounded-lg',
+                          result.passed !== false
+                            ? 'bg-green-100 text-green-700 dark:bg-green-500/15 dark:text-green-300'
+                            : 'bg-red-100 text-red-700 dark:bg-red-500/15 dark:text-red-300'
+                        )}
+                      >
+                        {result.passed !== false ? <CheckCircle className="h-4 w-4" /> : <XCircle className="h-4 w-4" />}
+                      </ItemMedia>
 
-                {/* Paginación */}
-                {resultsTable.getPageCount() > 1 && (
-                  <div className="flex items-center justify-between px-4 py-3 border-t border-line">
-                    <p className="text-xs text-muted-foreground">
-                      {resultsTable.getState().pagination.pageIndex * resultsTable.getState().pagination.pageSize + 1}–{Math.min((resultsTable.getState().pagination.pageIndex + 1) * resultsTable.getState().pagination.pageSize, totalRows)} de {totalRows}
-                    </p>
-                    <div className="flex items-center gap-1">
-                      <Button variant="outline" size="sm" className="h-7 w-7 p-0 border-line bg-transparent text-muted-foreground hover:bg-muted disabled:opacity-30" onClick={() => resultsTable.previousPage()} disabled={!resultsTable.getCanPreviousPage()}>
-                        <ChevronLeft className="h-4 w-4" />
-                      </Button>
-                      {Array.from({ length: resultsTable.getPageCount() }, (_, i) => i).map(i => (
-                        <Button key={i} variant="outline" size="sm" className={`h-7 w-7 p-0 text-xs border-line ${i === resultsTable.getState().pagination.pageIndex ? 'bg-blue-100 text-blue-700 border-blue-300 dark:bg-blue-600/30 dark:text-blue-300 dark:border-blue-500/50' : 'bg-transparent text-muted-foreground hover:bg-muted'}`} onClick={() => resultsTable.setPageIndex(i)}>
-                          {i + 1}
+                      <ItemContent>
+                        <ItemTitle className="font-medium">{result.examName}</ItemTitle>
+                        <p className="text-xs text-muted-foreground">
+                          {new Date(result.date).toLocaleDateString('es-ES', {
+                            day: '2-digit', month: 'short', year: 'numeric',
+                          })}
+                          {' · '}Nivel {result.level}
+                        </p>
+                      </ItemContent>
+
+                      <ItemActions className="gap-3">
+                        <span className={`text-sm font-semibold tabular-nums ${getScoreColor(result.overallScore)}`}>
+                          {result.overallScore}%
+                        </span>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="h-7 px-2 text-xs text-muted-foreground hover:text-foreground"
+                          onClick={(e) => { e.stopPropagation(); handleViewDetails(result); }}
+                        >
+                          <Eye className="h-3.5 w-3.5 mr-1" />
+                          Ver
                         </Button>
-                      ))}
-                      <Button variant="outline" size="sm" className="h-7 w-7 p-0 border-line bg-transparent text-muted-foreground hover:bg-muted disabled:opacity-30" onClick={() => resultsTable.nextPage()} disabled={!resultsTable.getCanNextPage()}>
-                        <ChevronRight className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </div>
-                )}
-              </Card>
-            </GradientWrapper>
-          </>
+                      </ItemActions>
+                    </Item>
+                  ))}
+                </ul>
+              )}
+            </CardContent>
+
+            {/* Paginación */}
+            {pageCount > 1 && (
+              <div className="flex items-center justify-between px-4 py-3 border-t border-border">
+                <p className="text-xs text-muted-foreground">
+                  {pageIndex * RESULTS_PAGE_SIZE + 1}–{Math.min((pageIndex + 1) * RESULTS_PAGE_SIZE, totalRows)} de {totalRows}
+                </p>
+                <div className="flex items-center gap-1">
+                  <Button variant="outline" size="sm" className="h-7 w-7 p-0 bg-transparent text-muted-foreground hover:bg-muted disabled:opacity-30" onClick={() => setPageIndex(i => Math.max(0, i - 1))} disabled={pageIndex === 0}>
+                    <ChevronLeft className="h-4 w-4" />
+                  </Button>
+                  {Array.from({ length: pageCount }, (_, i) => i).map(i => (
+                    <Button key={i} variant="outline" size="sm" className={`h-7 w-7 p-0 text-xs ${i === pageIndex ? 'bg-blue-100 text-blue-700 border-blue-300 dark:bg-blue-600/30 dark:text-blue-300 dark:border-blue-500/50' : 'bg-transparent text-muted-foreground hover:bg-muted'}`} onClick={() => setPageIndex(i)}>
+                      {i + 1}
+                    </Button>
+                  ))}
+                  <Button variant="outline" size="sm" className="h-7 w-7 p-0 bg-transparent text-muted-foreground hover:bg-muted disabled:opacity-30" onClick={() => setPageIndex(i => Math.min(pageCount - 1, i + 1))} disabled={pageIndex >= pageCount - 1}>
+                    <ChevronRight className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+            )}
+          </Card>
         )}
       </div>
     </MainLayout>

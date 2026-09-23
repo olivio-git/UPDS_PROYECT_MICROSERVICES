@@ -36,6 +36,7 @@ import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { toast } from 'sonner';
 import QuestionRenderer from '../components/QuestionRenderer';
 import SectionNavigator from '../components/SectionNavigator';
+import { ProgressRing } from '../components/ProgressRing';
 
 // Thresholds shared between the ring and the rest of the timer's visual
 // state — amber under 5 minutes, red (+ pulse) under 1 minute.
@@ -44,67 +45,44 @@ const TIMER_CRITICAL_SECONDS = 60;
 
 /** Circular countdown: elapsed vs total time, remaining time printed inside.
  * Stays the single most prominent element in the header, per the redesign
- * brief — a plain digital readout was not visually loud enough at a glance. */
+ * brief — a plain digital readout was not visually loud enough at a glance.
+ * The ring geometry itself lives in the shared `ProgressRing` (also used by
+ * the result screen's score ring); this only supplies the countdown ratio,
+ * the warning/critical color states, and the centered readout. */
 const TimerRing: React.FC<{
   timeRemaining: number | null;
   totalTime: number | null;
   formatTime: (seconds: number) => string;
 }> = ({ timeRemaining, totalTime, formatTime }) => {
-  const size = 84;
-  const stroke = 6;
-  const radius = (size - stroke) / 2;
-  const circumference = 2 * Math.PI * radius;
-
   const ratio = timeRemaining != null && totalTime && totalTime > 0
-    ? Math.min(1, Math.max(0, timeRemaining / totalTime))
+    ? timeRemaining / totalTime
     : 1;
-  const dashOffset = circumference * (1 - ratio);
 
   const isCritical = timeRemaining != null && timeRemaining < TIMER_CRITICAL_SECONDS;
   const isWarning = !isCritical && timeRemaining != null && timeRemaining < TIMER_WARNING_SECONDS;
 
   return (
-    <div
+    <ProgressRing
+      ratio={ratio}
+      size={84}
+      strokeWidth={6}
       role="timer"
       aria-label={timeRemaining != null ? `Tiempo restante: ${formatTime(timeRemaining)}` : 'Cargando tiempo restante'}
-      className={cn('relative flex shrink-0 items-center justify-center', isCritical && 'animate-pulse')}
-      style={{ width: size, height: size }}
+      className={cn(isCritical && 'animate-pulse')}
+      trackClassName={cn(
+        isCritical ? 'stroke-red-100 dark:stroke-red-950/40' : isWarning ? 'stroke-amber-100 dark:stroke-amber-950/40' : 'stroke-muted'
+      )}
+      indicatorClassName={cn(isCritical ? 'stroke-red-600' : isWarning ? 'stroke-amber-500' : 'stroke-primary')}
     >
-      <svg width={size} height={size} className="-rotate-90">
-        <circle
-          cx={size / 2}
-          cy={size / 2}
-          r={radius}
-          strokeWidth={stroke}
-          fill="none"
-          className={cn(
-            isCritical ? 'stroke-red-100 dark:stroke-red-950/40' : isWarning ? 'stroke-amber-100 dark:stroke-amber-950/40' : 'stroke-muted'
-          )}
-        />
-        <circle
-          cx={size / 2}
-          cy={size / 2}
-          r={radius}
-          strokeWidth={stroke}
-          fill="none"
-          strokeLinecap="round"
-          strokeDasharray={circumference}
-          strokeDashoffset={dashOffset}
-          className={cn(
-            'transition-[stroke-dashoffset] duration-1000 ease-linear',
-            isCritical ? 'stroke-red-600' : isWarning ? 'stroke-amber-500' : 'stroke-primary'
-          )}
-        />
-      </svg>
       <span
         className={cn(
-          'absolute font-mono text-[13px] font-bold tabular-nums tracking-tight',
+          'font-mono text-[13px] font-bold tabular-nums tracking-tight',
           isCritical ? 'text-red-600 dark:text-red-400' : isWarning ? 'text-amber-600 dark:text-amber-500' : 'text-foreground'
         )}
       >
         {timeRemaining != null ? formatTime(timeRemaining) : '--:--'}
       </span>
-    </div>
+    </ProgressRing>
   );
 };
 

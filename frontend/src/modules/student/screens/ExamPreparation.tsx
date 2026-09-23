@@ -110,6 +110,34 @@ const STATUS_BADGE: Record<
   },
 };
 
+// Left accent per row — makes the row's state readable at a glance, before
+// even reading the badge text, which is the point of a pre-flight list.
+const STATUS_ACCENT: Record<TechnicalCheck["status"], string> = {
+  pending: "border-l-border",
+  checking: "border-l-blue-400 dark:border-l-blue-500",
+  success: "border-l-green-400 dark:border-l-green-500",
+  warning: "border-l-yellow-400 dark:border-l-yellow-500",
+  error: "border-l-red-400 dark:border-l-red-500",
+};
+
+// Checks the candidate never presses a button for — startAutomaticChecks
+// runs them on mount, so their "pending" hint is different from the ones
+// that wait on a manual "Probar" click.
+const AUTOMATIC_CHECK_NAMES = new Set([
+  "Conexión a Internet",
+  "Navegador Compatible",
+  "Resolución de Pantalla",
+]);
+
+// What the row should tell the candidate to DO while it's still pending —
+// this is the "not green yet, here's the fix" copy the redesign brief asks
+// for, shown before `check.message` exists (which only appears once a check
+// has actually run at least once).
+const PENDING_HINTS: Record<string, string> = {
+  "Micrófono": "Pulsa Probar y permite el acceso al micrófono.",
+  "Auriculares/Altavoces": "Pulsa Probar audio y confirma si escuchaste el tono.",
+};
+
 // Guía amigable por código de motivo cuando el servidor rechaza el inicio
 // del examen (TECHNICAL_VERIFICATION_REQUIRED). El `message` ya viene en
 // español desde session-manager-service — esto solo agrega el "cómo lo arreglo".
@@ -241,6 +269,22 @@ const ExamPreparation = () => {
       visibleChecks
         .filter((c) => c.required)
         .every((c) => c.status === "success" || c.status === "warning"),
+    [visibleChecks]
+  );
+
+  // Which required checks are still keeping the candidate from starting —
+  // named explicitly instead of a generic "complete every check" line, so
+  // the disabled button always says exactly what's missing.
+  const missingRequiredChecks = useMemo(
+    () =>
+      visibleChecks
+        .filter((c) => c.required && c.status !== "success" && c.status !== "warning")
+        .map((c) => c.name),
+    [visibleChecks]
+  );
+
+  const checksDoneCount = useMemo(
+    () => visibleChecks.filter((c) => c.status === "success" || c.status === "warning").length,
     [visibleChecks]
   );
 
@@ -980,12 +1024,19 @@ const ExamPreparation = () => {
           <div className="flex min-h-0 flex-col rounded-xl border border-border bg-card/60 overflow-hidden">
             <div className="shrink-0 px-5 py-4 border-b border-border">
               <div className="flex items-center justify-between mb-2.5">
-                <h2 className="text-sm font-semibold text-foreground">
-                  Verificación del sistema
-                </h2>
-                <span className="text-xs text-muted-foreground font-medium tabular-nums">
-                  {verificationProgress}%
-                </span>
+                <div>
+                  <h2 className="text-sm font-semibold text-foreground">
+                    Verificación del sistema
+                  </h2>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    Revisa cada equipo antes de comenzar — el examen no se puede pausar.
+                  </p>
+                </div>
+                {visibleChecks.length > 0 && (
+                  <span className="shrink-0 inline-flex items-center gap-1.5 rounded-full border border-border bg-muted/60 px-2.5 py-1 text-xs font-medium text-foreground/80 tabular-nums">
+                    {checksDoneCount}/{visibleChecks.length}
+                  </span>
+                )}
               </div>
               <Progress value={verificationProgress} className="h-1" />
             </div>
@@ -995,8 +1046,24 @@ const ExamPreparation = () => {
                 {visibleChecks.map((check) => {
                   const Icon = CHECK_ICONS[check.name] ?? Monitor;
                   const badge = STATUS_BADGE[check.status];
+                  const isSettled = check.status === "success" || check.status === "warning";
+                  const pendingHint =
+                    check.status === "pending"
+                      ? AUTOMATIC_CHECK_NAMES.has(check.name)
+                        ? "Se verifica automáticamente."
+                        : (PENDING_HINTS[check.name] ?? "Pendiente de verificar.")
+                      : null;
                   return (
-                    <Item key={check.name} render={<li />} variant="default" className="items-start">
+                    <Item
+                      key={check.name}
+                      render={<li />}
+                      variant="default"
+                      className={cn(
+                        "items-start border-l-4 rounded-l-none",
+                        STATUS_ACCENT[check.status],
+                        isSettled && "opacity-90"
+                      )}
+                    >
                       <ItemMedia variant="icon" className="mt-0.5 h-8 w-8 rounded-lg bg-muted/80">
                         <Icon className="h-4 w-4 text-muted-foreground" />
                       </ItemMedia>
@@ -1010,6 +1077,14 @@ const ExamPreparation = () => {
                               {check.message}
                             </p>
                           )}
+                        {pendingHint && (
+                          <p className="text-xs text-muted-foreground/80 truncate">{pendingHint}</p>
+                        )}
+                        {check.status === "checking" && (
+                          <p className="text-xs text-blue-600/80 dark:text-blue-400/70 truncate">
+                            Verificando…
+                          </p>
+                        )}
                         {check.name === "Micrófono" && micResult?.isWorking && (
                           <MicLevelBars level={micLiveLevel} />
                         )}
@@ -1074,37 +1149,107 @@ const ExamPreparation = () => {
                   <h1 className="text-base font-semibold text-foreground leading-snug">
                     {examData.name}
                   </h1>
-                  <div className="flex flex-col gap-1.5 mt-2.5">
+
+                  {/* Session facts — scannable at a glance instead of a
+                      stacked list, so the candidate reads all of it in one
+                      pass instead of one line at a time. */}
+                  <dl className="grid grid-cols-2 gap-x-3 gap-y-2.5 mt-3">
                     {examData.date && (
-                      <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                        <Calendar className="h-3.5 w-3.5" />
-                        {examData.date}
-                      </span>
+                      <div className="flex items-start gap-1.5">
+                        <Calendar className="h-3.5 w-3.5 text-muted-foreground/70 flex-shrink-0 mt-0.5" />
+                        <div className="min-w-0">
+                          <dt className="text-[10px] uppercase tracking-wide text-muted-foreground/60">Fecha</dt>
+                          <dd className="text-xs text-foreground/90 truncate">{examData.date}</dd>
+                        </div>
+                      </div>
                     )}
                     {examData.time && (
-                      <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                        <Clock className="h-3.5 w-3.5" />
-                        {examData.time}
-                      </span>
+                      <div className="flex items-start gap-1.5">
+                        <Clock className="h-3.5 w-3.5 text-muted-foreground/70 flex-shrink-0 mt-0.5" />
+                        <div className="min-w-0">
+                          <dt className="text-[10px] uppercase tracking-wide text-muted-foreground/60">Hora</dt>
+                          <dd className="text-xs text-foreground/90 truncate">{examData.time}</dd>
+                        </div>
+                      </div>
                     )}
                     {examData.duration && (
-                      <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                        <Clock className="h-3.5 w-3.5 opacity-50" />
-                        {examData.duration}
-                      </span>
+                      <div className="flex items-start gap-1.5">
+                        <Clock className="h-3.5 w-3.5 text-muted-foreground/70 flex-shrink-0 mt-0.5" />
+                        <div className="min-w-0">
+                          <dt className="text-[10px] uppercase tracking-wide text-muted-foreground/60">Duración</dt>
+                          <dd className="text-xs text-foreground/90 truncate">{examData.duration}</dd>
+                        </div>
+                      </div>
                     )}
                     {examData.level && (
-                      <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                        <GraduationCap className="h-3.5 w-3.5" />
-                        Nivel {examData.level}
-                      </span>
+                      <div className="flex items-start gap-1.5">
+                        <GraduationCap className="h-3.5 w-3.5 text-muted-foreground/70 flex-shrink-0 mt-0.5" />
+                        <div className="min-w-0">
+                          <dt className="text-[10px] uppercase tracking-wide text-muted-foreground/60">Nivel</dt>
+                          <dd className="text-xs text-foreground/90 truncate">{examData.level}</dd>
+                        </div>
+                      </div>
+                    )}
+                    {examData.exam?.type === 'placement' &&
+                      examData.exam?.placementConfig?.mode === 'adaptive' &&
+                      examData.exam?.placementConfig?.maxQuestions && (
+                      <div className="flex items-start gap-1.5">
+                        <Info className="h-3.5 w-3.5 text-muted-foreground/70 flex-shrink-0 mt-0.5" />
+                        <div className="min-w-0">
+                          <dt className="text-[10px] uppercase tracking-wide text-muted-foreground/60">Preguntas</dt>
+                          <dd className="text-xs text-foreground/90 truncate">
+                            Hasta {examData.exam.placementConfig.maxQuestions} (adaptativo)
+                          </dd>
+                        </div>
+                      </div>
                     )}
                     {examData.createdBy && (
-                      <span className="flex items-center gap-1.5 text-xs text-muted-foreground/60">
-                        <User className="h-3.5 w-3.5" />
-                        {examData.createdBy.firstName} {examData.createdBy.lastName}
-                      </span>
+                      <div className="flex items-start gap-1.5">
+                        <User className="h-3.5 w-3.5 text-muted-foreground/70 flex-shrink-0 mt-0.5" />
+                        <div className="min-w-0">
+                          <dt className="text-[10px] uppercase tracking-wide text-muted-foreground/60">Docente</dt>
+                          <dd className="text-xs text-foreground/90 truncate">
+                            {examData.createdBy.firstName} {examData.createdBy.lastName}
+                          </dd>
+                        </div>
+                      </div>
                     )}
+                  </dl>
+
+                  {/* Browser-lockdown disclosure — the candidate must know
+                      BEFORE starting that leaving fullscreen gets recorded,
+                      not discover it mid-exam. */}
+                  <div
+                    className={cn(
+                      "mt-3.5 flex items-start gap-2 rounded-lg border px-3 py-2.5",
+                      examData.browserLockdown
+                        ? "border-amber-200 bg-amber-50 dark:border-amber-500/30 dark:bg-amber-500/10"
+                        : "border-border bg-muted/40"
+                    )}
+                  >
+                    <Monitor
+                      className={cn(
+                        "h-3.5 w-3.5 flex-shrink-0 mt-0.5",
+                        examData.browserLockdown ? "text-amber-600 dark:text-amber-400" : "text-muted-foreground"
+                      )}
+                    />
+                    <p
+                      className={cn(
+                        "text-xs leading-relaxed",
+                        examData.browserLockdown
+                          ? "text-amber-800 dark:text-amber-200"
+                          : "text-muted-foreground"
+                      )}
+                    >
+                      {examData.browserLockdown ? (
+                        <>
+                          Este examen se rinde en <strong>pantalla completa</strong>. Salir de ella durante
+                          el examen queda registrado como una infracción.
+                        </>
+                      ) : (
+                        "Este examen no bloquea el navegador."
+                      )}
+                    </p>
                   </div>
                 </div>
               )}
@@ -1180,13 +1325,11 @@ const ExamPreparation = () => {
               )}
             </div>
 
-            {/* Start exam — outside the scroll area, always visible */}
+            {/* Start exam — outside the scroll area, always visible. The
+                button is the one thing to do on this screen, so whatever is
+                keeping it disabled is always spelled out below it — never a
+                generic "complete the checks" line. */}
             <div className="shrink-0 rounded-xl border border-border bg-card/60 p-5">
-              {!canProceed && visibleChecks.length > 0 && !verificationBlocked && (
-                <p className="text-xs text-muted-foreground text-center mb-4">
-                  Completa todas las verificaciones requeridas para continuar
-                </p>
-              )}
               <Button
                 onClick={handleStartExam}
                 disabled={
@@ -1211,9 +1354,20 @@ const ExamPreparation = () => {
                   </>
                 )}
               </Button>
-              {entryStatus === 'prep_window' && (
+
+              {!isStarting && verificationBlocked && (
+                <p className="text-xs text-red-600/80 dark:text-red-400/70 text-center mt-2.5">
+                  El servidor rechazó la verificación — revisa los motivos arriba.
+                </p>
+              )}
+              {!isStarting && !verificationBlocked && entryStatus === 'prep_window' && (
                 <p className="text-xs text-yellow-600/70 dark:text-yellow-400/60 text-center mt-2.5">
-                  La sesión aún no ha comenzado
+                  La sesión aún no ha comenzado — el botón se habilita solo.
+                </p>
+              )}
+              {!isStarting && !verificationBlocked && entryStatus !== 'prep_window' && !canProceed && missingRequiredChecks.length > 0 && (
+                <p className="text-xs text-muted-foreground text-center mt-2.5">
+                  Falta completar: <strong className="text-foreground/80">{missingRequiredChecks.join(', ')}</strong>
                 </p>
               )}
               {canProceed && !isStarting && !verificationBlocked && entryStatus !== 'prep_window' && (
