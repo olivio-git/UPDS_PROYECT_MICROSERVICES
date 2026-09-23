@@ -53,10 +53,17 @@ export const createAuthRoutes = (authController: AuthController, otpController: 
   );
 
   // OTP routes
+  //
+  // /otp/status and /otp/revoke used to live here unauthenticated, taking a
+  // bare email in the query string / body. Neither the frontend nor any
+  // other service ever called them (verified by repo-wide grep for
+  // "otp/status" and "otp/revoke" before removal) — they only exposed a way
+  // for anyone to probe whether an OTP is pending for an arbitrary email, or
+  // to cancel someone else's in-flight login/reset code. Removed rather than
+  // gated behind auth, since nothing needs them; re-add only behind an
+  // authenticated/proof-of-email-ownership check if a real caller appears.
   router.post('/otp/generate', asyncHandler(otpController.generateOtp));
   router.post('/otp/verify', authRateLimiter(10, 5 * 60), asyncHandler(otpController.verifyOtp));
-  router.get('/otp/status', asyncHandler(otpController.getOtpStatus));
-  router.delete('/otp/revoke', asyncHandler(otpController.revokeOtp));
 
   return router;
 };

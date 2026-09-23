@@ -91,11 +91,12 @@ export class OtpService {
     // account.
     email = this.normalizeEmail(email);
 
-    const user = await this.userRepository.findByEmail(email);
-    if (purpose === 'login' && !user) {
-      return { success: false, message: 'Usuario no encontrado' };
-    }
-
+    // Rate limit is checked (and counted) BEFORE the account-existence
+    // lookup, and unconditionally of it, so an unknown email cannot be used
+    // to bypass the quota — the counter must advance identically whether or
+    // not the account exists, otherwise the quota itself becomes an
+    // enumeration oracle (a known email would eventually hit "too many
+    // attempts" while an unknown one never would).
     const rateLimitKey = `otp_rate_limit:${email}`;
     const rateLimit = await this.cacheRepository.checkRateLimit(rateLimitKey, 3, this.RATE_LIMIT_WINDOW);
 
@@ -110,6 +111,23 @@ export class OtpService {
         success: false,
         message: 'Demasiados intentos. Espera antes de solicitar otro código.',
       };
+    }
+
+    const user = await this.userRepository.findByEmail(email);
+    const successResponse = {
+      success: true as const,
+      message: 'Código OTP enviado exitosamente',
+      expiresIn: this.OTP_EXPIRY_MINUTES * 60,
+    };
+
+    // Do not leak account existence through OTP generation: for purpose
+    // 'login' (the only purpose that used to reveal this — see the removed
+    // early-return this replaces), an unknown email gets the exact same
+    // success-shaped response as a real one, but no code is generated and no
+    // mail is sent. The precise reason is only ever logged server-side.
+    if (purpose === 'login' && !user) {
+      console.log(`OTP generate skipped for ${email} (login, no such account)`);
+      return successResponse;
     }
 
     const code = this.generateRandomCode();
@@ -140,11 +158,7 @@ export class OtpService {
 
     console.log(`OTP generated for ${email} (${purpose})`);
 
-    return {
-      success: true,
-      message: 'Código OTP enviado exitosamente',
-      expiresIn: this.OTP_EXPIRY_MINUTES * 60,
-    };
+    return successResponse;
   }
 
   async verifyOtp(email: string, code: string, purpose: OtpData['purpose']): Promise<{ success: boolean; message: string }> {
@@ -198,32 +212,10 @@ export class OtpService {
     return { success: true, message: 'Código OTP verificado exitosamente' };
   }
 
-  async revokeOtp(email: string, purpose: OtpData['purpose']): Promise<void> {
-    email = this.normalizeEmail(email);
-    const otpKey = this.getOtpKey(email, purpose);
-    await this.cacheRepository.delete(otpKey);
-    await legacyEventService.publishOtpEvent('otp.revoked', { email, purpose, timestamp: new Date() });
-  }
-
-  async getOtpStatus(email: string, purpose: OtpData['purpose']): Promise<{
-    exists: boolean;
-    expiresAt?: Date;
-    attemptsRemaining?: number;
-  }> {
-    email = this.normalizeEmail(email);
-    const otpKey = this.getOtpKey(email, purpose);
-    const otpData = (await this.cacheRepository.get(otpKey)) as OtpData | null;
-
-    if (!otpData) {
-      return { exists: false };
-    }
-
-    return {
-      exists: true,
-      expiresAt: otpData.expiresAt,
-      attemptsRemaining: otpData.maxAttempts - otpData.attempts,
-    };
-  }
+  // revokeOtp/getOtpStatus were removed with the unauthenticated
+  // /otp/revoke and /otp/status routes (see auth.routes.ts) — nothing
+  // called them, and taking a bare email with no proof of ownership let
+  // anyone cancel or probe someone else's in-flight OTP.
 
   private generateRandomCode(): string {
     return crypto.randomInt(100000, 999999).toString();

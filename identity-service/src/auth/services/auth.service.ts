@@ -53,6 +53,13 @@ export interface AuthResponse {
   expiresIn: number;
 }
 
+// Must stay in sync with JwtService.generateAccessToken's expiresIn ('1h').
+// Not derived from it programmatically because jsonwebtoken only accepts the
+// string form; this is the number of seconds the frontend (see
+// frontend/src/services/sdk-simple-auth.ts) uses to schedule its proactive
+// refresh.
+const ACCESS_TOKEN_EXPIRES_IN_SECONDS = 3600;
+
 const DEFAULT_PROFILE = {
   preferences: {
     language: 'es' as const,
@@ -115,7 +122,7 @@ export class AuthService {
 
     await this.cacheRepository.cacheUser(user._id!.toString(), user.toJSON());
 
-    return { user: user.toJSON(), ...tokens, expiresIn: 172800 };
+    return { user: user.toJSON(), ...tokens, expiresIn: ACCESS_TOKEN_EXPIRES_IN_SECONDS };
   }
 
   // ================================
@@ -127,7 +134,12 @@ export class AuthService {
 
     const user = await this.userRepository.findByEmail(email);
     if (!user || user.status !== 'active' || !user.passwordHash) {
-      throw new Error('Usuario no encontrado o inactivo');
+      // Server-side log keeps the precise reason for audit/debugging; the
+      // thrown message is intentionally identical to the wrong-password
+      // branch below so the client-facing response never reveals whether
+      // an account exists (or is merely inactive/suspended).
+      console.warn(`Login failed (account not found or inactive): ${email}`);
+      throw new Error('Credenciales inválidas');
     }
 
     const isValid = await bcrypt.compare(password, user.passwordHash);
@@ -141,6 +153,7 @@ export class AuthService {
       // it intact does not widen the attack surface (an attacker still needs
       // the correct password), while it spares a legitimate user who simply
       // mistypes their password from having to repeat the OTP round trip.
+      console.warn(`Login failed (wrong password): ${email}`);
       throw new Error('Credenciales inválidas');
     }
 
@@ -170,7 +183,7 @@ export class AuthService {
 
     await this.cacheRepository.cacheUser(user._id!.toString(), user.toJSON());
 
-    return { user: user.toJSON(), ...tokens, expiresIn: 172800 };
+    return { user: user.toJSON(), ...tokens, expiresIn: ACCESS_TOKEN_EXPIRES_IN_SECONDS };
   }
 
   // ================================
@@ -200,7 +213,7 @@ export class AuthService {
       timestamp: new Date(),
     });
 
-    return { user: user.toJSON(), ...tokens, expiresIn: 172800 };
+    return { user: user.toJSON(), ...tokens, expiresIn: ACCESS_TOKEN_EXPIRES_IN_SECONDS };
   }
 
   async logout(refreshToken: string, userId: string): Promise<void> {
@@ -273,7 +286,13 @@ export class AuthService {
 
     const newHash = await bcrypt.hash(newPassword, 12);
     await this.userRepository.updatePasswordHash(user._id as ObjectId, newHash);
-    await this.cacheRepository.invalidateUserCache(userId);
+
+    // A password change is often a reaction to a suspected compromise — it
+    // must end every other session, not just refresh the cached snapshot.
+    // Same treatment as resetPassword() below (which already revokes all
+    // sessions); the caller's own client will simply need to log in again
+    // on its next refresh, same as after any other revocation.
+    await this.revokeAllSessionsForUser(userId);
 
     await legacyEventService.publishUserEvent('user.password_changed', {
       userId,
@@ -304,9 +323,7 @@ export class AuthService {
     });
 
     // Invalidate all existing sessions for this user, same as auth-service did.
-    await this.sessionRepository.deleteAllForUser(user._id!.toString());
-    await this.cacheRepository.deleteSession(user._id!.toString());
-    await this.cacheRepository.invalidateUserCache(user._id!.toString());
+    await this.revokeAllSessionsForUser(user._id!.toString());
 
     return true;
   }
