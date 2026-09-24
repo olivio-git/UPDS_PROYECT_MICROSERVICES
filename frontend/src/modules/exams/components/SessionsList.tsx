@@ -54,7 +54,13 @@ type ViewMode =
   | 'edit'
   | 'detail'
   | 'candidates'
-  | 'proctors';
+  | 'proctors'
+  // Pantalla que sigue automáticamente a la creación de una sesión — el
+  // paso "Quién" del flujo no puede vivir dentro del wizard porque asignar
+  // candidatos/proctor reales necesita el _id que el backend recién generó.
+  | 'people';
+
+type PeopleTab = 'candidates' | 'proctors';
 
 // Interface para eventos de WebSocket
 // interface SessionStatusUpdate {
@@ -87,6 +93,7 @@ const SessionsList: React.FC = () => {
   // Navegación / vistas
   const [viewMode, setViewMode] = useState<ViewMode>('table');
   const [selectedSession, setSelectedSession] = useState<ExamSession | null>(null);
+  const [peopleTab, setPeopleTab] = useState<PeopleTab>('candidates');
 
   // UI state
   const [searchTerm, setSearchTerm] = useState('');
@@ -236,6 +243,13 @@ const SessionsList: React.FC = () => {
   const goProctors = (s: ExamSession) => {
     setSelectedSession(s);
     setViewMode('proctors');
+  };
+  // Reached right after creating a session — "Quién" step of the same flow,
+  // done here instead of inside SessionForm because it needs a real _id.
+  const goPeople = (s: ExamSession) => {
+    setSelectedSession(s);
+    setPeopleTab('candidates');
+    setViewMode('people');
   };
 
   // Validaciones de tiempo/fecha para sesiones
@@ -624,28 +638,79 @@ const SessionsList: React.FC = () => {
     }
 
     if (viewMode === 'create' || viewMode === 'edit') {
+      const wasEditing = viewMode === 'edit';
       return (
-        <div className="bg-card border border-border rounded-xl p-6">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-semibold text-foreground">
-              {viewMode === 'edit' ? 'Editar Sesión' : 'Nueva Sesión'}
-            </h2>
+        <SessionForm
+          session={wasEditing ? selectedSession : null}
+          onCancel={goTable}
+          onSaved={(saved) => {
+            loadSessions();
+            // A freshly created session moves straight into "Quién" — the
+            // real candidate/proctor assignment needs the session's _id,
+            // which only exists now. Editing an existing session just
+            // returns to the table, same as before.
+            if (!wasEditing && saved?._id) {
+              goPeople(saved);
+            } else {
+              goTable();
+            }
+          }}
+        />
+      );
+    }
+
+    if (viewMode === 'people' && selectedSession) {
+      return (
+        <div className="bg-card border border-border rounded-xl p-4">
+          <div className="mb-4 flex items-center justify-between gap-3">
+            <div>
+              <h2 className="text-sm font-semibold text-foreground">Sesión creada — agrega candidatos y proctor</h2>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                {selectedSession.sessionName} · puedes hacerlo ahora o más tarde desde la tabla
+              </p>
+            </div>
             <button
-              onClick={goTable}
-              className="px-3 py-2 bg-muted/50 border border-border rounded-lg text-foreground/80 hover:bg-muted flex items-center gap-2"
+              onClick={() => { goTable(); loadSessions(); }}
+              className="h-8 px-3 text-xs rounded-md bg-muted/60 border border-border text-foreground hover:bg-muted transition-colors"
             >
-              <XCircle className="w-4 h-4" /> Volver
+              Finalizar
             </button>
           </div>
 
-          <SessionForm
-            session={viewMode === 'edit' ? selectedSession : null}
-            onCancel={goTable}
-            onSaved={() => {
-              goTable();
-              loadSessions();
-            }}
-          />
+          <div className="mb-4 flex items-center gap-1 border-b border-border">
+            {([
+              ['candidates', 'Candidatos'],
+              ['proctors', 'Proctor'],
+            ] as [PeopleTab, string][]).map(([tab, label]) => (
+              <button
+                key={tab}
+                onClick={() => setPeopleTab(tab)}
+                className={`px-3 py-2 text-xs font-medium border-b-2 -mb-px transition-colors ${
+                  peopleTab === tab
+                    ? 'border-primary text-foreground'
+                    : 'border-transparent text-muted-foreground hover:text-foreground'
+                }`}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+
+          {peopleTab === 'candidates' ? (
+            <CandidateAssignmentView
+              session={selectedSession}
+              onClose={() => { goTable(); loadSessions(); }}
+              loadSessions={loadSessions}
+              onSuccess={() => loadSessions()}
+            />
+          ) : (
+            <ProctorAssignmentModal
+              session={selectedSession}
+              onClose={() => { goTable(); loadSessions(); }}
+              loadSessions={loadSessions}
+              onSuccess={() => loadSessions()}
+            />
+          )}
         </div>
       );
     }

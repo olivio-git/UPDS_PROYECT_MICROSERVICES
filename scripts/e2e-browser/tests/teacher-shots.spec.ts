@@ -77,20 +77,51 @@ test('capture the teacher screens', async ({ page }) => {
     await shot(page, label);
   }
 
-  // The scheduler: open the create-session form from the sessions screen.
+  // The scheduler: walk all three steps of the wizard, so each one gets a
+  // shot. Every step is captured even if a later one fails — this is a
+  // diagnostic tool, not a test.
   await page.goto('/sessions');
   await page.waitForTimeout(1500);
   const nueva = page.getByRole('button', { name: /Nueva|Crear|Programar/i }).first();
-  if (await nueva.isVisible().catch(() => false)) {
-    await nueva.click().catch(() => {});
-    await shot(page, '12-programador-sesion');
-    // Second step of the form, if it has one.
-    const siguiente = page.getByRole('button', { name: /Siguiente|Continuar/i }).first();
-    if (await siguiente.isVisible().catch(() => false)) {
-      await siguiente.click().catch(() => {});
-      await shot(page, '13-programador-paso2');
-    }
-  } else {
+  if (!(await nueva.isVisible().catch(() => false))) {
     console.log('no encontré el botón de crear sesión');
+    return;
+  }
+  await nueva.click().catch(() => {});
+  await shot(page, '12-programador-01-examen');
+
+  // Pick the first real exam so the step-1 chips (tipo/nivel/duración/
+  // preguntas) render with data instead of staying empty.
+  const examSelect = page.locator('#examId');
+  const examValue = await examSelect
+    .locator('option')
+    .nth(1)
+    .getAttribute('value')
+    .catch(() => null);
+  if (examValue) {
+    await page.getByPlaceholder(/Ej:/).fill(`shot-${Date.now()}`).catch(() => {});
+    await examSelect.selectOption(examValue).catch(() => {});
+    await shot(page, '12-programador-01b-examen-elegido');
+  }
+
+  const next = () => page.getByRole('button', { name: 'Siguiente' });
+  if (await next().isEnabled().catch(() => false)) {
+    await next().click().catch(() => {});
+    await shot(page, '13-programador-02-cuando');
+
+    // Fill the schedule so the duration chip and the footer summary appear.
+    const today = new Date();
+    const pad = (n: number) => String(n).padStart(2, '0');
+    const dateValue = `${today.getFullYear()}-${pad(today.getMonth() + 1)}-${pad(today.getDate())}`;
+    await page.locator('#startDate').fill(dateValue).catch(() => {});
+    await page.getByLabel('Hora inicio').fill('18:00').catch(() => {});
+    await page.locator('#endDate').fill(dateValue).catch(() => {});
+    await page.getByLabel('Hora fin').fill('20:30').catch(() => {});
+    await shot(page, '13-programador-02b-cuando-lleno');
+
+    if (await next().isEnabled().catch(() => false)) {
+      await next().click().catch(() => {});
+      await shot(page, '14-programador-03-como');
+    }
   }
 });

@@ -124,48 +124,20 @@ const BAD_CONSOLE_PATTERN = /CORS|Network Error|Failed to fetch/i;
 const KNOWN_BUG_URL_PATTERN = /\/audit-logs/;
 
 /**
- * The session-scheduling TimePicker (components/atoms/time-picker.tsx) is a
- * drag-drum widget with no native <input> and no aria-labels on its
- * up/down chevrons — there's nothing role/label-based to grab there. Each
- * click of the "Hr" column's up-arrow decrements the hour by one (12 -> 11
- * -> 10 -> ...) and each click of the period column's up-arrow flips
- * AM<->PM; this drives both to a target 24h hour mechanically, which is the
- * only deterministic way to operate it without reading React internals.
- * Left as-is on purpose rather than reaching into component state: the
- * screen is getting redesigned, and this is exactly the kind of interaction
- * that redesign should fix (see final report).
+ * Formats a Date as the value a native `<input type="date">` / `type="time">`
+ * expects from `.fill()` — the session scheduler now uses plain native
+ * inputs (see SessionForm.tsx's redesign) instead of the old full-month
+ * calendar grid + drag-drum TimePicker, so driving them is a plain `.fill()`
+ * instead of the click-counting `setTimeViaDrum` helper this spec used to
+ * need.
  */
-async function setTimeViaDrum(page: Page, triggerName: string, hour24: number): Promise<void> {
-  const period: 'AM' | 'PM' = hour24 >= 12 ? 'PM' : 'AM';
-  const h12 = hour24 % 12 || 12;
-  // Both columns start at their default (12, AM) every time the popover
-  // mounts fresh. A full 12-click cycle back to 12 still fires onChange at
-  // least once, so 0 is normalized to 12 to guarantee the value commits
-  // even when the target IS the default hour.
-  const hourUpClicks = ((12 - h12) % 12) || 12;
-  const periodUpClicks = period === 'PM' ? 1 : 0;
-
-  await page.getByRole('button', { name: triggerName }).click();
-  const popover = page.locator('div.flex.divide-x.divide-border');
-  await expect(popover).toBeVisible();
-  const hourColumn = popover.locator('> div').nth(0);
-  const periodColumn = popover.locator('> div').nth(2);
-  const hourUp = hourColumn.getByRole('button').first();
-  const periodUp = periodColumn.getByRole('button').first();
-
-  for (let i = 0; i < hourUpClicks; i++) {
-    await hourUp.click();
-    await page.waitForTimeout(80);
-  }
-  // Let the drum's inertia/lerp animation settle so onSelect (-> onChange)
-  // fires with the final hour BEFORE the period click reads it back.
-  await page.waitForTimeout(600);
-  for (let i = 0; i < periodUpClicks; i++) {
-    await periodUp.click();
-    await page.waitForTimeout(80);
-  }
-  await page.waitForTimeout(600);
-  await page.keyboard.press('Escape');
+function toDateInputValue(d: Date): string {
+  const pad = (n: number) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+}
+function toTimeInputValue(hour24: number, minute = 0): string {
+  const pad = (n: number) => String(n).padStart(2, '0');
+  return `${pad(hour24)}:${pad(minute)}`;
 }
 
 test.describe.configure({ mode: 'serial' });
@@ -241,36 +213,45 @@ test.describe('Teacher core flow (real browser, real backend)', () => {
     expect(badResponses).toEqual([]);
   });
 
-  test('teacher creates a session through the form and sees it in the sessions list', async () => {
+  test('teacher creates a session through the 3-step form and lands on the "who" step', async () => {
     await page.getByRole('button', { name: 'Nueva Sesión' }).click();
     await expect(page.getByRole('heading', { name: 'Nueva Sesión' })).toBeVisible();
 
+    // ── Step 1: Examen ──
     await page.getByPlaceholder('Ej: Evaluación Nivel B1 — Marzo 2026').fill(sessionName);
 
     // Exam dropdown — selected by value (the exam's _id) instead of by
     // label text, since the label is composed at render time
     // (`${name} (${type} - ${level})`) and selecting by id is exact and
     // stable regardless of how that label is formatted.
-    await expect(page.locator('select')).toContainText(fixture.examName, { timeout: 10_000 });
-    await page.locator('select').selectOption(fixture.examId);
+    const examSelect = page.locator('#examId');
+    await expect(examSelect).toContainText(fixture.examName, { timeout: 10_000 });
+    await examSelect.selectOption(fixture.examId);
 
-    // Calendar: single-day mode is the default — click today's date.
+    await page.getByRole('button', { name: 'Siguiente' }).click();
+
+    // ── Step 2: Cuándo — plain native <input type="date"/"time"> now,
+    // replacing the old full-month calendar grid + drag-drum TimePicker.
+    // Start = now + 1h, End = now + 3h (clamped to stay inside today) —
+    // comfortably clears the fixture exam's minimum duration AND keeps the
+    // session's end time in the future for the rest of this test
+    // (SessionsList's canManageSession() hides "Gestionar candidatos" once a
+    // session's end time is in the past).
     const today = new Date();
-    await page.getByRole('button', { name: String(today.getDate()), exact: true }).click();
-
-    // Start = now + 1h, End = now + 3h (clamped to stay inside today, since
-    // single-day mode forces end date == start date) — comfortably clears
-    // the fixture exam's 15-minute minimum duration AND keeps the session's
-    // end time in the future for the rest of this test (SessionsList's
-    // canManageSession() hides "Gestionar candidatos" once a session's end
-    // time is in the past). See setTimeViaDrum's comment for why this is
-    // driven via click-counting instead of a direct fill.
     const nowHour = today.getHours();
     const startHour24 = nowHour >= 21 ? 21 : nowHour + 1;
     const endHour24 = nowHour >= 21 ? 23 : nowHour + 3;
-    await setTimeViaDrum(page, 'Hora inicio', startHour24);
-    await setTimeViaDrum(page, 'Hora fin', endHour24);
+    const dateValue = toDateInputValue(today);
 
+    await page.locator('#startDate').fill(dateValue);
+    await page.getByLabel('Hora inicio').fill(toTimeInputValue(startHour24));
+    await page.locator('#endDate').fill(dateValue);
+    await page.getByLabel('Hora fin').fill(toTimeInputValue(endHour24));
+
+    await page.getByRole('button', { name: 'Siguiente' }).click();
+
+    // ── Step 3: Cómo — defaults (30 max candidates, auto-start on, proctor
+    // required) are fine for this test; just submit.
     const submit = page.getByRole('button', { name: 'Crear Sesión' });
     await expect(submit).toBeEnabled({ timeout: 5_000 });
 
@@ -282,6 +263,14 @@ test.describe('Teacher core flow (real browser, real backend)', () => {
     const createdBody = await createResponse.json();
     sessionId = String(createdBody.data._id);
     expect(sessionId).toBeTruthy();
+
+    // Creating moves straight into "Quién" (candidates/proctor) — assigning
+    // real people needs the session's _id, which only exists now. This test
+    // skips it via "Finalizar": the next test enrolls a candidate through
+    // the row's "Gestionar candidatos" action instead, exercising the exact
+    // same real component from its other entry point.
+    await expect(page.getByRole('heading', { name: 'Sesión creada — agrega candidatos y proctor' })).toBeVisible();
+    await page.getByRole('button', { name: 'Finalizar' }).click();
 
     // Back on the table — the new session must be visible to the teacher.
     await expect(page.getByRole('heading', { name: 'Sesiones' })).toBeVisible();

@@ -33,6 +33,23 @@ a like-for-like port.
 of the ambient `React.ComponentProps` keel's copy relies on, to match this project's named-import
 convention. No behavioral change.
 
+## Files ported in the teacher session-scheduler redesign slice
+
+`switch` — ported as-is from keel's `switch.tsx` (Base UI's `Switch` primitive, `checked` /
+`onCheckedChange` API — same shape the Radix `atoms/switch.tsx` this replaces already used, so
+call sites did not need to change beyond the import path).
+
+`native-select` — ported from keel's `native-select.tsx` with one deliberate change: the wrapper's
+width is `w-full` here instead of keel's `w-fit`. keel uses `NativeSelect` for toolbar-sized
+pickers that should hug their content; this frontend's first use (the session-scheduler's exam
+picker) is a full-width form field, so `w-fit` would have left the trigger sized to whatever the
+currently-selected `<option>` text happens to be — visually broken once a long exam name is
+selected. `Select` (the Base UI popup version, `select.tsx`) was **not** ported — a plain
+`<select>` covers the one picker this slice needed, keeps the exam dropdown natively
+keyboard-and-Playwright-operable, and avoids pulling in `usePortalContainer` for a single
+dropdown. Revisit if a future screen needs multi-select, custom item rendering, or grouped
+options.
+
 ## Import path changes made on port
 
 - `@/components/ui/*` → `@/components/keel/*`
