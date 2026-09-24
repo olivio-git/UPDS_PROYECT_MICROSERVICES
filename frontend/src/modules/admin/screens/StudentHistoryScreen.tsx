@@ -87,7 +87,7 @@ const StudentHistoryScreen: React.FC = () => {
 
   return (
     <MainLayout>
-      <div className="max-w-5xl mx-auto space-y-3 p-4">
+      <div className="space-y-3 p-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <button

@@ -553,7 +553,7 @@ const ExamsScreen = () => {
 
   return (
     <MainLayout gradientVariant="aurora">
-      <div className="flex flex-col gap-3 p-4 max-w-7xl mx-auto w-full epilogue-uniquifier">
+      <div className="flex h-full flex-col gap-3 p-3 epilogue-uniquifier">
         {renderView()}
       </div>
 

@@ -71,7 +71,7 @@ const UpcomingSessionsScreen: React.FC = () => {
 
   return (
     <MainLayout>
-      <div className="max-w-5xl mx-auto w-full px-4 py-6 space-y-5">
+      <div className="w-full space-y-3 p-3">
         <UpcomingHeader
           data={data}
           viewMode={viewMode}

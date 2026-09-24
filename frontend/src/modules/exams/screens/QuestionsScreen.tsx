@@ -630,7 +630,7 @@ const QuestionsScreen = () => {
 
   return (
     <MainLayout>
-      <div className="flex flex-col gap-3 p-4 max-w-7xl mx-auto w-full">
+      <div className="flex h-full flex-col gap-3 p-3">
         {renderView()}
       </div>
 

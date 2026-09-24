@@ -214,7 +214,7 @@ const LevelsManagementScreen = () => {
 
   return (
     <MainLayout gradientVariant="aurora">
-      <div className="max-w-7xl mx-auto epilogue-uniquifier px-4 sm:px-6 lg:px-8 py-8">
+      <div className="epilogue-uniquifier p-3">
         {renderContent()}
       </div>
 
