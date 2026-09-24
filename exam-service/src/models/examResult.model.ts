@@ -64,6 +64,8 @@ export interface IExamResult extends Document {
     score: number;
     maxScore: number;
     percentage: number;
+    weight?: number;
+    weightedPercentage?: number;
   }>;
 
   // AI-generated feedback
@@ -81,6 +83,11 @@ export interface IExamResult extends Document {
     percentage: number;
     questionCount: number;
   }>;
+
+  // Grading source of truth (lockstep with mcp-grading-server/src/types/index.ts IExamResult)
+  passed?: boolean;
+  passingScore?: number;
+  scoringMethod?: 'weighted_sections' | 'raw_points';
 
   // Grading performance tracking
   gradingStartedAt?: Date;
@@ -161,7 +168,9 @@ const examResultSchema = new Schema<IExamResult>({
     competency: String,
     score: Number,
     maxScore: Number,
-    percentage: Number
+    percentage: Number,
+    weight: Number,
+    weightedPercentage: Number
   }],
 
   // AI-generated feedback fields
@@ -179,6 +188,11 @@ const examResultSchema = new Schema<IExamResult>({
     percentage: Number,
     questionCount: Number
   }],
+
+  // Grading source of truth (lockstep with mcp-grading-server/src/types/index.ts IExamResult)
+  passed: Boolean,
+  passingScore: Number,
+  scoringMethod: { type: String, enum: ['weighted_sections', 'raw_points'] },
 
   // Grading performance tracking
   gradingStartedAt: Date,
