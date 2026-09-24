@@ -124,6 +124,8 @@ export const SectionScoreSchema = z.object({
   competency: z.string(),
   score: z.string(),
   percentage: z.number(),
+  weight: z.number().optional(),
+  weightedPercentage: z.number().optional(),
 });
 
 export const LevelScoreSchema = z.object({
@@ -151,6 +153,9 @@ export const GradeExamResponseSchema = z.object({
   recommendedLevel: z.string().optional(),
   placementMode: z.enum(['static', 'adaptive']).optional(),
   levelScores: z.array(LevelScoreSchema).optional(),
+  passed: z.boolean().optional(),
+  passingScore: z.number().optional(),
+  scoringMethod: z.enum(['weighted_sections', 'raw_points']).optional(),
 });
 
 export const EvaluateQuestionResponseSchema = z.object({
