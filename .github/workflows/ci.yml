@@ -1,0 +1,300 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [main, development]
+  push:
+    branches: [main, development]
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  NODE_VERSION: "20"
+  GATEWAY_PORT: "8080"
+
+jobs:
+  # ---------------------------------------------------------------------
+  # 1. typecheck / build every TS package. shared/events is built from
+  #    source too (catches its own type errors); exam-service,
+  #    mcp-grading-server and notifications-service additionally need the
+  #    @cba/events tarball built first, since their package.json points at
+  #    file:../shared/events/cba-events.tgz (see shared/events/README.md).
+  # ---------------------------------------------------------------------
+  typecheck:
+    name: typecheck (${{ matrix.name }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: shared-events
+            path: shared/events
+            install: npm ci
+            build: npm run build
+            needs_shared: false
+          - name: identity-service
+            path: identity-service
+            install: npm ci
+            build: npm run build
+            needs_shared: false
+          - name: notifications-service
+            path: notifications-service
+            # npm install, not npm ci: the @cba/events tarball is rebuilt
+            # fresh in this job (see shared/events dockerfiles' own
+            # comments) so its recorded lockfile integrity can legitimately
+            # differ from the tarball just generated here.
+            install: npm install
+            build: npm run build
+            needs_shared: true
+          - name: exam-service
+            path: exam-service
+            install: npm install
+            build: npm run build
+            needs_shared: true
+          - name: session-manager-service
+            path: session-manager-service
+            install: npm ci
+            build: npm run build
+            needs_shared: false
+          - name: mcp-grading-server
+            path: mcp-grading-server
+            install: npm install
+            build: npm run build
+            needs_shared: true
+          - name: frontend
+            path: frontend
+            # react-day-picker@8 declares date-fns ^2||^3, project uses
+            # date-fns@4 -> peer conflict without --legacy-peer-deps.
+            install: npm ci --legacy-peer-deps
+            build: npm run build
+            needs_shared: false
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: |
+            shared/events/package-lock.json
+            ${{ matrix.path }}/package-lock.json
+
+      - name: Build shared @cba/events tarball
+        if: matrix.needs_shared
+        working-directory: shared/events
+        run: |
+          npm ci
+          npm run pack:local
+
+      - name: Install dependencies
+        working-directory: ${{ matrix.path }}
+        run: ${{ matrix.install }}
+
+      - name: Typecheck / build
+        working-directory: ${{ matrix.path }}
+        run: ${{ matrix.build }}
+
+  # ---------------------------------------------------------------------
+  # 2. exam-service unit tests (jest). identity-service and
+  #    notifications-service have jest configured but zero test files;
+  #    session-manager-service has no jest config at all. Neither is run
+  #    here so CI doesn't go red on suites that don't exist yet.
+  # ---------------------------------------------------------------------
+  unit:
+    name: unit (exam-service)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: |
+            shared/events/package-lock.json
+            exam-service/package-lock.json
+
+      - name: Build shared @cba/events tarball
+        working-directory: shared/events
+        run: |
+          npm ci
+          npm run pack:local
+
+      - name: Install exam-service dependencies
+        working-directory: exam-service
+        run: npm install
+
+      - name: Run jest
+        working-directory: exam-service
+        run: npm test
+
+  # ---------------------------------------------------------------------
+  # 3. End-to-end checks against the real docker-compose stack. Only the
+  #    deterministic scripts under scripts/e2e/ run here (they need no
+  #    external API key). ai-grading.e2e.js needs a real GROQ key and real
+  #    money/quota, so it only runs on workflow_dispatch or a push to main,
+  #    and only when secrets.GROQ_API_KEY is configured - never on a
+  #    pull_request (forked-PR runs never receive repo secrets anyway, this
+  #    condition just makes the same-repo case explicit too).
+  # ---------------------------------------------------------------------
+  e2e:
+    name: e2e (backend, docker compose)
+    needs: [typecheck, unit]
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Generate CI .env
+        run: |
+          cat > .env <<EOF
+          NODE_ENV=test
+          CORS_ORIGIN=http://localhost:${GATEWAY_PORT}
+          GATEWAY_PORT=${GATEWAY_PORT}
+
+          MONGO_ROOT_USERNAME=ci_user
+          MONGO_ROOT_PASSWORD=ci_mongo_password
+          MONGO_DB_NAME=cba_platform
+          MONGO_EXAM_DB_NAME=cba_platform
+          MONGO_USERS_DB_NAME=cba_identity_db
+          MONGO_NOTIFICATION_DB_NAME=cba_notification_db
+          MONGO_COLLECTION_EMAILS=emails
+
+          REDIS_PASSWORD=ci_redis_password
+
+          JWT_SECRET=ci-dummy-jwt-secret-not-for-production
+          JWT_EXPIRATION=1h
+          REFRESH_TOKEN_SECRET=ci-dummy-refresh-secret-not-for-production
+          SERVICE_TOKEN=ci-dummy-service-token
+          OTP_LOGIN_REQUIRED=false
+
+          MINIO_ROOT_USER=ci_minio_user
+          MINIO_ROOT_PASSWORD=ci_minio_password
+          MINIO_ENDPOINT=minio
+          MINIO_PORT=9000
+
+          GROQ_API_KEY=${{ secrets.GROQ_API_KEY }}
+          GROQ_MODEL=llama-3.3-70b-versatile
+
+          RESEND_API_KEY=ci-dummy-resend-key
+
+          GRADING_SWEEP_INTERVAL_MS=120000
+          GRADING_SWEEP_MIN_AGE_MS=180000
+          GRADING_SWEEP_MAX_AGE_MS=604800000
+          GRADING_SWEEP_BATCH=20
+          EOF
+
+      - name: Validate compose config
+        run: docker compose config -q
+
+      - name: Build images
+        run: docker compose build
+
+      - name: Start stack
+        run: docker compose up -d
+
+      - name: Wait for services to become healthy
+        run: |
+          set -euo pipefail
+          services="mongo redis kafka minio identity-service notifications-service exam-service session-manager-service grading-service"
+          for svc in $services; do
+            echo "Waiting for $svc ..."
+            waited=0
+            timeout=300
+            until [ "$(docker inspect -f '{{.State.Health.Status}}' "$svc" 2>/dev/null)" = "healthy" ]; do
+              if [ "$waited" -ge "$timeout" ]; then
+                echo "::error::$svc did not become healthy within ${timeout}s"
+                docker compose logs --tail=200 "$svc" || true
+                exit 1
+              fi
+              sleep 5
+              waited=$((waited + 5))
+            done
+            echo "$svc is healthy"
+          done
+
+          echo "Waiting for api-gateway to accept connections on :${GATEWAY_PORT} ..."
+          waited=0
+          timeout=60
+          until curl -s -o /dev/null "http://localhost:${GATEWAY_PORT}/api/v1/exams"; do
+            if [ "$waited" -ge "$timeout" ]; then
+              echo "::error::api-gateway did not respond within ${timeout}s"
+              docker compose logs --tail=200 api-gateway || true
+              exit 1
+            fi
+            sleep 3
+            waited=$((waited + 3))
+          done
+          echo "api-gateway is reachable"
+
+      - name: E2E - grading pipeline (Kafka)
+        run: |
+          docker cp scripts/e2e/grading-pipeline.e2e.js exam-service:/app/exam-service/grading-pipeline.e2e.js
+          docker exec -w /app/exam-service exam-service node grading-pipeline.e2e.js
+
+      - name: E2E - exam attempt scope
+        run: |
+          docker cp scripts/e2e/exam-attempt-scope.e2e.js exam-service:/app/e2e.js
+          docker exec -w /app exam-service node e2e.js
+
+      - name: E2E - identity privilege escalation
+        run: |
+          docker cp scripts/e2e/identity-privilege.e2e.js exam-service:/app/exam-service/identity-privilege.e2e.js
+          docker exec -w /app/exam-service exam-service node identity-privilege.e2e.js
+
+      - name: E2E - kick and push
+        run: |
+          docker cp scripts/e2e/kick-and-push.e2e.js exam-service:/app/exam-service/kick-and-push.e2e.js
+          docker exec -w /app/exam-service exam-service node kick-and-push.e2e.js
+
+      - name: E2E - lockdown infractions
+        run: |
+          docker cp scripts/e2e/lockdown-infractions.e2e.js exam-service:/app/exam-service/lockdown-infractions.e2e.js
+          docker exec -w /app/exam-service exam-service node lockdown-infractions.e2e.js
+
+      - name: E2E - technical verification gate
+        run: |
+          docker cp scripts/e2e/technical-gate.e2e.js exam-service:/app/exam-service/technical-gate.e2e.js
+          docker exec -w /app/exam-service exam-service node technical-gate.e2e.js
+
+      - name: E2E - full exam lifecycle (slow, scheduler-driven)
+        run: |
+          docker cp scripts/e2e/exam-lifecycle.e2e.js exam-service:/app/exam-service/exam-lifecycle.e2e.js
+          docker exec -w /app/exam-service \
+            -e E2E_START_DELAY_MS=5000 \
+            -e E2E_END_DELAY_MS=20000 \
+            -e E2E_START_POLL_TIMEOUT_MS=40000 \
+            -e E2E_END_POLL_TIMEOUT_MS=60000 \
+            exam-service node exam-lifecycle.e2e.js
+
+      - name: Check GROQ key availability
+        id: groq_check
+        run: echo "has_key=${{ secrets.GROQ_API_KEY != '' }}" >> "$GITHUB_OUTPUT"
+
+      - name: E2E - AI grading (GROQ, real API calls)
+        if: |
+          steps.groq_check.outputs.has_key == 'true' &&
+          (github.event_name == 'workflow_dispatch' ||
+           (github.event_name == 'push' && github.ref == 'refs/heads/main'))
+        run: |
+          docker cp scripts/e2e/ai-grading.e2e.js exam-service:/app/exam-service/ai-grading.e2e.js
+          docker exec -w /app/exam-service exam-service node ai-grading.e2e.js
+
+      - name: Dump container logs on failure
+        if: failure()
+        run: docker compose logs --tail=200
+
+      - name: Tear down
+        if: always()
+        run: docker compose down -v
