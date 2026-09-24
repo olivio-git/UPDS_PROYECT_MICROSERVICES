@@ -951,13 +951,7 @@ const StudentResults = () => {
 
   return (
     <MainLayout>
-      <div className="h-full space-y-5 overflow-auto p-4 pb-12 lg:p-6 xl:p-8">
-
-        {/* Encabezado */}
-        <div>
-          <h1 className="text-2xl font-bold text-foreground">Mis Resultados</h1>
-          <p className="text-sm text-muted-foreground mt-1">Historial completo de tus evaluaciones</p>
-        </div>
+      <div className="h-full space-y-3 overflow-auto p-3">
 
         {/* Estado: cargando */}
         {loading && (
