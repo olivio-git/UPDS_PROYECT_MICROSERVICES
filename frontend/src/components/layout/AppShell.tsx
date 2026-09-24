@@ -114,7 +114,7 @@ export function AppShell({ children }: { children: ReactNode }) {
       </Sidebar>
 
       <SidebarInset className="flex h-dvh min-w-0 flex-col">
-        <header className="flex h-14 shrink-0 items-center gap-2 border-b border-border bg-background/80 px-4 backdrop-blur">
+        <header className="flex h-12 shrink-0 items-center gap-2 border-b border-border bg-card px-3 shadow-sm">
           <SidebarTrigger />
 
           <button
@@ -145,7 +145,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           </div>
         </header>
 
-        <main className="min-h-0 flex-1 overflow-auto">{children}</main>
+        <main className="min-h-0 flex-1 overflow-auto bg-muted/30">{children}</main>
       </SidebarInset>
 
       <CommandPalette isOpen={paletteOpen} onClose={() => setPaletteOpen(false)} />
