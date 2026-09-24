@@ -1,7 +1,9 @@
-import { Alert, AlertDescription } from "@/components/atoms/alert";
-import { Button } from "@/components/atoms/button";
-import { Progress } from "@/components/atoms/progress";
+import { Alert, AlertDescription } from "@/components/keel/alert";
+import { Button } from "@/components/keel/button";
 import { MainLayout } from "@/components/layout";
+import { Item, ItemActions, ItemContent, ItemMedia, ItemTitle } from "@/components/keel/item";
+import { Progress } from "@/components/keel/progress";
+import { Spinner } from "@/components/keel/spinner";
 import { cn } from "@/lib/utils";
 import {
   examService,
@@ -21,7 +23,6 @@ import {
   Clock,
   GraduationCap,
   Info,
-  Loader2,
   Mic,
   Monitor,
   Play,
@@ -109,6 +110,34 @@ const STATUS_BADGE: Record<
   },
 };
 
+// Left accent per row — makes the row's state readable at a glance, before
+// even reading the badge text, which is the point of a pre-flight list.
+const STATUS_ACCENT: Record<TechnicalCheck["status"], string> = {
+  pending: "border-l-border",
+  checking: "border-l-blue-400 dark:border-l-blue-500",
+  success: "border-l-green-400 dark:border-l-green-500",
+  warning: "border-l-yellow-400 dark:border-l-yellow-500",
+  error: "border-l-red-400 dark:border-l-red-500",
+};
+
+// Checks the candidate never presses a button for — startAutomaticChecks
+// runs them on mount, so their "pending" hint is different from the ones
+// that wait on a manual "Probar" click.
+const AUTOMATIC_CHECK_NAMES = new Set([
+  "Conexión a Internet",
+  "Navegador Compatible",
+  "Resolución de Pantalla",
+]);
+
+// What the row should tell the candidate to DO while it's still pending —
+// this is the "not green yet, here's the fix" copy the redesign brief asks
+// for, shown before `check.message` exists (which only appears once a check
+// has actually run at least once).
+const PENDING_HINTS: Record<string, string> = {
+  "Micrófono": "Pulsa Probar y permite el acceso al micrófono.",
+  "Auriculares/Altavoces": "Pulsa Probar audio y confirma si escuchaste el tono.",
+};
+
 // Guía amigable por código de motivo cuando el servidor rechaza el inicio
 // del examen (TECHNICAL_VERIFICATION_REQUIRED). El `message` ya viene en
 // español desde session-manager-service — esto solo agrega el "cómo lo arreglo".
@@ -130,7 +159,7 @@ function CheckStatusIcon({ status }: { status: TechnicalCheck["status"] }) {
       <div className="h-3.5 w-3.5 rounded-full border-2 border-border flex-shrink-0" />
     );
   if (status === "checking")
-    return <Loader2 className="h-3.5 w-3.5 text-blue-600 dark:text-blue-400 animate-spin flex-shrink-0" />;
+    return <Spinner className="h-3.5 w-3.5 text-blue-600 dark:text-blue-400 flex-shrink-0" />;
   if (status === "success")
     return <CheckCircle2 className="h-3.5 w-3.5 text-green-600 dark:text-green-400 flex-shrink-0" />;
   if (status === "warning")
@@ -240,6 +269,22 @@ const ExamPreparation = () => {
       visibleChecks
         .filter((c) => c.required)
         .every((c) => c.status === "success" || c.status === "warning"),
+    [visibleChecks]
+  );
+
+  // Which required checks are still keeping the candidate from starting —
+  // named explicitly instead of a generic "complete every check" line, so
+  // the disabled button always says exactly what's missing.
+  const missingRequiredChecks = useMemo(
+    () =>
+      visibleChecks
+        .filter((c) => c.required && c.status !== "success" && c.status !== "warning")
+        .map((c) => c.name),
+    [visibleChecks]
+  );
+
+  const checksDoneCount = useMemo(
+    () => visibleChecks.filter((c) => c.status === "success" || c.status === "warning").length,
     [visibleChecks]
   );
 
@@ -580,7 +625,7 @@ const ExamPreparation = () => {
         `Latencia: ${result.latency}ms · Velocidad: ${result.downloadSpeed.toFixed(1)} Mbps`
       );
       syncVerification();
-      toast.success("Prueba de conexión completada");
+      // La fila del chequeo ya muestra el resultado.
     } catch {
       technicalVerificationService.updateCheck(
         "Conexión a Internet",
@@ -620,7 +665,7 @@ const ExamPreparation = () => {
       );
       syncVerification();
       if (result.isWorking) {
-        toast.success("Micrófono funcionando correctamente");
+        // La fila del chequeo ya muestra "Correcto".
         startMicLevelMonitor();
       } else {
         toast.error("No se detectó micrófono");
@@ -656,8 +701,8 @@ const ExamPreparation = () => {
     syncVerification();
     setAudioTestStep("idle");
     setIsTestingAudio(false);
-    if (canHear) toast.success("Audio verificado correctamente");
-    else toast.warning("Verifica tus auriculares o altavoces");
+    // El éxito ya se ve en la fila del chequeo; sólo el problema necesita aviso.
+    if (!canHear) toast.warning("Verifica tus auriculares o altavoces");
   };
 
   // Cámara — deshabilitada por ahora
@@ -775,7 +820,7 @@ const ExamPreparation = () => {
           className={btnBase}
         >
           {isTestingInternet ? (
-            <Loader2 className="h-3 w-3 animate-spin" />
+            <Spinner className="h-3 w-3" />
           ) : (
             <RefreshCw className="h-3 w-3" />
           )}
@@ -791,7 +836,7 @@ const ExamPreparation = () => {
           className={btnBase}
         >
           {isTestingMic ? (
-            <Loader2 className="h-3 w-3 animate-spin" />
+            <Spinner className="h-3 w-3" />
           ) : (
             <Mic className="h-3 w-3" />
           )}
@@ -807,7 +852,7 @@ const ExamPreparation = () => {
           className={btnBase}
         >
           {isTestingAudio && audioTestStep === "playing" ? (
-            <Loader2 className="h-3 w-3 animate-spin" />
+            <Spinner className="h-3 w-3" />
           ) : (
             <Volume2 className="h-3 w-3" />
           )}
@@ -823,9 +868,9 @@ const ExamPreparation = () => {
   if (loading) {
     return (
       <MainLayout>
-        <div className="min-h-screen flex items-center justify-center">
+        <div className="flex h-full items-center justify-center">
           <div className="flex flex-col items-center gap-3 text-muted-foreground">
-            <Loader2 className="h-7 w-7 animate-spin text-blue-500" />
+            <Spinner className="h-7 w-7 text-blue-500" />
             <p className="text-sm">Inicializando verificación técnica...</p>
           </div>
         </div>
@@ -836,7 +881,7 @@ const ExamPreparation = () => {
   if (error) {
     return (
       <MainLayout>
-        <div className="min-h-screen flex items-center justify-center p-4">
+        <div className="flex h-full items-center justify-center p-4">
           <div className="max-w-md w-full space-y-4">
             <Alert variant="destructive">
               <AlertCircle className="h-4 w-4" />
@@ -869,14 +914,14 @@ const ExamPreparation = () => {
     });
     return (
       <MainLayout>
-        <div className="max-w-2xl mx-auto px-4 py-8">
+        <div className="relative flex h-full flex-col items-center justify-center gap-6 p-4">
           <button
             onClick={() => navigate(-1)}
-            className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground mb-6 transition-colors"
+            className="absolute top-4 left-4 flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
           >
             <ArrowLeft className="h-4 w-4" /> Volver
           </button>
-          <div className="rounded-xl border border-blue-200 dark:border-blue-500/30 bg-blue-50 dark:bg-blue-500/10 p-8 text-center">
+          <div className="w-full max-w-md rounded-xl border border-blue-200 dark:border-blue-500/30 bg-blue-50 dark:bg-blue-500/10 p-8 text-center">
             <Clock className="h-10 w-10 text-blue-500 mx-auto mb-3" />
             <h2 className="text-base font-semibold text-blue-800 dark:text-blue-200 mb-2">
               Aún no es el momento
@@ -899,14 +944,14 @@ const ExamPreparation = () => {
   if (entryStatus === 'blocked' && examData) {
     return (
       <MainLayout>
-        <div className="max-w-2xl mx-auto px-4 py-8">
+        <div className="relative flex h-full flex-col items-center justify-center gap-6 p-4">
           <button
             onClick={() => navigate(-1)}
-            className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground mb-6 transition-colors"
+            className="absolute top-4 left-4 flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
           >
             <ArrowLeft className="h-4 w-4" /> Volver
           </button>
-          <div className="rounded-xl border border-red-200 dark:border-red-500/30 bg-red-50 dark:bg-red-500/10 p-8 text-center">
+          <div className="w-full max-w-md rounded-xl border border-red-200 dark:border-red-500/30 bg-red-50 dark:bg-red-500/10 p-8 text-center">
             <XCircle className="h-10 w-10 text-red-500 mx-auto mb-3" />
             <h2 className="text-base font-semibold text-red-800 dark:text-red-200 mb-2">
               Acceso no permitido
@@ -921,147 +966,131 @@ const ExamPreparation = () => {
   }
 
   // ── Main render ───────────────────────────────────────────────────────────
+  //
+  // Full-height two-pane layout: the system checks own the left pane (they're
+  // the thing the candidate repeatedly interacts with, so they get the most
+  // room and their own scroll), the right pane holds the session summary and
+  // instructions with the start action pinned below it — outside the
+  // scrollable area — so it's always reachable without scrolling on a
+  // 1280x800 screen.
 
   return (
     <MainLayout>
-      <div className="max-w-2xl mx-auto px-4 py-8">
+      <div className="flex h-full flex-col gap-4 p-4 lg:p-6">
+        {/* Back button + exam title — compact header row */}
+        <div className="shrink-0 space-y-3">
+          <button
+            onClick={() => navigate(-1)}
+            className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            Volver
+          </button>
 
-        {/* Back button */}
-        <button
-          onClick={() => navigate(-1)}
-          className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground mb-6 transition-colors"
-        >
-          <ArrowLeft className="h-4 w-4" />
-          Volver
-        </button>
-
-        {/* Exam info */}
-        {examData && (
-          <div className="mb-5 rounded-xl border border-border bg-card/60 p-5">
-            <div className="flex items-start justify-between gap-3">
-              <div className="min-w-0">
-                <h1 className="text-base font-semibold text-foreground leading-snug">
-                  {examData.name}
-                </h1>
-                <div className="flex flex-wrap gap-x-4 gap-y-1.5 mt-2.5">
-                  {examData.date && (
-                    <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                      <Calendar className="h-3.5 w-3.5" />
-                      {examData.date}
-                    </span>
-                  )}
-                  {examData.time && (
-                    <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                      <Clock className="h-3.5 w-3.5" />
-                      {examData.time}
-                    </span>
-                  )}
-                  {examData.duration && (
-                    <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                      <Clock className="h-3.5 w-3.5 opacity-50" />
-                      {examData.duration}
-                    </span>
-                  )}
-                  {examData.level && (
-                    <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                      <GraduationCap className="h-3.5 w-3.5" />
-                      Nivel {examData.level}
-                    </span>
-                  )}
-                </div>
+          {entryStatus === 'prep_window' && (
+            <div className="rounded-xl border border-yellow-200 dark:border-yellow-500/30 bg-yellow-50 dark:bg-yellow-500/10 p-4 flex items-start gap-3">
+              <Clock className="h-4 w-4 text-yellow-600 dark:text-yellow-400 flex-shrink-0 mt-0.5" />
+              <div>
+                <p className="text-sm font-medium text-yellow-800 dark:text-yellow-200">
+                  La sesión inicia en{' '}
+                  <span className="font-mono">{countdown !== null ? formatCountdown(countdown) : '--:--'}</span>
+                </p>
+                <p className="text-xs text-yellow-700/70 dark:text-yellow-400/60 mt-0.5">
+                  Puedes verificar tus periféricos mientras esperas. El botón de inicio se habilitará cuando comience la sesión.
+                </p>
               </div>
-              {examData.createdBy && (
-                <div className="flex items-center gap-1.5 text-xs text-muted-foreground/60 flex-shrink-0 mt-0.5">
-                  <User className="h-3.5 w-3.5" />
-                  {examData.createdBy.firstName} {examData.createdBy.lastName}
+            </div>
+          )}
+
+          {entryStatus === 'reduced_time' && examData && (
+            <div className="rounded-xl border border-orange-200 dark:border-orange-500/30 bg-orange-50 dark:bg-orange-500/10 p-4 flex items-start gap-3">
+              <AlertTriangle className="h-4 w-4 text-orange-600 dark:text-orange-400 flex-shrink-0 mt-0.5" />
+              <div>
+                <p className="text-sm font-medium text-orange-800 dark:text-orange-200">Tiempo disponible reducido</p>
+                <p className="text-xs text-orange-700/80 dark:text-orange-300/80 mt-0.5">
+                  Tendrás <strong>{availableMinutes} min</strong> disponibles — la sesión cierra a las{' '}
+                  <strong>
+                    {new Date(examData.rawEndDate).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}
+                  </strong>.
+                  El tiempo original del examen es <strong>{examData.examDurationMinutes} min</strong>.
+                </p>
+              </div>
+            </div>
+          )}
+        </div>
+
+        <div className="grid min-h-0 flex-1 grid-cols-1 gap-6 lg:grid-cols-[1fr_380px]">
+          {/* ── LEFT: system checks — owns the pane, scrolls on its own ── */}
+          <div className="flex min-h-0 flex-col rounded-xl border border-border bg-card/60 overflow-hidden">
+            <div className="shrink-0 px-5 py-4 border-b border-border">
+              <div className="flex items-center justify-between mb-2.5">
+                <div>
+                  <h2 className="text-sm font-semibold text-foreground">
+                    Verificación del sistema
+                  </h2>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    Revisa cada equipo antes de comenzar — el examen no se puede pausar.
+                  </p>
                 </div>
-              )}
+                {visibleChecks.length > 0 && (
+                  <span className="shrink-0 inline-flex items-center gap-1.5 rounded-full border border-border bg-muted/60 px-2.5 py-1 text-xs font-medium text-foreground/80 tabular-nums">
+                    {checksDoneCount}/{visibleChecks.length}
+                  </span>
+                )}
+              </div>
+              <Progress value={verificationProgress} className="h-1" />
             </div>
-          </div>
-        )}
 
-        {/* Entry status banners */}
-        {entryStatus === 'prep_window' && (
-          <div className="mb-5 rounded-xl border border-yellow-200 dark:border-yellow-500/30 bg-yellow-50 dark:bg-yellow-500/10 p-4 flex items-start gap-3">
-            <Clock className="h-4 w-4 text-yellow-600 dark:text-yellow-400 flex-shrink-0 mt-0.5" />
-            <div>
-              <p className="text-sm font-medium text-yellow-800 dark:text-yellow-200">
-                La sesión inicia en{' '}
-                <span className="font-mono">{countdown !== null ? formatCountdown(countdown) : '--:--'}</span>
-              </p>
-              <p className="text-xs text-yellow-700/70 dark:text-yellow-400/60 mt-0.5">
-                Puedes verificar tus periféricos mientras esperas. El botón de inicio se habilitará cuando comience la sesión.
-              </p>
-            </div>
-          </div>
-        )}
-
-        {entryStatus === 'reduced_time' && examData && (
-          <div className="mb-5 rounded-xl border border-orange-200 dark:border-orange-500/30 bg-orange-50 dark:bg-orange-500/10 p-4 flex items-start gap-3">
-            <AlertTriangle className="h-4 w-4 text-orange-600 dark:text-orange-400 flex-shrink-0 mt-0.5" />
-            <div>
-              <p className="text-sm font-medium text-orange-800 dark:text-orange-200">Tiempo disponible reducido</p>
-              <p className="text-xs text-orange-700/80 dark:text-orange-300/80 mt-0.5">
-                Tendrás <strong>{availableMinutes} min</strong> disponibles — la sesión cierra a las{' '}
-                <strong>
-                  {new Date(examData.rawEndDate).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}
-                </strong>.
-                El tiempo original del examen es <strong>{examData.examDurationMinutes} min</strong>.
-              </p>
-            </div>
-          </div>
-        )}
-
-        {/* Verification card */}
-        <div className="mb-5 rounded-xl border border-border bg-card/60 overflow-hidden">
-
-          {/* Header with progress */}
-          <div className="px-5 py-4 border-b border-border">
-            <div className="flex items-center justify-between mb-2.5">
-              <h2 className="text-sm font-semibold text-foreground">
-                Verificación del sistema
-              </h2>
-              <span className="text-xs text-muted-foreground font-medium tabular-nums">
-                {verificationProgress}%
-              </span>
-            </div>
-            <Progress value={verificationProgress} className="h-1" />
-          </div>
-
-          {/* Check rows */}
-          {visibleChecks.length > 0 ? (
-            <ul className="divide-y divide-border/50">
-              {visibleChecks.map((check) => {
-                const Icon = CHECK_ICONS[check.name] ?? Monitor;
-                const badge = STATUS_BADGE[check.status];
-                return (
-                  <li key={check.name} className="px-5 py-3.5">
-                    <div className="flex items-center gap-3">
-                      {/* Type icon */}
-                      <div className="h-8 w-8 rounded-lg bg-muted/80 flex items-center justify-center flex-shrink-0">
+            {visibleChecks.length > 0 ? (
+              <ul className="min-h-0 flex-1 overflow-auto divide-y divide-border/50 p-2">
+                {visibleChecks.map((check) => {
+                  const Icon = CHECK_ICONS[check.name] ?? Monitor;
+                  const badge = STATUS_BADGE[check.status];
+                  const isSettled = check.status === "success" || check.status === "warning";
+                  const pendingHint =
+                    check.status === "pending"
+                      ? AUTOMATIC_CHECK_NAMES.has(check.name)
+                        ? "Se verifica automáticamente."
+                        : (PENDING_HINTS[check.name] ?? "Pendiente de verificar.")
+                      : null;
+                  return (
+                    <Item
+                      key={check.name}
+                      render={<li />}
+                      variant="default"
+                      className={cn(
+                        "items-start border-l-4 rounded-l-none",
+                        STATUS_ACCENT[check.status],
+                        isSettled && "opacity-90"
+                      )}
+                    >
+                      <ItemMedia variant="icon" className="mt-0.5 h-8 w-8 rounded-lg bg-muted/80">
                         <Icon className="h-4 w-4 text-muted-foreground" />
-                      </div>
+                      </ItemMedia>
 
-                      {/* Name + message */}
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-foreground leading-tight">
-                          {check.name}
-                        </p>
+                      <ItemContent>
+                        <ItemTitle className="font-medium">{check.name}</ItemTitle>
                         {check.message &&
                           check.status !== "pending" &&
                           check.status !== "checking" && (
-                            <p className="text-xs text-muted-foreground mt-0.5 truncate">
+                            <p className="text-xs text-muted-foreground truncate">
                               {check.message}
                             </p>
                           )}
-                        {/* Mic live level visualizer — solo aparece tras test exitoso */}
+                        {pendingHint && (
+                          <p className="text-xs text-muted-foreground/80 truncate">{pendingHint}</p>
+                        )}
+                        {check.status === "checking" && (
+                          <p className="text-xs text-blue-600/80 dark:text-blue-400/70 truncate">
+                            Verificando…
+                          </p>
+                        )}
                         {check.name === "Micrófono" && micResult?.isWorking && (
                           <MicLevelBars level={micLiveLevel} />
                         )}
-                      </div>
+                      </ItemContent>
 
-                      {/* Action + status */}
-                      <div className="flex items-center gap-2 flex-shrink-0">
+                      <ItemActions className="flex-wrap justify-end gap-2">
                         {renderCheckAction(check)}
                         <span
                           className={cn(
@@ -1074,160 +1103,281 @@ const ExamPreparation = () => {
                           <CheckStatusIcon status={check.status} />
                           {STATUS_LABEL[check.status]}
                         </span>
-                      </div>
-                    </div>
-                  </li>
-                );
-              })}
-            </ul>
-          ) : (
-            <div className="flex items-center justify-center py-12 text-muted-foreground text-sm">
-              <Loader2 className="h-4 w-4 animate-spin mr-2" />
-              Cargando verificaciones...
-            </div>
-          )}
-
-          {/* Audio confirmation (inline, aparece tras reproducir tono) */}
-          {audioTestStep === "waiting-confirmation" && (
-            <div className="mx-5 mb-4 p-4 rounded-lg bg-blue-50 border border-blue-200 dark:bg-blue-500/10 dark:border-blue-500/25">
-              <p className="text-sm text-blue-700 dark:text-blue-200 mb-3">
-                Se reprodujo un tono a 440 Hz. ¿Pudiste escucharlo?
-              </p>
-              <div className="flex gap-2">
-                <button
-                  onClick={() => confirmAudioTest(true)}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium bg-green-100 hover:bg-green-200 dark:bg-green-500/15 dark:hover:bg-green-500/25 text-green-700 dark:text-green-300 border border-green-200 dark:border-green-500/30 transition-colors"
-                >
-                  <Check className="h-3.5 w-3.5" />
-                  Sí, lo escuché
-                </button>
-                <button
-                  onClick={() => confirmAudioTest(false)}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-muted border border-border transition-colors"
-                >
-                  <XCircle className="h-3.5 w-3.5" />
-                  No escuché nada
-                </button>
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* Instructions collapsible */}
-        <details className="mb-5 group rounded-xl border border-border bg-card/60 overflow-hidden">
-          <summary className="flex items-center justify-between px-5 py-3.5 cursor-pointer list-none select-none">
-            <span className="flex items-center gap-2 text-sm font-medium text-foreground/80">
-              <Info className="h-4 w-4 text-blue-500 dark:text-blue-400" />
-              Instrucciones importantes
-            </span>
-            <ChevronDown className="h-4 w-4 text-muted-foreground/60 transition-transform duration-200 group-open:rotate-180" />
-          </summary>
-          <div className="px-5 pb-4 pt-3 border-t border-border">
-            <ul className="space-y-2.5">
-              {[
-                "Asegúrate de estar en un lugar tranquilo y sin interrupciones.",
-                "Cierra todas las aplicaciones innecesarias antes de iniciar.",
-                "Mantén tu conexión a internet activa durante todo el examen.",
-                "No cierres el navegador ni la pestaña durante el examen.",
-                "Responde todas las preguntas dentro del tiempo asignado.",
-                "Usa auriculares para las secciones de listening.",
-              ].map((item, i) => (
-                <li
-                  key={i}
-                  className="flex items-start gap-2.5 text-xs text-muted-foreground leading-relaxed"
-                >
-                  <CheckCircle2 className="h-3.5 w-3.5 text-blue-500/60 dark:text-blue-400/50 flex-shrink-0 mt-0.5" />
-                  {item}
-                </li>
-              ))}
-            </ul>
-          </div>
-        </details>
-
-        {/* Blocking state — server-side gate rejected the start */}
-        {verificationBlocked && (
-          <div className="mb-5 rounded-xl border border-red-200 dark:border-red-500/30 bg-red-50 dark:bg-red-500/10 p-5">
-            <div className="flex items-start gap-3 mb-3">
-              <XCircle className="h-5 w-5 text-red-500 flex-shrink-0 mt-0.5" />
-              <div>
-                <h3 className="text-sm font-semibold text-red-800 dark:text-red-200">
-                  No es posible iniciar el examen
-                </h3>
-                <p className="text-xs text-red-700/80 dark:text-red-300/80 mt-0.5">
-                  El servidor rechazó la verificación técnica por los siguientes motivos:
-                </p>
-              </div>
-            </div>
-            <ul className="space-y-2 mb-4">
-              {verificationBlocked.map((reason) => (
-                <li
-                  key={reason.code}
-                  className="text-xs bg-red-100/60 dark:bg-red-500/10 rounded-md px-3 py-2"
-                >
-                  <p className="font-medium text-red-800 dark:text-red-200">
-                    {reason.message}
-                  </p>
-                  {TECHNICAL_REASON_HINTS[reason.code] && (
-                    <p className="text-red-600/80 dark:text-red-400/70 mt-0.5">
-                      {TECHNICAL_REASON_HINTS[reason.code]}
-                    </p>
-                  )}
-                </li>
-              ))}
-            </ul>
-            <button
-              onClick={resetVerification}
-              className="w-full h-9 flex items-center justify-center gap-1.5 rounded-md border border-red-300 dark:border-red-500/40 text-red-700 dark:text-red-300 text-sm font-medium hover:bg-red-100 dark:hover:bg-red-500/10 transition-colors"
-            >
-              <RefreshCw className="h-3.5 w-3.5" />
-              Volver a verificar
-            </button>
-          </div>
-        )}
-
-        {/* Start exam */}
-        <div className="rounded-xl border border-border bg-card/60 p-5">
-          {!canProceed && visibleChecks.length > 0 && !verificationBlocked && (
-            <p className="text-xs text-muted-foreground text-center mb-4">
-              Completa todas las verificaciones requeridas para continuar
-            </p>
-          )}
-          <Button
-            onClick={handleStartExam}
-            disabled={
-              !canProceed ||
-              isStarting ||
-              !!verificationBlocked ||
-              entryStatus === 'blocked' ||
-              entryStatus === 'too_early' ||
-              entryStatus === 'prep_window'
-            }
-            className="w-full h-10 bg-blue-600 hover:bg-blue-500 disabled:opacity-40 disabled:cursor-not-allowed"
-          >
-            {isStarting ? (
-              <>
-                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                {examData?.myAttemptStatus === 'in_progress' ? 'Reconectando...' : 'Iniciando examen...'}
-              </>
+                      </ItemActions>
+                    </Item>
+                  );
+                })}
+              </ul>
             ) : (
-              <>
-                <Play className="h-4 w-4 mr-2" />
-                {examData?.myAttemptStatus === 'in_progress' ? 'Continuar Examen' : 'Comenzar Examen'}
-              </>
+              <div className="flex flex-1 items-center justify-center py-12 text-muted-foreground text-sm">
+                <Spinner className="h-4 w-4 mr-2" />
+                Cargando verificaciones...
+              </div>
             )}
-          </Button>
-          {entryStatus === 'prep_window' && (
-            <p className="text-xs text-yellow-600/70 dark:text-yellow-400/60 text-center mt-2.5">
-              La sesión aún no ha comenzado
-            </p>
-          )}
-          {canProceed && !isStarting && !verificationBlocked && entryStatus !== 'prep_window' && (
-            <p className="text-xs text-green-600/70 dark:text-green-400/60 text-center mt-2.5">
-              Sistema listo — todas las verificaciones completadas
-            </p>
-          )}
-        </div>
 
+            {/* Audio confirmation (inline, aparece tras reproducir tono) */}
+            {audioTestStep === "waiting-confirmation" && (
+              <div className="shrink-0 mx-5 mb-4 p-4 rounded-lg bg-blue-50 border border-blue-200 dark:bg-blue-500/10 dark:border-blue-500/25">
+                <p className="text-sm text-blue-700 dark:text-blue-200 mb-3">
+                  Se reprodujo un tono a 440 Hz. ¿Pudiste escucharlo?
+                </p>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => confirmAudioTest(true)}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium bg-green-100 hover:bg-green-200 dark:bg-green-500/15 dark:hover:bg-green-500/25 text-green-700 dark:text-green-300 border border-green-200 dark:border-green-500/30 transition-colors"
+                  >
+                    <Check className="h-3.5 w-3.5" />
+                    Sí, lo escuché
+                  </button>
+                  <button
+                    onClick={() => confirmAudioTest(false)}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-muted border border-border transition-colors"
+                  >
+                    <XCircle className="h-3.5 w-3.5" />
+                    No escuché nada
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* ── RIGHT: session summary + instructions (scrolls), start action pinned below ── */}
+          <div className="flex min-h-0 flex-col gap-4">
+            <div className="min-h-0 flex-1 overflow-auto space-y-4 pr-0.5">
+              {examData && (
+                <div className="rounded-xl border border-border bg-card/60 p-5">
+                  <h1 className="text-base font-semibold text-foreground leading-snug">
+                    {examData.name}
+                  </h1>
+
+                  {/* Session facts — scannable at a glance instead of a
+                      stacked list, so the candidate reads all of it in one
+                      pass instead of one line at a time. */}
+                  <dl className="grid grid-cols-2 gap-x-3 gap-y-2.5 mt-3">
+                    {examData.date && (
+                      <div className="flex items-start gap-1.5">
+                        <Calendar className="h-3.5 w-3.5 text-muted-foreground/70 flex-shrink-0 mt-0.5" />
+                        <div className="min-w-0">
+                          <dt className="text-[10px] uppercase tracking-wide text-muted-foreground/60">Fecha</dt>
+                          <dd className="text-xs text-foreground/90 truncate">{examData.date}</dd>
+                        </div>
+                      </div>
+                    )}
+                    {examData.time && (
+                      <div className="flex items-start gap-1.5">
+                        <Clock className="h-3.5 w-3.5 text-muted-foreground/70 flex-shrink-0 mt-0.5" />
+                        <div className="min-w-0">
+                          <dt className="text-[10px] uppercase tracking-wide text-muted-foreground/60">Hora</dt>
+                          <dd className="text-xs text-foreground/90 truncate">{examData.time}</dd>
+                        </div>
+                      </div>
+                    )}
+                    {examData.duration && (
+                      <div className="flex items-start gap-1.5">
+                        <Clock className="h-3.5 w-3.5 text-muted-foreground/70 flex-shrink-0 mt-0.5" />
+                        <div className="min-w-0">
+                          <dt className="text-[10px] uppercase tracking-wide text-muted-foreground/60">Duración</dt>
+                          <dd className="text-xs text-foreground/90 truncate">{examData.duration}</dd>
+                        </div>
+                      </div>
+                    )}
+                    {examData.level && (
+                      <div className="flex items-start gap-1.5">
+                        <GraduationCap className="h-3.5 w-3.5 text-muted-foreground/70 flex-shrink-0 mt-0.5" />
+                        <div className="min-w-0">
+                          <dt className="text-[10px] uppercase tracking-wide text-muted-foreground/60">Nivel</dt>
+                          <dd className="text-xs text-foreground/90 truncate">{examData.level}</dd>
+                        </div>
+                      </div>
+                    )}
+                    {examData.exam?.type === 'placement' &&
+                      examData.exam?.placementConfig?.mode === 'adaptive' &&
+                      examData.exam?.placementConfig?.maxQuestions && (
+                      <div className="flex items-start gap-1.5">
+                        <Info className="h-3.5 w-3.5 text-muted-foreground/70 flex-shrink-0 mt-0.5" />
+                        <div className="min-w-0">
+                          <dt className="text-[10px] uppercase tracking-wide text-muted-foreground/60">Preguntas</dt>
+                          <dd className="text-xs text-foreground/90 truncate">
+                            Hasta {examData.exam.placementConfig.maxQuestions} (adaptativo)
+                          </dd>
+                        </div>
+                      </div>
+                    )}
+                    {examData.createdBy && (
+                      <div className="flex items-start gap-1.5">
+                        <User className="h-3.5 w-3.5 text-muted-foreground/70 flex-shrink-0 mt-0.5" />
+                        <div className="min-w-0">
+                          <dt className="text-[10px] uppercase tracking-wide text-muted-foreground/60">Docente</dt>
+                          <dd className="text-xs text-foreground/90 truncate">
+                            {examData.createdBy.firstName} {examData.createdBy.lastName}
+                          </dd>
+                        </div>
+                      </div>
+                    )}
+                  </dl>
+
+                  {/* Browser-lockdown disclosure — the candidate must know
+                      BEFORE starting that leaving fullscreen gets recorded,
+                      not discover it mid-exam. */}
+                  <div
+                    className={cn(
+                      "mt-3.5 flex items-start gap-2 rounded-lg border px-3 py-2.5",
+                      examData.browserLockdown
+                        ? "border-amber-200 bg-amber-50 dark:border-amber-500/30 dark:bg-amber-500/10"
+                        : "border-border bg-muted/40"
+                    )}
+                  >
+                    <Monitor
+                      className={cn(
+                        "h-3.5 w-3.5 flex-shrink-0 mt-0.5",
+                        examData.browserLockdown ? "text-amber-600 dark:text-amber-400" : "text-muted-foreground"
+                      )}
+                    />
+                    <p
+                      className={cn(
+                        "text-xs leading-relaxed",
+                        examData.browserLockdown
+                          ? "text-amber-800 dark:text-amber-200"
+                          : "text-muted-foreground"
+                      )}
+                    >
+                      {examData.browserLockdown ? (
+                        <>
+                          Este examen se rinde en <strong>pantalla completa</strong>. Salir de ella durante
+                          el examen queda registrado como una infracción.
+                        </>
+                      ) : (
+                        "Este examen no bloquea el navegador."
+                      )}
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              <details className="group rounded-xl border border-border bg-card/60 overflow-hidden">
+                <summary className="flex items-center justify-between px-5 py-3.5 cursor-pointer list-none select-none">
+                  <span className="flex items-center gap-2 text-sm font-medium text-foreground/80">
+                    <Info className="h-4 w-4 text-blue-500 dark:text-blue-400" />
+                    Instrucciones importantes
+                  </span>
+                  <ChevronDown className="h-4 w-4 text-muted-foreground/60 transition-transform duration-200 group-open:rotate-180" />
+                </summary>
+                <div className="px-5 pb-4 pt-3 border-t border-border">
+                  <ul className="space-y-2.5">
+                    {[
+                      "Asegúrate de estar en un lugar tranquilo y sin interrupciones.",
+                      "Cierra todas las aplicaciones innecesarias antes de iniciar.",
+                      "Mantén tu conexión a internet activa durante todo el examen.",
+                      "No cierres el navegador ni la pestaña durante el examen.",
+                      "Responde todas las preguntas dentro del tiempo asignado.",
+                      "Usa auriculares para las secciones de listening.",
+                    ].map((item, i) => (
+                      <li
+                        key={i}
+                        className="flex items-start gap-2.5 text-xs text-muted-foreground leading-relaxed"
+                      >
+                        <CheckCircle2 className="h-3.5 w-3.5 text-blue-500/60 dark:text-blue-400/50 flex-shrink-0 mt-0.5" />
+                        {item}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              </details>
+
+              {verificationBlocked && (
+                <div className="rounded-xl border border-red-200 dark:border-red-500/30 bg-red-50 dark:bg-red-500/10 p-5">
+                  <div className="flex items-start gap-3 mb-3">
+                    <XCircle className="h-5 w-5 text-red-500 flex-shrink-0 mt-0.5" />
+                    <div>
+                      <h3 className="text-sm font-semibold text-red-800 dark:text-red-200">
+                        No es posible iniciar el examen
+                      </h3>
+                      <p className="text-xs text-red-700/80 dark:text-red-300/80 mt-0.5">
+                        El servidor rechazó la verificación técnica por los siguientes motivos:
+                      </p>
+                    </div>
+                  </div>
+                  <ul className="space-y-2 mb-4">
+                    {verificationBlocked.map((reason) => (
+                      <li
+                        key={reason.code}
+                        className="text-xs bg-red-100/60 dark:bg-red-500/10 rounded-md px-3 py-2"
+                      >
+                        <p className="font-medium text-red-800 dark:text-red-200">
+                          {reason.message}
+                        </p>
+                        {TECHNICAL_REASON_HINTS[reason.code] && (
+                          <p className="text-red-600/80 dark:text-red-400/70 mt-0.5">
+                            {TECHNICAL_REASON_HINTS[reason.code]}
+                          </p>
+                        )}
+                      </li>
+                    ))}
+                  </ul>
+                  <button
+                    onClick={resetVerification}
+                    className="w-full h-9 flex items-center justify-center gap-1.5 rounded-md border border-red-300 dark:border-red-500/40 text-red-700 dark:text-red-300 text-sm font-medium hover:bg-red-100 dark:hover:bg-red-500/10 transition-colors"
+                  >
+                    <RefreshCw className="h-3.5 w-3.5" />
+                    Volver a verificar
+                  </button>
+                </div>
+              )}
+            </div>
+
+            {/* Start exam — outside the scroll area, always visible. The
+                button is the one thing to do on this screen, so whatever is
+                keeping it disabled is always spelled out below it — never a
+                generic "complete the checks" line. */}
+            <div className="shrink-0 rounded-xl border border-border bg-card/60 p-5">
+              <Button
+                onClick={handleStartExam}
+                disabled={
+                  !canProceed ||
+                  isStarting ||
+                  !!verificationBlocked ||
+                  entryStatus === 'blocked' ||
+                  entryStatus === 'too_early' ||
+                  entryStatus === 'prep_window'
+                }
+                className="w-full h-10 bg-blue-600 hover:bg-blue-500 disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                {isStarting ? (
+                  <>
+                    <Spinner className="h-4 w-4 mr-2" />
+                    {examData?.myAttemptStatus === 'in_progress' ? 'Reconectando...' : 'Iniciando examen...'}
+                  </>
+                ) : (
+                  <>
+                    <Play className="h-4 w-4 mr-2" />
+                    {examData?.myAttemptStatus === 'in_progress' ? 'Continuar Examen' : 'Comenzar Examen'}
+                  </>
+                )}
+              </Button>
+
+              {!isStarting && verificationBlocked && (
+                <p className="text-xs text-red-600/80 dark:text-red-400/70 text-center mt-2.5">
+                  El servidor rechazó la verificación — revisa los motivos arriba.
+                </p>
+              )}
+              {!isStarting && !verificationBlocked && entryStatus === 'prep_window' && (
+                <p className="text-xs text-yellow-600/70 dark:text-yellow-400/60 text-center mt-2.5">
+                  La sesión aún no ha comenzado — el botón se habilita solo.
+                </p>
+              )}
+              {!isStarting && !verificationBlocked && entryStatus !== 'prep_window' && !canProceed && missingRequiredChecks.length > 0 && (
+                <p className="text-xs text-muted-foreground text-center mt-2.5">
+                  Falta completar: <strong className="text-foreground/80">{missingRequiredChecks.join(', ')}</strong>
+                </p>
+              )}
+              {canProceed && !isStarting && !verificationBlocked && entryStatus !== 'prep_window' && (
+                <p className="text-xs text-green-600/70 dark:text-green-400/60 text-center mt-2.5">
+                  Sistema listo — todas las verificaciones completadas
+                </p>
+              )}
+            </div>
+          </div>
+        </div>
       </div>
     </MainLayout>
   );

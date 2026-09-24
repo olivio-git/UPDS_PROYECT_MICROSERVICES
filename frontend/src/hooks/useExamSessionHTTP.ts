@@ -562,7 +562,7 @@ export const useExamSessionHTTP = (options: UseExamSessionHTTPOptions = {}) => {
           startLocalTimer(timeAllowedSeconds);
         }
 
-        toast.success('¡Examen iniciado exitosamente!');
+        // La pantalla del examen ya es la confirmación.
         onSessionStart?.();
 
       } else {

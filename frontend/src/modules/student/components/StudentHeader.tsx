@@ -3,7 +3,7 @@ import { Button } from "@/components/atoms/button";
 import { Menu, X, LogOut, User, Bell, BookOpen, TrendingUp } from "lucide-react";
 import { useNavigate, useLocation } from "react-router-dom";
 import useAuth from "@/hooks/useAuth";
-import ImageLogo from "@/assets/images/logo.webp";
+import { BrandLogo } from "@/components/BrandLogo";
 import { ThemeToggle } from "@/components/theme/ThemeToggle";
 
 // Rutas específicas para estudiantes
@@ -57,7 +57,7 @@ const StudentHeader = () => {
                 <div className="flex items-center justify-between w-full mx-auto mt-2 px-4">
                     {/* Logo/Brand */}
                     <div className="hidden md:flex items-center">
-                        <img className="h-8" src={ImageLogo} alt="CBA Logo" />
+                        <BrandLogo className="h-8" markOnly />
                     </div>
 
 

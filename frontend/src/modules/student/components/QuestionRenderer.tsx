@@ -1,4 +1,5 @@
-import { Button } from '@/components/atoms/button';
+import { Button } from '@/components/keel/button';
+import { Spinner } from '@/components/keel/spinner';
 import { AudioPlayer, AudioRecorder } from '@/components/audio';
 import type { Question } from '@/modules/exams/types';
 import {
@@ -22,9 +23,14 @@ import {
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { AlertTriangle, CheckCircle, GripVertical, Loader2, RotateCcw, Shuffle, Volume2 } from 'lucide-react';
+import { AlertTriangle, CheckCircle, GripVertical, RotateCcw, Shuffle, Volume2 } from 'lucide-react';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { toBrowserMediaUrl } from '@/lib/mediaUrl';
+import { cn } from '@/lib/utils';
+
+/** A, B, C... labels for answer options — keyboard shortcuts in ExamRunnerHTTP
+ * mirror this exact letter-to-index mapping (see its keyboard map). */
+const optionLetter = (index: number) => String.fromCharCode(65 + index);
 
 interface Props {
   question: Question | any;
@@ -742,21 +748,19 @@ const QuestionRenderer: React.FC<Props> = ({
 
         {/* Contexto de la pregunta — oculto para listening (es la transcripción del audio) */}
         {contextText && question.competency !== 'listening' && (
-          <div className="mb-4 rounded-lg border border-border bg-muted/30">
-            <div className="px-4 pt-3">
-              <div className="text-[11px] font-medium text-muted-foreground uppercase tracking-wide">
-                Contexto:
-              </div>
+          <blockquote className="mb-5 rounded-r-lg border-l-4 border-border bg-muted/40 py-3 pl-4 pr-4">
+            <div className="mb-1 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+              Contexto
             </div>
-            <div className="px-4 pb-4 pt-2 text-sm text-foreground leading-relaxed whitespace-pre-wrap">
+            <div className="whitespace-pre-wrap text-sm leading-relaxed text-foreground/90">
               {contextText}
             </div>
-          </div>
+          </blockquote>
         )}
 
-        <div className="space-y-1 px-4 pt-3">
-          <div className="text-[11px] font-medium text-muted-foreground uppercase tracking-wide">Pregunta:</div>
-          <div className="text-base md:text-lg text-foreground font-semibold leading-snug">{titleText}</div>
+        <div className="space-y-1.5 px-4 pt-3">
+          <div className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">Pregunta</div>
+          <div className="text-xl font-semibold leading-[1.4] text-foreground">{titleText}</div>
         </div>
       </div>
 
@@ -804,62 +808,77 @@ const QuestionRenderer: React.FC<Props> = ({
       )}
 
       {effectiveType === 'multiple_choice' && (
-        <div className="space-y-3">
-          {optionsList.map((opt: any) => {
+        <div
+          className="space-y-2.5"
+          role={isSingleSelect ? 'radiogroup' : 'group'}
+          aria-label="Opciones de respuesta"
+          onKeyDown={(e) => {
+            // Arrow Up/Down move focus within the option list — Left/Right
+            // stay free for ExamRunnerHTTP's global "next/previous question"
+            // shortcut, so they must not be intercepted here.
+            if (e.key !== 'ArrowDown' && e.key !== 'ArrowUp') return;
+            e.preventDefault();
+            const items = Array.from(
+              e.currentTarget.querySelectorAll<HTMLElement>('[data-testid="mc-option"]')
+            );
+            const currentIndex = items.findIndex((el) => el === document.activeElement);
+            const nextIndex = (currentIndex + (e.key === 'ArrowDown' ? 1 : -1) + items.length) % items.length;
+            items[nextIndex]?.focus();
+            if (isSingleSelect) {
+              const nextOpt = optionsList[nextIndex];
+              const nextOptId = nextOpt?.id || nextOpt?._id;
+              if (nextOptId) onChange(id, { selectedOptions: [nextOptId] });
+            }
+          }}
+        >
+          {optionsList.map((opt: any, optIndex: number) => {
             const optId = opt.id || opt._id;
             const isSelected = (answer?.selectedOptions || []).includes(optId);
+            const anySelected = (answer?.selectedOptions || []).length > 0;
+            const tabIndexValue = isSelected || (!anySelected && optIndex === 0) ? 0 : -1;
 
-            // isSelected calculation for this option
-            if (isSingleSelect) {
-              return (
-                <div
-                  key={optId}
-                  data-testid="mc-option"
-                  role="radio"
-                  aria-checked={isSelected}
-                  aria-label={opt.text}
-                  onClick={() => onChange(id, { selectedOptions: [optId] })}
-                  className={isSelected
-                    ? "flex items-center gap-3 p-3 rounded-lg border-2 cursor-pointer bg-blue-600 bg-opacity-30 border-blue-400 text-foreground"
-                    : "flex items-center gap-3 p-3 rounded-lg border-2 cursor-pointer bg-muted border-border text-foreground/80 hover:bg-muted/80 hover:border-border"
-                  }
-                >
-                  <div className={isSelected
-                    ? "w-5 h-5 rounded-full border-2 border-blue-300 bg-blue-500 flex items-center justify-center"
-                    : "w-5 h-5 rounded-full border-2 border-gray-400 bg-transparent flex items-center justify-center"
-                  }>
-                    {isSelected && (
-                      <div className="w-2 h-2 bg-white rounded-full"></div>
-                    )}
-                  </div>
-                  <span className="text-sm flex-1">{opt.text}</span>
-                </div>
-              );
-            }
+            const activate = () => {
+              if (isSingleSelect) onChange(id, { selectedOptions: [optId] });
+              else handleOption(optId);
+            };
+
             return (
               <div
                 key={optId}
                 data-testid="mc-option"
-                role="checkbox"
+                role={isSingleSelect ? 'radio' : 'checkbox'}
                 aria-checked={isSelected}
                 aria-label={opt.text}
-                onClick={() => handleOption(optId)}
-                className={isSelected
-                  ? "flex items-center gap-3 p-3 rounded-lg border-2 cursor-pointer bg-green-600 bg-opacity-30 border-green-400 text-foreground"
-                  : "flex items-center gap-3 p-3 rounded-lg border-2 cursor-pointer bg-muted border-border text-foreground/80 hover:bg-muted/80 hover:border-border"
-                }
+                tabIndex={tabIndexValue}
+                onClick={activate}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    activate();
+                  }
+                }}
+                className={cn(
+                  'group flex min-h-14 w-full cursor-pointer items-center gap-3 rounded-lg border-2 px-4 py-3 text-left transition-all duration-150',
+                  'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background',
+                  isSelected
+                    ? 'border-primary bg-primary/10 shadow-sm'
+                    : 'border-border bg-card hover:border-primary/40 hover:bg-muted/40'
+                )}
               >
-                <div className={isSelected
-                  ? "w-5 h-5 rounded border-2 border-green-300 bg-green-500 flex items-center justify-center"
-                  : "w-5 h-5 rounded border-2 border-gray-400 bg-transparent flex items-center justify-center"
-                }>
-                  {isSelected && (
-                    <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
-                      <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                    </svg>
+                <span
+                  className={cn(
+                    'flex h-8 w-8 shrink-0 items-center justify-center rounded-full border-2 text-sm font-bold transition-colors',
+                    isSelected
+                      ? 'border-primary bg-primary text-primary-foreground'
+                      : 'border-border bg-muted text-muted-foreground group-hover:border-primary/40'
                   )}
-                </div>
-                <span className="text-sm flex-1">{opt.text}</span>
+                >
+                  {optionLetter(optIndex)}
+                </span>
+                <span className={cn('flex-1 text-[15px]', isSelected ? 'font-medium text-foreground' : 'text-foreground/90')}>
+                  {opt.text}
+                </span>
+                {isSelected && <CheckCircle className="h-5 w-5 shrink-0 text-primary" aria-hidden="true" />}
               </div>
             );
           })}
@@ -867,91 +886,56 @@ const QuestionRenderer: React.FC<Props> = ({
       )}
 
       {(effectiveType === 'true_false' || type === 'true_false') && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          {/* True/False section */}
-          {(() => {
-            const isTrueSelected = (answer?.answer === true || answer?.answer === 'true');
-            const isFalseSelected = (answer?.answer === false || answer?.answer === 'false');
-            console.log('🎨 [QuestionRenderer] True/False Render:', {
-              questionId: id,
-              answer: answer?.answer,
-              answerType: typeof answer?.answer,
-              isTrueSelected,
-              isFalseSelected,
-              strictTrue: answer?.answer === true,
-              strictFalse: answer?.answer === false,
-              stringTrue: answer?.answer === 'true',
-              stringFalse: answer?.answer === 'false'
-            });
-            return null;
-          })()}
-          <div
-            onClick={() => {
-              console.log('🎯 [QuestionRenderer] True/False TRUE clicked, sending:', { answer: true });
-              onChange(id, { answer: true });
-            }}
-            className={`flex items-center gap-3 p-4 rounded-lg border-2 cursor-pointer ${
-              (answer?.answer === true || answer?.answer === 'true')
-                ? "bg-green-600 bg-opacity-30 border-green-400 text-foreground"
-                : "bg-muted border-border text-foreground/80 hover:bg-muted/80 hover:border-border"
-            }`}
-            style={{
-              backgroundColor: (answer?.answer === true || answer?.answer === 'true') ? 'rgba(34, 197, 94, 0.3)' : 'rgb(31, 41, 55)',
-              borderColor: (answer?.answer === true || answer?.answer === 'true') ? 'rgb(74, 222, 128)' : 'rgb(75, 85, 99)',
-              color: 'white'
-            }}
-          >
-            <div
-              className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${
-                (answer?.answer === true || answer?.answer === 'true')
-                  ? "border-green-300 bg-green-500"
-                  : "border-gray-400 bg-transparent"
-              }`}
-              style={{
-                backgroundColor: (answer?.answer === true || answer?.answer === 'true') ? 'rgb(34, 197, 94)' : 'transparent',
-                borderColor: (answer?.answer === true || answer?.answer === 'true') ? 'rgb(134, 239, 172)' : 'rgb(156, 163, 175)'
-              }}
-            >
-              {(answer?.answer === true || answer?.answer === 'true') && (
-                <div className="w-2 h-2 bg-white rounded-full"></div>
-              )}
-            </div>
-            <span className="text-sm font-medium">Verdadero</span>
-          </div>
+        <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2" role="radiogroup" aria-label="Verdadero o falso">
+          {([
+            { key: 'true', letter: optionLetter(0), label: 'Verdadero', value: true },
+            { key: 'false', letter: optionLetter(1), label: 'Falso', value: false },
+          ] as const).map((opt, optIndex) => {
+            const isSelected = answer?.answer === opt.value || answer?.answer === String(opt.value);
+            const anySelected = answer?.answer !== undefined && answer?.answer !== null && answer?.answer !== '';
+            const tabIndexValue = isSelected || (!anySelected && optIndex === 0) ? 0 : -1;
+            const activate = () => onChange(id, { answer: opt.value });
 
-          <div
-            onClick={() => {
-              console.log('🎯 [QuestionRenderer] True/False FALSE clicked, sending:', { answer: false });
-              onChange(id, { answer: false });
-            }}
-            className={`flex items-center gap-3 p-4 rounded-lg border-2 cursor-pointer ${
-              (answer?.answer === false || answer?.answer === 'false')
-                ? "bg-red-600 bg-opacity-30 border-red-400 text-foreground"
-                : "bg-muted border-border text-foreground/80 hover:bg-muted/80 hover:border-border"
-            }`}
-            style={{
-              backgroundColor: (answer?.answer === false || answer?.answer === 'false') ? 'rgba(220, 38, 38, 0.3)' : 'rgb(31, 41, 55)',
-              borderColor: (answer?.answer === false || answer?.answer === 'false') ? 'rgb(248, 113, 113)' : 'rgb(75, 85, 99)',
-              color: 'white'
-            }}
-          >
-            <div
-              className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${
-                (answer?.answer === false || answer?.answer === 'false')
-                  ? "border-red-300 bg-red-500"
-                  : "border-gray-400 bg-transparent"
-              }`}
-              style={{
-                backgroundColor: (answer?.answer === false || answer?.answer === 'false') ? 'rgb(220, 38, 38)' : 'transparent',
-                borderColor: (answer?.answer === false || answer?.answer === 'false') ? 'rgb(252, 165, 165)' : 'rgb(156, 163, 175)'
-              }}
-            >
-              {(answer?.answer === false || answer?.answer === 'false') && (
-                <div className="w-2 h-2 bg-white rounded-full"></div>
-              )}
-            </div>
-            <span className="text-sm font-medium">Falso</span>
-          </div>
+            return (
+              <div
+                key={opt.key}
+                data-testid="mc-option"
+                role="radio"
+                aria-checked={isSelected}
+                aria-label={opt.label}
+                tabIndex={tabIndexValue}
+                onClick={activate}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    activate();
+                  }
+                }}
+                className={cn(
+                  'group flex min-h-14 cursor-pointer items-center gap-3 rounded-lg border-2 px-4 py-3 transition-all duration-150',
+                  'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background',
+                  isSelected
+                    ? 'border-primary bg-primary/10 shadow-sm'
+                    : 'border-border bg-card hover:border-primary/40 hover:bg-muted/40'
+                )}
+              >
+                <span
+                  className={cn(
+                    'flex h-8 w-8 shrink-0 items-center justify-center rounded-full border-2 text-sm font-bold transition-colors',
+                    isSelected
+                      ? 'border-primary bg-primary text-primary-foreground'
+                      : 'border-border bg-muted text-muted-foreground group-hover:border-primary/40'
+                  )}
+                >
+                  {opt.letter}
+                </span>
+                <span className={cn('flex-1 text-[15px]', isSelected ? 'font-medium text-foreground' : 'text-foreground/90')}>
+                  {opt.label}
+                </span>
+                {isSelected && <CheckCircle className="h-5 w-5 shrink-0 text-primary" aria-hidden="true" />}
+              </div>
+            );
+          })}
         </div>
       )}
 
@@ -1010,7 +994,7 @@ const QuestionRenderer: React.FC<Props> = ({
             {/* Estado de subida */}
             {isUploadingAudio && (
               <div className="flex items-center gap-2 text-sm text-blue-700 bg-blue-50 border border-blue-300 rounded-lg p-3 dark:text-blue-400 dark:bg-blue-900/20 dark:border-blue-700">
-                <Loader2 className="w-4 h-4 animate-spin shrink-0" />
+                <Spinner className="w-4 h-4 shrink-0" />
                 <span>Guardando tu respuesta de audio...</span>
               </div>
             )}

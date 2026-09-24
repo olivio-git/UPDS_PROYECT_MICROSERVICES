@@ -126,7 +126,9 @@ test.describe('Student exam flow (real browser, real backend)', () => {
     await page.getByRole('button', { name: 'Iniciar Sesión' }).click();
 
     await expect(page).toHaveURL(/\/student\/dashboard/, { timeout: 15_000 });
-    await expect(page.getByRole('heading', { name: 'Mi Panel' })).toBeVisible();
+    // The page title was removed on purpose (it only took space); the
+    // dashboard's first card is what proves we landed on it.
+    await expect(page.getByText('Próximo Examen', { exact: true })).toBeVisible();
 
     // The two browser-only bugs this suite exists to catch: a CORS
     // rejection or a login response missing `isActive` would surface here.

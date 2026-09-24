@@ -118,10 +118,7 @@ const StudentProfile = () => {
 
   return (
     <MainLayout gradientVariant="primary">
-      <div className="max-w-5xl mx-auto space-y-6 pb-10">
-        {/* Page title */}
-        <h1 className="text-2xl font-bold text-foreground">Mi Perfil</h1>
-
+      <div className="space-y-3 p-3">
         <div className="flex flex-col md:flex-row gap-6 md:items-start">
           {/* ── Left: Profile card ── */}
           <div className="w-full md:w-64 shrink-0">

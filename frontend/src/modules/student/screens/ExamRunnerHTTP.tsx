@@ -1,12 +1,14 @@
-import { Alert, AlertDescription } from '@/components/atoms/alert';
-import { Button } from '@/components/atoms/button';
+import { Alert, AlertDescription } from '@/components/keel/alert';
+import { Button } from '@/components/keel/button';
 import {
   Card,
-  CardContent,
-  CardHeader
-} from '@/components/atoms/card';
+  CardContent
+} from '@/components/keel/card';
+import { Kbd, KbdGroup } from '@/components/keel/kbd';
+import { Spinner } from '@/components/keel/spinner';
 import GradientWrapper from '@/components/background/GrandWrapperSection';
 import { MainLayout } from '@/components/layout';
+import { cn } from '@/lib/utils';
 import { useBrowserLockdown } from '@/hooks/useBrowserLockdown';
 import { useExamSessionHTTP } from '@/hooks/useExamSessionHTTP';
 import { examResultService } from '@/services/examResultService';
@@ -22,7 +24,6 @@ import {
   ChevronLeft,
   ChevronRight,
   Flag,
-  Loader2,
   Maximize,
   Save,
   ShieldAlert,
@@ -35,6 +36,55 @@ import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { toast } from 'sonner';
 import QuestionRenderer from '../components/QuestionRenderer';
 import SectionNavigator from '../components/SectionNavigator';
+import { ProgressRing } from '../components/ProgressRing';
+
+// Thresholds shared between the ring and the rest of the timer's visual
+// state — amber under 5 minutes, red (+ pulse) under 1 minute.
+const TIMER_WARNING_SECONDS = 300;
+const TIMER_CRITICAL_SECONDS = 60;
+
+/** Circular countdown: elapsed vs total time, remaining time printed inside.
+ * Stays the single most prominent element in the header, per the redesign
+ * brief — a plain digital readout was not visually loud enough at a glance.
+ * The ring geometry itself lives in the shared `ProgressRing` (also used by
+ * the result screen's score ring); this only supplies the countdown ratio,
+ * the warning/critical color states, and the centered readout. */
+const TimerRing: React.FC<{
+  timeRemaining: number | null;
+  totalTime: number | null;
+  formatTime: (seconds: number) => string;
+}> = ({ timeRemaining, totalTime, formatTime }) => {
+  const ratio = timeRemaining != null && totalTime && totalTime > 0
+    ? timeRemaining / totalTime
+    : 1;
+
+  const isCritical = timeRemaining != null && timeRemaining < TIMER_CRITICAL_SECONDS;
+  const isWarning = !isCritical && timeRemaining != null && timeRemaining < TIMER_WARNING_SECONDS;
+
+  return (
+    <ProgressRing
+      ratio={ratio}
+      size={84}
+      strokeWidth={6}
+      role="timer"
+      aria-label={timeRemaining != null ? `Tiempo restante: ${formatTime(timeRemaining)}` : 'Cargando tiempo restante'}
+      className={cn(isCritical && 'animate-pulse')}
+      trackClassName={cn(
+        isCritical ? 'stroke-red-100 dark:stroke-red-950/40' : isWarning ? 'stroke-amber-100 dark:stroke-amber-950/40' : 'stroke-muted'
+      )}
+      indicatorClassName={cn(isCritical ? 'stroke-red-600' : isWarning ? 'stroke-amber-500' : 'stroke-primary')}
+    >
+      <span
+        className={cn(
+          'font-mono text-[13px] font-bold tabular-nums tracking-tight',
+          isCritical ? 'text-red-600 dark:text-red-400' : isWarning ? 'text-amber-600 dark:text-amber-500' : 'text-foreground'
+        )}
+      >
+        {timeRemaining != null ? formatTime(timeRemaining) : '--:--'}
+      </span>
+    </ProgressRing>
+  );
+};
 
 const ExamRunnerHTTP: React.FC = () => {
   const params = useParams<{ sessionId: string }>();
@@ -66,7 +116,6 @@ const ExamRunnerHTTP: React.FC = () => {
   const {
     // State
     isActive,
-    sections,
     currentSectionIndex,
     currentQuestionIndex,
     answers,
@@ -164,6 +213,18 @@ const ExamRunnerHTTP: React.FC = () => {
       }
     }
   });
+
+  // The hook only exposes the current countdown, never the exam's original
+  // duration (resume doesn't get it back from the server either) — capture
+  // the first non-null value locally so the timer ring has an "elapsed vs
+  // total" baseline. A later admin time extension grows this baseline too,
+  // so the ring doesn't just read as "almost full" forever after a bump.
+  const totalTimeRef = useRef<number | null>(null);
+  useEffect(() => {
+    if (timeRemaining != null && totalTimeRef.current == null) {
+      totalTimeRef.current = timeRemaining;
+    }
+  }, [timeRemaining]);
 
   // Browser lockdown — armed only while the session has it enabled AND the
   // attempt is actually in progress (not during load/completion/kicked).
@@ -314,6 +375,7 @@ const ExamRunnerHTTP: React.FC = () => {
       const extra = Number(data?.extraMinutes) || 0;
       if (extra > 0) {
         addTime(extra * 60);
+        if (totalTimeRef.current != null) totalTimeRef.current += extra * 60;
         toast.success(
           `El administrador extendió el tiempo por ${extra} minuto${extra !== 1 ? 's' : ''}.`,
           { duration: 6000 }
@@ -362,6 +424,109 @@ const ExamRunnerHTTP: React.FC = () => {
 
     updateAnswer(qId, actualAnswer);
   }, [currentQuestion, sessionId, updateAnswer, answers]);
+
+  // Selects the option at `index` for the current question, mirroring the
+  // same single/multi-select and true_false logic QuestionRenderer uses so
+  // the digit/letter shortcuts below produce identical answers to a click.
+  const selectOptionByIndex = useCallback((index: number) => {
+    if (!currentQuestion) return;
+    const qId = currentQuestion._id as string;
+    const qType = (currentQuestion as any).type;
+
+    if (qType === 'true_false') {
+      if (index === 0) handleAnswerChange(qId, { answer: true });
+      else if (index === 1) handleAnswerChange(qId, { answer: false });
+      return;
+    }
+
+    if (qType === 'multiple_choice') {
+      const content = (currentQuestion as any).content || {};
+      const options = content.options || (currentQuestion as any).options || [];
+      const opt = options[index];
+      if (!opt) return;
+      const optId = opt.id || opt._id;
+      const correctCount = options.filter((o: any) => o.isCorrect).length;
+      const isSingleSelect = correctCount <= 1 || Boolean(content.correctAnswer);
+
+      if (isSingleSelect) {
+        handleAnswerChange(qId, { selectedOptions: [optId] });
+      } else {
+        const prevSelected: string[] = answers[qId]?.selectedOptions || [];
+        const next = prevSelected.includes(optId)
+          ? prevSelected.filter((s) => s !== optId)
+          : [...prevSelected, optId];
+        handleAnswerChange(qId, { selectedOptions: next });
+      }
+    }
+  }, [currentQuestion, answers, handleAnswerChange]);
+
+  // Exam-wide keyboard shortcuts. Disarmed whenever a text answer (or any
+  // other form control) has focus, so typing an essay/fill-blank answer is
+  // never hijacked — see the isEditableTarget check below.
+  //
+  // NOTE: "f" is reserved exclusively for "marcar para revisar". Letters
+  // A-I map 1:1 to QuestionRenderer's option badges (A=index 0 ... I=index
+  // 8), which means an option that would land on letter F cannot be picked
+  // by its letter — digits 1-9 cover that case instead (option 6 -> "6").
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (!isActive || sessionStatus !== 'active') return;
+      if (showFinishConfirm || (lockdownEnabled && showFullscreenPrompt)) return;
+      if (e.ctrlKey || e.metaKey || e.altKey) return;
+
+      const target = e.target as HTMLElement | null;
+      const tag = target?.tagName;
+      const isEditableTarget = tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || target?.isContentEditable;
+      if (isEditableTarget) return;
+      if (!currentQuestion) return;
+
+      if (e.key >= '1' && e.key <= '9') {
+        selectOptionByIndex(Number(e.key) - 1);
+        return;
+      }
+
+      if (e.key.length === 1) {
+        const lower = e.key.toLowerCase();
+        if (lower === 'f') {
+          toggleFlag(currentQuestion._id as string);
+          return;
+        }
+        if (lower >= 'a' && lower <= 'i') {
+          selectOptionByIndex(lower.charCodeAt(0) - 'a'.charCodeAt(0));
+          return;
+        }
+      }
+
+      if (e.key === 'ArrowLeft') {
+        if (!isFirstQuestionOverall) goToPreviousQuestion();
+        return;
+      }
+      if (e.key === 'ArrowRight') {
+        if (!isLastQuestionOverall) goToNextQuestion();
+        return;
+      }
+      if (e.key === 'Enter') {
+        if (!isLastQuestionOverall) goToNextQuestion();
+        return;
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [
+    isActive,
+    sessionStatus,
+    showFinishConfirm,
+    lockdownEnabled,
+    showFullscreenPrompt,
+    currentQuestion,
+    selectOptionByIndex,
+    toggleFlag,
+    isFirstQuestionOverall,
+    isLastQuestionOverall,
+    goToPreviousQuestion,
+    goToNextQuestion,
+  ]);
 
   const handleFinishExam = () => {
     setShowFinishConfirm(true);
@@ -433,7 +598,7 @@ const ExamRunnerHTTP: React.FC = () => {
                       : 'Tu examen ha sido finalizado exitosamente. Redirigiendo...'}
                   </p>
                   <div className="mt-4">
-                    <Loader2 className="h-6 w-6 animate-spin text-blue-500 mx-auto" />
+                    <Spinner className="h-6 w-6 text-blue-500 mx-auto" />
                   </div>
                 </div>
               </CardContent>
@@ -453,7 +618,7 @@ const ExamRunnerHTTP: React.FC = () => {
             <Card className="w-full max-w-md bg-box backdrop-blur-sm border border-line">
               <CardContent className="p-8">
                 <div className="text-center">
-                  <Loader2 className="h-12 w-12 animate-spin text-blue-500 mx-auto mb-4" />
+                  <Spinner className="h-12 w-12 text-blue-500 mx-auto mb-4" />
                   <h3 className="text-lg font-semibold text-foreground mb-2">
                     Iniciando Examen
                   </h3>
@@ -618,228 +783,209 @@ const ExamRunnerHTTP: React.FC = () => {
         </div>
       )}
 
-      <div className="min-h-screen p-4">
-        <GradientWrapper intensity="low" size="xl" variant='cosmic' position='left' animate={false}>
-          <div className="max-w-7xl mx-auto">
+      <div className="flex h-full flex-col">
+        {/* ── Top bar: timer gets real weight, position is stated once ── */}
+        <header className="shrink-0 border-b border-border bg-card px-4 py-2.5 shadow-sm">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="flex flex-wrap items-center gap-3">
+              {/* Timer — the single most prominent element of the header,
+                  a ring instead of a digital badge so remaining-vs-total
+                  reads at a glance, not just the raw seconds. */}
+              <TimerRing timeRemaining={timeRemaining} totalTime={totalTimeRef.current} formatTime={formatTime} />
 
-            {/* Layout with sidebar and main content */}
-            <div className="flex flex-col xl:grid xl:grid-cols-4 gap-6">
+              {/* Browser lockdown chip — informational, tells the
+                  candidate their activity is being monitored */}
+              {lockdownEnabled && (
+                <div
+                  className="flex items-center gap-1.5 rounded-xl border border-amber-400/60 bg-amber-50 px-2.5 py-1.5 text-xs font-medium text-amber-700 dark:border-amber-500/50 dark:bg-amber-500/10 dark:text-amber-400"
+                  title="El examen registra salidas de pantalla completa, cambios de pestaña y atajos bloqueados."
+                >
+                  <ShieldAlert className="h-3.5 w-3.5 shrink-0" />
+                  <span className="hidden sm:inline">Modo bloqueo activo</span>
+                  {lockdownInfractionCount > 0 && <span className="tabular-nums">({lockdownInfractionCount})</span>}
+                </div>
+              )}
 
-              {/* Section Navigator - Top on mobile/tablet, sidebar on desktop */}
-              <div className="xl:col-span-1 order-2 xl:order-1">
-                <SectionNavigator
-                  sections={sectionStats.map(section => ({
-                    ...section,
-                    questionStates: section.questionStates.map(q => ({
-                      ...q,
-                      flagged: flaggedQuestions.has(q.id),
-                    })),
-                  }))}
-                  currentSectionIndex={currentSectionIndex}
-                  currentQuestionIndex={currentQuestionIndex}
-                  onSectionChange={navigateToSection}
-                  onQuestionJump={navigateToQuestionInSection}
-                  className="xl:sticky xl:top-4"
-                />
-              </div>
-
-              {/* Main Exam Content */}
-              <div className="xl:col-span-3 order-1 xl:order-2">
-
-            {/* Header with timer and progress */}
-            <Card className="mb-6 bg-box backdrop-blur-sm border border-line">
-              <CardHeader className="pb-4">
-                <div className="flex items-center justify-between">
-                  {/* Timer */}
-                  <div className="flex items-center gap-3">
-                    <div className={`flex items-center gap-2 px-3 py-2 rounded-xl border font-mono text-sm font-bold tabular-nums tracking-wider transition-all duration-500 ${
-                      timeRemaining && timeRemaining < 300
-                        ? 'border-red-500 bg-red-500 text-white animate-pulse'
-                        : timeRemaining && timeRemaining < 600
-                        ? 'border-amber-400 dark:border-amber-500 bg-amber-400 dark:bg-amber-500 text-white'
-                        : 'border-border bg-muted/60 text-foreground'
-                    }`}>
-                      <Timer className={`h-4 w-4 shrink-0 ${timeRemaining && timeRemaining < 300 ? 'opacity-100' : 'opacity-60'}`} />
-                      <span>{timeRemaining ? formatTime(timeRemaining) : '--:--'}</span>
-                    </div>
-
-                    {/* Browser lockdown chip — informational, tells the
-                        candidate their activity is being monitored */}
-                    {lockdownEnabled && (
-                      <div
-                        className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl border border-amber-400/60 dark:border-amber-500/50 bg-amber-50 dark:bg-amber-500/10 text-amber-700 dark:text-amber-400 text-xs font-medium"
-                        title="El examen registra salidas de pantalla completa, cambios de pestaña y atajos bloqueados."
-                      >
-                        <ShieldAlert className="h-3.5 w-3.5 shrink-0" />
-                        <span className="hidden sm:inline">Modo bloqueo activo</span>
-                        {lockdownInfractionCount > 0 && (
-                          <span className="tabular-nums">({lockdownInfractionCount})</span>
-                        )}
-                      </div>
-                    )}
-
-                    {/* Autosave indicator — estilo Google Docs */}
-                    <div className="flex items-center gap-1.5 text-xs w-[100px]">
-                      {autoSaveStatus === 'dirty' && (
-                        <>
-                          <span className="relative flex h-2 w-2 shrink-0">
-                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75" />
-                            <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-400" />
-                          </span>
-                          <span className="text-amber-400/80">Sin guardar</span>
-                        </>
-                      )}
-                      {autoSaveStatus === 'saving' && (
-                        <>
-                          <Loader2 className="h-3 w-3 animate-spin text-muted-foreground shrink-0" />
-                          <span className="text-muted-foreground">Guardando...</span>
-                        </>
-                      )}
-                      {autoSaveStatus === 'saved' && (
-                        <>
-                          <CheckCircle className="h-3 w-3 text-emerald-400 shrink-0" />
-                          <span className="text-emerald-400">Guardado</span>
-                        </>
-                      )}
-                      {autoSaveStatus === 'error' && (
-                        <>
-                          <AlertCircle className="h-3 w-3 text-red-400 shrink-0" />
-                          <span className="text-red-400">Error al guardar</span>
-                        </>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Right: progress count + save button */}
-                  <div className="flex items-center gap-3">
-                    <span className="text-muted-foreground text-sm tabular-nums">
-                      <span className="text-foreground font-medium">{answeredCount}</span>
-                      <span className="text-muted-foreground"> / </span>
-                      {totalQuestions}
+              {/* Autosave indicator — estilo Google Docs */}
+              <div className="flex w-[110px] items-center gap-1.5 text-xs">
+                {autoSaveStatus === 'dirty' && (
+                  <>
+                    <span className="relative flex h-2 w-2 shrink-0">
+                      <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-amber-400 opacity-75" />
+                      <span className="relative inline-flex h-2 w-2 rounded-full bg-amber-400" />
                     </span>
-                    <Button
-                      onClick={handleManualSave}
-                      variant="outline"
-                      size="sm"
-                      disabled={autoSaveStatus === 'saving' || autoSaveStatus === 'idle'}
-                      className='text-foreground/80 bg-transparent border-line hover:bg-muted hover:text-foreground disabled:opacity-40 disabled:cursor-not-allowed gap-1.5'
-                    >
-                      <Save className="h-3.5 w-3.5" />
-                      Guardar avance
-                    </Button>
-                  </div>
-                </div>
-
-                {/* Section + question indicator */}
-                {currentSection && (
-                  <div className="mt-3 flex items-center gap-1.5 text-xs text-muted-foreground">
-                    <span className="font-medium text-foreground/70">{currentSection.name}</span>
-                    <span>·</span>
-                    <span>Pregunta {currentQuestionIndex + 1} de {currentSection.questions.length}</span>
-                    <span className="mx-1 text-border">|</span>
-                    <span>{answeredCount} de {totalQuestions} respondidas</span>
-                  </div>
+                    <span className="text-amber-400/80">Sin guardar</span>
+                  </>
                 )}
-              </CardHeader>
-            </Card>
-
-            {/* Question content */}
-            <Card className="mb-6 bg-box border border-line">
-              <CardContent className="p-6">
-                {currentQuestion ? (
-                  <div key={currentQuestion._id as string} className="question-enter">
-                    {/* Flag button */}
-                    <div className="flex justify-end mb-3">
-                      <button
-                        onClick={() => toggleFlag(currentQuestion._id as string)}
-                        className={[
-                          'flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all border',
-                          flaggedQuestions.has(currentQuestion._id as string)
-                            ? 'border-amber-400 dark:border-amber-500 text-amber-600 dark:text-amber-400 hover:bg-muted'
-                            : 'border-border text-muted-foreground hover:bg-muted hover:text-foreground',
-                        ].join(' ')}
-                      >
-                        {flaggedQuestions.has(currentQuestion._id as string)
-                          ? <><BookmarkCheck className="h-3.5 w-3.5 text-amber-500 fill-amber-500/20" /><span>Marcada para revisar</span></>
-                          : <><Bookmark className="h-3.5 w-3.5" /><span>Marcar para revisar</span></>
-                        }
-                      </button>
-                    </div>
-                    <QuestionRenderer
-                      key={currentQuestion._id as string}
-                      question={currentQuestion}
-                      answer={answers[currentQuestion._id]}
-                      onChange={handleAnswerChange}
-                      showQuestionNumber={true}
-                      questionNumber={currentQuestionIndex + 1}
-                      totalQuestions={totalQuestions}
-                      isUploadingAudio={uploadingAudio[currentQuestion._id as string] ?? false}
-                      sectionInfo={currentSection ? {
-                        name: currentSection.name,
-                        competency: currentSection.competency,
-                        questionIndex: currentQuestionIndex - sections.slice(0, currentSectionIndex).reduce((sum, section) => sum + section.questions.length, 0),
-                        totalQuestionsInSection: currentSection.questions.length
-                      } : undefined}
-                    />
-                  </div>
-                ) : (
-                  <div className="text-center py-8">
-                    <AlertCircle className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
-                    <p className="text-muted-foreground">No hay pregunta disponible</p>
-                  </div>
+                {autoSaveStatus === 'saving' && (
+                  <>
+                    <Spinner className="h-3 w-3 shrink-0 text-muted-foreground" />
+                    <span className="text-muted-foreground">Guardando...</span>
+                  </>
                 )}
-              </CardContent>
-            </Card>
-
-            {/* Navigation controls */}
-            <Card className="bg-box backdrop-blur-sm border border-line text-foreground">
-              <CardContent className="p-4">
-                <div className="flex items-center justify-between gap-3">
-                  <Button
-                    onClick={goToPreviousQuestion}
-                    disabled={isFirstQuestionOverall}
-                    variant="outline"
-                    className='text-foreground/80 border-line bg-transparent hover:bg-muted hover:text-foreground disabled:opacity-30 disabled:cursor-not-allowed'
-                  >
-                    <ChevronLeft className="h-4 w-4 mr-1" />
-                    Anterior
-                  </Button>
-
-                  <div className="flex items-center gap-2">
-                    {currentSection && (
-                      <span className="text-xs text-muted-foreground hidden sm:block">
-                        {currentSection.name} · {currentQuestionIndex + 1}/{totalQuestions}
-                      </span>
-                    )}
-
-                    {isLastQuestionOverall ? (
-                      <Button
-                        onClick={handleFinishExam}
-                        className="bg-emerald-600 hover:bg-emerald-500 text-white gap-2"
-                      >
-                        <Flag className="h-4 w-4" />
-                        Entregar examen
-                      </Button>
-                    ) : (
-                      <Button
-                        onClick={goToNextQuestion}
-                        disabled={isLastQuestionOverall}
-                        className='bg-blue-600 hover:bg-blue-700 text-white'
-                      >
-                        {isLastQuestionInSection ? 'Siguiente Sección' : 'Siguiente'}
-                        <ChevronRight className="h-4 w-4 ml-1" />
-                      </Button>
-                    )}
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
+                {autoSaveStatus === 'saved' && (
+                  <>
+                    <CheckCircle className="h-3 w-3 shrink-0 text-emerald-400" />
+                    <span className="text-emerald-400">Guardado</span>
+                  </>
+                )}
+                {autoSaveStatus === 'error' && (
+                  <>
+                    <AlertCircle className="h-3 w-3 shrink-0 text-red-400" />
+                    <span className="text-red-400">Error al guardar</span>
+                  </>
+                )}
               </div>
             </div>
 
+            <div className="flex items-center gap-3">
+              {/* The single, canonical position indicator — replaces the
+                  header badge, the question-card badge and the
+                  section-info line that used to say this three times. */}
+              {currentSection && (
+                <div className="text-right">
+                  <p className="text-sm font-semibold text-foreground">
+                    Pregunta {currentQuestionIndex + 1} de {currentSection.questions.length}
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    {currentSection.name} · {answeredCount}/{totalQuestions} respondidas
+                  </p>
+                </div>
+              )}
+              <Button
+                onClick={handleManualSave}
+                variant="outline"
+                size="sm"
+                disabled={autoSaveStatus === 'saving' || autoSaveStatus === 'idle'}
+                className="gap-1.5 border-line bg-transparent text-foreground/80 hover:bg-muted hover:text-foreground disabled:cursor-not-allowed disabled:opacity-40"
+              >
+                <Save className="h-3.5 w-3.5" />
+                <span className="hidden sm:inline">Guardar avance</span>
+              </Button>
+            </div>
           </div>
-        </GradientWrapper>
+        </header>
+
+        {/* ── Rail (full-height question navigator) + main content ── */}
+        <div className="grid min-h-0 flex-1 grid-cols-1 lg:grid-cols-[320px_1fr]">
+          <div className="order-2 max-h-64 overflow-hidden border-t border-line bg-box p-3 lg:order-1 lg:h-full lg:max-h-none lg:border-t-0 lg:border-r">
+            <SectionNavigator
+              sections={sectionStats.map(section => ({
+                ...section,
+                questionStates: section.questionStates.map(q => ({
+                  ...q,
+                  flagged: flaggedQuestions.has(q.id),
+                })),
+              }))}
+              currentSectionIndex={currentSectionIndex}
+              currentQuestionIndex={currentQuestionIndex}
+              onSectionChange={navigateToSection}
+              onQuestionJump={navigateToQuestionInSection}
+              className="h-full"
+            />
+          </div>
+
+          <div className="order-1 flex min-h-0 flex-col overflow-hidden bg-muted/40 lg:order-2">
+            {/* Question content — the only scrolling region, so answers stay
+                reachable without scrolling the page itself. The tinted
+                surface behind the elevated white card is what tells the eye
+                "this is the exam area" instead of a card floating on the
+                page background. */}
+            <div className="flex min-h-0 flex-1 flex-col overflow-auto p-3">
+              {/* The card owns the whole pane: a short question used to leave
+                  a third of the screen as empty tint below it. */}
+              <Card className="flex flex-col bg-card border border-border shadow-sm">
+                <CardContent className="flex flex-col gap-4 p-5 lg:p-6">
+                  {currentQuestion ? (
+                    <div key={currentQuestion._id as string} className="question-enter">
+                      {/* Flag button */}
+                      <div className="flex justify-end mb-3">
+                        <button
+                          onClick={() => toggleFlag(currentQuestion._id as string)}
+                          className={[
+                            'flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all border',
+                            flaggedQuestions.has(currentQuestion._id as string)
+                              ? 'border-amber-400 dark:border-amber-500 text-amber-600 dark:text-amber-400 hover:bg-muted'
+                              : 'border-border text-muted-foreground hover:bg-muted hover:text-foreground',
+                          ].join(' ')}
+                        >
+                          {flaggedQuestions.has(currentQuestion._id as string)
+                            ? <><BookmarkCheck className="h-3.5 w-3.5 text-amber-500 fill-amber-500/20" /><span>Marcada para revisar</span></>
+                            : <><Bookmark className="h-3.5 w-3.5" /><span>Marcar para revisar</span></>
+                          }
+                        </button>
+                      </div>
+                      <QuestionRenderer
+                        key={currentQuestion._id as string}
+                        question={currentQuestion}
+                        answer={answers[currentQuestion._id]}
+                        onChange={handleAnswerChange}
+                        showQuestionNumber={false}
+                        isUploadingAudio={uploadingAudio[currentQuestion._id as string] ?? false}
+                      />
+                    </div>
+                  ) : (
+                    <div className="text-center py-8">
+                      <AlertCircle className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
+                      <p className="text-muted-foreground">No hay pregunta disponible</p>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Navigation controls — pinned below the scroll area */}
+            <div className="shrink-0 border-t border-line bg-box px-4 py-3 lg:px-6">
+              <div className="flex items-center justify-between gap-3">
+                <Button
+                  onClick={goToPreviousQuestion}
+                  disabled={isFirstQuestionOverall}
+                  variant="outline"
+                  className="text-foreground/80 border-line bg-transparent hover:bg-muted hover:text-foreground disabled:opacity-30 disabled:cursor-not-allowed"
+                >
+                  <ChevronLeft className="h-4 w-4 mr-1" />
+                  Anterior
+                </Button>
+
+                {/* Discreet keyboard-shortcut hint — desktop only, out of
+                    the way of the primary actions it sits between. */}
+                <div className="hidden items-center gap-4 text-[11px] text-muted-foreground lg:flex">
+                  <span className="flex items-center gap-1.5">
+                    <KbdGroup><Kbd>1-9</Kbd><Kbd>A-I</Kbd></KbdGroup> elegir
+                  </span>
+                  <span className="flex items-center gap-1.5">
+                    <KbdGroup><Kbd>←</Kbd><Kbd>→</Kbd></KbdGroup> pregunta
+                  </span>
+                  <span className="flex items-center gap-1.5">
+                    <Kbd>F</Kbd> marcar
+                  </span>
+                  <span className="flex items-center gap-1.5">
+                    <Kbd>Enter</Kbd> siguiente
+                  </span>
+                </div>
+
+                {isLastQuestionOverall ? (
+                  <Button
+                    onClick={handleFinishExam}
+                    className="bg-emerald-600 hover:bg-emerald-500 text-white gap-2"
+                  >
+                    <Flag className="h-4 w-4" />
+                    Entregar examen
+                  </Button>
+                ) : (
+                  <Button
+                    onClick={goToNextQuestion}
+                    disabled={isLastQuestionOverall}
+                    className="bg-blue-600 hover:bg-blue-700 text-white"
+                  >
+                    {isLastQuestionInSection ? 'Siguiente Sección' : 'Siguiente'}
+                    <ChevronRight className="h-4 w-4 ml-1" />
+                  </Button>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     </MainLayout>
   );

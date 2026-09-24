@@ -46,27 +46,20 @@ const StudentDashboard = () => {
   return (
     <>
       <MainLayout gradientVariant="primary" showGradient={true}>
-        <div className="max-w-5xl mx-auto space-y-8 mt-8 py-6">
-          <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-            <div>
-              <h1 className="text-3xl font-bold text-foreground">
-                Mi Panel
-              </h1>
-            </div>
-          </div>
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            {/* Panel Principal */}
-            <div className="lg:col-span-2 space-y-6">
-              {/* Próximo Examen */}
+        <div className="flex h-full flex-col gap-3 p-3">
+          {/* At 1280 (xl, 12 cols) the next exam and calendar sit side by
+              side and results stack full-width below. At 1920 (2xl) there's
+              room for a real third column instead of wider cards — next
+              exam, calendar and results all sit in one row. */}
+          <div className="grid min-h-0 flex-1 grid-cols-1 content-start gap-3 xl:grid-cols-12">
+            <div className="min-h-0 xl:col-span-8 2xl:col-span-6">
               <NextExam formatDate={formatDate} onStartExam={handleStartExam} />
-              {/* Resultados Recientes */}
-              <RecentResults formatDate={formatDate} handleViewResults={handleViewResults} />
             </div>
-
-            {/* Panel Lateral */}
-            <div className="space-y-6">
-              {/* Calendario de Exámenes */}
+            <div className="min-h-0 xl:col-span-4 2xl:col-span-3">
               <ExamCalendar />
+            </div>
+            <div className="min-h-0 xl:col-span-12 2xl:col-span-3">
+              <RecentResults formatDate={formatDate} handleViewResults={handleViewResults} />
             </div>
           </div>
         </div>
