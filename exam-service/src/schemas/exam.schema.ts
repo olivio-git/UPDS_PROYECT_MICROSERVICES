@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { CONSTANTS } from '../utils/constants';
+import { getSectionWeightsSumError } from '../utils/sectionWeights';
 
 const examSectionSchema = z.object({
   name: z.string().min(1),
@@ -16,6 +17,24 @@ const placementConfigSchema = z.object({
   consecutiveWrongThreshold: z.number().min(1).max(10).optional(),
   levelPassingThreshold: z.number().min(1).max(100).optional()
 }).optional();
+
+/**
+ * Weight sum validation (grading-section-weights: Weight Sum Validation on
+ * Write). Same rule and tolerance as ExamService — see utils/sectionWeights.
+ */
+function validateSectionWeightsSum(
+  sections: Array<{ weight: number }> | undefined,
+  ctx: z.RefinementCtx
+): void {
+  const message = getSectionWeightsSumError(sections);
+  if (message) {
+    ctx.addIssue({
+      code: 'custom',
+      message,
+      path: ['structure', 'sections'],
+    });
+  }
+}
 
 export const examSchema = {
   create: z.object({
@@ -39,7 +58,7 @@ export const examSchema = {
     questionPool: z.array(z.string()).optional(),
     isActive: z.boolean().default(true),
     isTemplate: z.boolean().default(false)
-  }),
+  }).superRefine((data, ctx) => validateSectionWeightsSum(data.structure.sections, ctx)),
 
   update: z.object({
     name: z.string().min(3).max(200).optional(),
@@ -63,7 +82,7 @@ export const examSchema = {
     isActive: z.boolean().optional(),
     isTemplate: z.boolean().optional(),
     approvedBy: z.string().optional()
-  }),
+  }).superRefine((data, ctx) => validateSectionWeightsSum(data.structure?.sections, ctx)),
 
   params: z.object({
     id: z.string().regex(/^[0-9a-fA-F]{24}$/)
