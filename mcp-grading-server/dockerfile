@@ -19,12 +19,13 @@ WORKDIR /app/grading-service
 
 COPY mcp-grading-server/package*.json ./
 
-# Using `npm install` instead of `npm ci` here because the @cba/events
-# tarball is rebuilt fresh on every image build (not byte-reproducible), so
-# its recorded lockfile integrity can legitimately differ from the tarball
-# generated in this build — `npm ci` would fail that check, `npm install`
-# reconciles it.
-RUN npm install
+# The @cba/events tarball is rebuilt on every image build and is not
+# byte-reproducible, so its integrity hash in package-lock.json goes stale and
+# even `npm install` fails with EINTEGRITY on a clean build (a warm Docker
+# cache hides it). Drop only that entry's integrity before installing; every
+# other dependency is still checked. Same logic as scripts/ci/install-with-local-events.sh.
+RUN node -e 'const fs=require("fs");const l=JSON.parse(fs.readFileSync("package-lock.json","utf8"));const e=l.packages&&l.packages["node_modules/@cba/events"];if(e)delete e.integrity;fs.writeFileSync("package-lock.json",JSON.stringify(l,null,2));' && \
+    npm install
 
 COPY mcp-grading-server/. .
 

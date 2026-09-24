@@ -49,12 +49,12 @@ jobs:
             # fresh in this job (see shared/events dockerfiles' own
             # comments) so its recorded lockfile integrity can legitimately
             # differ from the tarball just generated here.
-            install: npm install
+            install: ../scripts/ci/install-with-local-events.sh
             build: npm run build
             needs_shared: true
           - name: exam-service
             path: exam-service
-            install: npm install
+            install: ../scripts/ci/install-with-local-events.sh
             build: npm run build
             needs_shared: true
           - name: session-manager-service
@@ -64,7 +64,7 @@ jobs:
             needs_shared: false
           - name: mcp-grading-server
             path: mcp-grading-server
-            install: npm install
+            install: ../scripts/ci/install-with-local-events.sh
             build: npm run build
             needs_shared: true
           - name: frontend
@@ -132,7 +132,7 @@ jobs:
 
       - name: Install exam-service dependencies
         working-directory: exam-service
-        run: npm install
+        run: ../scripts/ci/install-with-local-events.sh
 
       - name: Run jest
         working-directory: exam-service
