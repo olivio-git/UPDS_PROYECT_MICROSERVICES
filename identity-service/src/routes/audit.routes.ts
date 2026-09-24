@@ -8,11 +8,27 @@ const auditRepo = new AuditLogRepository();
 /**
  * @route GET /api/v1/audit-logs
  * @desc Lista paginada de audit logs con filtros
- * @access Admin only
+ * @access Admin, o staff (teacher/proctor) cuando la consulta está acotada
+ *         a un targetId. El monitor de sesión pide la actividad de UNA
+ *         sesión; sin esto el docente recibía 403 y el panel quedaba vacío
+ *         sin decir por qué.
  */
 router.get(
   '/',
-  ...middlewareStacks.adminOnly,
+  ...middlewareStacks.basicAuth,
+  (req, res, next) => {
+    const user = req.user as { role?: string } | undefined;
+    if (user?.role === 'admin') return next();
+
+    const scoped = typeof req.query.targetId === 'string' && req.query.targetId.length > 0;
+    if (scoped && (user?.role === 'teacher' || user?.role === 'proctor')) return next();
+
+    res.status(403).json({
+      success: false,
+      message: 'Solo un administrador puede listar la auditoría completa',
+      error: 'FORBIDDEN',
+    });
+  },
   asyncHandler(async (req, res) => {
     const {
       page = '1',
