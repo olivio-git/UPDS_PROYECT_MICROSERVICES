@@ -15,7 +15,7 @@ export const createAuthRoutes = (authController: AuthController, otpController: 
 
   router.post(
     '/login',
-    authRateLimiter(10, 15 * 60), // 10 intentos por 15 minutos, same window auth-service used
+    authRateLimiter(10, 15 * 60, true), // 10 intentos por cuenta cada 15 minutos
     validateBody(LoginSchema),
     asyncHandler(authController.login)
   );
@@ -33,7 +33,7 @@ export const createAuthRoutes = (authController: AuthController, otpController: 
   router.post(
     '/verify-password',
     authMiddleware.authenticate,
-    authRateLimiter(10, 5 * 60),
+    authRateLimiter(10, 5 * 60, true),
     validateBody(VerifyPasswordSchema),
     asyncHandler(authController.verifyPassword)
   );
@@ -63,7 +63,7 @@ export const createAuthRoutes = (authController: AuthController, otpController: 
   // gated behind auth, since nothing needs them; re-add only behind an
   // authenticated/proof-of-email-ownership check if a real caller appears.
   router.post('/otp/generate', asyncHandler(otpController.generateOtp));
-  router.post('/otp/verify', authRateLimiter(10, 5 * 60), asyncHandler(otpController.verifyOtp));
+  router.post('/otp/verify', authRateLimiter(10, 5 * 60, true), asyncHandler(otpController.verifyOtp));
 
   return router;
 };
