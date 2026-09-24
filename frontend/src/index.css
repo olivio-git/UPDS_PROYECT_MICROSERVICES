@@ -43,6 +43,13 @@
 
 /* Variables CSS del sistema de temas CBA */
 @layer base {
+  /* Tailwind 4 dibuja un borde suelto (border, border-r…) con el color del
+     texto, así que sin esta regla el borde del sidebar y los campos salían
+     negros en claro y casi invisibles en oscuro. keel la tiene; faltaba acá. */
+  * {
+    border-color: hsl(var(--border));
+  }
+
   :root {
     /* Fuentes y constantes (no cambian entre temas) */
     --font-Onest: 'Onest Variable', Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;

@@ -785,7 +785,7 @@ const ExamRunnerHTTP: React.FC = () => {
 
       <div className="flex h-full flex-col">
         {/* ── Top bar: timer gets real weight, position is stated once ── */}
-        <header className="shrink-0 border-b border-line bg-box/90 backdrop-blur-sm px-4 py-3">
+        <header className="shrink-0 border-b border-border bg-card px-4 py-2.5 shadow-sm">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div className="flex flex-wrap items-center gap-3">
               {/* Timer — the single most prominent element of the header,
@@ -891,11 +891,11 @@ const ExamRunnerHTTP: React.FC = () => {
                 surface behind the elevated white card is what tells the eye
                 "this is the exam area" instead of a card floating on the
                 page background. */}
-            <div className="flex min-h-0 flex-1 flex-col overflow-auto p-4 lg:p-6">
+            <div className="flex min-h-0 flex-1 flex-col overflow-auto p-3">
               {/* The card owns the whole pane: a short question used to leave
                   a third of the screen as empty tint below it. */}
-              <Card className="flex min-h-full flex-1 flex-col bg-box border border-line shadow-sm">
-                <CardContent className="flex flex-1 flex-col p-6 lg:p-8">
+              <Card className="flex flex-col bg-card border border-border shadow-sm">
+                <CardContent className="flex flex-col gap-4 p-5 lg:p-6">
                   {currentQuestion ? (
                     <div key={currentQuestion._id as string} className="question-enter">
                       {/* Flag button */}

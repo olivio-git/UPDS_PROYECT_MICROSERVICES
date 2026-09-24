@@ -255,6 +255,9 @@ const OtpVerificator = ({
                       <InputOTPSlot
                         key={index}
                         index={index}
+                        /* El tamaño por defecto (size-8) es demasiado
+                           discreto para el campo principal de la pantalla. */
+                        className="size-12 rounded-lg border text-lg font-semibold first:rounded-l-lg last:rounded-r-lg"
                       />
                     ))}
                   </InputOTPGroup>
