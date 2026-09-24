@@ -12,6 +12,16 @@
  * exam_result, and the notification dedupe key stops the second candidate
  * notification/email.
  *
+ * A third, independent phase seeds a weighted-sections exam/attempt/
+ * questions/responses directly in Mongo (bypassing the HTTP exam-taking
+ * flow, per design.md's Testing Strategy) and calls grading-service directly
+ * to assert the stored `percentage` matches the weighted formula (not the
+ * raw sum) and that `passed`/`passingScore` are computed correctly — both in
+ * the HTTP response and in the STORED exam_results document. It includes a
+ * rounding boundary case (3 equal-weight sections at exactly 70% with
+ * passingScore 70 must store 70 / passed) and a `/regrade-session` pass that
+ * must keep the weighted percentage and `passed` consistent.
+ *
  * Creates one throwaway student (@example.com — a reserved, non-routable
  * domain per RFC 2606, so any attempted email is never delivered), one exam
  * built from the question bank and one in-progress session, and deletes
@@ -26,8 +36,14 @@ const mongoose = require('mongoose');
 const jwt = require('jsonwebtoken');
 const { Kafka } = require('kafkajs');
 const { createEvent, publishEvent, TOPICS, EXAM_ATTEMPT_FINISHED } = require('@cba/events');
+const Redis = require('ioredis');
 
 const GATEWAY = process.env.E2E_GATEWAY_URL || 'http://api-gateway';
+// exam-service's own outbound call to grading-service (same env var
+// examTaking.service.ts uses) — Phase 3 calls grading-service directly,
+// service-to-service, instead of driving the HTTP exam-taking flow.
+const GRADING_SERVICE_URL = process.env.GRADING_SERVICE_URL || 'http://grading-service:3007';
+const SERVICE_TOKEN = process.env.SERVICE_TOKEN;
 const TAG = `e2e-grading-${Date.now()}`;
 const { ObjectId } = mongoose.Types;
 
@@ -42,6 +58,15 @@ async function api(method, path, token, body) {
     method,
     headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
     body: body ? JSON.stringify(body) : undefined,
+  });
+  return { status: res.status, json: await res.json().catch(() => ({})) };
+}
+
+async function gradingApi(path, body) {
+  const res = await fetch(`${GRADING_SERVICE_URL}${path}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'X-Service-Token': SERVICE_TOKEN },
+    body: JSON.stringify(body),
   });
   return { status: res.status, json: await res.json().catch(() => ({})) };
 }
@@ -95,7 +120,12 @@ async function main() {
   const exams = mongoose.connection.db; // exam database (cba_platform)
   const people = mongoose.connection.client.db(process.env.MONGO_UMS_DB_NAME || 'cba_identity_db');
   const notif = mongoose.connection.client.db(process.env.MONGO_NOTIFICATION_DB_NAME || 'cba_notification_db');
-  const created = { personId: null, sessionId: null, examId: null };
+  const created = {
+    personId: null, sessionId: null, examId: null,
+    // Phase 3 seeds (one entry per weighted case).
+    weightedExamIds: [], weightedAttemptIds: [], weightedQuestionIds: [],
+    weightedCandidateIds: [], weightedSessionIds: [],
+  };
 
   let kafkaProducer = null;
 
@@ -235,8 +265,177 @@ async function main() {
 
     const countAfterDuplicate = await exams.collection('exam_results').countDocuments({ attemptId });
     check('still exactly one exam_result after duplicate redelivery', countAfterDuplicate === 1, `${countAfterDuplicate}`);
+
+    // ---- Phase 3: weighted-section scoring + stored pass/fail ------------
+    // Deterministic seed, independent of Phase 1/2: a throwaway exam with
+    // two sections (weight 70/30), one answered fully correct and the other
+    // fully wrong, so the weighted percentage (70) differs from what a naive
+    // raw average would give, and the configured passingScore (80) fails it.
+    if (!SERVICE_TOKEN) {
+      console.log('SKIP Phase 3 (weighted scoring): SERVICE_TOKEN not present in this container env.');
+    } else {
+      // Seeds one sectioned exam + completed attempt + responses directly in
+      // Mongo. Each section lists its questions as { points, correct }.
+      // Questions are inserted with isActive: false so they never leak into
+      // the real bank (grading looks questions up by _id only).
+      const seedWeightedCase = async (label, examType, passingScore, sections) => {
+        const examId = new ObjectId();
+        const candidateId = new ObjectId();
+        const sessionId = new ObjectId();
+        const attemptId = new ObjectId();
+        created.weightedExamIds.push(examId);
+        created.weightedCandidateIds.push(candidateId);
+        created.weightedSessionIds.push(sessionId);
+        await exams.collection('exams').insertOne({
+          _id: examId, name: `${TAG}-${label}`, description: 'E2E weighted-section throwaway exam',
+          type: examType, targetLevel: pick._id.level,
+          structure: {
+            sections: sections.map((sec) => ({ name: sec.name, competency: pick._id.competency, duration: 30, questionCount: sec.questions.length, weight: sec.weight })),
+            totalDuration: 30 * sections.length, passingScore,
+          },
+          configuration: { randomizeQuestions: false, allowReview: true, showResults: true, attemptsAllowed: 1, timeBetweenAttempts: 0 },
+          isActive: true, isTemplate: false, createdBy: new ObjectId(), createdAt: new Date(), updatedAt: new Date(),
+        });
+
+        const questionDocs = [];
+        const responseDocs = [];
+        const sectionsStructure = sections.map((sec, i) => {
+          const ids = sec.questions.map(({ points, correct }) => {
+            const qId = new ObjectId();
+            questionDocs.push({
+              _id: qId, type: 'multiple_choice', competency: pick._id.competency, level: pick._id.level, difficulty: 1,
+              content: { question: 'E2E weighted-scoring throwaway question', options: [{ id: 'a', text: 'A', isCorrect: true }, { id: 'b', text: 'B', isCorrect: false }] },
+              metadata: { points }, statistics: { timesUsed: 0, averageScore: 0, averageTime: 0, difficulty: 1 },
+              isActive: false, createdBy: new ObjectId(), createdAt: new Date(), updatedAt: new Date(),
+            });
+            responseDocs.push({
+              sessionId, candidateId, examId, questionId: qId, competency: pick._id.competency,
+              answer: { selectedOptions: [correct ? 'a' : 'b'] }, timeSpent: 10, attempts: 1, createdAt: new Date(), updatedAt: new Date(),
+            });
+            return qId;
+          });
+          return { id: String(i), name: sec.name, competency: pick._id.competency, duration: 30, weight: sec.weight, questionCount: ids.length, questionIds: ids };
+        });
+        await exams.collection('questions').insertMany(questionDocs);
+        created.weightedQuestionIds.push(...questionDocs.map((q) => q._id));
+
+        await exams.collection('attempts').insertOne({
+          _id: attemptId, sessionId, candidateId, examId,
+          status: 'completed', startedAt: new Date(now - 60_000), finishedAt: new Date(),
+          timeAllowedSeconds: 3600, questionIds: questionDocs.map((q) => q._id), sectionsStructure,
+          createdAt: new Date(), updatedAt: new Date(),
+        });
+        created.weightedAttemptIds.push(attemptId);
+        await exams.collection('responses').insertMany(responseDocs);
+        return { attemptId, sessionId };
+      };
+
+      // Case 1: two sections (weight 70/30), A fully correct, B fully wrong →
+      // weighted 70 (raw average would be 50); passingScore 80 fails it.
+      const case1 = await seedWeightedCase('weighted', 'final', 80, [
+        { name: 'Sección A', weight: 70, questions: [{ points: 10, correct: true }] },
+        { name: 'Sección B', weight: 30, questions: [{ points: 10, correct: false }] },
+      ]);
+      const gradeRes = await gradingApi('/api/v1/grading/exam', { attemptId: String(case1.attemptId) });
+      check('weighted exam grades successfully', gradeRes.status === 200, `HTTP ${gradeRes.status} ${JSON.stringify(gradeRes.json)}`);
+      const gradedData = gradeRes.json?.data || {};
+      check('scoringMethod is weighted_sections (not raw sum)', gradedData.scoringMethod === 'weighted_sections', `${gradedData.scoringMethod}`);
+      check('percentage equals the weighted formula (Σp·w/Σw = 70)', gradedData.percentage === 70, `${gradedData.percentage}`);
+      check('passingScore stored from exam.structure.passingScore', gradedData.passingScore === 80, `${gradedData.passingScore}`);
+      check('passed is false below the configured threshold', gradedData.passed === false, `${gradedData.passed}`);
+
+      const stored1 = await exams.collection('exam_results').findOne({ attemptId: case1.attemptId });
+      check('[stored] weighted exam_result exists', !!stored1);
+      check('[stored] percentage = 70 (weighted, not raw 50)', stored1?.percentage === 70, `${stored1?.percentage}`);
+      check('[stored] passed = false', stored1?.passed === false, `${stored1?.passed}`);
+      check('[stored] passingScore = 80', stored1?.passingScore === 80, `${stored1?.passingScore}`);
+      check('[stored] scoringMethod = weighted_sections', stored1?.scoringMethod === 'weighted_sections', `${stored1?.scoringMethod}`);
+      const secs1 = (stored1?.sections || []).map((x) => `${x.weight}/${x.weightedPercentage}`).join(',');
+      check('[stored] sections carry weight/weightedPercentage (70/70, 30/0)', secs1 === '70/70,30/0', secs1);
+
+      // Case 2 (rounding boundary): 3 equal-weight sections, each at exactly
+      // 70% (7 of 10 points), passingScore 70 → must store exactly 70 and pass.
+      // Summing per-section rounded contributions would yield 69.9 and fail.
+      const seventyPercent = [{ points: 7, correct: true }, { points: 3, correct: false }];
+      const case2 = await seedWeightedCase('boundary', 'final', 70, [
+        { name: 'Sección 1', weight: 33.33, questions: seventyPercent },
+        { name: 'Sección 2', weight: 33.33, questions: seventyPercent },
+        { name: 'Sección 3', weight: 33.33, questions: seventyPercent },
+      ]);
+      const boundaryRes = await gradingApi('/api/v1/grading/exam', { attemptId: String(case2.attemptId) });
+      check('boundary exam grades successfully', boundaryRes.status === 200, `HTTP ${boundaryRes.status}`);
+      const stored2 = await exams.collection('exam_results').findOne({ attemptId: case2.attemptId });
+      check('[stored] boundary percentage = 70 (no double-rounding drift)', stored2?.percentage === 70, `${stored2?.percentage}`);
+      check('[stored] boundary passed = true at passingScore 70', stored2?.passed === true, `${stored2?.passed}`);
+      check('[stored] boundary passingScore = 70', stored2?.passingScore === 70, `${stored2?.passingScore}`);
+      check('[stored] boundary scoringMethod = weighted_sections', stored2?.scoringMethod === 'weighted_sections', `${stored2?.scoringMethod}`);
+      const secs2 = (stored2?.sections || []).map((x) => x.weight).join(',');
+      check('[stored] boundary sections keep their weights', secs2 === '33.33,33.33,33.33', secs2);
+
+      // /regrade-session (teacher "re-calificar sesión" button): tamper case 1
+      // so the auto-grader sees a changed score (a question wrongly stored as
+      // 0 with a stale percentage/passed), then regrade. It must rewrite the
+      // same facts gradeExam produces — weighted 70 and passed=false — not the
+      // raw totalScore/maxScore (50) with a stale `passed`.
+      if (stored1) {
+        const correctIdx = stored1.questionResults.findIndex((qr) => qr.score > 0);
+        await exams.collection('exam_results').updateOne(
+          { _id: stored1._id },
+          { $set: { [`questionResults.${correctIdx}.score`]: 0, percentage: 0, passed: true } }
+        );
+        const regradeRes = await gradingApi('/api/v1/grading/regrade-session', { sessionId: String(case1.sessionId) });
+        check('regrade-session succeeds and regrades the tampered result',
+          regradeRes.status === 200 && regradeRes.json?.data?.regraded === 1 && regradeRes.json?.data?.errors === 0,
+          `HTTP ${regradeRes.status} ${JSON.stringify(regradeRes.json?.data ?? regradeRes.json)}`);
+        const regraded1 = await exams.collection('exam_results').findOne({ attemptId: case1.attemptId });
+        check('[stored] after regrade-session percentage = 70 (weighted, not raw 50)', regraded1?.percentage === 70, `${regraded1?.percentage}`);
+        check('[stored] after regrade-session passed = false (recomputed, not stale)', regraded1?.passed === false, `${regraded1?.passed}`);
+        check('[stored] after regrade-session scoringMethod/passingScore intact',
+          regraded1?.scoringMethod === 'weighted_sections' && regraded1?.passingScore === 80,
+          `${regraded1?.scoringMethod}/${regraded1?.passingScore}`);
+      }
+
+      // Grading notifications are delivered asynchronously (Kafka →
+      // notifications-service). Wait for them before cleanup so they can't
+      // land after the delete and be left behind as orphans.
+      const weightedRecipients = created.weightedCandidateIds.map(String);
+      const notified = await waitFor(async () => {
+        const n = await notif.collection('user_notifications').countDocuments({ recipientId: { $in: weightedRecipients } });
+        return n >= weightedRecipients.length ? n : null;
+      }, 15_000);
+      console.log(`Phase 3 in-app notifications observed before cleanup: ${notified ?? 'timeout'}`);
+    }
   } finally {
     if (kafkaProducer) await kafkaProducer.disconnect().catch(() => {});
+    // Collect every exam_result id this run produced before deleting them, so
+    // notifications-service's Redis dedupe keys (notif:grading:<examResultId>:*)
+    // can be cleared too.
+    const seededAttemptIds = [...created.weightedAttemptIds];
+    if (created.sessionId) {
+      seededAttemptIds.push(...(await exams.collection('attempts').find({ sessionId: created.sessionId }).project({ _id: 1 }).toArray()).map((a) => a._id));
+    }
+    const seededResultIds = (await exams.collection('exam_results')
+      .find({ $or: [{ attemptId: { $in: seededAttemptIds } }, ...(created.sessionId ? [{ sessionId: created.sessionId }] : [])] })
+      .project({ _id: 1 }).toArray()).map((r) => String(r._id));
+    if (seededResultIds.length) {
+      const redis = new Redis({
+        host: process.env.REDIS_HOST || 'redis',
+        port: Number(process.env.REDIS_PORT || 6379),
+        password: process.env.REDIS_PASSWORD || undefined,
+        lazyConnect: true, maxRetriesPerRequest: 1,
+      });
+      try {
+        await redis.connect();
+        for (const resultId of seededResultIds) {
+          const keys = await redis.keys(`notif:grading:${resultId}:*`);
+          if (keys.length) await redis.del(...keys);
+        }
+      } catch (e) {
+        console.log(`WARN: could not clear notification dedupe keys in Redis (${e.message}); they expire via TTL.`);
+      } finally {
+        redis.disconnect();
+      }
+    }
     if (created.sessionId) {
       const ids = (await exams.collection('attempts').find({ sessionId: created.sessionId }).project({ _id: 1 }).toArray()).map((a) => a._id);
       await exams.collection('exam_results').deleteMany({ $or: [{ attemptId: { $in: ids } }, { sessionId: created.sessionId }] });
@@ -245,6 +444,14 @@ async function main() {
       await exams.collection('sessions').deleteOne({ _id: created.sessionId });
     }
     if (created.examId) await exams.collection('exams').deleteOne({ _id: created.examId });
+    if (created.weightedExamIds.length) {
+      await exams.collection('exam_results').deleteMany({ $or: [{ examId: { $in: created.weightedExamIds } }, { attemptId: { $in: created.weightedAttemptIds } }] });
+      await exams.collection('responses').deleteMany({ examId: { $in: created.weightedExamIds } });
+      await exams.collection('attempts').deleteMany({ _id: { $in: created.weightedAttemptIds } });
+      await exams.collection('questions').deleteMany({ _id: { $in: created.weightedQuestionIds } });
+      await exams.collection('exams').deleteMany({ _id: { $in: created.weightedExamIds } });
+      await notif.collection('user_notifications').deleteMany({ recipientId: { $in: created.weightedCandidateIds.map(String) } });
+    }
     if (created.personId) {
       await notif.collection('user_notifications').deleteMany({ recipientId: String(created.personId) });
       await people.collection('candidates').deleteMany({ _id: created.personId });
