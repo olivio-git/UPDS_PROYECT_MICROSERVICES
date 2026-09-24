@@ -47,7 +47,7 @@ export function SessionListView({ sessions }: { sessions: UpcomingSession[] }) {
   const visible = sessions.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
 
   return (
-    <div className="bg-card border border-border rounded-xl overflow-hidden">
+    <div className="bg-card border border-border overflow-hidden">
       <div className="px-4 py-3 border-b border-border flex items-center justify-between">
         <h3 className="text-sm font-semibold text-foreground">Todas las sesiones ({sessions.length})</h3>
         {totalPages > 1 && <span className="text-xs text-muted-foreground">Página {page + 1} de {totalPages}</span>}

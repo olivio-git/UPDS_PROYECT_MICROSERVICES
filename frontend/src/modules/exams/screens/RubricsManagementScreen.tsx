@@ -163,7 +163,7 @@ const RubricsManagementScreen = () => {
   const renderContent = () => {
     if (viewMode === "create" || (viewMode === "edit" && selectedRubric)) {
       return (
-        <div className="bg-card border border-border rounded-xl p-6">
+        <div className="bg-card border border-border p-6">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-lg font-semibold text-foreground">
               {viewMode === "edit" ? "Editar Rúbrica" : "Nueva Rúbrica"}
@@ -188,7 +188,7 @@ const RubricsManagementScreen = () => {
 
     // Vista de tabla (por defecto)
     return (
-      <div className="space-y-6">
+      <div className="flex flex-1 min-h-0 flex-col gap-3">
         {/* Header con filtros */}
         <RubricTableHeader
           filters={filters}
@@ -221,7 +221,7 @@ const RubricsManagementScreen = () => {
 
   return (
     <MainLayout gradientVariant="aurora">
-      <div className="epilogue-uniquifier p-3">
+      <div className="flex h-full min-h-0 flex-col gap-3 p-3 epilogue-uniquifier">
         {renderContent()}
       </div>
 

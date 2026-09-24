@@ -61,7 +61,7 @@ export function MonthCalendar({ viewDate, onViewDateChange, sessionsByDay, selec
   const todayKey = localDayKey(new Date());
 
   return (
-    <div className="bg-card border border-border rounded-xl overflow-hidden">
+    <div className="bg-card border border-border overflow-hidden">
       <div className="px-4 py-3 border-b border-border flex items-center justify-between">
         <div className="flex items-center gap-1">
           <button type="button" aria-label="Mes anterior" onClick={() => onViewDateChange(new Date(year, month - 1, 1))}

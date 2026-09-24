@@ -785,7 +785,7 @@ const ExamRunnerHTTP: React.FC = () => {
 
       <div className="flex h-full flex-col">
         {/* ── Top bar: timer gets real weight, position is stated once ── */}
-        <header className="shrink-0 border-b border-border bg-card px-4 py-2.5 shadow-sm">
+        <header className="shrink-0 border-b border-border bg-card px-4 py-2.5">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div className="flex flex-wrap items-center gap-3">
               {/* Timer — the single most prominent element of the header,
@@ -894,7 +894,7 @@ const ExamRunnerHTTP: React.FC = () => {
             <div className="flex min-h-0 flex-1 flex-col overflow-auto p-3">
               {/* The card owns the whole pane: a short question used to leave
                   a third of the screen as empty tint below it. */}
-              <Card className="flex flex-col bg-card border border-border shadow-sm">
+              <Card flat className="flex flex-col">
                 <CardContent className="flex flex-col gap-4 p-5 lg:p-6">
                   {currentQuestion ? (
                     <div key={currentQuestion._id as string} className="question-enter">

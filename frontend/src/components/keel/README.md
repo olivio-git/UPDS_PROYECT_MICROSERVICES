@@ -101,6 +101,21 @@ case for the existing `src/components/atoms/input-otp.tsx`, so this port does no
 anything — the blinking caret animation silently no-ops the same way it already did. Fixing it
 means wiring `@plugin "tailwindcss-animate";` app-wide, which is out of scope for this slice.
 
+## Known deviation: `Card` used with `rounded-none` overrides (flat-layout pass, 2026-09-24)
+
+The teacher/admin screens were reworked to drop the "card floating on a grey canvas" look —
+page-level containers, toolbars, table wrappers, stat panels and section wrappers now sit flush
+against `bg-background`, separated by `border-border` hairlines, with no `rounded-*`/`shadow-*`.
+keel's `card.tsx` hardcodes `rounded-xl` for all consumers (it has no flat/layout variant), so
+per the house rule below this was **not** forked — call sites that use `Card` as a layout surface
+now pass `className="rounded-none"` instead (see `modules/exams/components/SessionForm.tsx`'s
+three step `<Card className="rounded-none">` panels). Controls, popovers and modals keep the
+default radius; this only touches `Card` used as a full-width section wrapper.
+
+Follow-up for keel: consider adding a `variant="flat"` (or similar) to `card.tsx` that drops
+`rounded-xl` — cleaner than every consumer overriding via `className`, and keeps the override
+from silently breaking if the base classlist changes shape upstream.
+
 ## Rule
 
 Fixes to these components belong **upstream in keel first**, then get re-ported here. Do not

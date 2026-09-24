@@ -72,7 +72,7 @@ export function ReportFiltersBar({ filters, sessions, variant }: ReportFiltersBa
   const { draft, dateRange } = filters;
 
   return (
-    <div className="flex flex-wrap items-center gap-2 bg-card border border-border rounded-lg px-3 py-2">
+    <div className="flex flex-wrap items-center gap-2 bg-card border border-border px-3 py-2">
       <Select
         value={draft.gestion ? String(draft.gestion) : ALL}
         onValueChange={(v) => filters.setGestion(v === ALL ? undefined : Number(v))}

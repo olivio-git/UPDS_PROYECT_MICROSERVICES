@@ -68,7 +68,7 @@ const AcademicConfigScreen = () => {
               <button
                 key={option.path}
                 onClick={() => navigate(option.path)}
-                className={`group flex items-center gap-4 bg-card border ${option.border} ${option.hoverBorder} rounded-lg p-5 text-left transition-all duration-200 hover:bg-muted/30 hover:shadow-sm`}
+                className={`group flex items-center gap-4 bg-card border ${option.border} ${option.hoverBorder} rounded-lg p-5 text-left transition-all duration-200 hover:bg-muted/30`}
               >
                 <div className={`shrink-0 p-2.5 rounded-lg ${option.bg} border ${option.border}`}>
                   <Icon className={`h-5 w-5 ${option.accent}`} />

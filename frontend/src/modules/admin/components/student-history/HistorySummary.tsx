@@ -23,7 +23,7 @@ export function HistorySummary({ summary }: { summary: StudentHistoryData['summa
   return (
     <div className="grid grid-cols-3 gap-2">
       {tiles.map(({ label, value, icon: Icon, bg, fg, tooltip }) => (
-        <div key={label} title={tooltip} className="bg-card border border-border rounded-lg p-3 flex items-center gap-2.5 cursor-default">
+        <div key={label} title={tooltip} className="bg-card border border-border p-3 flex items-center gap-2.5 cursor-default">
           <div className={`w-8 h-8 rounded-lg ${bg} flex items-center justify-center shrink-0`}>
             <Icon className={`h-4 w-4 ${fg}`} />
           </div>

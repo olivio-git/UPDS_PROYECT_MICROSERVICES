@@ -54,7 +54,7 @@ export function UpcomingHeader({ data, viewMode, onToggleView, onExport, onRefre
         </div>
 
         {stats && (
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-px bg-border/40 rounded-lg overflow-hidden border border-border/40">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-px bg-border/40 overflow-hidden border border-border/40">
             {stats.map(({ label, value, icon: Icon, iconClass, valueClass }) => (
               <div key={label} className="bg-card/60 px-3 py-2.5 flex items-center gap-2.5">
                 <Icon className={cn('h-3.5 w-3.5', iconClass)} />

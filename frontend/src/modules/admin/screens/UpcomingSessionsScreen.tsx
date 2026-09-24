@@ -71,7 +71,7 @@ const UpcomingSessionsScreen: React.FC = () => {
 
   return (
     <MainLayout>
-      <div className="w-full space-y-3 p-3">
+      <div className="flex h-full min-h-0 w-full flex-col gap-3 overflow-auto p-3">
         <UpcomingHeader
           data={data}
           viewMode={viewMode}
@@ -85,14 +85,14 @@ const UpcomingSessionsScreen: React.FC = () => {
         {data && <StatusFilterChips value={statusFilter} onChange={setStatusFilter} counts={counts} />}
 
         {upcoming.isPending && (
-          <div className="flex items-center justify-center py-20 bg-card border border-border rounded-xl">
+          <div className="flex items-center justify-center py-20 bg-card border border-border">
             <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
             <span className="ml-2.5 text-sm text-muted-foreground">Cargando sesiones...</span>
           </div>
         )}
 
         {upcoming.isError && !data && (
-          <div className="flex flex-col items-center gap-3 py-16 bg-card border border-border rounded-xl">
+          <div className="flex flex-col items-center gap-3 py-16 bg-card border border-border">
             <AlertTriangle className="h-6 w-6 text-amber-500" />
             <p className="text-sm text-muted-foreground">Error cargando las próximas sesiones</p>
             <Button size="sm" variant="outline" onClick={() => upcoming.refetch()}>Reintentar</Button>

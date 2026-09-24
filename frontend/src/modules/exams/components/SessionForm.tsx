@@ -339,7 +339,7 @@ const SessionForm: React.FC<Props> = ({ session, onCancel, onSaved }) => {
 
       {/* ── Paso 1: Examen ── */}
       {step === 0 && (
-        <Card>
+        <Card flat>
           <CardContent className="flex flex-col gap-4">
             <Field>
               <FieldLabel htmlFor="sessionName">Nombre de la sesión *</FieldLabel>
@@ -404,7 +404,7 @@ const SessionForm: React.FC<Props> = ({ session, onCancel, onSaved }) => {
 
       {/* ── Paso 2: Cuándo ── */}
       {step === 1 && (
-        <Card>
+        <Card flat>
           <CardContent className="flex flex-col gap-4">
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <Field>
@@ -475,7 +475,7 @@ const SessionForm: React.FC<Props> = ({ session, onCancel, onSaved }) => {
 
       {/* ── Paso 3: Cómo ── */}
       {step === 2 && (
-        <Card>
+        <Card flat>
           <CardContent className="flex flex-col gap-4">
             <Field>
               <FieldLabel htmlFor="maxCandidates" className="flex items-center gap-1.5">
