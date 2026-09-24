@@ -15,6 +15,7 @@ import { useEffect, useState } from "react";
 import type { MCERLevel, ScoringType } from "../../constants/academic.constants";
 import type { Competency } from "../../types";
 import type { Rubric, RubricCriterion, RubricLevel } from "../../types/rubrics.types";
+import { distributeEvenly, formatWeight, isWeightSumValid, sumWeights } from "../../utils/weights";
 import CompetencySelector from "../shared/CompetencySelector";
 import MCERLevelSelector from "../shared/MCERLevelSelector";
 
@@ -142,20 +143,19 @@ const RubricForm = ({
   };
 
   const distributeWeightsEvenly = () => {
-    const evenWeight = Math.floor(100 / formData.criteria.length);
-    const remainder = 100 % formData.criteria.length;
-    
+    const weights = distributeEvenly(formData.criteria.length);
+
     setFormData(prev => ({
       ...prev,
       criteria: prev.criteria.map((criterion, index) => ({
         ...criterion,
-        weight: evenWeight + (index < remainder ? 1 : 0)
+        weight: weights[index] ?? 0
       }))
     }));
   };
 
   const calculateTotalWeight = () => {
-    return formData.criteria.reduce((total, criterion) => total + criterion.weight, 0);
+    return sumWeights(formData.criteria.map(criterion => criterion.weight));
   };
 
   const validateForm = () => {
@@ -192,8 +192,8 @@ const RubricForm = ({
 
     // Validar que los pesos sumen 100%
     const totalWeight = calculateTotalWeight();
-    if (totalWeight !== 100) {
-      newErrors.totalWeight = `Los pesos deben sumar 100% (actual: ${totalWeight}%)`;
+    if (!isWeightSumValid(totalWeight)) {
+      newErrors.totalWeight = `Los pesos deben sumar 100% (actual: ${formatWeight(totalWeight)}%)`;
     }
 
     setErrors(newErrors);
@@ -356,8 +356,8 @@ const RubricForm = ({
               <p className="text-muted-foreground">
                 Define los criterios que se utilizarán para evaluar esta competencia
               </p>
-              <div className={`text-sm ${calculateTotalWeight() === 100 ? 'text-green-400' : 'text-orange-400'}`}>
-                Total: {calculateTotalWeight()}%
+              <div className={`text-sm ${isWeightSumValid(calculateTotalWeight()) ? 'text-green-400' : 'text-orange-400'}`}>
+                Total: {formatWeight(calculateTotalWeight())}%
               </div>
             </div>
             {errors.totalWeight && (
