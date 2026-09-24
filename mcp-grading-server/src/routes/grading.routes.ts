@@ -22,7 +22,8 @@ import { autoGrade } from '../grading/auto-grader.js';
 import Groq from 'groq-sdk';
 import { config } from '../config.js';
 import { ObjectId } from 'mongodb';
-import { getQuestions, getExamResults } from '../db/collections.js';
+import { getQuestions, getExamResults, getAttempts, getExams } from '../db/collections.js';
+import { buildUnsetForUndefined, computeExamScoring, UNSETTABLE_GRADED_FIELDS } from '../grading/scoring.js';
 import { AUTO_GRADABLE_TYPES } from '../types/index.js';
 import type { IQuestion } from '../types/index.js';
 
@@ -309,6 +310,17 @@ gradingRouter.post(
       .toArray();
     const questionMap = new Map(questionDocs.map(q => [q._id.toString(), q]));
 
+    // 3.5. Fetch attempts (sectionsStructure) and exams (type, passingScore) in
+    // batch so the recompute below produces the same graded facts gradeExam does.
+    const attemptDocs = await getAttempts()
+      .find({ _id: { $in: results.map(r => r.attemptId) } })
+      .toArray();
+    const attemptMap = new Map(attemptDocs.map(a => [a._id.toString(), a]));
+    const examDocs = await getExams()
+      .find({ _id: { $in: results.map(r => r.examId) } })
+      .toArray();
+    const examMap = new Map(examDocs.map(e => [e._id.toString(), e]));
+
     // 4. Re-calificar cada resultado
     let regraded = 0;
     let unchanged = 0;
@@ -350,10 +362,22 @@ gradingRouter.post(
           continue;
         }
 
-        // Recalcular totales
-        const newTotalScore = Math.round(newQuestionResults.reduce((sum, qr) => sum + qr.score, 0) * 100) / 100;
-        const newMaxScore = newQuestionResults.reduce((sum, qr) => sum + qr.maxScore, 0);
-        const newPercentage = newMaxScore > 0 ? Math.round((newTotalScore / newMaxScore) * 100 * 10) / 10 : 0;
+        // Recalcular totales, secciones, porcentaje ponderado y aprobado con la
+        // misma lógica que gradeExam (grading-service es la fuente de verdad).
+        const attempt = attemptMap.get(result.attemptId.toString());
+        const exam = examMap.get(result.examId.toString());
+        // Without the attempt/exam the weighted facts can't be recomputed;
+        // count it as an error rather than overwriting with partial data.
+        if (!attempt) throw new Error(`Attempt ${result.attemptId} no encontrado`);
+        if (!exam) throw new Error(`Exam ${result.examId} no encontrado`);
+        const scoring = computeExamScoring({
+          questionResults: newQuestionResults,
+          sectionsStructure: attempt.sectionsStructure,
+          examType: exam.type,
+          examPassingScore: exam.structure?.passingScore,
+          status: result.status,
+        });
+        const newPercentage = scoring.percentage;
 
         // Recalcular competencyScores
         const competencyMap = new Map<string, { total: number; max: number; count: number; auto: number; ai: number; pending: number }>();
@@ -378,18 +402,21 @@ gradingRouter.post(
           pendingEvaluationCount: data.pending,
         }));
 
+        const regradedFields = {
+          questionResults: newQuestionResults,
+          totalScore: scoring.totalScore,
+          maxScore: scoring.maxScore,
+          percentage: scoring.percentage,
+          sections: scoring.sections,
+          scoringMethod: scoring.scoringMethod,
+          passingScore: scoring.passingScore,
+          passed: scoring.passed,
+          competencyScores: newCompetencyScores,
+          evaluatedAt: new Date(),
+        };
         await getExamResults().updateOne(
           { _id: result._id },
-          {
-            $set: {
-              questionResults: newQuestionResults,
-              totalScore: newTotalScore,
-              maxScore: newMaxScore,
-              percentage: newPercentage,
-              competencyScores: newCompetencyScores,
-              evaluatedAt: new Date(),
-            },
-          }
+          { $set: regradedFields, ...buildUnsetForUndefined(regradedFields, UNSETTABLE_GRADED_FIELDS) }
         );
 
         regraded++;
