@@ -7,14 +7,14 @@
 | Estimated changed lines | ~1595 total (1a 395, 1b 245, 2a 340, 2b 70, 3 345, 4 200) |
 | 400-line budget risk | Medium (1a at 395 is borderline; estimates are rough — actual diff may cross 400) |
 | Chained PRs recommended | Yes |
-| Suggested split | PR 1a → PR 1b → PR 2a → PR 2b → PR 3 → PR 4 (PR 2 split from the proposal's single PR 2 to stay under budget) |
+| Suggested split | PR 1a → PR 1a-bis → PR 1b → PR 2a → PR 2b → PR 3 → PR 4 (PR 2 split from the proposal's single PR 2 to stay under budget; 1a-bis split out of 1a to keep the write-time validation and its ExamForm fix under the 400-line budget) |
 | Delivery strategy | ask-on-risk |
-| Chain strategy | pending (orchestrator asks user before apply) |
+| Chain strategy | stacked-to-main (resolved during apply) |
 
-Decision needed before apply: Yes
+Decision needed before apply: No (resolved: stacked-to-main)
 Chained PRs recommended: Yes
-Chain strategy: pending
-400-line budget risk: Medium
+Chain strategy: stacked-to-main
+400-line budget risk: Medium (PR 1a landed at 404 lines; PR 1a-bis ~247 lines, comfortably under budget)
 
 ### Suggested Work Units
 
@@ -27,7 +27,7 @@ Chain strategy: pending
 | 5 | `showResults` visibility across student endpoint, event, email | PR 3 | Depends on PR 1b (event schema, resolvePassFail) |
 | 6 | Level mastery indicator (informational, non-blocking) | PR 4 | Depends on PR 1a (passed) and PR 3 (resultVisibility) |
 
-Merge order: 1a → 1b → 2a → 2b → 3 → 4. Revert order is the reverse. Each PR's fields are additive/optional, so partially-merged states stay backward compatible.
+Merge order: 1a → 1a-bis → 1b → 2a → 2b → 3 → 4. Revert order is the reverse. Each PR's fields are additive/optional, so partially-merged states stay backward compatible.
 
 ---
 
@@ -40,12 +40,32 @@ Merge order: 1a → 1b → 2a → 2b → 3 → 4. Revert order is the reverse. E
 - [x] 1a.3 Mirror the same fields in `exam-service/src/models/examResult.model.ts` — **lockstep checklist item**.
 - [x] 1a.4 Wire `mcp-grading-server/src/tools/grade-exam.ts`: pick `scoringMethod` (`sectionsStructure.length>0 && type!=='placement'` → weighted; else raw), compute percentage, call `decidePassed`, persist `passed`/`passingScore`/`scoringMethod`/`sections`. *(grading-pass-fail scenarios 1–2; grading-section-weights all 4 scenarios)*
 - [x] 1a.5 Update `mcp-grading-server/src/schemas/grading.schemas.ts` to accept the new result fields.
-- [ ] 1a.6 Add Zod `superRefine` to `exam-service/src/schemas/exam.schema.ts` (create + update, when `sections.length>0`): reject when `abs(Σweight-100) >= 0.01`. *(grading-section-weights: Weight Sum Validation on Write)* **Moved to PR 1a-bis** (shipping validation without the ExamForm fix would reject every UI-created sectioned exam: the form sends weight=10 per section). Implemented, parked as a patch until 1a-bis.
-- [ ] 1a.7 Create `exam-service/tests/examSchema.weights.test.ts`: sum=100 passes, sum=90 → 400, decimals tolerated. Verify: `npm --prefix exam-service test`. **Moved to PR 1a-bis** (shipping validation without the ExamForm fix would reject every UI-created sectioned exam: the form sends weight=10 per section). Implemented, parked as a patch until 1a-bis.
-- [ ] 1a.8 **PR 1a-bis**, shipped together with 1a.6/1a.7: Update `frontend/src/modules/exams/components/ExamForm.tsx`: section input becomes percentage weight with a running total and "distribute evenly" helper; fix line 343 to save `weight`, not `section.points`. Skipped this batch to stay near the 400-line review budget (backend + schema + tests + e2e already reached ~404 changed lines).
+- [x] 1a.6 Add Zod `superRefine` to `exam-service/src/schemas/exam.schema.ts` (create + update, when `sections.length>0`): reject when `abs(Σweight-100) >= 0.01`. *(grading-section-weights: Weight Sum Validation on Write)* **PR 1a-bis** — landed together with 1a.7/1a.8. Live-verified against the running stack: `POST /api/v1/exams` with sections 60/40 → 201, sections 60/30 → 400.
+- [x] 1a.7 Create `exam-service/tests/examSchema.weights.test.ts`: sum=100 passes, sum=90 → 400, decimals tolerated. Verify: `npm --prefix exam-service test`. **PR 1a-bis** — DONE, 5/5 tests pass (20/20 exam-service suite).
+- [x] 1a.8 **PR 1a-bis**, shipped together with 1a.6/1a.7: Update `frontend/src/modules/exams/components/ExamForm.tsx`: section input becomes percentage weight with a running total and "distribute evenly" helper; fix line 343 (now `weight: section.weight`) to save `weight`, not `section.points`. DONE — see PR 1a-bis notes below.
 - [x] 1a.9 Extend `scripts/e2e/grading-pipeline.e2e.js`: exam `passingScore=80`, two sections 70/30, attempt scoring 70% → assert `passed:false`, `passingScore:80`, `percentage` equals weighted formula. Verify: docker e2e run. DONE — ran against the live docker stack (rebuilt exam-service + grading-service), 14/14 checks passed including the 4 new weighted-scoring assertions.
 
 **Commits**: `feat(grading): add scoring.ts (weighted %, decidePassed, default passing score)` → `feat(grading): store passed/passingScore/scoringMethod on exam result` → `feat(exam-service): mirror result fields on examResult.model` → `feat(exam-service): validate section weights sum to 100` → `feat(frontend): ExamForm percentage weight + running total` → `test(e2e): weighted pass/fail assertions`.
+
+## PR 1a-bis — Section weight write-time validation + ExamForm UI fix
+
+**Start**: after 1a merged (or stacked on top of 1a's branch). **Finish**: `exam-service` rejects sectioned exams whose weights don't sum to 100 on create/update; `ExamForm.tsx` collects a real percentage weight per section (was silently sending `weight: section.points ?? 1`, a hidden field defaulting to 10 — every existing UI-created sectioned exam has legacy 10/10-style weights that don't sum to 100). **Rollback**: `git revert`; validation-only + UI fix, no data migration (legacy bad-weight exams are left as-is and only get flagged when a teacher re-saves them).
+
+- [x] 1a.6 (see above)
+- [x] 1a.7 (see above)
+- [x] 1a.8 `frontend/src/modules/exams/components/ExamForm.tsx`:
+  - Renamed the local per-section Zod field `points` → `weight` (`0..100`); removed the unused `structure.totalPoints` field (Zod schema, `Exam` type, `ExamSection` type, default values, and the totals-calculation effect) — confirmed via grep it was dead weight: the backend `IExam`/`examSchema` never had a `totalPoints` field (Mongoose strips it silently), and no screen ever reads `exam.structure.totalPoints`. `totalQuestions`/`totalDuration` (which ARE read, in the summary panel) are untouched.
+  - Added a "Peso (%)" number input per section, a live running total ("Peso total: X%", green when valid / orange when not) and an inline red error next to "Secciones del Examen", mirroring the existing `RubricForm.tsx` weight-sum UX (`distributeWeightsEvenly`/"Peso (%)"/orange-green total convention) rather than inventing a new pattern.
+  - Added a "Distribuir equitativamente" button (same `BarChart3` icon as RubricForm) that redistributes 100% evenly across all current sections, remainder to the first ones so the sum is always exactly 100.
+  - `addSection` now redistributes weights evenly across all sections (old + new) instead of leaving the new one at a fixed points-like default; `removeSection` redistributes evenly across the remaining sections. A brand-new exam's first section defaults to `weight: 100`.
+  - Editing an existing exam loads `structure.sections[].weight` as-is (no silent normalization) — if legacy weights don't sum to 100, the running total shows the real sum in orange and the teacher must either fix values manually or click "Distribuir equitativamente" before the form will submit.
+  - `onSubmit` now blocks (toast, Spanish) when the section weight sum is off by ≥0.01 from 100 — same tolerance as the backend's `superRefine` — so the UI fails fast instead of round-tripping a 400 from the server.
+  - Payload fix: `weight: section.points ?? 1` → `weight: section.weight`.
+  - Adaptive placement mode clears `structure.sections` to `[]` (existing effect, untouched) — the weight-sum check is skipped whenever `sections.length === 0`, so adaptive/placement exams are unaffected.
+  - Verify: `npx tsc -b` (clean) + `npm run build` (clean, only pre-existing unrelated chunk-size warning) + `npx eslint` (0 new issues — diffed against pre-change lint output, identical 19 pre-existing warnings/errors in this file, none touch the new code).
+  - Live-verified against the running docker stack (exam-service rebuilt): `POST /api/v1/exams` via the real teacher-auth + validation pipeline, sections `[60,40]` → 201, sections `[60,30]` → 400 "Validation error". Throwaway exam cleaned up after the check.
+
+**Commits**: `feat(exam-service): validate section weights sum to 100` → `test(exam-service): section weight sum validation` → `feat(frontend): ExamForm percentage weight input, running total and distribute-evenly helper`.
 
 ## PR 1b — Consumers read stored values + fallback helpers
 
