@@ -7,6 +7,22 @@ import { EXAM_SERVICE_URL } from '@/lib/serviceUrls';
 
 const API_BASE_URL = EXAM_SERVICE_URL;
 
+
+/**
+ * Pulls the backend's own message out of a failed request so the teacher sees
+ * the Spanish explanation (e.g. section weights) instead of "status code 400".
+ * Zod validation errors put the useful text in `errors[0].message`.
+ */
+const getApiErrorMessage = (body: unknown, fallback: string): string => {
+  if (body && typeof body === 'object') {
+    const { message, errors } = body as { message?: unknown; errors?: Array<{ message?: unknown }> };
+    const detail = Array.isArray(errors) ? errors[0]?.message : undefined;
+    if (typeof detail === 'string' && detail) return detail;
+    if (typeof message === 'string' && message) return message;
+  }
+  return fallback;
+};
+
 export const useExams = () => {
   const [exams, setExams] = useState<Exam[]>([]);
   const [loading, setLoading] = useState(false);
@@ -77,7 +93,6 @@ export const useExams = () => {
           'Content-Type': 'application/json'
         }
       });
-      console.log(response,' <--- response')
       if (response.status !== 200 && response.status !== 201) {
         throw new Error(`Error ${response.status}: ${response.statusText}`);
       }
@@ -92,7 +107,10 @@ export const useExams = () => {
         throw new Error(data.message || 'Error al crear examen');
       }
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Error desconocido';
+      const fallback = err instanceof Error ? err.message : 'Error desconocido';
+      const errorMessage = axios.isAxiosError(err)
+        ? getApiErrorMessage(err.response?.data, fallback)
+        : fallback;
       toast.error(errorMessage);
       console.error('Error creating exam:', err);
       return null;
@@ -105,7 +123,7 @@ export const useExams = () => {
     try {
       setLoading(true);
       
-      const response = await axios.put(`${API_BASE_URL}/exams/${id}`, examData, {
+      const response = await axios.put(`${API_BASE_URL}/api/v1/exams/${id}`, examData, {
         headers: {
           'Authorization': `Bearer ${authSDK.getAccessToken()}`,
           'Content-Type': 'application/json'
@@ -126,7 +144,10 @@ export const useExams = () => {
         throw new Error(data.message || 'Error al actualizar examen');
       }
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Error desconocido';
+      const fallback = err instanceof Error ? err.message : 'Error desconocido';
+      const errorMessage = axios.isAxiosError(err)
+        ? getApiErrorMessage(err.response?.data, fallback)
+        : fallback;
       toast.error(errorMessage);
       console.error('Error updating exam:', err);
       return null;
@@ -139,7 +160,7 @@ export const useExams = () => {
     try {
       setLoading(true);
       
-      const response = await fetch(`${API_BASE_URL}/exams/${id}`, {
+      const response = await fetch(`${API_BASE_URL}/api/v1/exams/${id}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${getAuthToken()}`,
@@ -174,7 +195,7 @@ export const useExams = () => {
     try {
       setLoading(true);
       
-      const response = await fetch(`${API_BASE_URL}/exams/${id}`, {
+      const response = await fetch(`${API_BASE_URL}/api/v1/exams/${id}`, {
         headers: {
           'Authorization': `Bearer ${getAuthToken()}`,
           'Content-Type': 'application/json'
@@ -206,7 +227,7 @@ export const useExams = () => {
     try {
       setLoading(true);
       
-      const response = await fetch(`${API_BASE_URL}/exams/${id}/clone`, {
+      const response = await fetch(`${API_BASE_URL}/api/v1/exams/${id}/clone`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${getAuthToken()}`,
@@ -215,7 +236,8 @@ export const useExams = () => {
       });
 
       if (!response.ok) {
-        throw new Error(`Error ${response.status}: ${response.statusText}`);
+        const body = await response.json().catch(() => null);
+        throw new Error(getApiErrorMessage(body, `Error ${response.status}: ${response.statusText}`));
       }
 
       const data: ApiResponse<Exam> = await response.json();
@@ -241,7 +263,7 @@ export const useExams = () => {
     try {
       setLoading(true);
       
-      const response = await fetch(`${API_BASE_URL}/exams/${examId}/generate-questions`, {
+      const response = await fetch(`${API_BASE_URL}/api/v1/exams/${examId}/generate-questions`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${getAuthToken()}`,
