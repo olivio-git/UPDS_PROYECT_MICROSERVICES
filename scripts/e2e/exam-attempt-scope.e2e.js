@@ -10,9 +10,11 @@
  * question bank and one in-progress session, and deletes everything it created
  * at the end, even on failure.
  *
- * Run inside the exam-service container:
- *   docker cp scripts/e2e/exam-attempt-scope.e2e.js exam-service:/app/e2e.js
- *   docker exec -w /app exam-service node e2e.js
+ * Run inside the exam-service container (it has mongoose and jsonwebtoken
+ * in /app/exam-service/node_modules — that's the image's only node_modules,
+ * so this must run with cwd /app/exam-service, not /app):
+ *   docker cp scripts/e2e/exam-attempt-scope.e2e.js exam-service:/app/exam-service/exam-attempt-scope.e2e.js
+ *   docker exec -w /app/exam-service exam-service node exam-attempt-scope.e2e.js
  */
 const mongoose = require('mongoose');
 const jwt = require('jsonwebtoken');

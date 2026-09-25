@@ -253,8 +253,8 @@ jobs:
 
       - name: E2E - exam attempt scope
         run: |
-          docker cp scripts/e2e/exam-attempt-scope.e2e.js exam-service:/app/e2e.js
-          docker exec -w /app exam-service node e2e.js
+          docker cp scripts/e2e/exam-attempt-scope.e2e.js exam-service:/app/exam-service/exam-attempt-scope.e2e.js
+          docker exec -w /app/exam-service exam-service node exam-attempt-scope.e2e.js
 
       - name: E2E - identity privilege escalation
         run: |
