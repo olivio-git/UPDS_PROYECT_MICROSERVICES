@@ -3,6 +3,8 @@ import { KafkaService } from './kafka.service';
 import { logger } from '../utils/logger';
 import { cache } from '../config/redis';
 import { CONSTANTS } from '../utils/constants';
+import { assertRubricHasCriteria, assertRubricWeightsSumTo100 } from '../utils/assertRubricWeights';
+import { formatWeight } from '../utils/rubricWeights';
 
 export class RubricService {
   private kafkaService: KafkaService;
@@ -13,6 +15,12 @@ export class RubricService {
 
   async create(rubricData: Partial<IRubric>): Promise<IRubric> {
     try {
+      // Enforced here (not only in the route schema) so every write path —
+      // including clone — rejects missing criteria and criteria weights that
+      // don't sum to 100.
+      assertRubricHasCriteria(rubricData.criteria);
+      assertRubricWeightsSumTo100(rubricData.criteria);
+
       const rubric = new Rubric(rubricData);
       await rubric.save();
 
@@ -92,6 +100,11 @@ export class RubricService {
 
   async update(id: string, updateData: Partial<IRubric>): Promise<IRubric | null> {
     try {
+      if (updateData.criteria !== undefined) {
+        assertRubricHasCriteria(updateData.criteria);
+        assertRubricWeightsSumTo100(updateData.criteria);
+      }
+
       const rubric = await Rubric.findByIdAndUpdate(
         id,
         { $set: updateData },
@@ -157,6 +170,20 @@ export class RubricService {
       if (!originalRubric) {
         return null;
       }
+
+      // A legacy rubric may predate weight validation: don't copy invalid
+      // weights and don't normalize them silently — the teacher must fix them.
+      assertRubricHasCriteria(
+        originalRubric.criteria,
+        'No se puede clonar: la rúbrica original no tiene criterios. ' +
+          'Agrega al menos un criterio a la rúbrica antes de clonarla.'
+      );
+      assertRubricWeightsSumTo100(
+        originalRubric.criteria,
+        (total) =>
+          `No se puede clonar: los criterios de la rúbrica original suman ${formatWeight(total)}% de peso ` +
+          '(deben sumar 100%). Corrige los pesos de la rúbrica antes de clonarla.'
+      );
 
       const clonedData = {
         name: newName,
