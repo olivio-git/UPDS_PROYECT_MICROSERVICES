@@ -6,6 +6,7 @@ import { Question } from '../models/question.model';
 import { Response as ResponseModel } from '../models/response.model';
 import { Session } from '../models/session.model';
 import { logger } from '../utils/logger';
+import { toAttemptSummary, toStudentAdaptiveView } from '../utils/resultVisibility';
 import { env } from '../config/env';
 import { SessionService } from './session.service';
 import { KafkaService } from './kafka.service';
@@ -886,7 +887,12 @@ export class ExamTakingService {
   async attempts(sessionId: string, candidateId: string, countPermitted: any) {
     const attempts = await Attempt.find({ sessionId, candidateId }).sort({ startedAt: -1 }).exec();
     const isPermitted = attempts.length < countPermitted;
-    return { attempts, countPermitted:isPermitted };
+    // result-visibility: this endpoint only ever returns the caller's OWN
+    // attempts (scoped by req.userCandidateId), so it is always a student view.
+    // The raw Attempt carries adaptiveState.levelHistory (per-question
+    // score/level) — project to non-score fields unconditionally.
+    // (Mongoose doc getters expose the projected fields directly.)
+    return { attempts: attempts.map(a => toAttemptSummary(a as unknown as Record<string, any>)), countPermitted:isPermitted };
   }
 
   // ==================== BROWSER LOCKDOWN INFRACTIONS ====================
@@ -1247,7 +1253,8 @@ export class ExamTakingService {
       delete questionObj.content.correctAnswer;
     }
 
-    return {
+    // result-visibility: with showResults=false the runner must not show a level.
+    return toStudentAdaptiveView({
       question: questionObj,
       attemptId: attempt._id,
       adaptiveState: {
@@ -1258,7 +1265,7 @@ export class ExamTakingService {
         isFinished: false,
       },
       browserLockdown: (session as any).settings?.browserLockdown ?? false
-    };
+    }, exam);
   }
 
   async submitAdaptiveAnswer(sessionId: string, userCandidateId: string, questionId: string, answer: any) {
@@ -1427,7 +1434,9 @@ export class ExamTakingService {
       );
     }
 
-    return {
+    // result-visibility: showResults=false → no per-answer correctness/points
+    // and no level info in the response (the algorithm above already used them).
+    return toStudentAdaptiveView({
       finished,
       stopReason: state.stopReason,
       gradeResult: { isCorrect, score, maxScore, feedback: gradeResult.feedback },
@@ -1441,19 +1450,23 @@ export class ExamTakingService {
         isFinished: finished,
         stopReason: state.stopReason,
       }
-    };
+    }, exam);
   }
 
   async resumeAdaptiveExam(sessionId: string, candidateId: string) {
     const attempt = await Attempt.findOne({ sessionId, candidateId });
     if (!attempt) throw new Error('Attempt not found');
 
+    const exam = await Exam.findById(attempt.examId);
+
     if (attempt.status === 'completed' || attempt.adaptiveState?.isFinished) {
-      return { finished: true, adaptiveState: attempt.adaptiveState };
+      // result-visibility: the raw adaptiveState carries levelHistory
+      // (per-question correctness/score/level) — trimmed when hidden. A missing
+      // exam keeps the spec default (visible), as before this change.
+      return toStudentAdaptiveView({ finished: true, adaptiveState: attempt.adaptiveState }, exam);
     }
     if (attempt.status === 'expired') throw new Error('Exam time has expired');
 
-    const exam = await Exam.findById(attempt.examId);
     if (!exam) throw new Error('Exam not found');
 
     const placementConfig = (exam as any).placementConfig || {};
@@ -1470,7 +1483,7 @@ export class ExamTakingService {
 
     const nextQuestion = await this.pickAdaptiveQuestion(exam, state.currentLevel, state.askedQuestionIds);
     if (!nextQuestion) {
-      return { finished: true, adaptiveState: state };
+      return toStudentAdaptiveView({ finished: true, adaptiveState: state }, exam);
     }
 
     const questionObj = nextQuestion.toObject();
@@ -1482,7 +1495,7 @@ export class ExamTakingService {
 
     const session = await Session.findById(attempt.sessionId).select('settings.browserLockdown').lean();
 
-    return {
+    return toStudentAdaptiveView({
       finished: false,
       question: questionObj,
       attemptId: attempt._id,
@@ -1495,7 +1508,7 @@ export class ExamTakingService {
         isFinished: false,
       },
       browserLockdown: (session as any)?.settings?.browserLockdown ?? false
-    };
+    }, exam);
   }
 
   /**
