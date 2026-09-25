@@ -100,8 +100,13 @@ export function describeGradingVerdict(data: GradingEventForPassFail): GradingVe
   return { kind: GRADING_VERDICT_KIND.PENDING, passed: null, label: 'En Revisión' };
 }
 
-/** Email subject for the exam_graded template, derived from the verdict. */
-export function buildExamGradedSubject(examName: string, verdict: GradingVerdict): string {
+/**
+ * Email subject for the exam_graded template. `showResults===false`
+ * (result-visibility) uses a neutral "received" subject regardless of the
+ * verdict — the subject must never hint at pass/fail when the score is hidden.
+ */
+export function buildExamGradedSubject(examName: string, verdict: GradingVerdict, showResults: boolean = true): string {
+  if (!showResults) return `Examen recibido: ${examName}`;
   switch (verdict.kind) {
     case GRADING_VERDICT_KIND.PASSED:
       return `✅ Resultado de tu examen: ${examName}`;
