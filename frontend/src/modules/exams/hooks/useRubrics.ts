@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import { rubricsService } from '../services/rubrics.service';
 import type { Rubric, RubricFilters } from '../types/rubrics.types';
+import { getApiErrorMessage } from '../utils/apiError';
 
 export const useRubrics = () => {
   const [rubrics, setRubrics] = useState<Rubric[]>([]);
@@ -20,7 +21,7 @@ export const useRubrics = () => {
       setRubrics(data);
     } catch (error: any) {
       setIsError(true);
-      setErrorMessage(error.message || 'Error al cargar las rúbricas');
+      setErrorMessage(getApiErrorMessage(error?.response?.data, error?.message || 'Error al cargar las rúbricas'));
       console.error('Error loading rubrics:', error);
     } finally {
       setIsLoading(false);
@@ -34,7 +35,7 @@ export const useRubrics = () => {
       setRubrics(prev => [...prev, newRubric]);
       return true;
     } catch (error: any) {
-      toast.error(error.message || 'Error al crear la rúbrica');
+      toast.error(getApiErrorMessage(error?.response?.data, error?.message || 'Error al crear la rúbrica'));
       return false;
     }
   };
@@ -48,7 +49,7 @@ export const useRubrics = () => {
       ));
       return true;
     } catch (error: any) {
-      toast.error(error.message || 'Error al actualizar la rúbrica');
+      toast.error(getApiErrorMessage(error?.response?.data, error?.message || 'Error al actualizar la rúbrica'));
       return false;
     }
   };
@@ -60,7 +61,7 @@ export const useRubrics = () => {
       setRubrics(prev => prev.filter(rubric => rubric._id !== id));
       return true;
     } catch (error: any) {
-      toast.error(error.message || 'Error al eliminar la rúbrica');
+      toast.error(getApiErrorMessage(error?.response?.data, error?.message || 'Error al eliminar la rúbrica'));
       return false;
     }
   };
@@ -75,7 +76,7 @@ export const useRubrics = () => {
       toast.success(`${selectedRubrics.length} rúbrica(s) eliminada(s)`);
       return true;
     } catch (error: any) {
-      toast.error(error.message || 'Error al eliminar las rúbricas');
+      toast.error(getApiErrorMessage(error?.response?.data, error?.message || 'Error al eliminar las rúbricas'));
       return false;
     }
   };
@@ -87,7 +88,7 @@ export const useRubrics = () => {
       setRubrics(prev => [...prev, clonedRubric]);
       return true;
     } catch (error: any) {
-      toast.error(error.message || 'Error al clonar la rúbrica');
+      toast.error(getApiErrorMessage(error?.response?.data, error?.message || 'Error al clonar la rúbrica'));
       return false;
     }
   };
@@ -101,7 +102,7 @@ export const useRubrics = () => {
       ));
       return true;
     } catch (error: any) {
-      toast.error(error.message || 'Error al activar la rúbrica');
+      toast.error(getApiErrorMessage(error?.response?.data, error?.message || 'Error al activar la rúbrica'));
       return false;
     }
   };
@@ -115,7 +116,7 @@ export const useRubrics = () => {
       ));
       return true;
     } catch (error: any) {
-      toast.error(error.message || 'Error al desactivar la rúbrica');
+      toast.error(getApiErrorMessage(error?.response?.data, error?.message || 'Error al desactivar la rúbrica'));
       return false;
     }
   };
