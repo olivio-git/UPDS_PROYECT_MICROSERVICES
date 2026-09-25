@@ -13,7 +13,7 @@ It has three jobs: `typecheck`, `unit`, and `e2e` (which waits on the first two)
 | Job | Trigger | What it does |
 |---|---|---|
 | `typecheck` | every run | Matrix build over every TypeScript package: `shared/events`, `identity-service`, `notifications-service`, `exam-service`, `session-manager-service`, `mcp-grading-server`, `frontend`. Installs deps and runs each package's own `npm run build` (`tsc`, or `tsc -b && vite build` for the frontend). |
-| `unit` | every run | `exam-service` jest suite only (`npm test`). The other services have jest configured but no test files yet (see "Known gaps"). |
+| `unit` | every run | `exam-service` jest suite and the grading-service `node:test` suite (skipped on branches without a `test` script). The other services have jest configured but no test files yet (see "Known gaps"). |
 | `e2e` | every run, after `typecheck` + `unit` pass | Builds and boots the full stack with `docker compose`, waits for every service healthcheck, then runs the deterministic scripts in `scripts/e2e/*.e2e.js` against it (everything except `ai-grading.e2e.js`). |
 | `e2e` → AI grading step | only on `workflow_dispatch`, or `push` to `main`, **and** only if the `GROQ_API_KEY` secret is set | Runs `scripts/e2e/ai-grading.e2e.js`, which makes real calls to GROQ (costs quota/money). Never runs on `pull_request`, so a secret is never needed for (and never reaches) a forked PR. |
 

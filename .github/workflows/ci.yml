@@ -109,7 +109,7 @@ jobs:
   #    here so CI doesn't go red on suites that don't exist yet.
   # ---------------------------------------------------------------------
   unit:
-    name: unit (exam-service)
+    name: unit (exam-service, grading-service)
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -123,6 +123,7 @@ jobs:
           cache-dependency-path: |
             shared/events/package-lock.json
             exam-service/package-lock.json
+            mcp-grading-server/package-lock.json
 
       - name: Build shared @cba/events tarball
         working-directory: shared/events
@@ -137,6 +138,21 @@ jobs:
       - name: Run jest
         working-directory: exam-service
         run: npm test
+
+      # grading-service unit tests (node:test via tsx). Branches that predate
+      # them have no "test" script, so skip rather than fail there.
+      - name: Install grading-service dependencies
+        working-directory: mcp-grading-server
+        run: ../scripts/ci/install-with-local-events.sh
+
+      - name: Run grading-service unit tests
+        working-directory: mcp-grading-server
+        run: |
+          if node -e "process.exit(require('./package.json').scripts?.test ? 0 : 1)"; then
+            npm test
+          else
+            echo "No test script on this branch; skipping."
+          fi
 
   # ---------------------------------------------------------------------
   # 3. End-to-end checks against the real docker-compose stack. Only the
