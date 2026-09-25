@@ -1,6 +1,14 @@
 import { Request, Response } from 'express';
+import { isAdmin } from '../middleware/auth.middleware';
 import { NotificationService } from '../services/notification.service';
 import { ApiResponse } from '../types';
+
+// Express's query parser (qs) turns `?recipientId[$ne]=x` into an object,
+// which would reach a Mongo filter as a query operator. Any request field
+// that ends up in a Mongo filter must be a plain string (or absent).
+function isStringOrAbsent(value: unknown): value is string | undefined {
+  return value === undefined || typeof value === 'string';
+}
 
 export class NotificationController {
   constructor(private notificationService: NotificationService) {}
@@ -133,6 +141,14 @@ export class NotificationController {
     try {
       const { email, limit = 20 } = req.query;
 
+      if (!isStringOrAbsent(email)) {
+        return res.status(400).json({
+          success: false,
+          message: 'El parámetro email debe ser un texto',
+          error: 'Invalid email parameter'
+        });
+      }
+
       if (!email) {
         return res.status(400).json({
           success: false,
@@ -246,16 +262,35 @@ export class NotificationController {
     }
   };
 
-  // In-app notifications
+  // In-app notifications.
+  // Gated by requireAuth (see notification.routes.ts), which accepts either
+  // a verified end-user JWT (req.user set) or the service token
+  // (req.isServiceCall set, no req.user — no caller currently exercises this
+  // combination, but "privileged" below stays correct if one ever does). A
+  // non-admin, non-service caller can only ever see/modify their own
+  // notifications: any client-supplied recipientId is ignored for them, the
+  // recipientId always comes from the verified JWT instead. An admin (or a
+  // service) may pass an explicit recipientId to look up someone else's.
   listNotifications = async (req: Request, res: Response<ApiResponse>) => {
     try {
-      const { recipientId, onlyUnread = 'false', page = '1', limit = '50' } = req.query;
+      const authUser = req.user;
+      const privileged = req.isServiceCall === true || isAdmin(authUser);
+      const { recipientId: requestedRecipientId, onlyUnread = 'false', page = '1', limit = '50' } = req.query;
+
+      if (!isStringOrAbsent(requestedRecipientId)) {
+        return res.status(400).json({ success: false, message: 'recipientId must be a string' });
+      }
+
+      // Admins/services default to their own list when no recipientId is
+      // given (the dashboard bell never sends one); a service call with no
+      // recipientId and no user still falls through to the 400 below.
+      const recipientId = privileged ? (requestedRecipientId ?? authUser?.userId) : authUser?.userId;
       if (!recipientId) {
         return res.status(400).json({ success: false, message: 'recipientId is required' });
       }
-      console.log(recipientId,onlyUnread,page,limit,'first')
-      const items = await (this.notificationService as any).listInAppNotifications(
-        recipientId as string,
+
+      const items = await this.notificationService.listInAppNotifications(
+        recipientId,
         onlyUnread === 'true',
         parseInt(limit as string, 10) || 50,
         parseInt(page as string, 10) || 1
@@ -272,7 +307,17 @@ export class NotificationController {
       const { id } = req.params;
       if (!id) return res.status(400).json({ success: false, message: 'id is required' });
 
-      await (this.notificationService as any).markNotificationAsRead(id);
+      const authUser = req.user;
+      const privileged = req.isServiceCall === true || isAdmin(authUser);
+      const existing = await this.notificationService.getInAppNotificationById(id);
+      if (!existing) {
+        return res.status(404).json({ success: false, message: 'Notification not found' });
+      }
+      if (!privileged && existing.recipientId !== authUser?.userId) {
+        return res.status(403).json({ success: false, message: 'No puedes modificar notificaciones de otro usuario' });
+      }
+
+      await this.notificationService.markNotificationAsRead(id);
 
       res.status(200).json({ success: true, message: 'Notification marked as read' });
     } catch (error: any) {
@@ -285,7 +330,17 @@ export class NotificationController {
       const { id } = req.params;
       if (!id) return res.status(400).json({ success: false, message: 'id is required' });
 
-      const deleted = await (this.notificationService as any).deleteInAppNotification(id);
+      const authUser = req.user;
+      const privileged = req.isServiceCall === true || isAdmin(authUser);
+      const existing = await this.notificationService.getInAppNotificationById(id);
+      if (!existing) {
+        return res.status(404).json({ success: false, message: 'Notification not found' });
+      }
+      if (!privileged && existing.recipientId !== authUser?.userId) {
+        return res.status(403).json({ success: false, message: 'No puedes eliminar notificaciones de otro usuario' });
+      }
+
+      const deleted = await this.notificationService.deleteInAppNotification(id);
 
       if (deleted) {
         res.status(200).json({ success: true, message: 'Notification deleted' });
@@ -302,6 +357,11 @@ export class NotificationController {
       const { recipientId, recipientType, type, content, channel, priority, metadata } = req.body;
       if (!recipientId || !type) {
         return res.status(400).json({ success: false, message: 'recipientId y type son requeridos' });
+      }
+      // recipientId is later matched in listNotifications' filter; keep it a
+      // plain string so no operator object gets persisted.
+      if (typeof recipientId !== 'string' || typeof type !== 'string') {
+        return res.status(400).json({ success: false, message: 'recipientId y type deben ser texto' });
       }
       const notification = await this.notificationService.createInAppNotification({
         recipientId,

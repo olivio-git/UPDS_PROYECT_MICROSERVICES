@@ -32,6 +32,12 @@ export class NotificationInAppRepository {
     return { ...doc, _id: result.insertedId.toString() };
   }
 
+  async findById(notificationId: string): Promise<Notification | null> {
+    if (!ObjectId.isValid(notificationId)) return null;
+    const doc = await this.collection.findOne({ _id: new ObjectId(notificationId) as any });
+    return doc;
+  }
+
   async listNotifications(recipientId: string, onlyUnread = false, limit = 50, page = 1) {
     const query: any = { recipientId };
     if (onlyUnread) query.read = false;

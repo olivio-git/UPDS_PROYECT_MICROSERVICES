@@ -510,6 +510,11 @@ export class NotificationService {
       return await this.notificationInAppRepository.listNotifications(recipientId, onlyUnread, limit, page);
     }
 
+    async getInAppNotificationById(notificationId: string) {
+      if (!this.notificationInAppRepository) return null;
+      return await this.notificationInAppRepository.findById(notificationId);
+    }
+
     async markNotificationAsRead(notificationId: string) {
       if (!this.notificationInAppRepository) return;
       await this.notificationInAppRepository.markAsRead(notificationId);
