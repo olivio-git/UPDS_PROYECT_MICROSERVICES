@@ -1003,17 +1003,21 @@ class ExamService {
 
   // ==================== ADAPTIVE EXAM (CAT) ====================
 
+  // result-visibility: when the exam has showResults=false the backend sends
+  // `resultsHidden: true` and trims level/correctness info — `currentLevel`,
+  // `consecutiveWrong*`, `gradeResult` and `stopReason` are then absent.
   async startAdaptiveExam(sessionId: string): Promise<ApiResponse<{
     question: any;
     attemptId: string;
     adaptiveState: {
-      currentLevel: string;
+      currentLevel?: string;
       questionsAnswered: number;
       maxQuestions: number;
-      consecutiveWrongThreshold: number;
+      consecutiveWrongThreshold?: number;
       isFinished: boolean;
     };
     browserLockdown?: boolean;
+    resultsHidden?: boolean;
   }>> {
     try {
       const response = await this.api.post(`/exam-taking/${sessionId}/adaptive/start`);
@@ -1031,17 +1035,18 @@ class ExamService {
   ): Promise<ApiResponse<{
     finished: boolean;
     stopReason?: string;
-    gradeResult: { isCorrect: boolean; score: number; maxScore: number; feedback: string };
+    gradeResult?: { isCorrect: boolean; score: number; maxScore: number; feedback: string };
     nextQuestion?: any;
     adaptiveState: {
-      currentLevel: string;
+      currentLevel?: string;
       questionsAnswered: number;
       maxQuestions: number;
-      consecutiveWrongThreshold: number;
-      consecutiveWrong: number;
+      consecutiveWrongThreshold?: number;
+      consecutiveWrong?: number;
       isFinished: boolean;
       stopReason?: string;
     };
+    resultsHidden?: boolean;
   }>> {
     try {
       const response = await this.api.post(`/exam-taking/${sessionId}/adaptive/answer`, {
@@ -1061,6 +1066,7 @@ class ExamService {
     attemptId?: string;
     adaptiveState?: any;
     browserLockdown?: boolean;
+    resultsHidden?: boolean;
   }>> {
     try {
       const response = await this.api.get(`/exam-taking/${sessionId}/adaptive/resume`);

@@ -17,12 +17,14 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { toast } from 'sonner';
 import QuestionRenderer from '../components/QuestionRenderer';
 
+// Level/correctness fields are absent when the exam hides results
+// (showResults=false → backend sends `resultsHidden: true`).
 interface AdaptiveState {
-  currentLevel: string;
+  currentLevel?: string;
   questionsAnswered: number;
   maxQuestions: number;
-  consecutiveWrongThreshold: number;
-  consecutiveWrong: number;
+  consecutiveWrongThreshold?: number;
+  consecutiveWrong?: number;
   isFinished: boolean;
   stopReason?: string;
 }
@@ -57,6 +59,9 @@ const AdaptiveExamRunner: React.FC = () => {
   const [showFeedback, setShowFeedback] = useState(false);
   const [isFinished, setIsFinished] = useState(false);
   const [stopReason, setStopReason] = useState<string | undefined>(undefined);
+  // result-visibility: exam configured with showResults=false → no per-answer
+  // correctness, points or level anywhere in the runner.
+  const [resultsHidden, setResultsHidden] = useState(false);
   const [attemptId, setAttemptId] = useState<string | null>(null);
   const [navigatingToResult, setNavigatingToResult] = useState(false);
   // Candidate was removed from the session by a proctor/admin — blocking,
@@ -170,8 +175,9 @@ const AdaptiveExamRunner: React.FC = () => {
       try {
         const resumeResp = await examService.resumeAdaptiveExam(sessionId);
         if (resumeResp.success && resumeResp.data) {
-          const { finished, question, adaptiveState: state, attemptId: aid, browserLockdown } = resumeResp.data;
+          const { finished, question, adaptiveState: state, attemptId: aid, browserLockdown, resultsHidden: hidden } = resumeResp.data;
           useExamStore.setState({ browserLockdown: !!browserLockdown });
+          setResultsHidden(!!hidden);
           if (aid) setAttemptId(aid);
           if (finished) {
             handleFinished();
@@ -192,6 +198,7 @@ const AdaptiveExamRunner: React.FC = () => {
         const startResp = await examService.startAdaptiveExam(sessionId);
         if (startResp.success && startResp.data) {
           useExamStore.setState({ browserLockdown: !!startResp.data.browserLockdown });
+          setResultsHidden(!!startResp.data.resultsHidden);
           setAttemptId(startResp.data.attemptId);
           setCurrentQuestion(startResp.data.question);
           setAdaptiveState({ ...startResp.data.adaptiveState, consecutiveWrong: 0 });
@@ -239,10 +246,12 @@ const AdaptiveExamRunner: React.FC = () => {
       );
       if (!resp.success || !resp.data) throw new Error('Respuesta no procesada');
 
-      const { finished, gradeResult, nextQuestion, adaptiveState: newState, stopReason: reason } = resp.data;
+      const { finished, gradeResult, nextQuestion, adaptiveState: newState, stopReason: reason, resultsHidden: hidden } = resp.data;
 
-      // Show brief feedback
-      setFeedback(gradeResult);
+      // Show brief feedback — neutral "answer recorded" when results are hidden
+      // (the backend omits gradeResult in that case).
+      setResultsHidden(!!hidden);
+      setFeedback(hidden ? null : gradeResult ?? null);
       setShowFeedback(true);
 
       if (finished) {
@@ -333,10 +342,12 @@ const AdaptiveExamRunner: React.FC = () => {
               <CheckCircle className="h-16 w-16 text-green-400 mx-auto" />
               <div>
                 <h2 className="text-2xl font-bold text-foreground mb-2">
-                  ¡Examen Completado!
+                  {resultsHidden ? 'Examen completado' : '¡Examen Completado!'}
                 </h2>
                 <p className="text-foreground/80">
-                  {stopReason === 'consecutive_wrong'
+                  {resultsHidden
+                    ? 'Has completado el examen de nivelación.'
+                    : stopReason === 'consecutive_wrong'
                     ? 'El examen finalizó automáticamente por límite de errores consecutivos.'
                     : stopReason === 'max_questions'
                     ? 'Respondiste el máximo de preguntas permitidas.'
@@ -346,11 +357,15 @@ const AdaptiveExamRunner: React.FC = () => {
               {adaptiveState && (
                 <div className="bg-muted/50 rounded-lg p-4 text-sm text-foreground/80">
                   <p>Preguntas respondidas: <span className="text-foreground font-medium">{adaptiveState.questionsAnswered}</span></p>
-                  <p className="mt-1">Nivel final alcanzado: <span className={`font-medium px-2 py-0.5 rounded ${LEVEL_COLORS[adaptiveState.currentLevel] || 'text-foreground'}`}>{adaptiveState.currentLevel}</span></p>
+                  {!resultsHidden && adaptiveState.currentLevel && (
+                    <p className="mt-1">Nivel final alcanzado: <span className={`font-medium px-2 py-0.5 rounded ${LEVEL_COLORS[adaptiveState.currentLevel] || 'text-foreground'}`}>{adaptiveState.currentLevel}</span></p>
+                  )}
                 </div>
               )}
               <p className="text-muted-foreground text-sm">
-                Tus resultados estarán disponibles en unos momentos en la sección de resultados.
+                {resultsHidden
+                  ? 'Tus respuestas fueron registradas. Los resultados estarán disponibles cuando el docente los publique.'
+                  : 'Tus resultados estarán disponibles en unos momentos en la sección de resultados.'}
               </p>
               <Button
                 disabled={navigatingToResult}
@@ -433,9 +448,11 @@ const AdaptiveExamRunner: React.FC = () => {
             )}
             {adaptiveState && (
               <>
-                <Badge className={LEVEL_COLORS[adaptiveState.currentLevel] || 'bg-blue-500/20 text-blue-300 border-blue-500/30'}>
-                  Nivel actual: {adaptiveState.currentLevel}
-                </Badge>
+                {!resultsHidden && adaptiveState.currentLevel && (
+                  <Badge className={LEVEL_COLORS[adaptiveState.currentLevel] || 'bg-blue-500/20 text-blue-300 border-blue-500/30'}>
+                    Nivel actual: {adaptiveState.currentLevel}
+                  </Badge>
+                )}
                 <span className="text-muted-foreground text-sm">
                   Pregunta {adaptiveState.questionsAnswered + 1} de máx {adaptiveState.maxQuestions}
                 </span>
@@ -444,8 +461,14 @@ const AdaptiveExamRunner: React.FC = () => {
           </div>
         </div>
 
-        {/* Feedback overlay */}
-        {showFeedback && feedback && (
+        {/* Feedback overlay — neutral when results are hidden */}
+        {showFeedback && resultsHidden && (
+          <div className="p-4 rounded-lg border flex items-center gap-3 transition-all bg-muted/50 border-line">
+            <CheckCircle className="h-5 w-5 text-muted-foreground shrink-0" />
+            <p className="font-medium text-foreground">Respuesta registrada</p>
+          </div>
+        )}
+        {showFeedback && !resultsHidden && feedback && (
           <div className={`p-4 rounded-lg border flex items-center gap-3 transition-all ${
             feedback.isCorrect
               ? 'bg-green-500/10 border-green-500/30'
