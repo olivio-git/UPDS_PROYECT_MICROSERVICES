@@ -1,7 +1,7 @@
 import { Collection } from 'mongodb';
 import { getClient, getDB } from './connection.js';
 import { config } from '../config.js';
-import type { IAttempt, IResponse, IQuestion, IExamResult, IExam } from '../types/index.js';
+import type { IAttempt, IResponse, IQuestion, IExamResult, IExam, IRubric } from '../types/index.js';
 
 export function getAttempts(): Collection<IAttempt> {
   return getDB().collection<IAttempt>('attempts');
@@ -25,6 +25,12 @@ export function getExams(): Collection<IExam> {
 
 export function getSessions(): Collection {
   return getDB().collection('sessions');
+}
+
+export function getRubrics(): Collection<IRubric> {
+  // Rubrics live in exam-service's own DB (rubric.model.ts, default mongoose
+  // connection = cba_platform), same DB grading-service connects to.
+  return getDB().collection<IRubric>('rubrics');
 }
 
 export function getLevels(): Collection {
