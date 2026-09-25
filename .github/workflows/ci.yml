@@ -212,7 +212,10 @@ jobs:
             echo "Waiting for $svc ..."
             waited=0
             timeout=300
-            until [ "$(docker inspect -f '{{.State.Health.Status}}' "$svc" 2>/dev/null)" = "healthy" ]; do
+            # Resolve the container through compose: container_name can differ
+            # from the service name (notifications-service -> notification-service).
+            until cid="$(docker compose ps -q "$svc")" && [ -n "$cid" ] \
+              && [ "$(docker inspect -f '{{.State.Health.Status}}' "$cid" 2>/dev/null)" = "healthy" ]; do
               if [ "$waited" -ge "$timeout" ]; then
                 echo "::error::$svc did not become healthy within ${timeout}s"
                 docker compose logs --tail=200 "$svc" || true
