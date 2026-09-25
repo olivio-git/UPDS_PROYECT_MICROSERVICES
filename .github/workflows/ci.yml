@@ -241,6 +241,11 @@ jobs:
           done
           echo "api-gateway is reachable"
 
+      - name: Seed e2e fixtures
+        run: |
+          docker cp scripts/ci/seed-e2e.js exam-service:/app/exam-service/seed-e2e.js
+          docker exec -w /app/exam-service exam-service node seed-e2e.js
+
       - name: E2E - grading pipeline (Kafka)
         run: |
           docker cp scripts/e2e/grading-pipeline.e2e.js exam-service:/app/exam-service/grading-pipeline.e2e.js

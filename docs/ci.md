@@ -27,6 +27,10 @@ The `e2e` job builds and boots the same `docker-compose.yml` used locally, inclu
 
 All secrets the stack needs (`MONGO_ROOT_PASSWORD`, `JWT_SECRET`, etc.) are generated as dummy values directly in the workflow — nothing is committed, nothing is copied from a real `.env`. `GROQ_API_KEY` is the one exception: it's taken from a GitHub secret so the optional AI-grading step can use a real key when available.
 
+### Seed data (`scripts/ci/seed-e2e.js`)
+
+`scripts/e2e/*.e2e.js` were written against a developer's populated local database (177 questions across 6 levels, etc.), but the CI Mongo starts empty. Right after the health-wait step and before any e2e script runs, a **"Seed e2e fixtures"** step copies `scripts/ci/seed-e2e.js` into the `exam-service` container (same `docker cp` + `docker exec` pattern every e2e script itself uses) and runs it. It creates the one thing every script's own question-bank aggregation actually needs: 5 active `multiple_choice` questions (with real options and a correct answer) at a single `(level, competency)` pair, plus a matching `Level` document. Every doc is upserted by a fixed id and tagged `ciSeed: true`, so re-runs are idempotent and the fixture is trivially identifiable. No other pre-existing data is required — every e2e script creates its own throwaway users/exams/sessions through the real APIs or direct Mongo inserts, as documented in each script's own header comment.
+
 Each e2e script is copied into the running `exam-service` container and executed there with `docker exec`, exactly as each script's own header comment documents (they were written to be run that way against a live stack, not from the host).
 
 On any e2e failure, `docker compose logs --tail=200` is dumped before the job ends. `docker compose down -v` always runs (`if: always()`), even on failure.
