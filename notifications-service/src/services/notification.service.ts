@@ -6,6 +6,7 @@ import { EmailNotification, Notification, OtpEmailData, UserEventData } from '..
 import { EmailService } from './email.service';
 import { EventService } from './event.service';
 import SocketService from './socket.service';
+import { buildExamGradedSubject, describeGradingVerdict } from '../utils/passFail';
 
 export class NotificationService {
   constructor(
@@ -233,16 +234,22 @@ export class NotificationService {
     maxScore: number;
     percentage: number;
     status: string;
+    passed?: boolean;
+    passingScore?: number;
+    examType?: string;
+    recommendedLevel?: string;
     pdfBase64?: string;
     pdfFilename?: string;
   }): Promise<{ success: boolean; emailId?: string }> {
     try {
-      const passed = data.status === 'completed' && data.percentage >= 60;
+      // grading-service is the source of truth; this is the ONE documented
+      // fallback for notifications-service (design.md — Resolvers).
+      // Placement exams get the recommended level instead of a verdict.
+      const verdict = describeGradingVerdict(data);
+      const subject = buildExamGradedSubject(data.examName, verdict);
       const emailNotification = await this.notificationRepository.createEmailNotification({
         to: data.email,
-        subject: passed
-          ? `✅ Resultado de tu examen: ${data.examName}`
-          : `📋 Resultado de tu examen: ${data.examName}`,
+        subject,
         template: 'exam_graded',
         templateData: {
           firstName: data.firstName,
@@ -252,6 +259,10 @@ export class NotificationService {
           maxScore: data.maxScore,
           percentage: data.percentage,
           status: data.status,
+          passed: verdict.passed,
+          passingScore: data.passingScore,
+          examType: data.examType,
+          recommendedLevel: data.recommendedLevel,
           pdfBase64: data.pdfBase64,
           pdfFilename: data.pdfFilename,
         },
@@ -378,6 +389,19 @@ export class NotificationService {
             email.templateData.maxScore,
             email.templateData.percentage,
             email.templateData.status,
+            // describeGradingVerdict → resolvePassedFromEvent: uses the stored
+            // `passed` when it is a boolean, otherwise the documented fallback,
+            // so retries of emails queued before `passed` existed still get
+            // the right verdict (never a bare `null` → "pending" for a
+            // completed legacy result).
+            describeGradingVerdict({
+              passed: email.templateData.passed,
+              passingScore: email.templateData.passingScore,
+              status: email.templateData.status,
+              percentage: email.templateData.percentage,
+              examType: email.templateData.examType,
+              recommendedLevel: email.templateData.recommendedLevel,
+            }),
             email.templateData.pdfBase64,
             email.templateData.pdfFilename
           );
