@@ -246,6 +246,15 @@ jobs:
           docker cp scripts/ci/seed-e2e.js exam-service:/app/exam-service/seed-e2e.js
           docker exec -w /app/exam-service exam-service node seed-e2e.js
 
+      # kick-and-push.e2e.js, lockdown-infractions.e2e.js and
+      # exam-lifecycle.e2e.js connect to notifications-service over
+      # socket.io-client, which is a test-only dependency never added to
+      # exam-service's own package.json (see each script's header comment).
+      # Installed once, on top of the already-built image, for this run only
+      # — never persisted to the image or package.json.
+      - name: Install e2e-only npm deps (socket.io-client)
+        run: docker exec -w /app/exam-service exam-service npm install socket.io-client@4 --no-save
+
       - name: E2E - grading pipeline (Kafka)
         run: |
           docker cp scripts/e2e/grading-pipeline.e2e.js exam-service:/app/exam-service/grading-pipeline.e2e.js
