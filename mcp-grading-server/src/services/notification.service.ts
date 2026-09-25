@@ -20,6 +20,8 @@ export interface GradingNotificationParams {
   passingScore?: number;
   examType?: string;
   recommendedLevel?: string;
+  /** Exam's `configuration.showResults` (result-visibility). `false` hides score/verdict from student surfaces. */
+  showResults?: boolean;
 }
 
 /**
@@ -54,6 +56,7 @@ export async function sendGradingNotification(params: GradingNotificationParams)
     passingScore,
     examType,
     recommendedLevel,
+    showResults,
   } = params;
 
   const data: GradingResultPublishedDataV1 = {
@@ -73,6 +76,7 @@ export async function sendGradingNotification(params: GradingNotificationParams)
     passingScore,
     examType,
     recommendedLevel,
+    showResults,
   };
 
   const published = await publishEnvelopeEvent(TOPICS.GRADING_EVENTS, GRADING_RESULT_PUBLISHED, attemptId, data);
@@ -86,6 +90,11 @@ export async function sendGradingNotification(params: GradingNotificationParams)
 }
 
 async function sendInAppFallback(data: GradingResultPublishedDataV1): Promise<void> {
+  // result-visibility: showResults===false strips score everywhere a student
+  // could read it, including this HTTP fallback path (only used when Kafka
+  // publish fails — the normal path is notifications-service's own consumer,
+  // which applies the same rule).
+  const hidden = data.showResults === false;
   try {
     await axios.post(`${config.notificationService.url}/notifications/inapp`, {
       recipientId: data.candidateId,
@@ -93,18 +102,22 @@ async function sendInAppFallback(data: GradingResultPublishedDataV1): Promise<vo
       type: 'exam.graded',
       channel: 'in-app',
       content: {
-        title: 'Examen calificado',
-        body: `Tu examen "${data.examName}" ha sido calificado. Puntaje: ${data.totalScore}/${data.maxScore} (${data.percentage.toFixed(1)}%)`,
+        title: hidden ? 'Examen recibido' : 'Examen calificado',
+        body: hidden
+          ? `Tu examen "${data.examName}" fue recibido. Tu docente publicará el resultado próximamente.`
+          : `Tu examen "${data.examName}" ha sido calificado. Puntaje: ${data.totalScore}/${data.maxScore} (${data.percentage.toFixed(1)}%)`,
         link: `/student/results`,
       },
       priority: 'normal',
-      metadata: {
-        examName: data.examName,
-        score: data.totalScore,
-        maxScore: data.maxScore,
-        percentage: data.percentage,
-        status: data.status,
-      },
+      metadata: hidden
+        ? { examName: data.examName, status: data.status }
+        : {
+            examName: data.examName,
+            score: data.totalScore,
+            maxScore: data.maxScore,
+            percentage: data.percentage,
+            status: data.status,
+          },
     });
   } catch (error: any) {
     console.error(`[grading-service] HTTP in-app notification fallback failed (examResultId=${data.examResultId}):`, error?.message || error);
