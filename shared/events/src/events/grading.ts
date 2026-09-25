@@ -36,5 +36,23 @@ export const GradingResultPublishedDataSchemaV1 = z.object({
   candidateEmail: z.string().optional(),
   candidateFirstName: z.string().optional(),
   candidateLastName: z.string().optional(),
+  /**
+   * Grading source of truth (design.md D5/D6): the pass/fail verdict and the
+   * threshold used to compute it, as decided by grading-service. Omitted for
+   * `pending_ai_review` (undetermined) and for events published before this
+   * field existed — consumers must fall back via their own documented
+   * `resolvePassFail`/`resolvePassedFromEvent` helper, never a local literal.
+   */
+  passed: z.boolean().optional(),
+  passingScore: z.number().optional(),
+  /**
+   * The exam's type (`placement` | `progress` | `final` | `mock` | ...).
+   * Placement exams never carry a pass/fail verdict — consumers render
+   * `recommendedLevel` instead. Optional: absent on events published before
+   * this field existed.
+   */
+  examType: z.string().optional(),
+  /** Level recommended by a placement exam (e.g. `B1`); only set for placement. */
+  recommendedLevel: z.string().optional(),
 });
 export type GradingResultPublishedDataV1 = z.infer<typeof GradingResultPublishedDataSchemaV1>;
