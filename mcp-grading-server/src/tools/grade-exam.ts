@@ -1,13 +1,13 @@
 import { ObjectId } from 'mongodb';
-import { getAttempts, getResponses, getQuestions, getExamResults, getExams, getCandidates } from '../db/collections.js';
+import { getAttempts, getResponses, getQuestions, getExamResults, getExams, getCandidates, getRubrics } from '../db/collections.js';
 import { autoGrade } from '../grading/auto-grader.js';
-import { evaluateWithGroq, generateExamFeedback, generatePerQuestionFeedback } from '../grading/groq-evaluator.js';
+import { evaluateWithGroq, evaluateWithRubric, generateExamFeedback, generatePerQuestionFeedback } from '../grading/groq-evaluator.js';
 import { evaluateAudio } from '../grading/audio-delegator.js';
 import { sendGradingNotification } from '../services/notification.service.js';
 import { AUTO_GRADABLE_TYPES, AI_GRADABLE_TYPES, AUDIO_TYPES } from '../types/index.js';
-import type { IQuestionResult, ICompetencyScore, IExamResult, IGradingBreakdown, QuestionType } from '../types/index.js';
+import type { IQuestionResult, ICompetencyScore, IExamResult, IGradingBreakdown, QuestionType, IRubric, IRubricEvaluation, AIGradeResult } from '../types/index.js';
 import type { GradeExamResponse } from '../schemas/grading.schemas.js';
-import { buildUnsetForUndefined, computeExamScoring, UNSETTABLE_GRADED_FIELDS } from '../grading/scoring.js';
+import { buildCriteriaScoreMap, buildUnsetForUndefined, computeExamScoring, hasScorableCriteria, scoreRubricCriteria, UNSETTABLE_GRADED_FIELDS } from '../grading/scoring.js';
 
 class GradingError extends Error {
   statusCode: number;
@@ -169,6 +169,21 @@ export async function gradeExam(attemptId: string, options: { force?: boolean } 
   // Build response lookup by questionId so unanswered questions can be detected in O(1)
   const responseMap = new Map(responses.map(r => [r.questionId.toString(), r]));
 
+  // 5.5. Batch-fetch rubrics for AI-gradable (essay/open_text only) questions
+  // with a resolvable `metadata.rubricId` (design D7: ignore `isActive` — a
+  // soft-deleted rubric is still usable; only a truly missing document falls
+  // back to the default 4-criteria path below).
+  const rubricIds = Array.from(new Set(
+    questions
+      .filter(q => AI_GRADABLE_TYPES.includes(q.type as QuestionType) && q.metadata?.rubricId)
+      .map(q => q.metadata!.rubricId!.toString())
+  )).filter(id => ObjectId.isValid(id)); // a malformed legacy id would make `new ObjectId` throw
+  const rubricMap = new Map<string, IRubric>();
+  if (rubricIds.length > 0) {
+    const rubrics = await getRubrics().find({ _id: { $in: rubricIds.map(id => new ObjectId(id)) } }).toArray();
+    for (const r of rubrics) rubricMap.set(r._id.toString(), r);
+  }
+
   // 6. Grade ALL questions in the attempt (including unanswered ones scored 0).
   // Iterating over `questions` instead of `responses` ensures the denominator
   // (maxScoreTotal) reflects the full exam weight, not just answered questions.
@@ -221,7 +236,48 @@ export async function gradeExam(attemptId: string, options: { force?: boolean } 
       };
     } else if (AI_GRADABLE_TYPES.includes(qType)) {
       const tAI = Date.now();
-      const aiResult = await evaluateWithGroq(question, answerData, maxScore);
+      const rubricId = question.metadata?.rubricId?.toString();
+      const rubric = rubricId ? rubricMap.get(rubricId) : undefined;
+
+      let aiResult: AIGradeResult;
+      let rubricEvaluation: IRubricEvaluation | undefined;
+
+      // A rubric with no criteria (or only zero/invalid weights) can't be
+      // scored per criterion — skip the rubric GROQ call and go straight to
+      // the default path.
+      if (rubric && hasScorableCriteria(rubric.criteria)) {
+        const rubricAI = await evaluateWithRubric(question, answerData, maxScore, rubric);
+        const scored = scoreRubricCriteria(rubric.criteria, rubricAI.criteria, maxScore);
+        if (scored.criteria.length > 0) {
+          // Only set optional keys when present: the raw MongoDB driver
+          // serializes undefined nested keys as `null`.
+          rubricEvaluation = {
+            rubricId: rubric._id,
+            rubricName: rubric.name,
+            ...(scored.partial ? { partial: true } : {}),
+            criteria: scored.criteria,
+          };
+          aiResult = {
+            score: scored.questionScore,
+            maxScore,
+            feedback: rubricAI.feedback,
+            criteria: buildCriteriaScoreMap(scored.criteria),
+            suggestions: rubricAI.suggestions,
+          };
+        } else {
+          // 0 valid criteria matched, or the AI response was unparseable —
+          // fall back to the default 4-criteria path instead of failing.
+          // Known/accepted: when the rubric call failed on a timeout/error,
+          // this makes a SECOND GROQ call, so the worst-case latency for
+          // this question roughly doubles.
+          aiResult = await evaluateWithGroq(question, answerData, maxScore);
+        }
+      } else {
+        // No rubricId on the question, or it no longer resolves to a rubric
+        // document (deleted) — existing default 4-criteria path, unchanged.
+        aiResult = await evaluateWithGroq(question, answerData, maxScore);
+      }
+
       aiGradingMs += Date.now() - tAI;
       result = {
         questionId: resp.questionId,
@@ -239,6 +295,8 @@ export async function gradeExam(attemptId: string, options: { force?: boolean } 
           feedback: '',
           suggestions: aiResult.suggestions,
         },
+        // Omit the key entirely on the default path (no `rubric: null`).
+        ...(rubricEvaluation ? { rubric: rubricEvaluation } : {}),
       };
     } else if (AUDIO_TYPES.includes(qType)) {
       const tAudio = Date.now();
