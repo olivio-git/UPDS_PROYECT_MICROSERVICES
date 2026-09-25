@@ -1,6 +1,6 @@
 import CustomizableTable from '@/components/common/CustomizableTable';
 import { MCER_LEVELS } from '@/lib/mcer';
-import { PASS_THRESHOLD, scoreBadgeClass } from '@/lib/scoreBands';
+import { scoreBadgeClass } from '@/lib/scoreBands';
 import { cn } from '@/lib/utils';
 import type { StudentHistoryData } from '@/services/reportsService';
 import {
@@ -12,7 +12,21 @@ import { formatDateTime, formatMinutes } from './format';
 
 export type ExamEntry = StudentHistoryData['examHistory'][number];
 
-type ResultFilter = 'all' | 'passed' | 'failed';
+type ResultFilter = 'all' | 'passed' | 'failed' | 'pending';
+
+/**
+ * Filters on the verdict resolved by the backend — never on a local
+ * percentage threshold. `null`/absent means pending review. Placement exams
+ * have no verdict at all, so they only appear under "Todos".
+ */
+const matchesResultFilter = (exam: ExamEntry, filter: ResultFilter): boolean => {
+  if (filter === 'all') return true;
+  if (exam.examType === 'placement') return false;
+  const passed = exam.passed ?? null;
+  if (filter === 'passed') return passed === true;
+  if (filter === 'failed') return passed === false;
+  return passed === null;
+};
 
 const TOP_MIN = 3;
 const TOP_MAX = 20;
@@ -95,8 +109,9 @@ const chip = (active: boolean, activeClass = 'bg-blue-600 text-white border-blue
 
 const RESULT_FILTERS: ReadonlyArray<{ value: ResultFilter; label: string; activeClass: string }> = [
   { value: 'all', label: 'Todos', activeClass: 'bg-blue-600 text-white border-blue-600' },
-  { value: 'passed', label: `Aprobados ≥${PASS_THRESHOLD}`, activeClass: 'bg-emerald-600 text-white border-emerald-600' },
+  { value: 'passed', label: 'Aprobados', activeClass: 'bg-emerald-600 text-white border-emerald-600' },
   { value: 'failed', label: 'No aprobados', activeClass: 'bg-red-600 text-white border-red-600' },
+  { value: 'pending', label: 'Pendiente', activeClass: 'bg-sky-600 text-white border-sky-600' },
 ];
 
 interface ExamHistoryTableProps {
@@ -117,7 +132,7 @@ export function ExamHistoryTable({ exams, onOpenExam }: ExamHistoryTableProps) {
     let list = exams.filter((e) =>
       (!q || [e.examTitle, e.sessionName, e.level].some((f) => f.toLowerCase().includes(q))) &&
       (level === 'all' || e.level === level) &&
-      (result === 'all' || (result === 'passed') === (e.percentage >= PASS_THRESHOLD)),
+      matchesResultFilter(e, result),
     );
     if (topOnly) list = [...list].sort((a, b) => b.percentage - a.percentage).slice(0, topCount);
     return list;

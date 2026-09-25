@@ -6,15 +6,16 @@
  *
  * The bands match the backend report bands and the ranges shown to users:
  * Excelente ≥85, Bueno 70–84, Satisfactorio 60–69, Necesita mejorar <60.
+ *
+ * These are COLOUR bands only. They never decide pass/fail — the verdict is
+ * the `passed` field resolved by the backend (grading-service, or
+ * exam-service's legacy fallback).
  */
 export const PERFORMANCE_BANDS = {
   excellent: 85,
   good: 70,
   acceptable: 60,
 } as const;
-
-/** Minimum percentage that counts as passing. */
-export const PASS_THRESHOLD = PERFORMANCE_BANDS.acceptable;
 
 export type ScoreTone = 'excellent' | 'good' | 'acceptable' | 'failing';
 

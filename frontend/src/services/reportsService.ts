@@ -72,7 +72,7 @@ export interface StudentStats {
  */
 export type LevelDistributionEntry =
   | number
-  | { count: number; averageScore?: number; passRate?: number };
+  | { count: number; averageScore?: number; passRate?: number | null };
 
 export interface DashboardSummary {
   overview: {
@@ -139,6 +139,12 @@ export interface StudentHistoryData {
     percentage: number;
     level: string;
     status: string;
+    /** Resolved by exam-service (`resolvePassFail`); `null`/absent = pending review or placement (no verdict). */
+    passed?: boolean | null;
+    passingScore?: number | null;
+    examType?: string;
+    /** Placement exams only — shown instead of a pass/fail verdict. */
+    recommendedLevel?: string;
     timeSpent: number;
     competencyScores: Array<{
       competency: string;

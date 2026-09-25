@@ -17,6 +17,7 @@ import {
 } from '@/components/keel/popover';
 import { Spinner } from '@/components/keel/spinner';
 import { MainLayout } from '@/components/layout';
+import { formatPercent, formatPoints } from '@/lib/scoreFormat';
 import { cn } from '@/lib/utils';
 import { api } from '@/services/api.service';
 import {
@@ -32,10 +33,12 @@ import {
   CheckCircle,
   ChevronLeft,
   ChevronRight,
+  Clock,
   Download,
   Eye,
   FileText,
   FileSearch,
+  GraduationCap,
   Sparkles,
   Target,
   TrendingDown,
@@ -141,20 +144,34 @@ const StudentResults = () => {
     return 'text-red-600 dark:text-red-400';
   };
 
-
-  const getScoreBadgeColor = (score: number) => {
-    if (score >= 80)
-      return 'bg-green-100 text-green-700 border-green-200 dark:bg-green-500/20 dark:text-green-300 dark:border-green-500/30';
-    if (score >= 60)
-      return 'bg-yellow-100 text-yellow-700 border-yellow-200 dark:bg-yellow-500/20 dark:text-yellow-300 dark:border-yellow-500/30';
-    return 'bg-red-100 text-red-700 border-red-200 dark:bg-red-500/20 dark:text-red-300 dark:border-red-500/30';
-  };
-
-  // Stroke color for the hero score ring — same thresholds as the badge.
+  // Stroke color for the hero score ring — same cosmetic colour thresholds as
+  // getScoreColor(). Colour only: the pass/fail verdict comes from
+  // getPassBadge(), which reads the stored `passed` instead of the score.
   const getScoreRingStroke = (score: number) => {
     if (score >= 80) return 'stroke-green-500 dark:stroke-green-400';
     if (score >= 60) return 'stroke-yellow-500 dark:stroke-yellow-400';
     return 'stroke-red-500 dark:stroke-red-400';
+  };
+
+  // Pass/fail badge — reads the stored verdict as-is (null = pending review,
+  // never rendered as "No aprobado"). No local threshold: grading-service
+  // (and exam-service's legacy fallback) already resolved this. Placement
+  // exams have no verdict: they show the recommended level instead.
+  const getPassBadge = ({ passed, isPlacement, recommendedLevel }: Pick<StudentExamResult, 'passed' | 'isPlacement' | 'recommendedLevel'>) => {
+    if (isPlacement) {
+      return {
+        Icon: GraduationCap,
+        text: recommendedLevel ? `Nivel recomendado: ${recommendedLevel}` : 'Nivel recomendado: pendiente',
+        className: 'border-violet-200 text-violet-700 bg-violet-100 dark:border-violet-500/30 dark:text-violet-300 dark:bg-violet-500/10',
+      };
+    }
+    if (passed === true) {
+      return { Icon: CheckCircle, text: 'Aprobado', className: 'border-green-200 text-green-700 bg-green-100 dark:border-green-500/30 dark:text-green-300 dark:bg-green-500/10' };
+    }
+    if (passed === false) {
+      return { Icon: XCircle, text: 'No aprobado', className: 'border-red-200 text-red-700 bg-red-100 dark:border-red-500/30 dark:text-red-300 dark:bg-red-500/10' };
+    }
+    return { Icon: Clock, text: 'Pendiente', className: 'border-blue-200 text-blue-700 bg-blue-100 dark:border-blue-500/30 dark:text-blue-300 dark:bg-blue-500/10' };
   };
 
   // Fill color for the per-competency comparison bars — same thresholds,
@@ -557,20 +574,6 @@ const StudentResults = () => {
     }
   };
 
-  // const handleDownloadPDFFromHTML = async () => {
-  //   try {
-  //     toast.loading('Capturando página y generando PDF...', { id: 'pdf-html-generation' });
-
-  //     const fileName = `Resultado_${currentResult?.examName?.replace(/[^a-zA-Z0-9]/g, '_')}_${new Date().toISOString().split('T')[0]}.pdf`;
-  //     await PDFService.generateFromHTML('exam-result-content', fileName);
-
-  //     toast.success('PDF descargado exitosamente', { id: 'pdf-html-generation' });
-  //   } catch (error) {
-  //     console.error('Error generating PDF from HTML:', error);
-  //     toast.error('Error al generar el PDF', { id: 'pdf-html-generation' });
-  //   }
-  // };
-
   const handleViewDetails = (result: StudentExamResult) => {
     navigate(`/student/results/${result.id}`);
   };
@@ -671,7 +674,11 @@ const StudentResults = () => {
     const rawPoints =
       typeof examDetailData?.totalScore === 'number' && typeof examDetailData?.maxScore === 'number'
         ? { totalScore: examDetailData.totalScore, maxScore: examDetailData.maxScore }
-        : null;
+        : typeof currentResult.totalScore === 'number' && typeof currentResult.maxScore === 'number'
+          ? { totalScore: currentResult.totalScore, maxScore: currentResult.maxScore }
+          : null;
+
+    const passBadge = getPassBadge(currentResult);
 
     return (
       <MainLayout>
@@ -694,7 +701,7 @@ const StudentResults = () => {
                       </span>
                       {rawPoints && (
                         <span className="text-[11px] text-muted-foreground tabular-nums">
-                          {rawPoints.totalScore}/{rawPoints.maxScore} pts
+                          {formatPoints(rawPoints.totalScore, rawPoints.maxScore)}
                         </span>
                       )}
                     </div>
@@ -708,9 +715,9 @@ const StudentResults = () => {
                       {formatDate(currentResult.date)} · {currentResult.duration} min
                     </p>
                     <div className="flex flex-wrap justify-center gap-2 mt-3 sm:justify-start">
-                      <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium border ${getScoreBadgeColor(currentResult.overallScore)}`}>
-                        {currentResult.passed ? <CheckCircle className="h-3 w-3" /> : <XCircle className="h-3 w-3" />}
-                        {currentResult.passed ? 'Aprobado' : 'No aprobado'}
+                      <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium border ${passBadge.className}`}>
+                        <passBadge.Icon className="h-3 w-3" />
+                        {passBadge.text}
                       </span>
                       <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium border border-blue-200 text-blue-700 bg-blue-100 dark:border-blue-500/30 dark:text-blue-300 dark:bg-blue-500/10">
                         Nivel {currentResult.level}
@@ -1111,14 +1118,12 @@ const StudentResults = () => {
                     >
                       <ItemMedia
                         variant="icon"
-                        className={cn(
-                          'h-9 w-9 rounded-lg',
-                          result.passed !== false
-                            ? 'bg-green-100 text-green-700 dark:bg-green-500/15 dark:text-green-300'
-                            : 'bg-red-100 text-red-700 dark:bg-red-500/15 dark:text-red-300'
-                        )}
+                        className={cn('h-9 w-9 rounded-lg', getPassBadge(result).className)}
                       >
-                        {result.passed !== false ? <CheckCircle className="h-4 w-4" /> : <XCircle className="h-4 w-4" />}
+                        {(() => {
+                          const { Icon } = getPassBadge(result);
+                          return <Icon className="h-4 w-4" />;
+                        })()}
                       </ItemMedia>
 
                       <ItemContent>
@@ -1133,7 +1138,12 @@ const StudentResults = () => {
 
                       <ItemActions className="gap-3">
                         <span className={`text-sm font-semibold tabular-nums ${getScoreColor(result.overallScore)}`}>
-                          {result.overallScore}%
+                          {formatPercent(result.overallScore)}
+                          {typeof result.totalScore === 'number' && typeof result.maxScore === 'number' && (
+                            <span className="ml-1 text-xs font-normal text-muted-foreground">
+                              ({formatPoints(result.totalScore, result.maxScore)})
+                            </span>
+                          )}
                         </span>
                         <Button
                           size="sm"
