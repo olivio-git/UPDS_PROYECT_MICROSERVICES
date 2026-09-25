@@ -37,20 +37,36 @@ function buildAlreadyGradedResponse(
   candidateId: string,
   contact: CandidateContactInfo
 ): GradeExamResponse {
-  sendGradingNotification({
-    attemptId,
-    examId: existingResult.examId?.toString(),
-    candidateEmail: contact.candidateEmail,
-    candidateFirstName: contact.candidateFirstName,
-    candidateLastName: contact.candidateLastName,
-    candidateId,
-    examName: existingResult.examName,
-    examResultId: existingResult._id!.toString(),
-    score: existingResult.totalScore,
-    maxScore: existingResult.maxScore,
-    percentage: existingResult.percentage,
-    status: existingResult.status,
-  }).catch(() => {});
+  // The early "already graded" check runs before the exam is fetched, so the
+  // exam type (placement → no verdict) is looked up here for the re-sent event.
+  getExams()
+    .findOne({ _id: existingResult.examId }, { projection: { type: 1 } })
+    .catch(() => null)
+    .then(exam => {
+      // If the exam can't be resolved (deleted exam, legacy data), a stored
+      // recommendedLevel is itself the placement signal — only placement
+      // results carry it. Placement never republishes a (stale) verdict.
+      const isPlacement = exam?.type === 'placement' || Boolean(existingResult.recommendedLevel);
+      return sendGradingNotification({
+        attemptId,
+        examId: existingResult.examId?.toString(),
+        candidateEmail: contact.candidateEmail,
+        candidateFirstName: contact.candidateFirstName,
+        candidateLastName: contact.candidateLastName,
+        candidateId,
+        examName: existingResult.examName,
+        examResultId: existingResult._id!.toString(),
+        score: existingResult.totalScore,
+        maxScore: existingResult.maxScore,
+        percentage: existingResult.percentage,
+        status: existingResult.status,
+        passed: isPlacement ? undefined : existingResult.passed,
+        passingScore: isPlacement ? undefined : existingResult.passingScore,
+        examType: isPlacement ? 'placement' : exam?.type,
+        recommendedLevel: existingResult.recommendedLevel,
+      });
+    })
+    .catch(() => {});
 
   return {
     examResultId: existingResult._id!.toString(),
@@ -336,7 +352,9 @@ export async function gradeExam(attemptId: string, options: { force?: boolean } 
   // 9. Totals, section scores, scoring method (design D4), weighted
   // percentage (design D3 — weights normalized by their actual sum at
   // grading time) and pass/fail (design D5 — `passed` is left undefined for
-  // `pending_ai_review`). Shared with /regrade-session via computeExamScoring.
+  // `pending_ai_review`, and both `passed`/`passingScore` for placement exams,
+  // which only get a recommended level). Shared with /regrade-session via
+  // computeExamScoring.
   const {
     totalScore,
     maxScore: maxScoreTotal,
@@ -402,9 +420,9 @@ export async function gradeExam(attemptId: string, options: { force?: boolean } 
     }
 
     // Determine recommended level: highest level where candidate passed threshold
-    const passed = levelScores.filter(ls => ls.percentage >= levelPassingThreshold);
-    passed.sort((a, b) => PLACEMENT_LEVELS.indexOf(b.level) - PLACEMENT_LEVELS.indexOf(a.level));
-    recommendedLevel = passed[0]?.level ?? 'A1';
+    const passedLevels = levelScores.filter(ls => ls.percentage >= levelPassingThreshold);
+    passedLevels.sort((a, b) => PLACEMENT_LEVELS.indexOf(b.level) - PLACEMENT_LEVELS.indexOf(a.level));
+    recommendedLevel = passedLevels[0]?.level ?? 'A1';
   }
 
   // 11. Calculate exam duration
@@ -537,6 +555,10 @@ export async function gradeExam(attemptId: string, options: { force?: boolean } 
     maxScore: maxScoreTotal,
     percentage,
     status,
+    passed,
+    passingScore,
+    examType: exam.type,
+    recommendedLevel,
   }).catch(() => {});
 
   // 14. Return structured response

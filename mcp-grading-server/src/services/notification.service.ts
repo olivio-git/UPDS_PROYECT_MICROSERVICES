@@ -16,6 +16,10 @@ export interface GradingNotificationParams {
   maxScore: number;
   percentage: number;
   status: string;
+  passed?: boolean;
+  passingScore?: number;
+  examType?: string;
+  recommendedLevel?: string;
 }
 
 /**
@@ -46,6 +50,10 @@ export async function sendGradingNotification(params: GradingNotificationParams)
     maxScore,
     percentage,
     status,
+    passed,
+    passingScore,
+    examType,
+    recommendedLevel,
   } = params;
 
   const data: GradingResultPublishedDataV1 = {
@@ -61,6 +69,10 @@ export async function sendGradingNotification(params: GradingNotificationParams)
     candidateEmail,
     candidateFirstName: candidateFirstName || 'Estudiante',
     candidateLastName: candidateLastName || '',
+    passed,
+    passingScore,
+    examType,
+    recommendedLevel,
   };
 
   const published = await publishEnvelopeEvent(TOPICS.GRADING_EVENTS, GRADING_RESULT_PUBLISHED, attemptId, data);
