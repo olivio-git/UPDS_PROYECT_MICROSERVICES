@@ -34,3 +34,27 @@ export const distributeEvenly = (count: number): number[] => {
 /** Weight for a newly added entry: whatever is left to reach 100 (never negative). */
 export const remainingWeight = (currentTotal: number): number =>
   Math.max(0, formatWeight(100 - currentTotal));
+
+/**
+ * Parses the raw text of a weight input. Returns NaN while the field is empty
+ * or not a number yet, so forms can tell "invalid" apart from a real 0 instead
+ * of snapping the field back to "0" while the teacher is still typing.
+ */
+export const parseWeightInput = (text: string): number => {
+  const trimmed = text.trim();
+  if (trimmed === '') return Number.NaN;
+  const value = Number(trimmed);
+  return Number.isFinite(value) ? value : Number.NaN;
+};
+
+/** Text shown for a stored weight; an invalid (NaN) weight renders as empty. */
+export const weightToInputText = (value: number | null | undefined): string =>
+  typeof value === 'number' && Number.isFinite(value) ? String(value) : '';
+
+/** Inline message for a single weight field, or null when it is valid. */
+export const getWeightInputError = (value: number | null | undefined): string | null => {
+  if (typeof value !== 'number' || !Number.isFinite(value)) return 'Ingresa un peso entre 0 y 100';
+  if (value < 0) return 'El peso no puede ser negativo';
+  if (value > 100) return 'El peso no puede superar 100';
+  return null;
+};

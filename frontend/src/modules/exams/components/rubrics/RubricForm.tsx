@@ -15,9 +15,10 @@ import { useEffect, useState } from "react";
 import type { MCERLevel, ScoringType } from "../../constants/academic.constants";
 import type { Competency } from "../../types";
 import type { Rubric, RubricCriterion, RubricLevel } from "../../types/rubrics.types";
-import { distributeEvenly, formatWeight, isWeightSumValid, sumWeights } from "../../utils/weights";
+import { distributeEvenly, formatWeight, getWeightInputError, isWeightSumValid, sumWeights } from "../../utils/weights";
 import CompetencySelector from "../shared/CompetencySelector";
 import MCERLevelSelector from "../shared/MCERLevelSelector";
+import WeightInput from "../shared/WeightInput";
 
 interface RubricFormProps {
   rubric?: Rubric;
@@ -185,7 +186,10 @@ const RubricForm = ({
       if (!criterion.description.trim()) {
         newErrors[`criterion_${index}_description`] = 'La descripción del criterio es requerida';
       }
-      if (criterion.weight <= 0) {
+      const weightError = getWeightInputError(criterion.weight);
+      if (weightError) {
+        newErrors[`criterion_${index}_weight`] = weightError;
+      } else if (criterion.weight <= 0) {
         newErrors[`criterion_${index}_weight`] = 'El peso debe ser mayor a 0';
       }
     });
@@ -408,16 +412,17 @@ const RubricForm = ({
                     <Label className="text-muted-foreground">
                       Peso (%) *
                     </Label>
-                    <Input
-                      type="number"
+                    <WeightInput
                       min="0"
                       max="100"
                       value={criterion.weight}
-                      onChange={(e) => updateCriterion(criterionIndex, 'weight', parseInt(e.target.value))}
+                      onValueChange={(weight) => updateCriterion(criterionIndex, 'weight', weight)}
                       className="bg-muted/50 border-border text-foreground"
                     />
-                    {errors[`criterion_${criterionIndex}_weight`] && (
-                      <p className="text-red-400 text-sm">{errors[`criterion_${criterionIndex}_weight`]}</p>
+                    {(getWeightInputError(criterion.weight) ?? errors[`criterion_${criterionIndex}_weight`]) && (
+                      <p className="text-red-400 text-sm">
+                        {getWeightInputError(criterion.weight) ?? errors[`criterion_${criterionIndex}_weight`]}
+                      </p>
                     )}
                   </div>
 
