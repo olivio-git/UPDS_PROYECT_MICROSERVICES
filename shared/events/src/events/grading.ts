@@ -54,5 +54,14 @@ export const GradingResultPublishedDataSchemaV1 = z.object({
   examType: z.string().optional(),
   /** Level recommended by a placement exam (e.g. `B1`); only set for placement. */
   recommendedLevel: z.string().optional(),
+  /**
+   * The exam's `configuration.showResults` (result-visibility capability).
+   * notifications-service cannot join `exams` directly, so this travels on
+   * the event; `false` means the student result/email must omit score and
+   * `passed`. Absent (events published before this field existed, or when
+   * the exam couldn't be resolved) defaults to visible — matching current
+   * behavior.
+   */
+  showResults: z.boolean().optional(),
 });
 export type GradingResultPublishedDataV1 = z.infer<typeof GradingResultPublishedDataSchemaV1>;
