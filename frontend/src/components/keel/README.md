@@ -33,6 +33,23 @@ a like-for-like port.
 of the ambient `React.ComponentProps` keel's copy relies on, to match this project's named-import
 convention. No behavioral change.
 
+## Files ported in the teacher session-scheduler redesign slice
+
+`switch` — ported as-is from keel's `switch.tsx` (Base UI's `Switch` primitive, `checked` /
+`onCheckedChange` API — same shape the Radix `atoms/switch.tsx` this replaces already used, so
+call sites did not need to change beyond the import path).
+
+`native-select` — ported from keel's `native-select.tsx` with one deliberate change: the wrapper's
+width is `w-full` here instead of keel's `w-fit`. keel uses `NativeSelect` for toolbar-sized
+pickers that should hug their content; this frontend's first use (the session-scheduler's exam
+picker) is a full-width form field, so `w-fit` would have left the trigger sized to whatever the
+currently-selected `<option>` text happens to be — visually broken once a long exam name is
+selected. `Select` (the Base UI popup version, `select.tsx`) was **not** ported — a plain
+`<select>` covers the one picker this slice needed, keeps the exam dropdown natively
+keyboard-and-Playwright-operable, and avoids pulling in `usePortalContainer` for a single
+dropdown. Revisit if a future screen needs multi-select, custom item rendering, or grouped
+options.
+
 ## Import path changes made on port
 
 - `@/components/ui/*` → `@/components/keel/*`
@@ -83,6 +100,21 @@ registered via `@plugin` in `src/index.css`, Tailwind v4 CSS-first config). This
 case for the existing `src/components/atoms/input-otp.tsx`, so this port does not regress
 anything — the blinking caret animation silently no-ops the same way it already did. Fixing it
 means wiring `@plugin "tailwindcss-animate";` app-wide, which is out of scope for this slice.
+
+## Known deviation: `Card` used with `rounded-none` overrides (flat-layout pass, 2026-09-24)
+
+The teacher/admin screens were reworked to drop the "card floating on a grey canvas" look —
+page-level containers, toolbars, table wrappers, stat panels and section wrappers now sit flush
+against `bg-background`, separated by `border-border` hairlines, with no `rounded-*`/`shadow-*`.
+keel's `card.tsx` hardcodes `rounded-xl` for all consumers (it has no flat/layout variant), so
+per the house rule below this was **not** forked — call sites that use `Card` as a layout surface
+now pass `className="rounded-none"` instead (see `modules/exams/components/SessionForm.tsx`'s
+three step `<Card className="rounded-none">` panels). Controls, popovers and modals keep the
+default radius; this only touches `Card` used as a full-width section wrapper.
+
+Follow-up for keel: consider adding a `variant="flat"` (or similar) to `card.tsx` that drops
+`rounded-xl` — cleaner than every consumer overriding via `className`, and keeps the override
+from silently breaking if the base classlist changes shape upstream.
 
 ## Rule
 

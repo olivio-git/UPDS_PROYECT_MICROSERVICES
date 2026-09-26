@@ -54,7 +54,13 @@ type ViewMode =
   | 'edit'
   | 'detail'
   | 'candidates'
-  | 'proctors';
+  | 'proctors'
+  // Pantalla que sigue automáticamente a la creación de una sesión — el
+  // paso "Quién" del flujo no puede vivir dentro del wizard porque asignar
+  // candidatos/proctor reales necesita el _id que el backend recién generó.
+  | 'people';
+
+type PeopleTab = 'candidates' | 'proctors';
 
 // Interface para eventos de WebSocket
 // interface SessionStatusUpdate {
@@ -87,6 +93,7 @@ const SessionsList: React.FC = () => {
   // Navegación / vistas
   const [viewMode, setViewMode] = useState<ViewMode>('table');
   const [selectedSession, setSelectedSession] = useState<ExamSession | null>(null);
+  const [peopleTab, setPeopleTab] = useState<PeopleTab>('candidates');
 
   // UI state
   const [searchTerm, setSearchTerm] = useState('');
@@ -236,6 +243,13 @@ const SessionsList: React.FC = () => {
   const goProctors = (s: ExamSession) => {
     setSelectedSession(s);
     setViewMode('proctors');
+  };
+  // Reached right after creating a session — "Quién" step of the same flow,
+  // done here instead of inside SessionForm because it needs a real _id.
+  const goPeople = (s: ExamSession) => {
+    setSelectedSession(s);
+    setPeopleTab('candidates');
+    setViewMode('people');
   };
 
   // Validaciones de tiempo/fecha para sesiones
@@ -624,35 +638,86 @@ const SessionsList: React.FC = () => {
     }
 
     if (viewMode === 'create' || viewMode === 'edit') {
+      const wasEditing = viewMode === 'edit';
       return (
-        <div className="bg-card border border-border rounded-xl p-6">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-semibold text-foreground">
-              {viewMode === 'edit' ? 'Editar Sesión' : 'Nueva Sesión'}
-            </h2>
+        <SessionForm
+          session={wasEditing ? selectedSession : null}
+          onCancel={goTable}
+          onSaved={(saved) => {
+            loadSessions();
+            // A freshly created session moves straight into "Quién" — the
+            // real candidate/proctor assignment needs the session's _id,
+            // which only exists now. Editing an existing session just
+            // returns to the table, same as before.
+            if (!wasEditing && saved?._id) {
+              goPeople(saved);
+            } else {
+              goTable();
+            }
+          }}
+        />
+      );
+    }
+
+    if (viewMode === 'people' && selectedSession) {
+      return (
+        <div className="bg-card border border-border p-4">
+          <div className="mb-4 flex items-center justify-between gap-3">
+            <div>
+              <h2 className="text-sm font-semibold text-foreground">Sesión creada — agrega candidatos y proctor</h2>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                {selectedSession.sessionName} · puedes hacerlo ahora o más tarde desde la tabla
+              </p>
+            </div>
             <button
-              onClick={goTable}
-              className="px-3 py-2 bg-muted/50 border border-border rounded-lg text-foreground/80 hover:bg-muted flex items-center gap-2"
+              onClick={() => { goTable(); loadSessions(); }}
+              className="h-8 px-3 text-xs rounded-md bg-muted/60 border border-border text-foreground hover:bg-muted transition-colors"
             >
-              <XCircle className="w-4 h-4" /> Volver
+              Finalizar
             </button>
           </div>
 
-          <SessionForm
-            session={viewMode === 'edit' ? selectedSession : null}
-            onCancel={goTable}
-            onSaved={() => {
-              goTable();
-              loadSessions();
-            }}
-          />
+          <div className="mb-4 flex items-center gap-1 border-b border-border">
+            {([
+              ['candidates', 'Candidatos'],
+              ['proctors', 'Proctor'],
+            ] as [PeopleTab, string][]).map(([tab, label]) => (
+              <button
+                key={tab}
+                onClick={() => setPeopleTab(tab)}
+                className={`px-3 py-2 text-xs font-medium border-b-2 -mb-px transition-colors ${
+                  peopleTab === tab
+                    ? 'border-primary text-foreground'
+                    : 'border-transparent text-muted-foreground hover:text-foreground'
+                }`}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+
+          {peopleTab === 'candidates' ? (
+            <CandidateAssignmentView
+              session={selectedSession}
+              onClose={() => { goTable(); loadSessions(); }}
+              loadSessions={loadSessions}
+              onSuccess={() => loadSessions()}
+            />
+          ) : (
+            <ProctorAssignmentModal
+              session={selectedSession}
+              onClose={() => { goTable(); loadSessions(); }}
+              loadSessions={loadSessions}
+              onSuccess={() => loadSessions()}
+            />
+          )}
         </div>
       );
     }
 
     if (viewMode === 'candidates' && selectedSession) {
       return (
-        <div className="bg-card border border-border rounded-xl p-6">
+        <div className="bg-card border border-border p-6">
           <CandidateAssignmentView
             session={selectedSession}
             onClose={goTable}
@@ -667,7 +732,7 @@ const SessionsList: React.FC = () => {
     }
     if (viewMode === 'proctors' && selectedSession) {
       return (
-        <div className="bg-card border border-border rounded-xl p-6">
+        <div className="bg-card border border-border p-6">
           <ProctorAssignmentModal
             session={selectedSession}
             onClose={goTable}
@@ -683,16 +748,16 @@ const SessionsList: React.FC = () => {
     // Tabla (vista por defecto "table")
     if (loading) {
       return (
-        <div className="bg-card border border-border rounded-xl p-12 text-center">
+        <div className="flex h-full min-h-0 flex-1 flex-col items-center justify-center gap-4 text-center">
           <div className="inline-block animate-spin rounded-full h-10 w-10 border-b-2 border-blue-500"></div>
-          <p className="mt-4 text-muted-foreground">Cargando sesiones...</p>
+          <p className="text-muted-foreground">Cargando sesiones...</p>
         </div>
       );
     }
 
     if (error) {
       return (
-        <div className="bg-card border border-border rounded-xl p-12 text-center">
+        <div className="flex h-full min-h-0 flex-1 flex-col items-center justify-center gap-4 text-center">
           <p className="text-red-400 mb-4">{error}</p>
           <button
             onClick={() => loadSessions()}
@@ -705,10 +770,10 @@ const SessionsList: React.FC = () => {
     }
 
     return (
-      <div className="flex flex-col gap-3">
+      <div className="flex h-full min-h-0 flex-col gap-3">
 
         {/* Header row */}
-        <div className="flex items-center justify-between">
+        <div className="flex shrink-0 items-center justify-between">
           <div>
             <h1 className="text-xl font-bold text-foreground">Sesiones</h1>
             <p className="text-xs text-muted-foreground mt-0.5 flex items-center gap-2">
@@ -745,7 +810,7 @@ const SessionsList: React.FC = () => {
         </div>
 
         {/* Filter bar */}
-        <div className="bg-card border border-border rounded-lg px-3 py-2 flex flex-wrap items-center gap-2">
+        <div className="bg-card border border-border px-3 py-2 flex shrink-0 flex-wrap items-center gap-2">
 
           {/* Search */}
           <div className="relative">
@@ -855,20 +920,22 @@ const SessionsList: React.FC = () => {
         </div>
 
         {/* Tabla */}
-        <div className="bg-card border border-border rounded-lg overflow-hidden">
-          <CustomizableTable
-            table={table}
-            isLoading={loading}
-            isFetching={false}
-            isError={!!error}
-            errorMessage={error || undefined}
-            noDataMessage="No hay sesiones disponibles"
-            rows={10}
-          />
+        <div className="flex flex-1 min-h-0 flex-col border-t border-border bg-card">
+          <div className="flex-1 min-h-0">
+            <CustomizableTable
+              table={table}
+              isLoading={loading}
+              isFetching={false}
+              isError={!!error}
+              errorMessage={error || undefined}
+              noDataMessage="No hay sesiones disponibles"
+              rows={10}
+            />
+          </div>
 
           {/* Paginación */}
           {totalPages > 1 && (
-            <div className="px-4 py-3 border-t border-border flex items-center justify-between">
+            <div className="px-4 py-3 border-t border-border flex shrink-0 items-center justify-between">
               <span className="text-xs text-muted-foreground">
                 {(currentPage - 1) * 10 + 1}–{Math.min(currentPage * 10, totalItems)} de {totalItems} sesiones
               </span>
@@ -910,7 +977,7 @@ const SessionsList: React.FC = () => {
 
   return (
     <MainLayout>
-      <div className="flex flex-col gap-3 p-4 max-w-5xl mx-auto w-full">
+      <div className="flex h-full min-h-0 flex-col gap-3 p-3">
         {renderView()}
       </div>
     </MainLayout>

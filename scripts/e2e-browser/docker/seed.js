@@ -166,7 +166,10 @@ async function main() {
     });
     log(`Student ready: ${studentId} <${STUDENT_EMAIL}>`);
 
-    // ── Throwaway teacher/admin (dev-mode JWTs, only used server-side) ────
+    // ── Throwaway teacher/admin (dev-mode JWT for server-side seeding calls,
+    // PLUS a real passwordHash so scripts/e2e-browser/tests/teacher-flow.spec.ts
+    // can log the teacher in through the actual browser UI, OTP + password,
+    // the same way the student account below does) ────
     const teacherId = new ObjectId();
     const teacherEmail = `${TAG}.teacher.${Date.now()}@cba.test`;
     await people.collection('users').insertOne({
@@ -178,6 +181,7 @@ async function main() {
       role: 'teacher',
       status: 'active',
       isActive: true,
+      passwordHash,
       createdAt: new Date(),
       updatedAt: new Date(),
     });
@@ -275,6 +279,16 @@ async function main() {
         examId: String(examId),
         examName,
         questionCount: questionIds.length,
+        // Added for teacher-flow.spec.ts: a teacher that can log in through
+        // the browser (OTP + real password, same bcrypt hash as the
+        // student), plus the level/competency of the question pool above so
+        // the question-bank filter test has a value guaranteed to narrow
+        // the result set instead of guessing at seeded data.
+        teacherEmail,
+        teacherPassword: PASSWORD,
+        teacherId: String(teacherId),
+        level,
+        competency,
       })
     );
   } finally {

@@ -365,7 +365,7 @@ const UsersScreen = () => {
 
     // Vista de tabla (por defecto)
     return (
-      <div className="flex flex-col gap-3">
+      <div className="flex flex-1 min-h-0 flex-col gap-3">
         <UserTableHeader
           filters={filters}
           onFiltersChange={handleFiltersChange}
@@ -377,7 +377,7 @@ const UsersScreen = () => {
           totalCount={totalUsers}
           isLoading={isLoading}
         />
-        <div className="bg-card border border-border rounded-lg overflow-hidden">
+        <div className="flex flex-1 min-h-0 flex-col border-t border-border bg-card">
           <UserTable
             users={users}
             selectedUsers={selectedUsers}
@@ -410,7 +410,7 @@ const UsersScreen = () => {
 
   return (
     <MainLayout>
-      <div className="flex flex-col gap-3 p-4 max-w-5xl mx-auto w-full">
+      <div className="flex h-full min-h-0 flex-col gap-3 p-3">
         {renderContent()}
       </div>
 

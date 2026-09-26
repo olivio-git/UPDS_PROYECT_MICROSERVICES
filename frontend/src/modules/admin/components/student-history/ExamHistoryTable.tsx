@@ -137,7 +137,7 @@ export function ExamHistoryTable({ exams, onOpenExam }: ExamHistoryTableProps) {
   const filtersActive = level !== 'all' || result !== 'all' || topOnly;
 
   return (
-    <section className="bg-card border border-border rounded-lg overflow-hidden">
+    <section className="bg-card border border-border overflow-hidden">
       <div className="flex items-center gap-2 px-3 py-2 border-b border-border">
         <BookOpen className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
         <h2 className="text-xs font-semibold text-foreground shrink-0">Historial de Exámenes</h2>

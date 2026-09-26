@@ -22,10 +22,21 @@ function getCacheRepo(): AuthCacheRepository {
   return cacheRepo;
 }
 
-export const authRateLimiter = (maxRequests: number, windowSeconds: number) => {
+/**
+ * @param perAccount cuenta por cuenta (email del cuerpo) en vez de por IP.
+ *        Un laboratorio entero sale por una sola IP: contar por IP dejaba
+ *        fuera al onceavo estudiante que intentaba entrar, aunque cada uno
+ *        hubiera escrito bien su contraseña la primera vez.
+ */
+export const authRateLimiter = (
+  maxRequests: number,
+  windowSeconds: number,
+  perAccount = false,
+) => {
   return async (req: Request, res: Response<ApiResponse>, next: NextFunction) => {
     try {
-      const identifier = req.ip || 'unknown';
+      const email = typeof req.body?.email === 'string' ? req.body.email.trim().toLowerCase() : '';
+      const identifier = (perAccount && email) || req.ip || 'unknown';
       // One counter per route: login, OTP and reset have different caps and must
       // not drain each other's budget.
       const key = `${req.baseUrl}${req.path}:${identifier}`;

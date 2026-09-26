@@ -1037,7 +1037,7 @@ const ExamPreparation = () => {
 
         <div className="grid min-h-0 flex-1 grid-cols-1 gap-6 lg:grid-cols-[1fr_380px]">
           {/* ── LEFT: system checks — owns the pane, scrolls on its own ── */}
-          <div className="flex min-h-0 flex-col rounded-xl border border-border bg-card/60 overflow-hidden">
+          <div className="flex min-h-0 flex-col border border-border bg-card/60 overflow-hidden">
             <div className="shrink-0 px-5 py-4 border-b border-border">
               <div className="flex items-center justify-between mb-2.5">
                 <div>
@@ -1161,7 +1161,7 @@ const ExamPreparation = () => {
           <div className="flex min-h-0 flex-col gap-4">
             <div className="min-h-0 flex-1 overflow-auto space-y-4 pr-0.5">
               {examData && (
-                <div className="rounded-xl border border-border bg-card/60 p-5">
+                <div className="border border-border bg-card/60 p-5">
                   <h1 className="text-base font-semibold text-foreground leading-snug">
                     {examData.name}
                   </h1>
@@ -1270,7 +1270,7 @@ const ExamPreparation = () => {
                 </div>
               )}
 
-              <details className="group rounded-xl border border-border bg-card/60 overflow-hidden">
+              <details className="group border border-border bg-card/60 overflow-hidden">
                 <summary className="flex items-center justify-between px-5 py-3.5 cursor-pointer list-none select-none">
                   <span className="flex items-center gap-2 text-sm font-medium text-foreground/80">
                     <Info className="h-4 w-4 text-blue-500 dark:text-blue-400" />
@@ -1345,7 +1345,7 @@ const ExamPreparation = () => {
                 button is the one thing to do on this screen, so whatever is
                 keeping it disabled is always spelled out below it — never a
                 generic "complete the checks" line. */}
-            <div className="shrink-0 rounded-xl border border-border bg-card/60 p-5">
+            <div className="shrink-0 border border-border bg-card/60 p-5">
               <Button
                 onClick={handleStartExam}
                 disabled={

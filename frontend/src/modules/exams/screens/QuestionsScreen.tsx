@@ -345,7 +345,7 @@ const QuestionsScreen = () => {
 
     if (viewMode === 'create' || viewMode === 'edit') {
       return (
-        <div className="bg-card border border-border rounded-xl p-6">
+        <div className="bg-card border border-border p-6">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-lg font-semibold text-foreground">
               {viewMode === 'edit' ? 'Editar Pregunta' : 'Nueva Pregunta'}
@@ -368,7 +368,7 @@ const QuestionsScreen = () => {
 
     if (viewMode === 'import') {
       return (
-        <div className="bg-card border border-border rounded-xl p-6">
+        <div className="bg-card border border-border p-6">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-lg font-semibold text-foreground">Importar preguntas</h2>
             <button
@@ -388,10 +388,10 @@ const QuestionsScreen = () => {
 
     // ── Table view ──
     return (
-      <div className="flex flex-col gap-3">
+      <div className="flex h-full min-h-0 flex-col gap-3">
 
         {/* Header */}
-        <div className="flex items-center justify-between">
+        <div className="flex shrink-0 items-center justify-between">
           <div>
             <h1 className="text-xl font-bold text-foreground">Banco de Preguntas</h1>
             <p className="text-xs text-muted-foreground mt-0.5">
@@ -415,7 +415,7 @@ const QuestionsScreen = () => {
         </div>
 
         {/* Filter bar */}
-        <div className="bg-card border border-border rounded-lg px-3 py-2 flex flex-wrap items-center gap-2">
+        <div className="bg-card border border-border px-3 py-2 flex shrink-0 flex-wrap items-center gap-2">
 
           {/* Search */}
           <div className="relative">
@@ -509,21 +509,21 @@ const QuestionsScreen = () => {
         </div>
 
         {/* Table */}
-        <div className="bg-card border border-border rounded-lg overflow-hidden">
+        <div className="flex flex-1 min-h-0 flex-col border-t border-border bg-card">
           {loading ? (
-            <div className="p-12 text-center">
+            <div className="flex flex-1 min-h-0 flex-col items-center justify-center text-center">
               <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500" />
               <p className="mt-4 text-sm text-muted-foreground">Cargando preguntas...</p>
             </div>
           ) : error ? (
-            <div className="p-12 text-center">
+            <div className="flex flex-1 min-h-0 flex-col items-center justify-center text-center">
               <p className="text-sm text-red-400 mb-4">{error}</p>
               <button onClick={loadQuestions} className="px-3 py-1.5 text-xs bg-blue-600 text-white rounded-lg hover:bg-blue-700">
                 Reintentar
               </button>
             </div>
           ) : questions.length === 0 ? (
-            <div className="p-12 text-center">
+            <div className="flex flex-1 min-h-0 flex-col items-center justify-center text-center">
               <ClipboardList className="w-10 h-10 text-muted-foreground/40 mx-auto mb-3" />
               <p className="text-sm text-muted-foreground mb-4">No se encontraron preguntas</p>
               <button onClick={handleCreate} className="px-3 py-1.5 text-xs bg-blue-600 text-white rounded-lg hover:bg-blue-700">
@@ -532,19 +532,21 @@ const QuestionsScreen = () => {
             </div>
           ) : (
             <>
-              <CustomizableTable
-                table={table}
-                isLoading={loading}
-                isFetching={false}
-                isError={!!error}
-                errorMessage={error!}
-                noDataMessage="No se encontraron preguntas"
-                rows={10}
-              />
+              <div className="flex-1 min-h-0">
+                <CustomizableTable
+                  table={table}
+                  isLoading={loading}
+                  isFetching={false}
+                  isError={!!error}
+                  errorMessage={error!}
+                  noDataMessage="No se encontraron preguntas"
+                  rows={10}
+                />
+              </div>
 
               {/* Paginación */}
               {totalPages > 1 && (
-                <div className="px-4 py-3 border-t border-border flex items-center justify-between">
+                <div className="px-4 py-3 border-t border-border flex shrink-0 items-center justify-between">
                   <span className="text-xs text-muted-foreground">
                     {(currentPage - 1) * 10 + 1}–{Math.min(currentPage * 10, totalItems)} de {totalItems} preguntas
                   </span>
@@ -630,7 +632,7 @@ const QuestionsScreen = () => {
 
   return (
     <MainLayout>
-      <div className="flex flex-col gap-3 p-4 max-w-7xl mx-auto w-full">
+      <div className="flex h-full min-h-0 flex-col gap-3 p-3">
         {renderView()}
       </div>
 

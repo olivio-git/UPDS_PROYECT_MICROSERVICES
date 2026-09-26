@@ -118,7 +118,7 @@ export const SectionNavigator: React.FC<SectionNavigatorProps> = ({
   );
 
   return (
-    <div className={`flex flex-col overflow-hidden rounded-xl border border-border bg-card ${className}`}>
+    <div className={`flex flex-col overflow-hidden border border-border bg-card ${className}`}>
       {/* Scrollable palette — long sections scroll in here, never the page */}
       <div className="flex-1 overflow-y-auto">
         {sections.map((section, sIdx) => {

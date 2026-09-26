@@ -15,7 +15,7 @@ export function InsightsCard({ summary, competency }: InsightsCardProps) {
     .filter(({ data }) => (data?.studentsEvaluated ?? 0) > 0);
 
   return (
-    <Card className="bg-card border-border shadow-none">
+    <Card className="rounded-none border border-border bg-card shadow-none">
       <div className="p-4 grid grid-cols-1 md:grid-cols-2 gap-4">
         <section>
           <p

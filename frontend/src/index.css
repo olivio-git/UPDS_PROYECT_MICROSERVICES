@@ -63,10 +63,14 @@
     --gradient-primary: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
 
     /* === TEMA LIGHT === */
-    --background: 220 13% 95%;   /* gris azulado suave — los cards blancos resaltan */
+    /* Página y superficies comparten el mismo plano: las zonas se separan
+       con el borde de 1px, no levantándolas del fondo. La paleta anterior
+       usaba un gris azulado detrás de cards blancos, así que cualquier
+       hueco entre contenedores se leía como una franja gris. */
+    --background: 0 0% 100%;
     --foreground: 222.2 84% 4.9%;
 
-    --card: 0 0% 100%;           /* blanco puro — contrasta con el background */
+    --card: 0 0% 100%;
     --card-foreground: 222.2 84% 4.9%;
 
     --popover: 0 0% 100%;
@@ -127,7 +131,7 @@
     --background: 222.2 84% 4.9%;
     --foreground: 210 40% 98%;
 
-    --card: 222.2 84% 6.5%;
+    --card: 222.2 84% 4.9%;      /* mismo plano que --background */
     --card-foreground: 210 40% 98%;
 
     --popover: 222.2 84% 4.9%;

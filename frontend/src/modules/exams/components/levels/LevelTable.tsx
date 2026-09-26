@@ -77,7 +77,7 @@ const LevelTable = ({
 
   if (isLoading) {
     return (
-      <div className="bg-card border border-border rounded-lg p-8">
+      <div className="flex flex-1 min-h-0 flex-col items-center justify-center border-t border-border bg-card">
         <div className="flex items-center justify-center space-x-2">
           <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-500"></div>
           <span className="text-muted-foreground">Cargando niveles...</span>
@@ -88,8 +88,8 @@ const LevelTable = ({
 
   if (isError) {
     return (
-      <div className="bg-card border border-border rounded-lg p-8">
-        <div className="text-center space-y-3">
+      <div className="flex flex-1 min-h-0 flex-col items-center justify-center border-t border-border bg-card text-center">
+        <div className="space-y-3">
           <div className="text-red-400">Error al cargar los niveles</div>
           <p className="text-muted-foreground text-sm">{errorMessage}</p>
         </div>
@@ -99,8 +99,8 @@ const LevelTable = ({
 
   if (levels.length === 0) {
     return (
-      <div className="bg-card border border-border rounded-lg p-8">
-        <div className="text-center space-y-4">
+      <div className="flex flex-1 min-h-0 flex-col items-center justify-center border-t border-border bg-card text-center">
+        <div className="space-y-4">
           <BookOpen className="h-12 w-12 text-muted-foreground mx-auto" />
           <div className="space-y-2">
             <h3 className="text-lg font-medium text-foreground">No hay niveles configurados</h3>
@@ -114,9 +114,9 @@ const LevelTable = ({
   }
 
   return (
-    <div className="bg-card border border-border rounded-lg overflow-hidden">
+    <div className="flex flex-1 min-h-0 flex-col border-t border-border bg-card">
       <Table>
-        <TableHeader>
+        <TableHeader className="sticky top-0 z-10 bg-background">
           <TableRow className="border-border hover:bg-muted/30">
             <TableHead className="text-muted-foreground font-medium">Nivel</TableHead>
             <TableHead className="text-muted-foreground font-medium">Nombre</TableHead>

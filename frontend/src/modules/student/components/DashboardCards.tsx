@@ -40,7 +40,7 @@ const StatsCard = ({ title, value, subtitle, icon: Icon, trend, variant = 'defau
     };
 
     return (
-        <div className={`rounded-2xl shadow-sm border p-6 ${getVariantStyles()}`}>
+        <div className={`border p-6 ${getVariantStyles()}`}>
             <div className="flex items-start justify-between">
                 <div className="flex-1">
                     <div className="flex items-center gap-2 mb-3">
@@ -81,7 +81,7 @@ interface NextExamCardProps {
 
 const NextExamCard = ({ exam, onStartExam }: NextExamCardProps) => {
     return (
-        <div className="bg-card rounded-2xl shadow-sm border border-border p-6">
+        <div className="bg-card border border-border p-6">
             <div className="flex items-start justify-between mb-4">
                 <div>
                     <h3 className="text-lg font-semibold text-foreground mb-2">
@@ -146,7 +146,7 @@ const RecentResultCard = ({ result, onViewDetails }: RecentResultCardProps) => {
     };
 
     return (
-        <div className="bg-card rounded-2xl shadow-sm border border-border p-6">
+        <div className="bg-card border border-border p-6">
             <div className="flex items-start justify-between mb-4">
                 <div>
                     <h3 className="font-semibold text-foreground">{result.examName}</h3>
@@ -196,7 +196,7 @@ interface ProgressCardProps {
 
 const ProgressCard = ({ currentLevel, targetLevel, progress, completedExams, totalExams }: ProgressCardProps) => {
     return (
-        <div className="bg-card rounded-2xl shadow-sm border border-border p-6">
+        <div className="bg-card border border-border p-6">
             <div className="flex items-center justify-between mb-4">
                 <h3 className="text-lg font-semibold text-foreground">Mi Progreso</h3>
                 <Trophy className="w-6 h-6 text-yellow-600" />

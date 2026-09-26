@@ -21,7 +21,7 @@ export function AgendaPanel({ sessions, selectedDay, onClearDay, onShowAll }: Ag
   const hidden = sessions.length - PANEL_SIZE;
 
   return (
-    <div className="bg-card border border-border rounded-xl overflow-hidden sticky top-4">
+    <div className="bg-card border border-border overflow-hidden sticky top-4">
       <div className="px-4 py-3 border-b border-border flex items-center justify-between gap-2">
         <h3 className="text-sm font-semibold text-foreground capitalize truncate">{title}</h3>
         {selectedDay && (

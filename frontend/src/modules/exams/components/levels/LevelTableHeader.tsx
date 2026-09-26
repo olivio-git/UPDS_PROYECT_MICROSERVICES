@@ -29,7 +29,7 @@ const LevelTableHeader = ({
   ];
 
   return (
-    <div className="flex flex-col gap-3">
+    <div className="flex shrink-0 flex-col gap-3">
 
       {/* Header */}
       <div className="flex items-center justify-between">
@@ -50,7 +50,7 @@ const LevelTableHeader = ({
       </div>
 
       {/* Filter bar */}
-      <div className="bg-card border border-border rounded-lg px-3 py-2 flex flex-wrap items-center gap-2">
+      <div className="bg-card border border-border px-3 py-2 flex flex-wrap items-center gap-2">
 
         {/* Search */}
         <div className="relative">

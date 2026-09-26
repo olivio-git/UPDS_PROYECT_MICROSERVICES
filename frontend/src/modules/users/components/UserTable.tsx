@@ -392,20 +392,22 @@ const UserTable: React.FC<UserTableProps> = ({
   });
 
   return (
-    <div className="overflow-hidden">
-      <CustomizableTable
-        table={table}
-        isLoading={isLoading}
-        isFetching={isFetching}
-        isError={isError}
-        errorMessage={errorMessage}
-        noDataMessage="No se encontraron usuarios con los filtros aplicados"
-        rows={10}
-      />
+    <div className="flex h-full min-h-0 flex-col">
+      <div className="flex-1 min-h-0">
+        <CustomizableTable
+          table={table}
+          isLoading={isLoading}
+          isFetching={isFetching}
+          isError={isError}
+          errorMessage={errorMessage}
+          noDataMessage="No se encontraron usuarios con los filtros aplicados"
+          rows={10}
+        />
+      </div>
 
       {/* Paginación - Debug: siempre mostrar si hay datos */}
       {totalItems > 0 && onPageChange && (
-        <div className="px-6 py-4 border-t border-border flex flex-col sm:flex-row items-center justify-between gap-4">
+        <div className="px-6 py-4 border-t border-border flex shrink-0 flex-col sm:flex-row items-center justify-between gap-4">
           <div className="text-sm text-muted-foreground">
             Mostrando {(currentPage - 1) * itemsPerPage + 1} a{' '}
             {Math.min(currentPage * itemsPerPage, totalItems)} de {totalItems}{' '}

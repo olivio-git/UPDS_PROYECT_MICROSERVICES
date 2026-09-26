@@ -38,13 +38,13 @@ const CustomizableTable = <T,>({
 
     return (
         <AtomTable className="w-full table-fixed text-xs">
-            <TableHeader>
+            <TableHeader className="sticky top-0 z-10 bg-background">
                 {table.getHeaderGroups().map((headerGroup) => (
                     <TableRow key={headerGroup.id}>
                         {headerGroup.headers.map((header) => (
                             <TableHead
                                 key={header.id}
-                                className="relative group select-none text-left border-b border-border hover:bg-muted/50 p-2"
+                                className="relative group select-none text-left border-b border-border bg-background hover:bg-muted/50 p-2"
                                 style={{ width: header.getSize() }}
                             >
                                 {header.isPlaceholder ? null : (

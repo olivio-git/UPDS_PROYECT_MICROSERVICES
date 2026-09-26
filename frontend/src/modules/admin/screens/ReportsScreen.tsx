@@ -27,7 +27,7 @@ const TABS: ReadonlyArray<{ id: TabId; label: string; icon: LucideIcon }> = [
 function CenteredState({ children }: { children: ReactNode }) {
   return (
     <MainLayout>
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="flex h-full items-center justify-center">
         <div className="text-center space-y-3">{children}</div>
       </div>
     </MainLayout>
@@ -102,8 +102,8 @@ const ReportsScreen: React.FC = () => {
 
   return (
     <MainLayout>
-      <div className="space-y-3 p-4">
-        <div className="flex items-center justify-between">
+      <div className="flex h-full min-h-0 flex-col gap-3 p-3">
+        <div className="flex shrink-0 items-center justify-between">
           <div>
             <h1 className="text-xl font-bold text-foreground">Reportes y Análisis</h1>
             <p className="text-muted-foreground text-xs">Rendimiento académico · Competencias · Tendencias</p>
@@ -120,7 +120,7 @@ const ReportsScreen: React.FC = () => {
           </Button>
         </div>
 
-        <div className="flex gap-1.5 flex-wrap" role="tablist">
+        <div className="flex shrink-0 gap-1.5 flex-wrap" role="tablist">
           {TABS.map(({ id, label, icon: Icon }) => (
             <button
               key={id}
@@ -139,9 +139,11 @@ const ReportsScreen: React.FC = () => {
           ))}
         </div>
 
-        {activeTab === 'resumen' && <SummaryTab {...tabProps} />}
-        {activeTab === 'competencias' && <CompetenciesTab {...tabProps} onExport={() => setExportType('competency')} />}
-        {activeTab === 'estudiantes' && <StudentsTab {...tabProps} onExport={() => setExportType('students')} />}
+        <div className="flex-1 min-h-0 overflow-auto">
+          {activeTab === 'resumen' && <SummaryTab {...tabProps} />}
+          {activeTab === 'competencias' && <CompetenciesTab {...tabProps} onExport={() => setExportType('competency')} />}
+          {activeTab === 'estudiantes' && <StudentsTab {...tabProps} onExport={() => setExportType('students')} />}
+        </div>
       </div>
 
       <ExportOptionsModal

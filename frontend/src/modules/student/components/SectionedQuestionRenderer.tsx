@@ -71,7 +71,7 @@ const SectionedQuestionRenderer: React.FC<SectionedQuestionRendererProps> = ({
 
   if (!currentQuestion) {
     return (
-      <div className="bg-card border border-border rounded-xl p-8 text-center">
+      <div className="bg-card border border-border p-8 text-center">
         <p className="text-muted-foreground">No hay preguntas disponibles en esta sección</p>
       </div>
     );
@@ -82,7 +82,7 @@ const SectionedQuestionRenderer: React.FC<SectionedQuestionRendererProps> = ({
   return (
     <div className="space-y-3">
       {/* Slim context strip: section info + question nav */}
-      <div className="flex items-center justify-between bg-card border border-border rounded-xl px-4 py-3">
+      <div className="flex items-center justify-between bg-card border border-border px-4 py-3">
         <div className="flex items-center gap-3">
           <div className={`w-8 h-8 rounded-lg bg-gradient-to-br ${competencyColors[section.competency]} flex items-center justify-center shrink-0`}>
             <div className="text-white scale-75">{Icon}</div>
@@ -135,7 +135,7 @@ const SectionedQuestionRenderer: React.FC<SectionedQuestionRendererProps> = ({
       )}
 
       {/* Question content */}
-      <div className="bg-card border border-border rounded-xl p-6">
+      <div className="bg-card border border-border p-6">
         <QuestionRenderer
           question={currentQuestion}
           answer={answers[currentQuestion._id || (currentQuestion as { id?: string }).id || '']}
