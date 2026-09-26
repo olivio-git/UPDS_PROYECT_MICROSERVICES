@@ -1,11 +1,30 @@
 import { NextFunction, Request, Response } from 'express';
 import { ExamEvaluationService } from '../services/examEvaluation.service';
 import { examResultPDFService } from '../services/exam-result-pdf.service';
+import { Exam } from '../models/exam.model';
+import { resolveExamType, resolvePassFail } from '../utils/passFail';
 import { logger } from '../utils/logger';
 
 const evaluationService = new ExamEvaluationService();
 
 export class ExamResultController {
+  /**
+   * Resolves `passed`/`passingScore` for a plain (already `.toObject()`'d)
+   * exam result before it leaves exam-service. grading-service is the
+   * source of truth and stores both fields directly; this only fills them
+   * in for legacy documents via the one documented fallback helper
+   * (`resolvePassFail`) — frontend/PDF/LLM consumers must not recompute it.
+   * `examType` is exposed so consumers can render the recommended level
+   * instead of a verdict for placement exams (`passed` is always `null` there).
+   */
+  private async attachPassFail<T extends { examId: any; percentage: number; status: string; passed?: boolean; passingScore?: number }>(
+    result: T
+  ): Promise<T & { passed: boolean | null; passingScore: number | null; examType?: string }> {
+    const exam = await Exam.findById(result.examId, { type: 1, structure: 1 }).lean();
+    const { passed, passingScore } = resolvePassFail(result, exam);
+    return { ...result, passed, passingScore, examType: resolveExamType(result, exam) };
+  }
+
   /**
    * Get recent results for the authenticated user
    */
@@ -21,22 +40,39 @@ export class ExamResultController {
       const limit = parseInt(req.query.limit as string) || 10;
       const results = await evaluationService.getResultsForCandidate(String(userCandidateId), limit);
 
+      // Batched lookup so the legacy passFail fallback can resolve each
+      // exam's threshold without an N+1 query.
+      // Drop missing examIds BEFORE String() — String(undefined) is the truthy "undefined".
+      const examIds = [...new Set(results.map(r => r.examId).filter(Boolean).map(String))];
+      const exams = await Exam.find({ _id: { $in: examIds } }, { type: 1, structure: 1 }).lean();
+      const examById = new Map(exams.map(e => [String(e._id), e]));
+
       // Transform to match frontend expectations
-      const recentResults = results.map(result => ({
-        id: String(result._id),
-        examName: result.examName,
-        date: result.evaluatedAt.toISOString(),
-        score: result.percentage,
-        level: result.examLevel,
-        status: result.status,
-        competencies: result.competencyScores.reduce((acc, comp) => {
-          acc[comp.competency] = comp.percentage;
-          return acc;
-        }, {} as Record<string, number>),
-        duration: result.examDuration,
-        timeAllowed: result.timeAllowed,
-        totalQuestions: result.questionResults.length
-      }));
+      const recentResults = results.map(result => {
+        const exam = examById.get(String(result.examId));
+        const { passed, passingScore } = resolvePassFail(result, exam);
+        return {
+          id: String(result._id),
+          examName: result.examName,
+          date: result.evaluatedAt.toISOString(),
+          score: result.percentage,
+          level: result.examLevel,
+          status: result.status,
+          competencies: result.competencyScores.reduce((acc, comp) => {
+            acc[comp.competency] = comp.percentage;
+            return acc;
+          }, {} as Record<string, number>),
+          duration: result.examDuration,
+          timeAllowed: result.timeAllowed,
+          totalQuestions: result.questionResults.length,
+          totalScore: result.totalScore,
+          maxScore: result.maxScore,
+          passed,
+          passingScore,
+          examType: resolveExamType(result, exam),
+          recommendedLevel: result.recommendedLevel
+        };
+      });
 
       res.json({
         success: true,
@@ -85,7 +121,7 @@ export class ExamResultController {
 
       res.json({
         success: true,
-        data: result
+        data: await this.attachPassFail(result.toObject())
       });
 
     } catch (error) {
@@ -127,7 +163,7 @@ export class ExamResultController {
 
       res.json({
         success: true,
-        data: result
+        data: await this.attachPassFail(result)
       });
 
     } catch (error) {
@@ -170,6 +206,9 @@ export class ExamResultController {
         return;
       }
 
+      const exam = await Exam.findById(result.examId, { type: 1, structure: 1 }).lean();
+      const { passed, passingScore } = resolvePassFail(result, exam);
+
       res.json({
         success: true,
         data: {
@@ -186,6 +225,12 @@ export class ExamResultController {
           duration: result.examDuration,
           timeAllowed: result.timeAllowed,
           totalQuestions: result.questionResults.length,
+          totalScore: result.totalScore,
+          maxScore: result.maxScore,
+          passed,
+          passingScore,
+          examType: resolveExamType(result, exam),
+          recommendedLevel: result.recommendedLevel,
           gradingDurationMs: (result as any).gradingDurationMs,
           gradingBreakdown: (result as any).gradingBreakdown,
           details: result
@@ -217,7 +262,7 @@ export class ExamResultController {
         return;
       }
 
-      res.json({ success: true, data: result });
+      res.json({ success: true, data: await this.attachPassFail(result) });
     } catch (error) {
       logger.error('Error getting result details (admin):', error);
       next(error);

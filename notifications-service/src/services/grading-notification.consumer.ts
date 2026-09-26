@@ -9,6 +9,8 @@ import {
 } from '@cba/events';
 import { NotificationService } from './notification.service';
 import { fetchExamResultPDF, isEmailNotificationsEnabled } from './kafka-consumer.service';
+import { describeGradingVerdict, GRADING_VERDICT_KIND } from '../utils/passFail';
+import { formatScoreSummary } from '../utils/scoreFormat';
 
 const DEDUPE_TTL_SECONDS = 7 * 24 * 3600; // 7 days
 
@@ -117,6 +119,8 @@ async function sendEmailIfEnabled(
   }
 
   // Reuses the same email-sending path as the old 'exam.graded' handler.
+  // grading-service is the source of truth for passed/passingScore; both
+  // travel on the event so notifications-service never has to guess.
   await notificationService.sendExamGradedEmail({
     email: data.candidateEmail,
     firstName: data.candidateFirstName || 'Estudiante',
@@ -126,6 +130,10 @@ async function sendEmailIfEnabled(
     maxScore: data.maxScore,
     percentage: data.percentage,
     status: data.status,
+    passed: data.passed,
+    passingScore: data.passingScore,
+    examType: data.examType,
+    recommendedLevel: data.recommendedLevel,
     pdfBase64,
     pdfFilename,
   });
@@ -146,6 +154,9 @@ async function sendInAppNotification(
   // on a thrown error, so a null/falsy return has to be treated as a failure
   // here — otherwise a failed in-app notification would be marked "done" for
   // 7 days (DEDUPE_TTL_SECONDS) and runConsumer would never retry it.
+  // Same verdict the email renders (placement → recommended level; pending
+  // review is never presented as failed).
+  const verdict = describeGradingVerdict(data);
   const created = await notificationService.createInAppNotification({
     recipientId: data.candidateId,
     recipientType: 'candidate',
@@ -153,7 +164,7 @@ async function sendInAppNotification(
     channel: 'in-app',
     content: {
       title: 'Examen calificado',
-      body: `Tu examen "${data.examName}" ha sido calificado. Puntaje: ${data.totalScore}/${data.maxScore} (${data.percentage.toFixed(1)}%)`,
+      body: `Tu examen "${data.examName}" ha sido calificado. ${verdict.kind === GRADING_VERDICT_KIND.PLACEMENT ? verdict.label : `Resultado: ${verdict.label}`}. Puntaje: ${formatScoreSummary(data.percentage, data.totalScore, data.maxScore)}`,
       link: '/student/results',
     },
     read: false,
@@ -164,6 +175,10 @@ async function sendInAppNotification(
       maxScore: data.maxScore,
       percentage: data.percentage,
       status: data.status,
+      passed: verdict.passed,
+      passingScore: data.passingScore,
+      examType: data.examType,
+      recommendedLevel: data.recommendedLevel,
     },
   });
 

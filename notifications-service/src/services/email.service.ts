@@ -1,6 +1,8 @@
 import { Resend } from 'resend';
 import { config } from '../config';
 import { EmailSendResult } from '../types';
+import { buildExamGradedSubject, GRADING_VERDICT_KIND, type GradingVerdict } from '../utils/passFail';
+import { formatScoreSummary } from '../utils/scoreFormat';
 
 export class EmailService {
   private resend: Resend;
@@ -147,16 +149,19 @@ export class EmailService {
     maxScore: number,
     percentage: number,
     status: string,
+    /**
+     * Resolved by the caller via `describeGradingVerdict` — pending review is
+     * never "failed", and placement exams show the recommended level instead
+     * of a pass/fail verdict.
+     */
+    verdict: GradingVerdict,
     pdfBase64?: string,
     pdfFilename?: string
   ): Promise<EmailSendResult> {
-    const passed = status === 'completed' && percentage >= 60;
-    const subject = passed
-      ? `✅ Resultado de tu examen: ${examName}`
-      : `📋 Resultado de tu examen: ${examName}`;
+    const subject = buildExamGradedSubject(examName, verdict);
 
-    const htmlContent = this.generateExamGradedEmailHtml(firstName, lastName, examName, score, maxScore, percentage, passed, !!pdfBase64);
-    const textContent = this.generateExamGradedEmailText(firstName, examName, score, maxScore, percentage, passed);
+    const htmlContent = this.generateExamGradedEmailHtml(firstName, lastName, examName, score, maxScore, percentage, verdict, !!pdfBase64);
+    const textContent = this.generateExamGradedEmailText(firstName, examName, score, maxScore, percentage, verdict);
 
     const attachments: Array<{ filename: string; content: Buffer }> = [];
     if (pdfBase64) {
@@ -642,14 +647,19 @@ export class EmailService {
     score: number,
     maxScore: number,
     percentage: number,
-    passed: boolean,
+    verdict: GradingVerdict,
     hasPdf: boolean = false
   ): string {
-    const resultColor = passed ? '#16a34a' : '#dc2626';
-    const resultBg = passed ? '#f0fdf4' : '#fef2f2';
-    const resultBorder = passed ? '#86efac' : '#fca5a5';
-    const resultText = passed ? '¡Aprobado!' : 'No Aprobado';
-    const resultIcon = passed ? '✅' : '📋';
+    const { passed } = verdict;
+    const resultColor = passed === true ? '#16a34a' : passed === false ? '#dc2626' : '#2563eb';
+    const resultBg = passed === true ? '#f0fdf4' : passed === false ? '#fef2f2' : '#eff6ff';
+    const resultBorder = passed === true ? '#86efac' : passed === false ? '#fca5a5' : '#93c5fd';
+    const resultText = verdict.label;
+    const resultIcon = passed === true
+      ? '✅'
+      : passed === false
+        ? '📋'
+        : verdict.kind === GRADING_VERDICT_KIND.PLACEMENT ? '🎯' : '⏳';
     const loginUrl = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/student/results`;
 
     return `<!DOCTYPE html>
@@ -716,17 +726,14 @@ export class EmailService {
         </div>
 
         <div class="result-box">
+            <p class="result-label">${resultText}</p>
             <p class="exam-name" style="font-size:17px; font-weight:600; color:#1d1d1f; margin:0;">${examName}</p>
         </div>
 
         <div class="score-grid">
             <div class="score-card">
-                <p class="score-value">${score}/${maxScore}</p>
-                <p class="score-label">Puntaje Obtenido</p>
-            </div>
-            <div class="score-card">
                 <p class="score-value" style="color: ${resultColor};">${percentage.toFixed(1)}%</p>
-                <p class="score-label">Porcentaje</p>
+                <p class="score-label">${score}/${maxScore} puntos</p>
             </div>
         </div>
 
@@ -757,9 +764,12 @@ export class EmailService {
     score: number,
     maxScore: number,
     percentage: number,
-    passed: boolean
+    verdict: GradingVerdict
   ): string {
     const loginUrl = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/student/results`;
+    const resultLine = verdict.kind === GRADING_VERDICT_KIND.PLACEMENT
+      ? verdict.label
+      : `Resultado: ${verdict.label}`;
     return `
 CBA Platform - Resultado de tu Examen
 
@@ -768,8 +778,8 @@ Hola ${firstName},
 Tu examen ha sido calificado.
 
 Examen: ${examName}
-Puntaje: ${score}/${maxScore}
-Porcentaje: ${percentage.toFixed(1)}%
+${resultLine}
+Puntaje: ${formatScoreSummary(percentage, score, maxScore)}
 
 Para ver tus resultados detallados, visita:
 ${loginUrl}

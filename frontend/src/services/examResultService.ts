@@ -1,4 +1,5 @@
 import type { AdminExamResultDetail } from '@/components/exam-review/types';
+import { PERFORMANCE_BANDS } from '@/lib/scoreBands';
 import { api } from './api.service';
 
 /** One candidate's result as listed in a session's results table. */
@@ -35,6 +36,15 @@ export interface ExamResultSummary {
   duration: number;
   timeAllowed: number;
   totalQuestions: number;
+  /** Raw points, alongside `score` (the weighted/raw percentage). */
+  totalScore?: number;
+  maxScore?: number;
+  /** Stored by grading-service; `null`/absent while status !== 'completed' (e.g. pending_ai_review) and always for placement exams. */
+  passed?: boolean | null;
+  passingScore?: number | null;
+  /** Exam type; `placement` results show `recommendedLevel` instead of a verdict. */
+  examType?: string;
+  recommendedLevel?: string;
 }
 
 export interface GradingBreakdown {
@@ -88,6 +98,12 @@ export interface DetailedExamResult {
     gradingDurationMs?: number;
     gradingBreakdown?: GradingBreakdown;
   };
+  /** Stored by grading-service; `null`/absent while status !== 'completed' (e.g. pending_ai_review) and always for placement exams. */
+  passed?: boolean | null;
+  passingScore?: number | null;
+  /** Exam type; `placement` results show `recommendedLevel` instead of a verdict. */
+  examType?: string;
+  recommendedLevel?: string;
 }
 
 export interface RecentResultsResponse {
@@ -112,6 +128,15 @@ export interface EvaluationStats {
   evaluationFrequency: number; // evaluations per month
 }
 
+/** Inputs for the local fallback copy — the verdict always comes from the backend. */
+interface FallbackVerdictInput {
+  score: number;
+  level: string;
+  passed: boolean | null;
+  isPlacement: boolean;
+  recommendedLevel?: string;
+}
+
 export interface StudentExamResult {
   id: string;
   examName: string;
@@ -120,7 +145,17 @@ export interface StudentExamResult {
   duration: number; // in minutes
   level: string;
   overallScore: number;
-  passed: boolean;
+  /** Resolved from the stored `passed` — `null` means pending review (or placement), never "not passed". */
+  passed: boolean | null;
+  /**
+   * From the backend's real exam type only (never inferred from the exam
+   * name): placement results show `recommendedLevel` instead of a verdict.
+   */
+  isPlacement: boolean;
+  recommendedLevel?: string;
+  /** Raw points backing `overallScore`, when the backend provides them. */
+  totalScore?: number;
+  maxScore?: number;
   competencies: {
     listening?: { score: number; feedback: string };
     reading?: { score: number; feedback: string };
@@ -362,6 +397,15 @@ class ExamResultService {
   }
 
   /**
+   * Reads the stored `passed` verdict as-is. Never computes a threshold here —
+   * grading-service (and exam-service's legacy fallback) are the only places
+   * allowed to decide pass/fail. `null`/absent means pending review.
+   */
+  private resolvePassed(r: { passed?: boolean | null }): boolean | null {
+    return r.passed ?? null;
+  }
+
+  /**
    * Transform backend ExamResultSummary to StudentExamResult
    */
   private transformToStudentResult(backendResult: ExamResultSummary): StudentExamResult {
@@ -373,11 +417,20 @@ class ExamResultService {
       duration: Math.round(backendResult.duration / 60), // Convert seconds to minutes
       level: backendResult.level,
       overallScore: backendResult.score,
-      passed: backendResult.score >= 60, // Assuming 60% is passing
+      passed: this.resolvePassed(backendResult),
+      isPlacement: backendResult.examType === 'placement',
+      recommendedLevel: backendResult.recommendedLevel,
+      totalScore: backendResult.totalScore,
+      maxScore: backendResult.maxScore,
       competencies: this.transformCompetencies(backendResult.competencies),
       feedback: 'Análisis detallado disponible en la vista completa', // Placeholder
       recommendations: [], // Will be filled in detail view
-      nextLevel: this.calculateNextLevel(backendResult.level, backendResult.score),
+      nextLevel: this.calculateNextLevel({
+        level: backendResult.level,
+        passed: this.resolvePassed(backendResult),
+        isPlacement: backendResult.examType === 'placement',
+        recommendedLevel: backendResult.recommendedLevel,
+      }),
       status: backendResult.status as 'partial' | 'completed' | 'pending_ai_review'
     };
   }
@@ -386,6 +439,13 @@ class ExamResultService {
    * Transform backend DetailedExamResult to StudentExamResult
    */
   private transformDetailedToStudentResult(backendResult: any): StudentExamResult {
+    const verdict: FallbackVerdictInput = {
+      score: backendResult.percentage,
+      level: backendResult.examLevel,
+      passed: this.resolvePassed(backendResult),
+      isPlacement: backendResult.examType === 'placement',
+      recommendedLevel: backendResult.recommendedLevel,
+    };
     return {
       id: backendResult._id,
       examName: backendResult.examName,
@@ -394,21 +454,17 @@ class ExamResultService {
       duration: Math.round(backendResult.examDuration / 60),
       level: backendResult.examLevel,
       overallScore: backendResult.percentage,
-      passed: backendResult.percentage >= 60,
+      passed: this.resolvePassed(backendResult),
+      isPlacement: backendResult.examType === 'placement',
+      recommendedLevel: backendResult.recommendedLevel,
+      totalScore: backendResult.totalScore ?? backendResult.details?.totalScore,
+      maxScore: backendResult.maxScore ?? backendResult.details?.maxScore,
       competencies: this.transformDetailedCompetencies(backendResult),
-      feedback: backendResult.overallFeedback || this.generateFeedback({
-        score: backendResult.percentage,
-        level: backendResult.examLevel,
-        status: backendResult.status
-      }),
+      feedback: backendResult.overallFeedback || this.generateFeedback(verdict),
       recommendations: (backendResult.recommendations && backendResult.recommendations.length > 0)
         ? backendResult.recommendations
-        : this.generateRecommendations({
-            score: backendResult.percentage,
-            level: backendResult.examLevel,
-            status: backendResult.status
-          }),
-      nextLevel: this.calculateNextLevel(backendResult.examLevel, backendResult.percentage),
+        : this.generateRecommendations(verdict),
+      nextLevel: this.calculateNextLevel(verdict),
       status: backendResult.status as 'partial' | 'completed' | 'pending_ai_review'
     };
   }
@@ -477,41 +533,62 @@ class ExamResultService {
   }
 
   /**
-   * Generate overall feedback based on performance
-   * Uses AI feedback if available, otherwise generates standard feedback
+   * Fallback overall feedback, used only when the backend sent no
+   * `overallFeedback`. Verdict-driven: pass/fail wording comes solely from the
+   * backend's `passed`; the score only picks neutral encouragement that never
+   * claims a pass, a fail or readiness to advance.
    */
-  private generateFeedback(result: {score: number; level: string; status: string}): string {
-    if (result.score >= 85) {
-      return `Excelente desempeño. Has demostrado un dominio sólido del nivel ${result.level}. Estás listo para avanzar al siguiente nivel.`;
-    } else if (result.score >= 70) {
-      return `Buen progreso en el nivel ${result.level}. Con un poco más de práctica, estarás listo para el siguiente nivel.`;
-    } else if (result.score >= 60) {
-      return `Has alcanzado el nivel mínimo para aprobar. Recomendamos reforzar las áreas más débiles antes de avanzar.`;
-    } else {
-      return `Necesitas más práctica en este nivel. Revisa las recomendaciones específicas para cada competencia.`;
+  private generateFeedback(result: FallbackVerdictInput): string {
+    if (result.isPlacement) {
+      return result.recommendedLevel
+        ? `Completaste el examen de ubicación. Nivel recomendado: ${result.recommendedLevel}.`
+        : 'Completaste el examen de ubicación. Tu nivel recomendado estará disponible pronto.';
     }
+    if (result.passed === null) {
+      return 'Tu examen está en revisión. Verás el resultado final cuando termine la evaluación.';
+    }
+    const verdictText = result.passed
+      ? `Aprobaste el examen de nivel ${result.level}.`
+      : `No aprobaste el examen de nivel ${result.level} en esta ocasión.`;
+    return `${verdictText} ${this.scoreEncouragement(result.score)}`;
+  }
+
+  /** Score-tier encouragement only — never a verdict or a readiness claim. */
+  private scoreEncouragement(score: number): string {
+    if (score >= PERFORMANCE_BANDS.excellent) return 'Tu desempeño fue sobresaliente.';
+    if (score >= PERFORMANCE_BANDS.good) return 'Tu desempeño fue bueno; sigue practicando.';
+    if (score >= PERFORMANCE_BANDS.acceptable) return 'Refuerza las áreas más débiles para seguir mejorando.';
+    return 'Revisa las recomendaciones específicas para cada competencia.';
   }
 
   /**
-   * Generate recommendations based on performance
-   * Uses AI recommendations if available, otherwise generates standard recommendations
+   * Fallback recommendations, used only when the backend sent none. Same rule
+   * as `generateFeedback`: progression is suggested only from the backend's
+   * verdict (or the placement's recommended level), never from a local threshold.
    */
-  private generateRecommendations(result: {score: number; level: string; status: string}): string[] {
-    const recommendations: string[] = [];
+  private generateRecommendations(result: FallbackVerdictInput): string[] {
+    if (result.isPlacement) {
+      return result.recommendedLevel
+        ? [`Inscríbete en el nivel ${result.recommendedLevel}, recomendado por tu examen de ubicación`]
+        : ['Consulta tu nivel recomendado cuando esté disponible'];
+    }
+    if (result.passed === null) {
+      return ['Espera el resultado final de la revisión antes de planificar tu siguiente paso'];
+    }
 
-    // Basic recommendations based on overall score
-    if (result.score < 60) {
-      recommendations.push('Dedica más tiempo al estudio y práctica diaria');
-      recommendations.push('Considera tomar clases de refuerzo');
-    } else if (result.score < 70) {
+    const recommendations: string[] = [];
+    if (result.score < PERFORMANCE_BANDS.good) {
+      recommendations.push('Dedica más tiempo al estudio y a la práctica diaria');
       recommendations.push('Repasa las áreas más débiles identificadas');
-      recommendations.push('Practica ejercicios adicionales');
-    } else if (result.score < 85) {
-      recommendations.push('Continúa practicando para perfeccionar tus habilidades');
-      recommendations.push(`Considera prepararte para evaluaciones de nivel ${this.calculateNextLevel(result.level, result.score)}`);
     } else {
-      recommendations.push(`¡Excelente trabajo! Estás listo para avanzar al nivel ${this.calculateNextLevel(result.level, result.score)}`);
-      recommendations.push('Mantén tu práctica regular');
+      recommendations.push('Continúa practicando para perfeccionar tus habilidades');
+    }
+
+    const nextLevel = this.calculateNextLevel(result);
+    if (result.passed && nextLevel && nextLevel !== result.level) {
+      recommendations.push(`Prepárate para el nivel ${nextLevel}`);
+    } else if (!result.passed) {
+      recommendations.push(`Refuerza los contenidos del nivel ${result.level} antes de volver a rendir el examen`);
     }
 
     return recommendations;
@@ -529,13 +606,18 @@ class ExamResultService {
   }
 
   /**
-   * Calculate next level based on current performance
+   * Next level to show. Placement → the recommended level; otherwise the
+   * following level only when the backend's verdict is `passed === true`,
+   * the current level when it's `false`, and nothing while pending (so a
+   * pending result never reads as "not advancing").
    */
-  private calculateNextLevel(currentLevel: string, score: number): string | undefined {
-    if (score < 70) return undefined;
+  private calculateNextLevel(result: Pick<FallbackVerdictInput, 'level' | 'passed' | 'isPlacement' | 'recommendedLevel'>): string | undefined {
+    if (result.isPlacement) return result.recommendedLevel;
+    if (result.passed === null) return undefined;
+    if (result.passed === false) return result.level;
 
     const levels = ['A1', 'A2', 'B1', 'B2', 'C1', 'C2'];
-    const currentIndex = levels.indexOf(currentLevel);
+    const currentIndex = levels.indexOf(result.level);
 
     if (currentIndex >= 0 && currentIndex < levels.length - 1) {
       return levels[currentIndex + 1];

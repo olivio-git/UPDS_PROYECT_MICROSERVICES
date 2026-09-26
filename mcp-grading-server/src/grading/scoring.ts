@@ -154,8 +154,19 @@ export interface ExamScoringOutcome {
   percentage: number;
   sections?: ExamSectionScore[];
   scoringMethod: ScoringMethod;
-  passingScore: number;
+  /** `undefined` for placement exams — they have no pass/fail threshold. */
+  passingScore: number | undefined;
   passed: boolean | undefined;
+}
+
+/**
+ * Placement exams produce a recommended level, never a pass/fail verdict
+ * (user decision W5). Both `passed` and `passingScore` are therefore left
+ * undefined for them, and `UNSETTABLE_GRADED_FIELDS` clears any stale value
+ * left by an earlier grading pass.
+ */
+export function hasPassFailVerdict(examType: string): boolean {
+  return examType !== 'placement';
 }
 
 /**
@@ -194,8 +205,8 @@ export function computeExamScoring(input: ExamScoringInput): ExamScoringOutcome 
 
   const percentage = weightedResult?.percentage ?? rawPercentage;
   const sections = weightedResult?.sections ?? rawSections;
-  const passingScore = resolvePassingScore(examPassingScore);
-  const passed = decidePassed(percentage, passingScore, status);
+  const passingScore = hasPassFailVerdict(examType) ? resolvePassingScore(examPassingScore) : undefined;
+  const passed = passingScore === undefined ? undefined : decidePassed(percentage, passingScore, status);
 
   return { totalScore, maxScore, percentage, sections, scoringMethod, passingScore, passed };
 }
@@ -203,10 +214,11 @@ export function computeExamScoring(input: ExamScoringInput): ExamScoringOutcome 
 /**
  * Graded fields that can legitimately be absent on a (re)grading pass and
  * must therefore be removed from an existing document instead of left stale:
- * `passed` is omitted for `pending_ai_review`, and `sections` is omitted for
- * flat (non-sectioned) attempts.
+ * `passed` is omitted for `pending_ai_review`, `passed`/`passingScore` are
+ * omitted for placement exams, and `sections` is omitted for flat
+ * (non-sectioned) attempts.
  */
-export const UNSETTABLE_GRADED_FIELDS = ['passed', 'sections'] as const;
+export const UNSETTABLE_GRADED_FIELDS = ['passed', 'passingScore', 'sections'] as const;
 
 /**
  * Builds a `$unset` stage for every listed key whose value is `undefined` in

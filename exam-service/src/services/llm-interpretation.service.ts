@@ -1,5 +1,6 @@
 import axios from 'axios';
 import { logger } from '../utils/logger';
+import { buildExamResultFallback, buildExamResultMessages } from './llm-exam-result.prompt';
 
 export interface DataInterpretation {
   summary: string;
@@ -62,121 +63,8 @@ export class LLMInterpretationService {
   // ─── BUILDERS ────────────────────────────────────────────────────────────────
 
   private buildExamResultMessages(data: any, config: InterpretationConfig): GroqMessage[] {
-    const isSpanish = config.language === 'spanish';
-
-    const firstName = data.student?.firstName || '';
-    const lastName  = data.student?.lastName  || '';
-    const studentName = `${firstName} ${lastName}`.trim() || (isSpanish ? 'el estudiante' : 'the student');
-
-    const percentage   = data.result?.percentage   ?? 0;
-    const passed       = data.result?.passed        ?? false;
-    const examTitle    = data.result?.examTitle     ?? '';
-    const level        = data.result?.level         ?? '';
-    const passingScore = data.result?.passingScore  ?? 70;
-    const duration     = data.result?.duration      ?? 0;
-    const feedback     = data.result?.feedback      ?? '';
-
-    const competencies: string = (data.competencyScores ?? [])
-      .map((c: any) => `  • ${c.competency}: ${Number(c.percentage ?? 0).toFixed(1)}% (${c.score}/${c.maxScore} pts)`)
-      .join('\n') || (isSpanish ? '  (sin desglose por competencia)' : '  (no competency breakdown)');
-
-    const margin = Math.abs(percentage - passingScore).toFixed(1);
-    const statusLine = passed
-      ? (isSpanish ? `APROBADO — superó el mínimo por ${margin}%` : `PASSED — exceeded minimum by ${margin}%`)
-      : (isSpanish ? `NO APROBADO — le faltaron ${margin}% para alcanzar el mínimo` : `DID NOT PASS — ${margin}% below minimum`);
-
-    const system = isSpanish
-      ? `Eres un evaluador académico del Centro Boliviano Americano (CBA), institución de enseñanza de inglés en Bolivia. Tu misión es generar retroalimentación académica directamente dirigida AL estudiante, usando segunda persona (tú/tu). NUNCA hables del estudiante en tercera persona. Escribe como si le estuvieras hablando directamente: "obtuviste", "tu fortaleza es", "te recomendamos", "puedes mejorar". Usa su nombre solo al inicio del resumen como saludo. Responde únicamente con JSON válido con las claves exactas indicadas.`
-      : `You are an academic evaluator at an English language institute. Write ALL feedback directly TO the student using second person (you/your). NEVER refer to the student in third person. Write as if speaking directly to them: "you scored", "your strength is", "we recommend you". Use their name only at the start of the summary as a greeting. Respond only with valid JSON using the exact keys indicated.`;
-
-    const user = isSpanish ? `
-Genera retroalimentación académica personalizada para este resultado de examen.
-
-DATOS DEL EXAMEN:
-  Estudiante:  ${studentName}
-  Examen:      ${examTitle}${level ? ` — Nivel ${level}` : ''}
-  Puntaje:     ${percentage.toFixed(1)}%
-  Estado:      ${statusLine}
-  Mínimo req.: ${passingScore}%
-  Duración:    ${duration} minutos
-
-RENDIMIENTO POR COMPETENCIAS:
-${competencies}
-
-${feedback ? `RETROALIMENTACIÓN PREVIA DEL SISTEMA:\n  "${feedback}"\n` : ''}
-
-INSTRUCCIONES CRÍTICAS:
-- Habla DIRECTAMENTE al estudiante en segunda persona: "obtuviste", "tu resultado", "puedes", "te recomendamos". NUNCA en tercera persona.
-- Usa su nombre (${firstName || 'el estudiante'}) solo al inicio del resumen como saludo, después usa "tú/tu".
-- Usa los porcentajes y datos reales del examen, no inventes cifras.
-- Si aprobó: resalta sus logros en segunda persona, la competencia más fuerte, y cómo puede seguir creciendo.
-- Si no aprobó: sé alentador en segunda persona, señala qué necesita trabajar y qué puede hacer concreto.
-- Las recomendaciones deben ser accionables y específicas (ej: "practica comprensión auditiva con podcasts 20 min al día").
-- No repitas la misma información en distintas secciones.
-
-Responde con este JSON exacto:
-{
-  "summary": "2-3 oraciones describiendo el desempeño general de ${firstName || studentName}. Incluye el puntaje obtenido, si aprobó, y la competencia más destacada.",
-  "keyInsights": [
-    "Observación específica sobre la competencia con mejor rendimiento (con %) ",
-    "Observación sobre la competencia con menor rendimiento (con %)",
-    "Observación sobre eficiencia, tiempo, o patrón general de respuestas"
-  ],
-  "recommendations": [
-    "Acción concreta y específica para reforzar la competencia más débil",
-    "Estrategia para consolidar y proyectar la competencia más fuerte",
-    "Hábito o recurso de estudio concreto para el próximo examen"
-  ],
-  "trends": [
-    "Relación o patrón observado entre las competencias evaluadas",
-    "Implicación del resultado para el avance al siguiente nivel"
-  ],
-  "concerns": ${passed
-    ? '[]'
-    : `["Competencia específica que impidió la aprobación y requiere atención prioritaria", "Brecha concreta entre el puntaje obtenido y el mínimo requerido"]`
-  },
-  "visualizationSuggestions": []
-}` : `
-Generate personalized academic feedback for this exam result.
-
-EXAM DATA:
-  Student:   ${studentName}
-  Exam:      ${examTitle}${level ? ` — Level ${level}` : ''}
-  Score:     ${percentage.toFixed(1)}%
-  Status:    ${statusLine}
-  Min score: ${passingScore}%
-  Duration:  ${duration} minutes
-
-COMPETENCY BREAKDOWN:
-${competencies}
-
-${feedback ? `EXISTING SYSTEM FEEDBACK:\n  "${feedback}"\n` : ''}
-
-Respond with this exact JSON:
-{
-  "summary": "2-3 sentences describing ${firstName || studentName}'s overall performance. Include score, pass/fail status, and top competency.",
-  "keyInsights": [
-    "Specific observation about best performing competency (with %)",
-    "Specific observation about weakest competency (with %)",
-    "Observation about efficiency, time usage, or response patterns"
-  ],
-  "recommendations": [
-    "Concrete action to strengthen the weakest competency",
-    "Strategy to consolidate the strongest competency",
-    "Specific study habit or resource for the next exam"
-  ],
-  "trends": [
-    "Pattern or relationship observed across competencies",
-    "Implication of this result for advancing to the next level"
-  ],
-  "concerns": ${passed ? '[]' : '["Specific competency that prevented passing", "Gap between achieved score and minimum required"]'},
-  "visualizationSuggestions": []
-}`;
-
-    return [
-      { role: 'system', content: system },
-      { role: 'user',   content: user   }
-    ];
+    // Pure, unit-tested builder (3-state verdict + placement) — see llm-exam-result.prompt.ts.
+    return buildExamResultMessages(data, config);
   }
 
   private buildCompetencyMessages(data: any, config: InterpretationConfig): GroqMessage[] {
@@ -392,63 +280,10 @@ Responde con JSON:
   private generateFallbackInterpretation(config: InterpretationConfig, data?: any): DataInterpretation {
     const isSpanish = config.language === 'spanish';
 
-    // Fallback específico para resultado de examen
+    // Fallback específico para resultado de examen (pure, unit-tested — 3-state
+    // verdict + placement; see llm-exam-result.prompt.ts).
     if (data?.result !== undefined) {
-      const percentage  = Number(data.result?.percentage  ?? 0);
-      const passed      = data.result?.passed  ?? false;
-      const level       = data.result?.level   ?? '';
-      const passingScore = data.result?.passingScore ?? 70;
-      const firstName   = data.student?.firstName ?? '';
-      const name        = `${firstName} ${data.student?.lastName ?? ''}`.trim() || (isSpanish ? 'El estudiante' : 'The student');
-
-      const sorted      = [...(data.competencyScores ?? [])].sort((a, b) => b.percentage - a.percentage);
-      const best        = sorted[0];
-      const worst       = sorted[sorted.length - 1];
-      const margin      = Math.abs(percentage - passingScore).toFixed(1);
-
-      return {
-        summary: isSpanish
-          ? `${name}, obtuviste un ${percentage.toFixed(1)}% en el examen de nivel ${level}. ${passed ? `¡Aprobaste superando el mínimo por ${margin}%!` : `No alcanzaste el mínimo requerido (${passingScore}%), te faltaron ${margin}%.`}${best ? ` Tu competencia más fuerte fue ${best.competency} con ${Number(best.percentage).toFixed(1)}%.` : ''}`
-          : `${name}, you scored ${percentage.toFixed(1)}% on the ${level} level exam. ${passed ? `You passed, exceeding the minimum by ${margin}%!` : `You did not meet the required minimum (${passingScore}%), missing by ${margin}%.`}`,
-        keyInsights: [
-          best  ? (isSpanish ? `Tu mejor rendimiento fue en ${best.competency} con ${Number(best.percentage).toFixed(1)}%` : `Your best performance was in ${best.competency} at ${Number(best.percentage).toFixed(1)}%`) : '',
-          worst && worst !== best ? (isSpanish ? `Tu área a reforzar es ${worst.competency} con ${Number(worst.percentage).toFixed(1)}%` : `Your area to strengthen is ${worst.competency} at ${Number(worst.percentage).toFixed(1)}%`) : '',
-          passed
-            ? (isSpanish ? `Tu rendimiento muestra dominio del nivel ${level}` : `Your performance shows mastery of ${level} level`)
-            : (isSpanish ? `Necesitas refuerzo en las competencias evaluadas antes de tu próxima evaluación` : `You need reinforcement before your next evaluation`)
-        ].filter(Boolean),
-        recommendations: isSpanish
-          ? [
-              worst ? `Dedica tiempo adicional a ejercicios de ${worst.competency} para mejorar desde tu ${Number(worst.percentage).toFixed(1)}% actual` : 'Continúa con tu plan de estudio actual',
-              passed ? `Considera avanzar al siguiente nivel para seguir desarrollando tus habilidades` : `Repasa los temas del nivel ${level} antes de reintentar la evaluación`,
-              'Practica regularmente con materiales del nivel para mantener y mejorar tu rendimiento'
-            ]
-          : [
-              worst ? `Dedicate extra time to ${worst.competency} to improve from your current ${Number(worst.percentage).toFixed(1)}%` : 'Continue with your current study plan',
-              passed ? `Consider advancing to the next level` : `Review ${level} level topics before retaking the assessment`,
-              'Practice regularly with level-appropriate materials'
-            ],
-        trends: isSpanish
-          ? [
-              best && worst && best !== worst
-                ? `Hay una diferencia de ${(Number(best.percentage) - Number(worst.percentage)).toFixed(1)}% entre tu competencia más fuerte y la más débil`
-                : 'Tu rendimiento es uniforme entre las competencias',
-              passed ? `Tu resultado confirma que estás listo para el nivel siguiente` : `Tu resultado indica que necesitas consolidar el nivel ${level}`
-            ]
-          : ['Your competency performance shows variation worth addressing', passed ? `Your result confirms readiness for the next level` : `Your result indicates you need to consolidate ${level} level`],
-        concerns: passed
-          ? []
-          : isSpanish
-            ? [
-                worst ? `Tu competencia de ${worst.competency} (${Number(worst.percentage).toFixed(1)}%) requiere atención prioritaria` : 'Necesitas refuerzo general en todas las competencias',
-                `Te faltan ${margin}% para alcanzar el puntaje mínimo de aprobación`
-              ]
-            : [
-                worst ? `Your ${worst.competency} (${Number(worst.percentage).toFixed(1)}%) needs priority attention` : 'You need general reinforcement across all competencies',
-                `You need ${margin}% more to reach the minimum passing score`
-              ],
-        visualizationSuggestions: []
-      };
+      return buildExamResultFallback(data, config);
     }
 
     // Fallback genérico para otros tipos de reporte

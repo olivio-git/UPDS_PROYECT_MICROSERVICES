@@ -7,6 +7,8 @@ import fs from 'fs';
 import path from 'path';
 import { ExamResult } from '../models/examResult.model';
 import { Question } from '../models/question.model';
+import { Exam } from '../models/exam.model';
+import { resolveExamType, resolvePassFail } from '../utils/passFail';
 import { Types } from 'mongoose';
 
 export interface StudentInfo {
@@ -23,7 +25,7 @@ export interface ExamResultPDFData {
   result: {
     id: string;
     examTitle: string;
-    examType: 'placement' | 'progress' | 'final' | 'practice';
+    examType: 'placement' | 'progress' | 'final' | 'mock' | 'practice';
     sessionName: string;
     completedAt: string;
     duration: number; // in minutes
@@ -32,7 +34,12 @@ export interface ExamResultPDFData {
     finalScore: number;
     maxScore: number;
     percentage: number;
-    passed: boolean;
+    /** `null` = no final verdict (pending review, or a placement exam). */
+    passed: boolean | null;
+    /** `null` for placement exams — they have no pass/fail threshold. */
+    passingScore: number | null;
+    /** Placement exams only: shown instead of a pass/fail verdict. */
+    recommendedLevel?: string;
     feedback?: string;
     recommendations?: string[];
   };
@@ -73,7 +80,7 @@ export interface ExamResultPDFData {
   examSettings: {
     timeAllowed: number;
     totalQuestions: number;
-    passingScore: number;
+    passingScore: number | null;
   };
 
   // Interpretación LLM (opcional)
@@ -230,11 +237,17 @@ export class ExamResultPDFService {
       studentInfo = await this.getStudentInfo(examResult.candidateId.toString());
     }
 
+    // 2.5. Resolve the exam for its real type and the passFail threshold —
+    // grading-service is the source of truth (result.passed/passingScore);
+    // this is only the legacy fallback via the one documented helper.
+    const exam = await Exam.findById(examResult.examId, { type: 1, structure: 1 }).lean();
+    const { passed, passingScore } = resolvePassFail(examResult, exam);
+
     // 3. Preparar datos del resultado
     const resultData: ExamResultPDFData['result'] = {
       id: String(examResult._id),
       examTitle: examResult.examName || 'Examen',
-      examType: 'practice', // Default type since we don't have exam details
+      examType: (resolveExamType(examResult, exam) || 'practice') as ExamResultPDFData['result']['examType'],
       sessionName: 'Sesión de Evaluación', // Default session name
       completedAt: examResult.completedAt?.toISOString() || examResult.evaluatedAt.toISOString(),
       duration: Math.round((examResult.examDuration || 0) / 60), // Convert seconds to minutes
@@ -243,7 +256,9 @@ export class ExamResultPDFService {
       finalScore: examResult.totalScore || 0,
       maxScore: examResult.maxScore || 100,
       percentage: examResult.percentage || 0,
-      passed: examResult.percentage >= 70, // Calculate from percentage
+      passed,
+      passingScore,
+      recommendedLevel: examResult.recommendedLevel,
       feedback: examResult.overallFeedback,
       recommendations: examResult.recommendations || []
     };
@@ -301,7 +316,7 @@ export class ExamResultPDFService {
     const examSettings = {
       timeAllowed: examResult.timeAllowed || 3600, // seconds
       totalQuestions: examResult.questionResults?.length || 0,
-      passingScore: 70 // Default passing score
+      passingScore // Resolved above via resolvePassFail — grading-service's stored value, exam's threshold, or the single documented default
     };
 
     return {
@@ -523,6 +538,11 @@ export class ExamResultPDFService {
                 <div class="metric-value">${data.examSettings.totalQuestions}</div>
                 <div class="metric-label">${isSpanish ? 'Total Preguntas' : 'Total Questions'}</div>
               </div>
+              ${data.result.examType === 'placement' ? `
+              <div class="metric-card primary">
+                <div class="metric-value">${data.result.recommendedLevel || '—'}</div>
+                <div class="metric-label">${isSpanish ? 'Nivel recomendado' : 'Recommended level'}</div>
+              </div>` : ''}
             </div>
           </div>
 

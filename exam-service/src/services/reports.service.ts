@@ -2,10 +2,22 @@ import type { PipelineStage } from 'mongoose';
 import { Types } from 'mongoose';
 import { cache } from '../config/redis';
 import { Candidate } from '../models/candidate.model';
+import { Exam } from '../models/exam.model';
 import { ExamResult } from '../models/examResult.model';
 import { Session } from '../models/session.model';
 import { User } from '../models/user.model';
 import { logger } from '../utils/logger';
+import { DEFAULT_PASSING_SCORE, PLACEMENT_EXAM_TYPE, resolveExamType, resolvePassFail } from '../utils/passFail';
+
+/**
+ * TTL for reports that expose grading verdicts (student_stats, student_history).
+ * exam-service does not consume grading events (grading-service grades
+ * asynchronously and writes exam_results directly), so there is no hook to
+ * invalidate these keys on grade/regrade; the filter-keyed student_stats cache
+ * could not be targeted anyway. A short TTL bounds staleness (e.g. a result
+ * still shown as pending after it was graded) to ~2 minutes.
+ */
+const VERDICT_REPORT_CACHE_TTL_SECONDS = 120;
 
 // Interfaces para los reportes
 export interface CompetencyAnalysisReport {
@@ -68,6 +80,12 @@ export interface StudentHistoryReport {
     percentage: number;
     level: string;
     status: string;
+    /** Resolved via `resolvePassFail`; `null` = pending review or placement (no verdict). */
+    passed: boolean | null;
+    passingScore: number | null;
+    examType?: string;
+    /** Placement exams only — shown instead of a pass/fail verdict. */
+    recommendedLevel?: string;
     timeSpent: number; // minutes
     competencyScores: Array<{
       competency: string;
@@ -151,7 +169,8 @@ export interface StudentStatsReport {
   levelDistribution: Record<string, {
     count: number;
     averageScore: number;
-    passRate: number;
+    /** `null` when the level has no verdict-eligible results (only pending/placement). */
+    passRate: number | null;
   }>;
   competencyPerformance: Record<string, {
     average: number;
@@ -469,7 +488,10 @@ export class ReportsService {
    */
   async getStudentStats(filters: ReportFilters = {}): Promise<StudentStatsReport> {
     try {
-      const cacheKey = `student_stats:${JSON.stringify(filters)}`;
+      // v2: levelDistribution.passRate now counts only verdict-eligible results
+      // (stored `passed`, pending/placement excluded, null when none); the bump
+      // keeps pre-deploy cached payloads with the old semantics from being served.
+      const cacheKey = `student_stats:v2:${JSON.stringify(filters)}`;
       const cached = await cache.get(cacheKey);
       if (cached) {
         return cached;
@@ -560,8 +582,8 @@ export class ReportsService {
         strugglingStudents
       };
 
-      // Cache por 1 hora
-      await cache.set(cacheKey, report, 3600);
+      // Short TTL: pass/fail verdicts change when grading completes or a result is regraded.
+      await cache.set(cacheKey, report, VERDICT_REPORT_CACHE_TTL_SECONDS);
 
       return report;
     } catch (error) {
@@ -786,15 +808,87 @@ export class ReportsService {
     };
   }
   private async getLevelDistribution(filters: ReportFilters): Promise<Record<string, any>> {
+    // passRate uses grading-service's stored `passed` (source of truth). Legacy
+    // documents without it fall back to the same rule as `resolvePassFail`:
+    // completed AND percentage >= (stored passingScore, else the exam's
+    // structure.passingScore via $lookup, else DEFAULT_PASSING_SCORE).
+    // Only verdict-eligible results count in the denominator: pending review
+    // (status != 'completed') and placement exams have no verdict, so they
+    // are excluded rather than counted as "not passed". Placement is detected
+    // from the exam type OR the result's own placement fields (recommendedLevel,
+    // levelScores, placementMode), so a deleted/legacy exam doesn't turn a
+    // placement result into a pass/fail one. A level with no verdict-eligible
+    // results reports passRate null (no verdict), not 0.
     const pipeline: PipelineStage[] = [
       { $match: this.buildMatchStage(filters) },
+      {
+        $lookup: {
+          from: Exam.collection.name,
+          localField: 'examId',
+          foreignField: '_id',
+          pipeline: [{ $project: { type: 1, 'structure.passingScore': 1 } }],
+          as: '_passFailExam'
+        }
+      },
+      { $addFields: { _passFailExam: { $arrayElemAt: ['$_passFailExam', 0] } } },
+      {
+        $addFields: {
+          _verdictEligible: {
+            $and: [
+              { $eq: ['$status', 'completed'] },
+              {
+                $not: [{
+                  $or: [
+                    { $eq: ['$_passFailExam.type', PLACEMENT_EXAM_TYPE] },
+                    { $gt: [{ $strLenCP: { $ifNull: ['$recommendedLevel', ''] } }, 0] },
+                    { $ne: [{ $ifNull: ['$placementMode', null] }, null] },
+                    {
+                      $gt: [
+                        { $size: { $cond: [{ $isArray: '$levelScores' }, '$levelScores', []] } },
+                        0
+                      ]
+                    }
+                  ]
+                }]
+              }
+            ]
+          },
+          _passingScore: {
+            $cond: [
+              { $isNumber: '$passingScore' },
+              '$passingScore',
+              {
+                $cond: [
+                  { $isNumber: '$_passFailExam.structure.passingScore' },
+                  '$_passFailExam.structure.passingScore',
+                  DEFAULT_PASSING_SCORE
+                ]
+              }
+            ]
+          }
+        }
+      },
+      {
+        $addFields: {
+          _passed: {
+            $cond: [
+              { $eq: [{ $type: '$passed' }, 'bool'] },
+              '$passed',
+              { $gte: ['$percentage', '$_passingScore'] }
+            ]
+          }
+        }
+      },
       {
         $group: {
           _id: '$examLevel',
           students: { $addToSet: '$candidateId' },
           averageScore: { $avg: '$percentage' },
           passCount: {
-            $sum: { $cond: [{ $gte: ['$percentage', 70] }, 1, 0] }
+            $sum: { $cond: [{ $and: ['$_verdictEligible', '$_passed'] }, 1, 0] }
+          },
+          verdictCount: {
+            $sum: { $cond: ['$_verdictEligible', 1, 0] }
           },
           totalExams: { $sum: 1 }
         }
@@ -809,7 +903,7 @@ export class ReportsService {
       distribution[level._id] = {
         count: studentCount,
         averageScore: Math.round(level.averageScore * 100) / 100,
-        passRate: Math.round((level.passCount / level.totalExams) * 100)
+        passRate: level.verdictCount > 0 ? Math.round((level.passCount / level.verdictCount) * 100) : null
       };
     });
 
@@ -1144,7 +1238,9 @@ export class ReportsService {
    */
   async getStudentHistory(studentId: string): Promise<StudentHistoryReport> {
     try {
-      const cacheKey = `student_history:${studentId}`;
+      // v2: entries now carry the resolved `passed` verdict; the bump keeps
+      // pre-deploy cached payloads (without it) from reading as "pending".
+      const cacheKey = `student_history:v2:${studentId}`;
       const cached = await cache.get(cacheKey);
       if (cached) {
         return cached;
@@ -1155,7 +1251,7 @@ export class ReportsService {
         candidateId: studentId,
         status: { $in: ['completed', 'pending_ai_review'] }
       })
-      .populate('examId', 'title description structure')
+      .populate('examId', 'title description structure type')
       .populate('sessionId', 'sessionName')
       .sort({ evaluatedAt: -1 })
       .lean();
@@ -1177,6 +1273,8 @@ export class ReportsService {
 
       // Procesar historial de exámenes
       const examHistory = examResults.map((result: any) => {
+        // grading-service's stored verdict, or the one documented legacy fallback.
+        const { passed, passingScore } = resolvePassFail(result, result.examId);
         return {
           examId: result.examId?._id?.toString() || '',
           resultId: result._id?.toString() || '',
@@ -1189,6 +1287,12 @@ export class ReportsService {
           percentage: result.percentage ?? Math.round(((result.totalScore || 0) / (result.maxScore || 100)) * 10000) / 100,
           level: result.examLevel || 'No determinado',
           status: result.status || 'completed',
+          passed,
+          passingScore,
+          // A deleted/legacy exam doesn't resolve a type; the result's own
+          // placement fields still mark it as placement.
+          examType: resolveExamType(result, result.examId),
+          recommendedLevel: result.recommendedLevel,
           timeSpent: Math.round((result.examDuration || 0) / 60), // segundos → minutos
           competencyScores: result.competencyScores || [],
           feedback: result.overallFeedback || '',
@@ -1271,8 +1375,8 @@ export class ReportsService {
         recommendations
       };
 
-      // Cache por 1 hora
-      await cache.set(cacheKey, report, 3600);
+      // Short TTL: pass/fail verdicts change when grading completes or a result is regraded.
+      await cache.set(cacheKey, report, VERDICT_REPORT_CACHE_TTL_SECONDS);
 
       return report;
     } catch (error) {
