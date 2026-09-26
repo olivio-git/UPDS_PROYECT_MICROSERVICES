@@ -22,6 +22,15 @@
  * passingScore 70 must store 70 / passed) and a `/regrade-session` pass that
  * must keep the weighted percentage and `passed` consistent.
  *
+ * Phase 5 checks the level-mastery indicator (design D13): using the exam's
+ * REAL targetLevel document (every level always defines a full
+ * `competencyRequirements`/`overallMinScore`, so nothing is upserted), it
+ * seeds a case scoring below both thresholds (`passed:true`, mastery not
+ * achieved) and one above both (`passed:false`, full mastery achieved) to
+ * prove the two verdicts are independent, plus a placement exam and an
+ * unresolved `targetLevel`, both of which must omit `competencyMastery`
+ * without blocking grading.
+ *
  * Creates one throwaway student (@example.com — a reserved, non-routable
  * domain per RFC 2606, so any attempted email is never delivered), one exam
  * built from the question bank and one in-progress session, and deletes
@@ -464,6 +473,66 @@ async function main() {
         && td.showResults === false
         && ['score', 'maxScore', 'percentage', 'passed', 'passingScore', 'recommendedLevel', 'pdfBase64'].every((k) => td[k] === undefined),
         JSON.stringify(td));
+
+      // ---- Phase 5: level mastery indicator — informational, independent
+      // of `passed` (design D13, level-mastery-indicator spec). Uses the
+      // REAL level document for `pick._id.level` (every level always has a
+      // full `competencyRequirements`/`overallMinScore`, so no throwaway
+      // level needs to be upserted/cleaned up here). ----------------------
+      const targetLevelDoc = await exams.collection('levels').findOne({ code: pick._id.level, isActive: true });
+      const compMinScore = targetLevelDoc?.competencyRequirements?.[pick._id.competency]?.minScore;
+      const overallMinScore = targetLevelDoc?.overallMinScore;
+      if (typeof compMinScore !== 'number' || typeof overallMinScore !== 'number') {
+        console.log(`SKIP Phase 5 (level mastery): level ${pick._id.level} has no usable requirements for ${pick._id.competency}.`);
+      } else {
+        // Below both thresholds, above a low passingScore -> passed true,
+        // mastery not achieved ("Passed despite unmet mastery").
+        const belowMin = Math.max(1, Math.min(compMinScore, overallMinScore) - 15);
+        const caseBelow = await seedWeightedCase('mastery-below', 'final', Math.max(0, belowMin - 10), [
+          { name: 'Única', weight: 100, questions: [{ points: belowMin, correct: true }, { points: 100 - belowMin, correct: false }] },
+        ]);
+        await gradingApi('/api/v1/grading/exam', { attemptId: String(caseBelow.attemptId) });
+        const storedBelow = await exams.collection('exam_results').findOne({ attemptId: caseBelow.attemptId });
+        check('[stored] mastery-below: passed=true despite unmet mastery', storedBelow?.passed === true, `${storedBelow?.passed}`);
+        check('[stored] mastery-below: competencyMastery.levelCode matches targetLevel', storedBelow?.competencyMastery?.levelCode === pick._id.level, JSON.stringify(storedBelow?.competencyMastery));
+        check('[stored] mastery-below: overall not achieved', storedBelow?.competencyMastery?.overall?.achieved === false, JSON.stringify(storedBelow?.competencyMastery?.overall));
+        const compBelow = storedBelow?.competencyMastery?.competencies?.find((c) => c.competency === pick._id.competency);
+        check('[stored] mastery-below: competency not achieved', compBelow?.achieved === false, JSON.stringify(compBelow));
+
+        // Above both thresholds, below a high passingScore -> passed false,
+        // full mastery achieved ("Failed despite full mastery").
+        const aboveMin = Math.min(99, Math.max(compMinScore, overallMinScore) + 15);
+        const caseAbove = await seedWeightedCase('mastery-above', 'final', Math.min(100, aboveMin + 10), [
+          { name: 'Única', weight: 100, questions: [{ points: aboveMin, correct: true }, { points: 100 - aboveMin, correct: false }] },
+        ]);
+        await gradingApi('/api/v1/grading/exam', { attemptId: String(caseAbove.attemptId) });
+        const storedAbove = await exams.collection('exam_results').findOne({ attemptId: caseAbove.attemptId });
+        check('[stored] mastery-above: passed=false despite full mastery', storedAbove?.passed === false, `${storedAbove?.passed}`);
+        check('[stored] mastery-above: overall achieved', storedAbove?.competencyMastery?.overall?.achieved === true, JSON.stringify(storedAbove?.competencyMastery?.overall));
+        const compAbove = storedAbove?.competencyMastery?.competencies?.find((c) => c.competency === pick._id.competency);
+        check('[stored] mastery-above: competency achieved', compAbove?.achieved === true, JSON.stringify(compAbove));
+
+        // Placement exams get a recommendedLevel, never a mastery indicator.
+        const casePlacement = await seedWeightedCase('mastery-placement', 'placement', 60, [
+          { name: 'Única', weight: 100, questions: [{ points: 10, correct: true }] },
+        ]);
+        const placementRes = await gradingApi('/api/v1/grading/exam', { attemptId: String(casePlacement.attemptId) });
+        check('placement exam grades successfully', placementRes.status === 200, `HTTP ${placementRes.status}`);
+        const storedPlacement = await exams.collection('exam_results').findOne({ attemptId: casePlacement.attemptId });
+        check('[stored] placement exam omits competencyMastery', storedPlacement?.competencyMastery == null, JSON.stringify(storedPlacement?.competencyMastery));
+
+        // A targetLevel that never resolves (deleted/renamed) omits mastery
+        // too, without blocking grading (Graceful Absence of Level Data).
+        const caseUnresolved = await seedWeightedCase('mastery-unresolved', 'final', 50, [
+          { name: 'Única', weight: 100, questions: [{ points: 10, correct: true }] },
+        ]);
+        await exams.collection('exams').updateOne({ _id: caseUnresolved.examId }, { $set: { targetLevel: `${TAG}-no-such-level` } });
+        const unresolvedRes = await gradingApi('/api/v1/grading/exam', { attemptId: String(caseUnresolved.attemptId) });
+        check('unresolved-level exam grades successfully', unresolvedRes.status === 200, `HTTP ${unresolvedRes.status}`);
+        const storedUnresolved = await exams.collection('exam_results').findOne({ attemptId: caseUnresolved.attemptId });
+        check('[stored] unresolved targetLevel omits competencyMastery', storedUnresolved?.competencyMastery == null, JSON.stringify(storedUnresolved?.competencyMastery));
+        check('[stored] unresolved targetLevel still computes passed normally', storedUnresolved?.passed === true, `${storedUnresolved?.passed}`);
+      }
     }
   } finally {
     if (kafkaProducer) await kafkaProducer.disconnect().catch(() => {});
