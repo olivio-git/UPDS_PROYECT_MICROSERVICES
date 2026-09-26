@@ -1,0 +1,81 @@
+schema: spec-driven
+
+context: |
+  Stack: TypeScript microservices monorepo, Node.js + Express (identity/exam/
+  notifications/session-manager/grading), Fastify-free REST APIs, React 19 +
+  Vite + TypeScript frontend (Tailwind 4, Zustand 5, TanStack Query).
+  Infra: MongoDB, Redis, Kafka (+Zookeeper), MinIO, Nginx API gateway, all
+  orchestrated via docker-compose.yml.
+  Services: exam-service, identity-service, mcp-grading-server (runs as
+  grading-service on :3007), notifications-service, session-manager-service,
+  frontend. auth-service/ is DEAD (no src, not in compose) — ignore it.
+  Testing: per-service Jest is inconsistent; see testing.services below.
+  No root-level package.json — each service manages its own deps/scripts.
+
+strict_tdd: false
+
+testing:
+  runner: "per-service (jest, inconsistent coverage)"
+  services:
+    exam-service:
+      command: "npm --prefix exam-service test"
+      framework: jest + ts-jest
+      status: working
+      note: "jest.config.js present, 3 real test files under exam-service/tests/"
+    identity-service:
+      command: "npm --prefix identity-service test"
+      framework: jest
+      status: configured_but_no_tests
+      note: "jest dep + script present, no jest.config.js, no *.test.ts files found"
+    mcp-grading-server:
+      command: null
+      framework: none
+      status: no_runner
+      note: "no test script, no jest/vitest dependency, no test files (this is grading-service :3007)"
+    notifications-service:
+      command: "npm --prefix notifications-service test"
+      framework: jest
+      status: configured_but_no_tests
+      note: "jest dep + script present, no jest.config.js, no *.test.ts files found"
+    session-manager-service:
+      command: "npm --prefix session-manager-service test"
+      framework: jest + ts-jest (dep only)
+      status: likely_broken
+      note: "2 spec files exist under tests/, but no jest.config.js and no \"jest\" key in package.json — ts-jest is not wired, npm test would likely fail to transform .ts"
+    frontend:
+      command: null
+      framework: none
+      status: no_runner
+      note: "no test script, no vitest/testing-library dependency, no test files"
+  e2e:
+    container_e2e:
+      path: "scripts/e2e/*.e2e.js"
+      note: "run inside docker containers against live services (ai-grading, exam-attempt-scope, exam-lifecycle, grading-pipeline, identity-privilege, kick-and-push, lockdown-infractions, technical-gate)"
+    browser_e2e:
+      path: "scripts/e2e-browser/"
+      framework: Playwright
+      config: "scripts/e2e-browser/playwright.config.ts"
+
+rules:
+  proposal:
+    - Include rollback plan for risky changes
+    - Call out cross-service Kafka event contract changes explicitly (topic exam-events, etc.)
+  specs:
+    - Use Given/When/Then for scenarios
+    - Use RFC 2119 keywords (MUST, SHALL, SHOULD, MAY)
+  design:
+    - Include sequence diagrams for complex flows (esp. Kafka event flows across services)
+    - Document architecture decisions with rationale
+  tasks:
+    - Group by phase, use hierarchical numbering
+    - Keep tasks completable in one session
+  apply:
+    - Follow existing code patterns (per-service conventions differ — check the target service's own tsconfig/eslint)
+    tdd: false
+    test_command: ""
+  verify:
+    test_command: ""
+    build_command: ""
+    coverage_threshold: 0
+  archive:
+    - Warn before merging destructive deltas

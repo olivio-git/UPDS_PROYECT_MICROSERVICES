@@ -234,13 +234,25 @@ export interface IExamResult {
   timeAllowed: number;
   examName: string;
   examLevel: string;
-  sections?: Array<{ name: string; competency: string; score: number; maxScore: number; percentage: number }>;
+  sections?: Array<{
+    name: string;
+    competency: string;
+    score: number;
+    maxScore: number;
+    percentage: number;
+    weight?: number;
+    weightedPercentage?: number;
+  }>;
   overallFeedback?: string;
   recommendations?: string[];
   competencyFeedback?: Record<string, string>;
   recommendedLevel?: string;
   placementMode?: 'static' | 'adaptive';
   levelScores?: Array<{ level: string; totalScore: number; maxScore: number; percentage: number; questionCount: number }>;
+  // Grading source of truth (see mcp-grading-server/src/grading/scoring.ts)
+  passed?: boolean;
+  passingScore?: number;
+  scoringMethod?: 'weighted_sections' | 'raw_points';
   // Grading performance tracking
   gradingStartedAt?: Date;
   gradingCompletedAt?: Date;

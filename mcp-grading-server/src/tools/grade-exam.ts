@@ -7,6 +7,7 @@ import { sendGradingNotification } from '../services/notification.service.js';
 import { AUTO_GRADABLE_TYPES, AI_GRADABLE_TYPES, AUDIO_TYPES } from '../types/index.js';
 import type { IQuestionResult, ICompetencyScore, IExamResult, IGradingBreakdown, QuestionType } from '../types/index.js';
 import type { GradeExamResponse } from '../schemas/grading.schemas.js';
+import { buildUnsetForUndefined, computeExamScoring, UNSETTABLE_GRADED_FIELDS } from '../grading/scoring.js';
 
 class GradingError extends Error {
   statusCode: number;
@@ -73,10 +74,15 @@ function buildAlreadyGradedResponse(
       competency: s.competency,
       score: `${s.score}/${s.maxScore}`,
       percentage: s.percentage,
+      weight: s.weight,
+      weightedPercentage: s.weightedPercentage,
     })),
     recommendedLevel: existingResult.recommendedLevel,
     placementMode: existingResult.placementMode,
     levelScores: existingResult.levelScores,
+    passed: existingResult.passed,
+    passingScore: existingResult.passingScore,
+    scoringMethod: existingResult.scoringMethod,
   };
 }
 
@@ -323,24 +329,28 @@ export async function gradeExam(attemptId: string, options: { force?: boolean } 
     pendingEvaluationCount: data.pending,
   }));
 
-  // 8. Calculate totals
-  const totalScore = Math.round(questionResults.reduce((sum, qr) => sum + qr.score, 0) * 100) / 100;
-  const maxScoreTotal = questionResults.reduce((sum, qr) => sum + qr.maxScore, 0);
-  const percentage = maxScoreTotal > 0 ? Math.round((totalScore / maxScoreTotal) * 100 * 10) / 10 : 0;
+  // 8. Determine status (needed by the pass/fail decision below)
+  const hasPending = questionResults.some(qr => qr.evaluationMethod === 'manual' && qr.score === 0);
+  const status = hasPending ? 'pending_ai_review' : 'completed';
 
-  // 9. Calculate section scores
-  const sections = attempt.sectionsStructure?.map(sec => {
-    const sectionQIds = new Set(sec.questionIds.map(id => id.toString()));
-    const sectionResults = questionResults.filter(qr => sectionQIds.has(qr.questionId.toString()));
-    const secTotal = sectionResults.reduce((s, qr) => s + qr.score, 0);
-    const secMax = sectionResults.reduce((s, qr) => s + qr.maxScore, 0);
-    return {
-      name: sec.name,
-      competency: sec.competency,
-      score: secTotal,
-      maxScore: secMax,
-      percentage: secMax > 0 ? Math.round((secTotal / secMax) * 100 * 10) / 10 : 0,
-    };
+  // 9. Totals, section scores, scoring method (design D4), weighted
+  // percentage (design D3 — weights normalized by their actual sum at
+  // grading time) and pass/fail (design D5 — `passed` is left undefined for
+  // `pending_ai_review`). Shared with /regrade-session via computeExamScoring.
+  const {
+    totalScore,
+    maxScore: maxScoreTotal,
+    percentage,
+    sections,
+    scoringMethod,
+    passingScore,
+    passed,
+  } = computeExamScoring({
+    questionResults,
+    sectionsStructure: attempt.sectionsStructure,
+    examType: exam.type,
+    examPassingScore: exam.structure?.passingScore,
+    status,
   });
 
   // 9.5. Placement exam: compute levelScores and recommendedLevel
@@ -396,10 +406,6 @@ export async function gradeExam(attemptId: string, options: { force?: boolean } 
     passed.sort((a, b) => PLACEMENT_LEVELS.indexOf(b.level) - PLACEMENT_LEVELS.indexOf(a.level));
     recommendedLevel = passed[0]?.level ?? 'A1';
   }
-
-  // 10. Determine status
-  const hasPending = questionResults.some(qr => qr.evaluationMethod === 'manual' && qr.score === 0);
-  const status = hasPending ? 'pending_ai_review' : 'completed';
 
   // 11. Calculate exam duration
   const examDuration = attempt.finishedAt && attempt.startedAt
@@ -473,6 +479,9 @@ export async function gradeExam(attemptId: string, options: { force?: boolean } 
     recommendedLevel,
     placementMode,
     levelScores,
+    passed,
+    passingScore,
+    scoringMethod,
     gradingStartedAt,
     gradingCompletedAt,
     gradingDurationMs,
@@ -481,9 +490,12 @@ export async function gradeExam(attemptId: string, options: { force?: boolean } 
 
   let resultId: string;
   if (existingResult) {
+    // `$set` silently drops undefined keys, so fields that are legitimately
+    // absent on this grading pass (e.g. `passed` when a force regrade flips
+    // completed -> pending_ai_review) must be `$unset` or the stale value stays.
     await getExamResults().updateOne(
       { _id: existingResult._id },
-      { $set: examResult }
+      { $set: examResult, ...buildUnsetForUndefined(examResult, UNSETTABLE_GRADED_FIELDS) }
     );
     resultId = existingResult._id!.toString();
   } else {
@@ -550,6 +562,11 @@ export async function gradeExam(attemptId: string, options: { force?: boolean } 
       competency: s.competency,
       score: `${s.score}/${s.maxScore}`,
       percentage: s.percentage,
+      weight: s.weight,
+      weightedPercentage: s.weightedPercentage,
     })),
+    passed,
+    passingScore,
+    scoringMethod,
   };
 }
