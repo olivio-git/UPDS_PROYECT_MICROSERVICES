@@ -212,13 +212,14 @@ test.describe('Student exam flow (real browser, real backend)', () => {
     await expect(page.getByText(/^\d+%$/)).toHaveCount(0);
 
     // Grading still happens — just asynchronously, off the UI thread the
-    // student is looking at. Give it a moment, then tie the "enviado" claim
-    // back to actual data: exactly one exam_result for this
-    // session+candidate, not zero (still processing) and not more than one
-    // (a double-grade bug).
-    await page.waitForTimeout(5_000);
-    const resultCount = countExamResults(fixture.sessionId, fixture.studentId);
-    expect(resultCount).toBe(1);
+    // student is looking at. Tie the "enviado" claim back to actual data:
+    // poll until exactly one exam_result exists for this session+candidate
+    // (grading latency varies — AI-graded questions can take a while), then
+    // re-check it stayed at one (more than one would be a double-grade bug).
+    await expect
+      .poll(() => countExamResults(fixture.sessionId, fixture.studentId), { timeout: 45_000 })
+      .toBe(1);
+    expect(countExamResults(fixture.sessionId, fixture.studentId)).toBe(1);
 
     expect(consoleErrors.filter((e) => BAD_CONSOLE_PATTERN.test(e))).toEqual([]);
     expect(badResponses).toEqual([]);
