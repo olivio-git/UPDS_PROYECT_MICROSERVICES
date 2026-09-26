@@ -79,16 +79,22 @@ deploy_to() {
   "${COMPOSE[@]}" up -d || return 1
 }
 
+# Called inside `if`, where bash suspends `set -e`: every command here checks
+# its own status, so a failing `docker compose` can never read as "healthy".
 wait_healthy() {
-  local deadline=$((SECONDS + HEALTH_TIMEOUT)) expected present missing bad
-  expected=$("${COMPOSE[@]}" config --services | sort)
+  local deadline=$((SECONDS + HEALTH_TIMEOUT)) expected states missing bad
+  expected=$("${COMPOSE[@]}" config --services | sort) || return 1
+  [[ -n $expected ]] || return 1
   while :; do
-    present=$("${COMPOSE[@]}" ps -a --format '{{.Service}}' | sort)
-    missing=$(comm -23 <(echo "$expected") <(echo "$present"))
-    # A service is fine when it is running and either has no healthcheck or
-    # reports healthy.
-    bad=$("${COMPOSE[@]}" ps -a --format '{{.Service}} {{.State}} {{.Health}}' \
-      | awk '$2 != "running" || ($3 != "" && $3 != "healthy")')
+    if states=$("${COMPOSE[@]}" ps -a --format '{{.Service}} {{.State}} {{.Health}}'); then
+      missing=$(comm -23 <(echo "$expected") <(awk '{print $1}' <<<"$states" | sort))
+      # A service is fine when it is running and either has no healthcheck
+      # (empty Health) or reports healthy.
+      bad=$(awk '$2 != "running" || ($3 != "" && $3 != "healthy")' <<<"$states")
+    else
+      missing=""
+      bad="docker compose ps failed"
+    fi
     if [[ -z $missing && -z $bad ]] && curl -fsS -o /dev/null --max-time 5 http://127.0.0.1:8088/; then
       return 0
     fi
@@ -113,7 +119,8 @@ if grep -q '^scripts/deploy/' <<<"$changed"; then
 fi
 
 if deploy_to "$target" "${build[@]}" && wait_healthy; then
-  docker image prune -f >/dev/null
+  # Only this project's leftovers: the Docker daemon is shared with other apps.
+  docker image prune -f --filter label=com.docker.compose.project=cba-exams >/dev/null || true
   log "deployed ${target:0:7}"
   exit 0
 fi
