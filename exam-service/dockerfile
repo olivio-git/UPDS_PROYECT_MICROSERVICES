@@ -37,14 +37,19 @@ WORKDIR /app/exam-service
 # Copy package files
 COPY exam-service/package*.json ./
 
+# PDFs use the system Chrome installed above (CHROME_EXECUTABLE_PATH, set
+# below), so puppeteer must not download its own copy. That download was
+# never used and failed builds whenever storage.googleapis.com was
+# unreachable from the build container.
+ENV PUPPETEER_SKIP_DOWNLOAD=true
+
 # The @cba/events tarball is rebuilt on every image build and is not
 # byte-reproducible, so its integrity hash in package-lock.json goes stale and
 # even `npm install` fails with EINTEGRITY on a clean build (a warm Docker
 # cache hides it). Drop only that entry's integrity before installing; every
 # other dependency is still checked. Same logic as scripts/ci/install-with-local-events.sh.
 RUN node -e 'const fs=require("fs");const l=JSON.parse(fs.readFileSync("package-lock.json","utf8"));const e=l.packages&&l.packages["node_modules/@cba/events"];if(e)delete e.integrity;fs.writeFileSync("package-lock.json",JSON.stringify(l,null,2));' && \
-    npm install && \
-    npx puppeteer browsers install chrome
+    npm install
 
 # Copy source code
 COPY exam-service/. .
