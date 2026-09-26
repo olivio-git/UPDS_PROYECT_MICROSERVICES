@@ -12,7 +12,9 @@ permissions:
 
 concurrency:
   group: ci-${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+  # Never cancel a run on main: its last job deploys to production, and
+  # cancelling it mid-build would leave the server half updated.
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
 
 env:
   NODE_VERSION: "20"
@@ -331,3 +333,40 @@ jobs:
       - name: Tear down
         if: always()
         run: docker compose down -v
+
+  # ---------------------------------------------------------------------
+  # 4. deploy main to https://exams.cba.org.bo once everything above passed.
+  #    The SSH key is restricted on the server to /usr/local/sbin/cba-deploy
+  #    (scripts/deploy/deploy.sh), which only accepts the commit SHA; it
+  #    rebuilds the changed services and rolls back if they are not healthy.
+  #    See docs/deploy-cba.md.
+  # ---------------------------------------------------------------------
+  deploy:
+    name: deploy (exams.cba.org.bo)
+    needs: [typecheck, unit, e2e]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    concurrency:
+      group: deploy-cba
+      cancel-in-progress: false
+    environment:
+      name: production
+      url: https://exams.cba.org.bo
+    steps:
+      - name: Deploy over SSH
+        env:
+          SSH_KEY: ${{ secrets.CBA_DEPLOY_SSH_KEY }}
+          KNOWN_HOSTS: ${{ secrets.CBA_DEPLOY_KNOWN_HOSTS }}
+          DEPLOY_HOST: ${{ secrets.CBA_DEPLOY_HOST }}
+        run: |
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$SSH_KEY" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          printf '%s\n' "$KNOWN_HOSTS" > ~/.ssh/known_hosts
+          ssh -i ~/.ssh/deploy_key \
+            -o StrictHostKeyChecking=yes -o ServerAliveInterval=30 \
+            "root@${DEPLOY_HOST}" "$GITHUB_SHA"
+
+      - name: Smoke test
+        run: curl -fsS -o /dev/null --retry 5 --retry-delay 10 https://exams.cba.org.bo/

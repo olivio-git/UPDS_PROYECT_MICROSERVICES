@@ -112,13 +112,54 @@ curl -sI https://exams.cba.org.bo | head -1
 
 Renewal is handled by the server's existing certbot timer.
 
-## Updating
+## Updating (automatic)
+
+A push to `main` deploys itself. The last CI job (`deploy`, in
+`.github/workflows/ci.yml`) runs only after typecheck, unit tests and e2e
+have all passed. It connects over SSH and runs `/usr/local/sbin/cba-deploy <sha>`,
+which is a copy of `scripts/deploy/deploy.sh`. The script then:
+
+1. Refuses any SHA that is not on `origin/main`, or that is older than the deployed one.
+2. Rebuilds **only** the services whose build inputs changed, one at a time.
+   `shared/events/` counts as a change to notifications, exam and grading.
+3. Runs `up -d` and waits up to 5 minutes for every service to be running and healthy.
+4. If that fails, it redeploys the previous commit and the job fails.
+
+Two things are never applied automatically, and the job log warns when they change:
+
+- `deploy/cba/`: the host nginx is shared with other sites.
+- `scripts/deploy/`: the installed copy of the script.
+
+Apply those by hand (see below).
+
+Manual deploy of a commit, or going back on purpose:
 
 ```bash
-cd /opt/cba-exams && git pull --ff-only
-C="docker compose -f docker-compose.yml -f docker-compose.prod.yml"
-$C build <changed-service> && $C up -d <changed-service>
+cba-deploy <full-sha>
+ALLOW_OLDER=1 cba-deploy <older-full-sha>
 ```
+
+### CD setup (one time)
+
+The GitHub key can only run the deploy script. That is enforced by
+`restrict,command=` in `/root/.ssh/authorized_keys`, so a leaked key gives
+no shell:
+
+```bash
+install -m 755 /opt/cba-exams/scripts/deploy/deploy.sh /usr/local/sbin/cba-deploy
+echo 'restrict,command="/usr/local/sbin/cba-deploy" ssh-ed25519 AAAA... cba-github-deploy' >> /root/.ssh/authorized_keys
+```
+
+Repository secrets (Settings → Secrets and variables → Actions):
+
+| Secret | Value |
+|---|---|
+| `CBA_DEPLOY_SSH_KEY` | private half of that key |
+| `CBA_DEPLOY_KNOWN_HOSTS` | `ssh-keyscan -t ed25519 181.188.144.150` |
+| `CBA_DEPLOY_HOST` | `181.188.144.150` |
+
+Anyone who can push to `main` can run code on this server through a build.
+Keep `main` protected: require a pull request and a green CI.
 
 ## Rollback
 
