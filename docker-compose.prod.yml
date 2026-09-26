@@ -58,6 +58,10 @@ services:
 
   exam-service:
     restart: unless-stopped
+    environment:
+      # URL of a just-uploaded audio answer, played back in the browser.
+      # Without it exam-service falls back to http://localhost:9000.
+      - MINIO_PUBLIC_URL=${MINIO_PUBLIC_URL:?set MINIO_PUBLIC_URL in .env}
 
   session-manager-service:
     restart: unless-stopped
