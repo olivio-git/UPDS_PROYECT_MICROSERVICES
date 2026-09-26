@@ -142,7 +142,7 @@ const PENDING_HINTS: Record<string, string> = {
 // del examen (TECHNICAL_VERIFICATION_REQUIRED). El `message` ya viene en
 // español desde session-manager-service — esto solo agrega el "cómo lo arreglo".
 const TECHNICAL_REASON_HINTS: Record<string, string> = {
-  MICROPHONE_FAILED: "Permite el acceso al micrófono en tu navegador.",
+  MICROPHONE_FAILED: "Presiona \"Probar\" junto a Micrófono y habla durante la prueba. Si el navegador lo bloqueó, permite el acceso al micrófono.",
   NETWORK_UNSTABLE: "Tu conexión es inestable, verifica tu red.",
   BROWSER_INCOMPATIBLE: "Usa Chrome, Firefox, Edge o Safari.",
   LOW_SCORE: "Vuelve a realizar la verificación técnica para mejorar tu puntaje.",
@@ -661,12 +661,18 @@ const ExamPreparation = () => {
         result.isWorking ? "success" : "error",
         result.isWorking
           ? `Detectado · Nivel: ${Math.round(result.level * 100)}%`
-          : "Micrófono no detectado o sin permiso"
+          : "No detectamos sonido: habla durante la prueba o revisa el permiso"
       );
       syncVerification();
       if (result.isWorking) {
         // La fila del chequeo ya muestra "Correcto".
         startMicLevelMonitor();
+        // The server now has a working microphone on THIS verification. If
+        // the microphone was the only reason the start was refused, lift the
+        // block so "Comenzar Examen" can use it right away.
+        setVerificationBlocked((prev) =>
+          prev && prev.every((r) => r.code === 'MICROPHONE_FAILED') ? null : prev
+        );
       } else {
         toast.error("No se detectó micrófono");
       }
@@ -802,8 +808,18 @@ const ExamPreparation = () => {
   // Server said no despite passing local checks — let the candidate redo
   // the technical verification from scratch (fresh Store A record).
   const resetVerification = () => {
+    const reasons = verificationBlocked ?? [];
     setVerificationBlocked(null);
-    if (examId) initializeExamPreparation(examId);
+    // Starting over creates a NEW verification record, which throws away any
+    // check already sent (e.g. the microphone test). Only do that when the
+    // current record is gone; otherwise retry the start against it.
+    const mustRestart =
+      !verificationId || reasons.some((r) => r.code === 'EXPIRED' || r.code === 'NOT_FOUND');
+    if (mustRestart) {
+      if (examId) initializeExamPreparation(examId);
+      return;
+    }
+    handleStartExam();
   };
 
   // ── Action button per check ───────────────────────────────────────────────
