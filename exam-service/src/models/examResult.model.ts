@@ -45,6 +45,26 @@ export interface ICompetencyScore {
   pendingEvaluationCount: number;
 }
 
+/**
+ * Level-mastery indicator (lockstep with mcp-grading-server/src/types/index.ts
+ * ICompetencyMastery). Purely informational — never an input to `passed`.
+ */
+export interface IMasteryCheck {
+  minScore: number;
+  percentage: number;
+  achieved: boolean;
+}
+
+export interface ICompetencyMasteryItem extends IMasteryCheck {
+  competency: string;
+}
+
+export interface ICompetencyMastery {
+  levelCode: string;
+  overall: IMasteryCheck;
+  competencies: ICompetencyMasteryItem[];
+}
+
 export interface IExamResult extends Document {
   attemptId: Types.ObjectId;
   candidateId: Types.ObjectId;
@@ -104,6 +124,8 @@ export interface IExamResult extends Document {
   passed?: boolean;
   passingScore?: number;
   scoringMethod?: 'weighted_sections' | 'raw_points';
+  // Level mastery indicator (see ICompetencyMastery) — informational only.
+  competencyMastery?: ICompetencyMastery;
 
   // Grading performance tracking
   gradingStartedAt?: Date;
@@ -158,6 +180,25 @@ const questionResultSchema = new Schema<IQuestionResult>({
   // hydrate to `{ criteria: [] }`.
   rubric: { type: rubricEvaluationSchema, default: undefined }
 });
+
+const masteryCheckSchema = new Schema<IMasteryCheck>({
+  minScore: { type: Number, required: true },
+  percentage: { type: Number, required: true },
+  achieved: { type: Boolean, required: true }
+}, { _id: false });
+
+const competencyMasteryItemSchema = new Schema<ICompetencyMasteryItem>({
+  competency: { type: String, required: true },
+  minScore: { type: Number, required: true },
+  percentage: { type: Number, required: true },
+  achieved: { type: Boolean, required: true }
+}, { _id: false });
+
+const competencyMasterySchema = new Schema<ICompetencyMastery>({
+  levelCode: { type: String, required: true },
+  overall: { type: masteryCheckSchema, required: true },
+  competencies: { type: [competencyMasteryItemSchema], default: undefined }
+}, { _id: false });
 
 const competencyScoreSchema = new Schema<ICompetencyScore>({
   competency: { type: String, required: true },
@@ -227,6 +268,10 @@ const examResultSchema = new Schema<IExamResult>({
   passed: Boolean,
   passingScore: Number,
   scoringMethod: { type: String, enum: ['weighted_sections', 'raw_points'] },
+  // Sub-schema with `default: undefined` so results without a resolved
+  // target level (placement, deleted level, no competencyRequirements)
+  // don't hydrate to an empty mastery object.
+  competencyMastery: { type: competencyMasterySchema, default: undefined },
 
   // Grading performance tracking
   gradingStartedAt: Date,
