@@ -8,6 +8,7 @@ import { Response as ResponseModel } from '../models/response.model';
 import { Session } from '../models/session.model';
 import { logger } from '../utils/logger';
 import { toAttemptSummary, toStudentAdaptiveView } from '../utils/resultVisibility';
+import { resumePosition } from '../utils/resumePosition';
 import { env } from '../config/env';
 import { SessionService } from './session.service';
 import { KafkaService } from './kafka.service';
@@ -843,41 +844,7 @@ export class ExamTakingService {
       return acc;
     }, {});
 
-    // Calculate progress per section and overall
-    let totalQuestions = 0;
-    let currentSectionIndex = 0;
-    let currentQuestionIndex = 0;
-
-    for (let sectionIdx = 0; sectionIdx < sections.length; sectionIdx++) {
-      const section = sections[sectionIdx];
-      totalQuestions += section.questions.length;
-
-      let sectionAnswered = 0;
-      let firstUnanswered = -1;
-
-      for (let questionIdx = 0; questionIdx < section.questions.length; questionIdx++) {
-        const question = section.questions[questionIdx];
-        if (answers[question._id.toString()]) {
-          sectionAnswered++;
-        } else if (firstUnanswered === -1) {
-          firstUnanswered = questionIdx;
-        }
-      }
-
-      // If this section has unanswered questions, set as current
-      if (firstUnanswered !== -1) {
-        currentSectionIndex = sectionIdx;
-        currentQuestionIndex = firstUnanswered;
-        break;
-      }
-
-      // If section is complete, move to next section
-      if (sectionIdx === sections.length - 1) {
-        // All sections complete
-        currentSectionIndex = sectionIdx;
-        currentQuestionIndex = section.questions.length - 1;
-      }
-    }
+    const { totalQuestions, currentSectionIndex, currentQuestionIndex } = resumePosition(sections, answers);
 
     const timeRemaining = attempt.startedAt ?
       Math.max(0, attempt.timeAllowedSeconds - Math.floor((new Date().getTime() - (attempt.startedAt as Date).getTime()) / 1000)) :
