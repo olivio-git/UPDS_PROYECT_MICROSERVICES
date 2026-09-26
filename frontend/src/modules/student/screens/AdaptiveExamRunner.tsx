@@ -7,6 +7,7 @@ import {
   examService,
   getAttemptTerminationInfo,
   getTechnicalVerificationRequiredInfo,
+  isSubmittedAttemptStatus,
 } from '@/services/examService';
 import { notificationSocket } from '@/services/notifications/notificationSocket';
 import { useExamStore } from '@/stores/examStore';
@@ -16,6 +17,7 @@ import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { toast } from 'sonner';
 import QuestionRenderer from '../components/QuestionRenderer';
 import { ExamSubmittedScreen } from '../components/ExamSubmittedScreen';
+import { SessionCancelledScreen } from '../components/SessionCancelledScreen';
 
 // Level/correctness fields are absent when the exam hides results
 // (showResults=false → backend sends `resultsHidden: true`).
@@ -75,6 +77,12 @@ const AdaptiveExamRunner: React.FC = () => {
   // distinct from the normal "finished" screen (no finish request sent).
   const [kicked, setKicked] = useState(false);
   const [kickReason, setKickReason] = useState<string | undefined>(undefined);
+  // The teacher cancelled the session — not graded, no finish request.
+  const [sessionCancelled, setSessionCancelled] = useState(false);
+  // A remote termination needed a finish() call and it failed: the exam was
+  // NOT confirmed as submitted, so the student stays on a retry state.
+  const [finishError, setFinishError] = useState<string | null>(null);
+  const [finishing, setFinishing] = useState(false);
 
   const feedbackTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   // Guards the terminal transition so it only runs once, whether triggered
@@ -84,7 +92,8 @@ const AdaptiveExamRunner: React.FC = () => {
   // Browser lockdown — armed only while the session has it enabled AND the
   // attempt is actually active (not loading/errored/kicked/finished).
   const browserLockdown = useExamStore((s) => s.browserLockdown);
-  const lockdownEnabled = !loading && !error && !kicked && !isFinished && browserLockdown;
+  const lockdownEnabled =
+    !loading && !error && !kicked && !isFinished && !sessionCancelled && !finishError && browserLockdown;
   const {
     infractionCount: lockdownInfractionCount,
     showFullscreenPrompt,
@@ -106,11 +115,38 @@ const AdaptiveExamRunner: React.FC = () => {
     toast.success('Examen de nivelación enviado.');
   }, []);
 
+  // Submits the attempt and only shows "Examen enviado" once the server
+  // confirms it (success, or a 409 saying it is already submitted). Any
+  // other failure keeps the student on a retry state.
+  const submitFinish = useCallback(async () => {
+    if (!sessionId) return;
+    setFinishing(true);
+    setFinishError(null);
+    try {
+      await examService.finishExam(sessionId);
+      handleFinished();
+    } catch (err: unknown) {
+      const terminationInfo = getAttemptTerminationInfo(err);
+      if (terminationInfo && isSubmittedAttemptStatus(terminationInfo.attemptStatus)) {
+        handleFinished();
+      } else if (terminationInfo?.attemptStatus === 'cancelled') {
+        setKicked(true);
+      } else {
+        const apiError = err as { response?: { data?: { message?: string } }; message?: string } | null;
+        setFinishError(
+          apiError?.response?.data?.message || apiError?.message || 'No se pudo enviar el examen.'
+        );
+      }
+    } finally {
+      setFinishing(false);
+    }
+  }, [sessionId, handleFinished]);
+
   // Shared terminal-state handler: 'cancelled' attemptStatus means kicked
-  // (block, no further requests); anything else (session ended/expired
-  // externally) mirrors the normal finish flow — force-finish (idempotent
-  // if already closed server-side) then show the standard "Examen enviado"
-  // screen, same as a normal finish.
+  // (block, no further requests); an already-submitted attempt ('completed',
+  // legacy 'expired') goes straight to "Examen enviado"; otherwise (session
+  // ended by the teacher) the attempt is submitted first — idempotent if
+  // the server already closed it.
   const handleTerminated = useCallback((attemptStatus?: string) => {
     if (terminatedRef.current) return;
     terminatedRef.current = true;
@@ -121,11 +157,13 @@ const AdaptiveExamRunner: React.FC = () => {
       return;
     }
 
-    if (sessionId) {
-      examService.finishExam(sessionId).catch(() => { /* already terminal server-side — ignore */ });
+    if (isSubmittedAttemptStatus(attemptStatus)) {
+      handleFinished();
+      return;
     }
-    handleFinished();
-  }, [sessionId, handleFinished]);
+
+    void submitFinish();
+  }, [handleFinished, submitFinish]);
 
   useEffect(() => {
     if (!sessionId) return;
@@ -160,11 +198,17 @@ const AdaptiveExamRunner: React.FC = () => {
       if (data.status !== 'completed' && data.status !== 'cancelled') return;
       if (terminatedRef.current) return;
 
-      toast.error(
-        data.status === 'completed'
-          ? 'La sesión fue finalizada por el supervisor. Tu examen fue enviado.'
-          : 'La sesión fue cancelada por el supervisor. Tu examen fue enviado con tus respuestas actuales.'
-      );
+      if (data.status === 'cancelled') {
+        // Product rule: a session cancelled by the teacher is NOT graded —
+        // no finish request, and a distinct screen instead of "Examen enviado".
+        terminatedRef.current = true;
+        if (feedbackTimerRef.current) clearTimeout(feedbackTimerRef.current);
+        toast.error('La sesión fue cancelada por el docente.');
+        setSessionCancelled(true);
+        return;
+      }
+
+      toast.error('La sesión fue finalizada por el docente. Tu examen fue enviado.');
       handleTerminated(undefined);
     };
 
@@ -199,8 +243,11 @@ const AdaptiveExamRunner: React.FC = () => {
             resumed = true;
           }
         }
-      } catch (_resumeErr) {
-        // No existing attempt yet — will start fresh below
+      } catch (resumeErr) {
+        // A terminal attempt (submitted / kicked) is routed by the outer
+        // handler via its structured code; anything else means there is no
+        // attempt yet — start fresh below.
+        if (getAttemptTerminationInfo(resumeErr)) throw resumeErr;
       }
 
       if (!resumed) {
@@ -233,12 +280,16 @@ const AdaptiveExamRunner: React.FC = () => {
         });
         return;
       }
-      const msg = err?.response?.data?.message || err.message || 'Error al iniciar el examen';
-      if (msg.includes('already completed')) {
-        handleFinished();
-      } else {
-        setError(msg);
+      const terminationInfo = getAttemptTerminationInfo(err);
+      if (terminationInfo?.attemptStatus === 'cancelled') {
+        setKicked(true);
+        return;
       }
+      if (terminationInfo && isSubmittedAttemptStatus(terminationInfo.attemptStatus)) {
+        handleFinished();
+        return;
+      }
+      setError(err?.response?.data?.message || err.message || 'Error al iniciar el examen');
     } finally {
       setLoading(false);
     }
@@ -334,6 +385,35 @@ const AdaptiveExamRunner: React.FC = () => {
               {kickReason && <p className="text-muted-foreground text-sm">Motivo: {kickReason}</p>}
               <Button onClick={() => navigate('/student/dashboard')} className="w-full">
                 Volver al Panel
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
+      </MainLayout>
+    );
+  }
+
+  if (sessionCancelled) {
+    return <SessionCancelledScreen />;
+  }
+
+  // A remote termination could not be confirmed as submitted — keep the
+  // student here until the submission goes through.
+  if (finishError) {
+    return (
+      <MainLayout gradientVariant="primary">
+        <div className="max-w-3xl mx-auto flex items-center justify-center min-h-96">
+          <Card className="bg-card border border-line w-full max-w-md">
+            <CardContent className="p-10 text-center space-y-4">
+              <AlertCircle className="h-10 w-10 text-red-400 mx-auto" />
+              <h2 className="text-xl font-bold text-foreground">No se pudo enviar el examen</h2>
+              <p className="text-foreground/80">
+                Tus respuestas siguen guardadas. Vuelve a intentarlo; si el problema continúa, avisa al supervisor.
+              </p>
+              <p className="text-muted-foreground text-sm">{finishError}</p>
+              <Button onClick={() => void submitFinish()} disabled={finishing} className="w-full">
+                {finishing ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}
+                Reintentar envío
               </Button>
             </CardContent>
           </Card>

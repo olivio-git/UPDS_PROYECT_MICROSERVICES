@@ -30,6 +30,31 @@ export interface AttemptTerminationInfo {
   attemptStatus?: string;
 }
 
+/**
+ * Attempt statuses meaning the answers were sent for grading: 'completed'
+ * (manual finish, time-up auto-submit, session ended by the teacher) and the
+ * legacy 'expired' (older time-outs, graded by grading-service's sweeper).
+ */
+const SUBMITTED_ATTEMPT_STATUSES = ['completed', 'expired'] as const;
+
+export function isSubmittedAttemptStatus(status?: string): boolean {
+  return !!status && (SUBMITTED_ATTEMPT_STATUSES as readonly string[]).includes(status);
+}
+
+/**
+ * GET /exam-taking/:sessionId/time. `sessionEnded` with `sessionStatus`
+ * tells apart a session ended by the teacher ('completed' — attempts are
+ * force-completed and graded) from a cancelled one ('cancelled' — nothing is
+ * graded). `attemptStatus` is set once the attempt itself is closed
+ * (e.g. the server auto-submitted it because time ran out).
+ */
+export interface TimeRemainingData {
+  timeRemaining: number;
+  sessionEnded?: boolean;
+  sessionStatus?: 'completed' | 'cancelled';
+  attemptStatus?: string;
+}
+
 export function getAttemptTerminationInfo(error: any): AttemptTerminationInfo | null {
   const status = error?.response?.status;
   const code = error?.response?.data?.code;
@@ -950,7 +975,7 @@ class ExamService {
   }
 
   // Obtener tiempo restante
-  async getTimeRemaining(sessionId: string): Promise<ApiResponse<{ timeRemaining: number }>> {
+  async getTimeRemaining(sessionId: string): Promise<ApiResponse<TimeRemainingData>> {
     try {
       const response = await this.api.get(`/exam-taking/${sessionId}/time`);
       return response.data;

@@ -11,7 +11,12 @@ import { MainLayout } from '@/components/layout';
 import { cn } from '@/lib/utils';
 import { useBrowserLockdown } from '@/hooks/useBrowserLockdown';
 import { useExamSessionHTTP } from '@/hooks/useExamSessionHTTP';
-import { examService, getAttemptTerminationInfo, getTechnicalVerificationRequiredInfo } from '@/services/examService';
+import {
+  examService,
+  getAttemptTerminationInfo,
+  getTechnicalVerificationRequiredInfo,
+  isSubmittedAttemptStatus,
+} from '@/services/examService';
 import { notificationSocket } from '@/services/notifications/notificationSocket';
 import { useExamStore } from '@/stores/examStore';
 import {
@@ -37,6 +42,7 @@ import QuestionRenderer from '../components/QuestionRenderer';
 import SectionNavigator from '../components/SectionNavigator';
 import { ProgressRing } from '../components/ProgressRing';
 import { ExamSubmittedScreen } from '../components/ExamSubmittedScreen';
+import { SessionCancelledScreen } from '../components/SessionCancelledScreen';
 
 // Thresholds shared between the ring and the rest of the timer's visual
 // state — amber under 5 minutes, red (+ pulse) under 1 minute.
@@ -136,6 +142,7 @@ const ExamRunnerHTTP: React.FC = () => {
     totalQuestions,
     kicked,
     kickReason,
+    sessionCancelled,
 
     // Current section and question helpers
     currentSection,
@@ -267,21 +274,12 @@ const ExamRunnerHTTP: React.FC = () => {
           } catch (resumeError: any) {
             console.log('⚠️ Resume failed:', resumeError?.message);
 
-            // The attempt is already finished server-side (e.g. the student
-            // refreshed the page after submitting) — resumeExam has nothing
-            // left to resume into and startSession would just 409 the same
-            // way. Send them home instead of a confusing generic error.
-            if (resumeError?.message?.includes('already completed')) {
-              toast.info('Ya enviaste este examen. Tu resultado llegará por correo o notificación cuando esté disponible.', { duration: 6000 });
-              navigate('/student/dashboard');
-              return;
-            }
-
-            // Si el error es "time expired", no intentar start
-            if (resumeError?.message?.includes('expired') || resumeError?.message?.includes('time')) {
-              toast.error('El tiempo del examen ha expirado');
-              navigate('/student/dashboard');
-              return;
+            // The attempt is already terminal server-side (submitted, time-up
+            // auto-submitted, or kicked) — there is nothing to resume and
+            // startSession would 409 the same way. The outer handler routes
+            // it by its structured code.
+            if (getAttemptTerminationInfo(resumeError)) {
+              throw resumeError;
             }
 
             // If resume fails for other reasons, start fresh
@@ -310,6 +308,14 @@ const ExamRunnerHTTP: React.FC = () => {
           return;
         }
 
+        // The attempt was already submitted (e.g. the student refreshed the
+        // page after finishing, or time ran out and the server auto-submitted
+        // it): show the same "Examen enviado" screen as a normal finish.
+        if (terminationInfo && isSubmittedAttemptStatus(terminationInfo.attemptStatus)) {
+          setExamCompleting(true);
+          return;
+        }
+
         // Deep-link / stale-tab edge case: a brand-new attempt was rejected
         // by exam-service's server-side technical verification gate.
         // Resuming an existing in_progress attempt is never blocked this
@@ -335,13 +341,7 @@ const ExamRunnerHTTP: React.FC = () => {
           return;
         }
 
-        // Check if error is related to expired exam
-        if (error?.message?.includes('expired') || error?.message?.includes('time')) {
-          toast.error('El tiempo del examen ha expirado');
-        } else {
-          toast.error('Error al inicializar el examen');
-        }
-
+        toast.error('Error al inicializar el examen');
         navigate('/student/dashboard');
       } finally {
         setInitializingExam(false);
@@ -583,6 +583,11 @@ const ExamRunnerHTTP: React.FC = () => {
         </div>
       </MainLayout>
     );
+  }
+
+  // The teacher cancelled the session — not graded, so never "Examen enviado".
+  if (sessionCancelled) {
+    return <SessionCancelledScreen />;
   }
 
   // Completion state — the exam is graded in the background, so this is a

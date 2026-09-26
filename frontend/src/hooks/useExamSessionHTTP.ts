@@ -31,6 +31,11 @@ export interface ExamSessionState {
   // just blocks further interaction and sends the candidate back home.
   kicked: boolean;
   kickReason?: string;
+  // The teacher cancelled the session. Distinct from `sessionStatus ===
+  // 'completed'` (ended by the teacher, attempts force-completed and graded):
+  // a cancelled session is NOT graded, so no finish request is sent and the
+  // UI must not claim the exam was submitted.
+  sessionCancelled: boolean;
   // The attempt id for the current session, captured from start/resume so
   // a remote-termination push (session ended, attempt force-completed
   // server-side) can go straight to onSessionEnd without a finish() round
@@ -73,6 +78,7 @@ export const useExamSessionHTTP = (options: UseExamSessionHTTPOptions = {}) => {
     totalQuestions: 0,
     kicked: false,
     kickReason: undefined,
+    sessionCancelled: false,
     attemptId: null
   });
 
@@ -100,9 +106,16 @@ export const useExamSessionHTTP = (options: UseExamSessionHTTPOptions = {}) => {
   // exam-taking call's 409 ATTEMPT_NOT_IN_PROGRESS fallback. Without this,
   // an already-terminal attempt could re-trigger finishExam in a loop.
   const terminationHandledRef = useRef(false);
-  // Populated once finishExamRef exists (see effect below) — called from
+  // Populated by the effect below — called from
   // performAutoSave/pollTimeRemaining/finishExam catch blocks on 409.
   const handleAttemptTerminatedRef = useRef<(attemptStatus?: string) => void>(() => {});
+  // Set once the teacher cancels the session (socket push or time-poll
+  // fallback) — blocks the exam without submitting it for grading.
+  const handleSessionCancelledRef = useRef<() => void>(() => {});
+  // Guards against concurrent finish() calls (timer auto-submit + manual
+  // button + retries) without flipping sessionStatus before the server has
+  // actually accepted the submission.
+  const finishingRef = useRef(false);
 
   // Mantener refs de callbacks sincronizados sin añadirlos a deps de useCallback
   useEffect(() => { answersRef.current = state.answers; }, [state.answers]);
@@ -230,10 +243,12 @@ export const useExamSessionHTTP = (options: UseExamSessionHTTPOptions = {}) => {
 
   // Session management functions - define finishExam first
   const finishExam = useCallback(async () => {
-    if (!state.sessionId || state.sessionStatus === 'completed') {
+    if (!state.sessionId || state.sessionStatus === 'completed' || terminationHandledRef.current) {
       console.log('⚠️ [useExamSessionHTTP] Finish called but exam already completed or no session');
       return;
     }
+    if (finishingRef.current) return;
+    finishingRef.current = true;
 
     try {
       setLoading(true);
@@ -244,9 +259,15 @@ export const useExamSessionHTTP = (options: UseExamSessionHTTPOptions = {}) => {
       hasUnsavedChanges.current = true;
       await performAutoSave();
 
+      // The final autosave can already find the attempt closed server-side
+      // (time-up auto-submit, session ended) — its 409 handler has then
+      // shown the right terminal screen, so there is nothing left to finish.
+      if (terminationHandledRef.current) return;
+
       const response = await examService.finishExam(state.sessionId);
 
       if (response.success) {
+        terminationHandledRef.current = true;
         setState(prev => ({
           ...prev,
           isActive: false,
@@ -275,10 +296,13 @@ export const useExamSessionHTTP = (options: UseExamSessionHTTPOptions = {}) => {
       if (terminationInfo) {
         handleAttemptTerminatedRef.current(terminationInfo.attemptStatus);
       } else {
+        // Not submitted: keep the exam open so the student (or the next
+        // time poll, when time is up) can retry the submission.
         console.error('Error finishing exam:', error);
-        toast.error('Error finalizando el examen');
+        toast.error('No se pudo enviar el examen. Inténtalo de nuevo.');
       }
     } finally {
+      finishingRef.current = false;
       setLoading(false);
     }
   }, [state.sessionId, state.sessionStatus, performAutoSave, onSessionEnd, stopLocalTimer]);
@@ -290,7 +314,25 @@ export const useExamSessionHTTP = (options: UseExamSessionHTTPOptions = {}) => {
     try {
       const response = await examService.getTimeRemaining(state.sessionId);
       if (response.success && response.data) {
-        const { timeRemaining, sessionEnded } = response.data;
+        const { timeRemaining, sessionEnded, sessionStatus: remoteSessionStatus, attemptStatus } = response.data;
+
+        // HTTP fallback for a missed socket push: the session was closed
+        // remotely, or the attempt was already closed server-side.
+        if (sessionEnded) {
+          if (remoteSessionStatus === 'cancelled') {
+            console.log('🔴 [useExamSessionHTTP] Session cancelled by the teacher (HTTP fallback)');
+            handleSessionCancelledRef.current();
+            return;
+          }
+          if (remoteSessionStatus === 'completed') {
+            console.log('🔴 [useExamSessionHTTP] Session ended by the teacher (HTTP fallback)');
+            toast.error('La sesión fue finalizada por el docente. Tu examen fue enviado.');
+          }
+          // Ended session (attempts force-completed server-side) or an
+          // attempt already submitted: show the "Examen enviado" screen.
+          handleAttemptTerminatedRef.current(attemptStatus ?? 'completed');
+          return;
+        }
 
         // Sync with server time and adjust local timer if needed
         const now = Date.now();
@@ -311,44 +353,13 @@ export const useExamSessionHTTP = (options: UseExamSessionHTTPOptions = {}) => {
         // Update server sync time
         lastServerSync.current = now;
 
-        // HTTP fallback: session ended by admin/teacher (WebSocket may have been missed)
-        if (sessionEnded && timeRemaining <= 0) {
-          console.log('🔴 [useExamSessionHTTP] Session ended by admin (HTTP fallback)');
-          toast.error('La sesión ha sido finalizada por el administrador');
-        }
-
-        // Auto-finish when time is up or session was ended externally
+        // Time is up: submit with whatever answers were saved. The server
+        // auto-submits on time-up too, so finish() normally resolves as an
+        // idempotent success (or a 409 'completed' → "Examen enviado").
+        // sessionStatus only flips once the submission is confirmed; on
+        // failure the exam stays open and the next poll retries.
         if (timeRemaining <= 0) {
-          const reason = sessionEnded ? 'ended by admin' : 'time expired';
-          console.log(`⏰ [useExamSessionHTTP] Auto-finishing exam: ${reason}`);
-
-          // Set status to completed immediately to prevent multiple calls
-          setState(prev => ({
-            ...prev,
-            sessionStatus: 'completed',
-            isActive: false
-          }));
-
-          // Clear intervals before finishing
-          if (autoSaveRef.current) clearInterval(autoSaveRef.current);
-          if (timePollingRef.current) clearInterval(timePollingRef.current);
-          stopLocalTimer();
-
-          if (sessionEnded) {
-            // The attempt is already terminal server-side (completed/expired,
-            // or the parent session itself was ended/cancelled) — finish()
-            // would just race the server-side close. Go straight to the
-            // completion path with the attemptId this runner already has.
-            if (!terminationHandledRef.current) {
-              terminationHandledRef.current = true;
-              const attemptId = attemptIdRef.current ?? '';
-              setTimeout(() => {
-                onSessionEndRef.current?.(attemptId);
-              }, 500);
-            }
-            return;
-          }
-
+          console.log('⏰ [useExamSessionHTTP] Auto-finishing exam: time expired');
           await finishExam();
           return;
         }
@@ -388,17 +399,13 @@ export const useExamSessionHTTP = (options: UseExamSessionHTTPOptions = {}) => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [state.isActive, state.sessionId, state.sessionStatus]); // Sin pollTimeRemaining para evitar loops
 
-  // Ref to always have the latest finishExam without stale closure in socket handler
-  const finishExamRef = useRef(finishExam);
-  useEffect(() => { finishExamRef.current = finishExam; }, [finishExam]);
-
-  // Wire up the shared 409/kick termination handler now that finishExamRef
-  // exists. `attemptStatus === 'cancelled'` means the candidate was kicked —
-  // block further interaction without calling finish (the attempt is already
-  // terminal server-side). Any other status (session ended/expired) mirrors
-  // the existing "remote finish" flow: force a finish call so grading kicks
-  // off and the caller's onSessionEnd shows the "Examen enviado" screen —
-  // no polling, no waiting for a score.
+  // Wire up the shared 409/kick termination handlers.
+  // `attemptStatus === 'cancelled'` means the candidate was kicked — block
+  // further interaction without calling finish (the attempt is already
+  // terminal server-side). Any other status ('completed', legacy 'expired')
+  // means the attempt was already submitted server-side: the caller's
+  // onSessionEnd shows the "Examen enviado" screen — no polling, no waiting
+  // for a score. A cancelled SESSION is handled separately (not graded).
   useEffect(() => {
     handleAttemptTerminatedRef.current = (attemptStatus?: string) => {
       if (terminationHandledRef.current) return;
@@ -424,6 +431,17 @@ export const useExamSessionHTTP = (options: UseExamSessionHTTPOptions = {}) => {
         onSessionEndRef.current?.(attemptId);
       }, 500);
     };
+
+    handleSessionCancelledRef.current = () => {
+      if (terminationHandledRef.current) return;
+      terminationHandledRef.current = true;
+
+      if (autoSaveRef.current) clearInterval(autoSaveRef.current);
+      if (timePollingRef.current) clearInterval(timePollingRef.current);
+      stopLocalTimer();
+
+      setState(prev => ({ ...prev, isActive: false, sessionCancelled: true }));
+    };
   }, [stopLocalTimer]);
 
   // Listen for remote session termination via WebSocket (teacher/admin ends session)
@@ -434,43 +452,49 @@ export const useExamSessionHTTP = (options: UseExamSessionHTTPOptions = {}) => {
       if (String(data.sessionId) !== String(state.sessionId)) return;
       if (data.status !== 'completed' && data.status !== 'cancelled') return;
       if (terminationHandledRef.current) return;
-      terminationHandledRef.current = true;
 
       console.log('🔴 [useExamSessionHTTP] Session terminated remotely, status:', data.status);
 
-      setState(prev => ({ ...prev, sessionStatus: 'completed', isActive: false }));
+      if (data.status === 'cancelled') {
+        // Product rule: a session cancelled by the teacher is NOT graded —
+        // no finish request, and a distinct screen instead of "Examen enviado".
+        toast.error('La sesión fue cancelada por el docente.');
+        handleSessionCancelledRef.current();
+        return;
+      }
+
+      terminationHandledRef.current = true;
       if (autoSaveRef.current) clearInterval(autoSaveRef.current);
       if (timePollingRef.current) clearInterval(timePollingRef.current);
       stopLocalTimer();
 
-      if (data.status === 'completed') {
-        // session.ended already force-completes in-progress attempts and
-        // queues grading server-side (see exam-service session.service.ts
-        // endSession). Calling finish() here would race that server-side
-        // close — the autosave inside it would 409 (attempt no longer
-        // in_progress) and, previously, so could finish() itself, leaving
-        // onSessionEnd never invoked and the candidate stuck on the
-        // "Redirigiendo..." spinner. Go straight to the completion path
-        // with the attemptId this runner already has.
-        toast.error('La sesión fue finalizada por el supervisor. Tu examen fue enviado.');
-        const attemptId = attemptIdRef.current ?? '';
-        setTimeout(() => {
-          onSessionEndRef.current?.(attemptId);
-        }, 500);
-        return;
+      // session.ended already force-completes in-progress attempts and
+      // queues grading server-side (see exam-service session.service.ts
+      // endSession), so finish() is not called. Best-effort flush of any
+      // unsaved answers first — it normally 409s because the attempt is
+      // already closed, which the (already handled) termination guard
+      // ignores.
+      lastSaveRef.current = 0;
+      hasUnsavedChanges.current = true;
+      try {
+        await performAutoSave();
+      } catch {
+        // Best-effort only.
       }
 
-      // session.cancelled does NOT force-complete attempts server-side, so
-      // the finish() call below submits whatever answers were saved so far.
-      toast.error('La sesión fue cancelada por el supervisor. Tu examen fue enviado con tus respuestas actuales.');
-      await finishExamRef.current();
+      setState(prev => ({ ...prev, sessionStatus: 'completed', isActive: false }));
+      toast.error('La sesión fue finalizada por el docente. Tu examen fue enviado.');
+      const attemptId = attemptIdRef.current ?? '';
+      setTimeout(() => {
+        onSessionEndRef.current?.(attemptId);
+      }, 500);
     };
 
     notificationSocket.on('session.status.changed', handleSessionStatusChanged);
     return () => {
       notificationSocket.off('session.status.changed', handleSessionStatusChanged);
     };
-  }, [state.sessionId, state.isActive, stopLocalTimer]);
+  }, [state.sessionId, state.isActive, stopLocalTimer, performAutoSave]);
 
   // Listen for being kicked by a proctor/admin — distinct from a session-wide
   // status change: only this candidate is affected, the attempt is already

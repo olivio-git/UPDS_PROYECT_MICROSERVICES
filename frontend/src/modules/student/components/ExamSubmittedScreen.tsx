@@ -6,6 +6,7 @@ import { useAuthStore } from '@/modules/auth/services/authStore';
 import { CheckCircle, LayoutDashboard, LogOut, Mail } from 'lucide-react';
 import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { exitFullscreenSafely } from '@/lib/fullscreen';
 
 export interface ExamSubmittedScreenProps {
   /**
@@ -20,8 +21,9 @@ export interface ExamSubmittedScreenProps {
 
 /**
  * Terminal screen shown after ANY successful exam submission — manual
- * finish, auto-submit on time-up, or a session ended/cancelled remotely by
- * a supervisor. Shared by both ExamRunnerHTTP and AdaptiveExamRunner.
+ * finish, auto-submit on time-up, or a session ended remotely by a
+ * supervisor. A session CANCELLED by the teacher is not graded and uses
+ * SessionCancelledScreen instead. Shared by both ExamRunnerHTTP and AdaptiveExamRunner.
  *
  * Product decision: exams run in a computer lab with rotating groups, so the
  * student must never wait here. Grading always happens in the background
@@ -40,11 +42,7 @@ export function ExamSubmittedScreen({ examName, submittedAt }: ExamSubmittedScre
   // before this screen renders), so no further infractions can be recorded;
   // this just cleans up the visual kiosk state left over from the exam.
   useEffect(() => {
-    if (document.fullscreenElement) {
-      document.exitFullscreen().catch(() => {
-        // Nothing to degrade to — the page works the same outside fullscreen.
-      });
-    }
+    exitFullscreenSafely();
   }, []);
 
   const formattedTime = (() => {
