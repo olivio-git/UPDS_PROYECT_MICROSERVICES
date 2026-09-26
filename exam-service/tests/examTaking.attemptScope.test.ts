@@ -33,6 +33,16 @@ jest.mock('../src/models/attempt.model', () => ({
     findOne: jest.fn(async (filter: Record<string, unknown>) =>
       store.find((doc) => matches(doc, filter)) ?? null,
     ),
+    // Atomic conditional update, as Mongo does it: only a doc matching the
+    // whole filter (including status) is updated.
+    findOneAndUpdate: jest.fn(
+      async (filter: Record<string, unknown>, update: { $set: Record<string, unknown> }) => {
+        const doc = store.find((d) => matches(d, filter));
+        if (!doc) return null;
+        Object.assign(doc, update.$set);
+        return doc;
+      },
+    ),
     find: jest.fn((filter: Record<string, unknown>) => ({
       sort: () => ({ exec: async () => store.filter((doc) => matches(doc, filter)) }),
     })),
