@@ -3,7 +3,6 @@ import { Button } from '@/components/atoms/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/atoms/card';
 import { MainLayout } from '@/components/layout';
 import { useBrowserLockdown } from '@/hooks/useBrowserLockdown';
-import { examResultService } from '@/services/examResultService';
 import {
   examService,
   getAttemptTerminationInfo,
@@ -13,9 +12,10 @@ import { notificationSocket } from '@/services/notifications/notificationSocket'
 import { useExamStore } from '@/stores/examStore';
 import { AlertCircle, Brain, CheckCircle, Loader2, Maximize, ShieldAlert, UserX, XCircle } from 'lucide-react';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { toast } from 'sonner';
 import QuestionRenderer from '../components/QuestionRenderer';
+import { ExamSubmittedScreen } from '../components/ExamSubmittedScreen';
 
 // Level/correctness fields are absent when the exam hides results
 // (showResults=false → backend sends `resultsHidden: true`).
@@ -48,6 +48,12 @@ const LEVEL_COLORS: Record<string, string> = {
 const AdaptiveExamRunner: React.FC = () => {
   const { sessionId } = useParams<{ sessionId: string }>();
   const navigate = useNavigate();
+  const location = useLocation();
+  // Threaded through from ExamPreparation's navigation state, purely for
+  // display on the "Examen enviado" screen — absent after a hard refresh
+  // (router state doesn't survive one), in which case that screen falls
+  // back to a neutral label.
+  const examName = (location.state as { examName?: string } | null)?.examName;
 
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -58,12 +64,13 @@ const AdaptiveExamRunner: React.FC = () => {
   const [feedback, setFeedback] = useState<FeedbackState | null>(null);
   const [showFeedback, setShowFeedback] = useState(false);
   const [isFinished, setIsFinished] = useState(false);
-  const [stopReason, setStopReason] = useState<string | undefined>(undefined);
+  // When the attempt actually finished — passed to the shared "Examen
+  // enviado" screen. Best-effort "now" when resumed post-refresh, since the
+  // original submission time isn't returned by resumeAdaptiveExam.
+  const [submittedAt, setSubmittedAt] = useState<Date | null>(null);
   // result-visibility: exam configured with showResults=false → no per-answer
   // correctness, points or level anywhere in the runner.
   const [resultsHidden, setResultsHidden] = useState(false);
-  const [attemptId, setAttemptId] = useState<string | null>(null);
-  const [navigatingToResult, setNavigatingToResult] = useState(false);
   // Candidate was removed from the session by a proctor/admin — blocking,
   // distinct from the normal "finished" screen (no finish request sent).
   const [kicked, setKicked] = useState(false);
@@ -84,22 +91,26 @@ const AdaptiveExamRunner: React.FC = () => {
     reenterFullscreen,
   } = useBrowserLockdown({ enabled: lockdownEnabled, sessionId: sessionId ?? null });
 
-  const handleFinished = useCallback((reason?: string) => {
+  // The stop cause (max questions / consecutive wrong / session ended) is no
+  // longer displayed — the shared "Examen enviado" screen is deliberately
+  // uniform and never reveals anything level/result-shaped, even for a
+  // placement exam — so this takes no arguments any more.
+  const handleFinished = useCallback(() => {
     // Gate the kick/status-changed socket listeners the same way a 409
     // fallback does — without this, a late push (session ended by the
     // supervisor right after the candidate naturally finished) could replace
     // the results screen with the kicked/terminated one, or re-run finish().
     terminatedRef.current = true;
     setIsFinished(true);
-    setStopReason(reason);
-    toast.success('Examen de nivelación completado. Calculando tu nivel...');
+    setSubmittedAt(new Date());
+    toast.success('Examen de nivelación enviado.');
   }, []);
 
   // Shared terminal-state handler: 'cancelled' attemptStatus means kicked
   // (block, no further requests); anything else (session ended/expired
   // externally) mirrors the normal finish flow — force-finish (idempotent
-  // if already closed server-side) then show the standard "finished" screen
-  // so the existing pollForResult button flow takes over.
+  // if already closed server-side) then show the standard "Examen enviado"
+  // screen, same as a normal finish.
   const handleTerminated = useCallback((attemptStatus?: string) => {
     if (terminatedRef.current) return;
     terminatedRef.current = true;
@@ -113,7 +124,7 @@ const AdaptiveExamRunner: React.FC = () => {
     if (sessionId) {
       examService.finishExam(sessionId).catch(() => { /* already terminal server-side — ignore */ });
     }
-    handleFinished('session_ended');
+    handleFinished();
   }, [sessionId, handleFinished]);
 
   useEffect(() => {
@@ -175,10 +186,9 @@ const AdaptiveExamRunner: React.FC = () => {
       try {
         const resumeResp = await examService.resumeAdaptiveExam(sessionId);
         if (resumeResp.success && resumeResp.data) {
-          const { finished, question, adaptiveState: state, attemptId: aid, browserLockdown, resultsHidden: hidden } = resumeResp.data;
+          const { finished, question, adaptiveState: state, browserLockdown, resultsHidden: hidden } = resumeResp.data;
           useExamStore.setState({ browserLockdown: !!browserLockdown });
           setResultsHidden(!!hidden);
-          if (aid) setAttemptId(aid);
           if (finished) {
             handleFinished();
             return;
@@ -199,7 +209,6 @@ const AdaptiveExamRunner: React.FC = () => {
         if (startResp.success && startResp.data) {
           useExamStore.setState({ browserLockdown: !!startResp.data.browserLockdown });
           setResultsHidden(!!startResp.data.resultsHidden);
-          setAttemptId(startResp.data.attemptId);
           setCurrentQuestion(startResp.data.question);
           setAdaptiveState({ ...startResp.data.adaptiveState, consecutiveWrong: 0 });
         } else {
@@ -246,7 +255,7 @@ const AdaptiveExamRunner: React.FC = () => {
       );
       if (!resp.success || !resp.data) throw new Error('Respuesta no procesada');
 
-      const { finished, gradeResult, nextQuestion, adaptiveState: newState, stopReason: reason, resultsHidden: hidden } = resp.data;
+      const { finished, gradeResult, nextQuestion, adaptiveState: newState, resultsHidden: hidden } = resp.data;
 
       // Show brief feedback — neutral "answer recorded" when results are hidden
       // (the backend omits gradeResult in that case).
@@ -258,7 +267,7 @@ const AdaptiveExamRunner: React.FC = () => {
         setAdaptiveState(newState);
         feedbackTimerRef.current = setTimeout(() => {
           setShowFeedback(false);
-          handleFinished(reason);
+          handleFinished();
         }, 1500);
       } else {
         setAdaptiveState(newState);
@@ -333,67 +342,11 @@ const AdaptiveExamRunner: React.FC = () => {
     );
   }
 
+  // Terminal screen — the exam is graded in the background, so this is never
+  // a "wait for it" state. Shared with ExamRunnerHTTP; never reveals a score
+  // or level, even for this placement exam.
   if (isFinished) {
-    return (
-      <MainLayout gradientVariant="primary">
-        <div className="max-w-3xl mx-auto flex items-center justify-center min-h-96">
-          <Card className="bg-card border border-line w-full">
-            <CardContent className="p-10 text-center space-y-6">
-              <CheckCircle className="h-16 w-16 text-green-400 mx-auto" />
-              <div>
-                <h2 className="text-2xl font-bold text-foreground mb-2">
-                  {resultsHidden ? 'Examen completado' : '¡Examen Completado!'}
-                </h2>
-                <p className="text-foreground/80">
-                  {resultsHidden
-                    ? 'Has completado el examen de nivelación.'
-                    : stopReason === 'consecutive_wrong'
-                    ? 'El examen finalizó automáticamente por límite de errores consecutivos.'
-                    : stopReason === 'max_questions'
-                    ? 'Respondiste el máximo de preguntas permitidas.'
-                    : 'Has completado el examen de nivelación.'}
-                </p>
-              </div>
-              {adaptiveState && (
-                <div className="bg-muted/50 rounded-lg p-4 text-sm text-foreground/80">
-                  <p>Preguntas respondidas: <span className="text-foreground font-medium">{adaptiveState.questionsAnswered}</span></p>
-                  {!resultsHidden && adaptiveState.currentLevel && (
-                    <p className="mt-1">Nivel final alcanzado: <span className={`font-medium px-2 py-0.5 rounded ${LEVEL_COLORS[adaptiveState.currentLevel] || 'text-foreground'}`}>{adaptiveState.currentLevel}</span></p>
-                  )}
-                </div>
-              )}
-              <p className="text-muted-foreground text-sm">
-                {resultsHidden
-                  ? 'Tus respuestas fueron registradas. Los resultados estarán disponibles cuando el docente los publique.'
-                  : 'Tus resultados estarán disponibles en unos momentos en la sección de resultados.'}
-              </p>
-              <Button
-                disabled={navigatingToResult}
-                onClick={() => {
-                  if (!attemptId) { navigate('/student/results'); return; }
-                  setNavigatingToResult(true);
-                  examResultService.pollForResult(attemptId, 30, 2000)
-                    .then((result) => {
-                      const resultId = (result as any).id || (result as any)._id;
-                      navigate(`/student/results/${resultId}`);
-                    })
-                    .catch(() => {
-                      toast.info('Los resultados se están procesando...', { duration: 5000 });
-                      navigate('/student/results');
-                    });
-                }}
-                className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white"
-              >
-                {navigatingToResult
-                  ? <><Loader2 className="h-4 w-4 animate-spin mr-2" />Cargando resultados...</>
-                  : 'Ver Mis Resultados'
-                }
-              </Button>
-            </CardContent>
-          </Card>
-        </div>
-      </MainLayout>
-    );
+    return <ExamSubmittedScreen examName={examName} submittedAt={submittedAt} />;
   }
 
   return (

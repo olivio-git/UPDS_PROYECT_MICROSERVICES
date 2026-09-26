@@ -33,7 +33,7 @@ export interface ExamSessionState {
   kickReason?: string;
   // The attempt id for the current session, captured from start/resume so
   // a remote-termination push (session ended, attempt force-completed
-  // server-side) can go straight to pollForResult without a finish() round
+  // server-side) can go straight to onSessionEnd without a finish() round
   // trip that would just 409 against the already-closed attempt.
   attemptId: string | null;
 }
@@ -397,7 +397,8 @@ export const useExamSessionHTTP = (options: UseExamSessionHTTPOptions = {}) => {
   // block further interaction without calling finish (the attempt is already
   // terminal server-side). Any other status (session ended/expired) mirrors
   // the existing "remote finish" flow: force a finish call so grading kicks
-  // off and the caller's onSessionEnd -> pollForResult flow runs.
+  // off and the caller's onSessionEnd shows the "Examen enviado" screen —
+  // no polling, no waiting for a score.
   useEffect(() => {
     handleAttemptTerminatedRef.current = (attemptStatus?: string) => {
       if (terminationHandledRef.current) return;

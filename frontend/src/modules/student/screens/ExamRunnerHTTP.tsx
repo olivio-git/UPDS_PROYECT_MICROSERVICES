@@ -11,7 +11,6 @@ import { MainLayout } from '@/components/layout';
 import { cn } from '@/lib/utils';
 import { useBrowserLockdown } from '@/hooks/useBrowserLockdown';
 import { useExamSessionHTTP } from '@/hooks/useExamSessionHTTP';
-import { examResultService } from '@/services/examResultService';
 import { examService, getAttemptTerminationInfo, getTechnicalVerificationRequiredInfo } from '@/services/examService';
 import { notificationSocket } from '@/services/notifications/notificationSocket';
 import { useExamStore } from '@/stores/examStore';
@@ -37,6 +36,7 @@ import { toast } from 'sonner';
 import QuestionRenderer from '../components/QuestionRenderer';
 import SectionNavigator from '../components/SectionNavigator';
 import { ProgressRing } from '../components/ProgressRing';
+import { ExamSubmittedScreen } from '../components/ExamSubmittedScreen';
 
 // Thresholds shared between the ring and the rest of the timer's visual
 // state — amber under 5 minutes, red (+ pulse) under 1 minute.
@@ -91,11 +91,20 @@ const ExamRunnerHTTP: React.FC = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const sessionId = params.sessionId;
+  // Threaded through from ExamPreparation's navigation state, purely for
+  // display on the "Examen enviado" screen — absent after a hard refresh
+  // (router state doesn't survive one), in which case that screen falls
+  // back to a neutral label.
+  const examName = (location.state as { examName?: string } | null)?.examName;
 
   // State for starting/resuming detection
   const [initializingExam, setInitializingExam] = useState(false);
   const [examCompleting, setExamCompleting] = useState(false);
-  const [isWaitingForResult, setIsWaitingForResult] = useState(false);
+  // When the finish request actually succeeded — passed to the shared
+  // "Examen enviado" screen. Set from onSessionEnd below, so it also covers
+  // the remote-termination path (session ended/finish 409'd because the
+  // attempt was already closed server-side).
+  const [submittedAt, setSubmittedAt] = useState<Date | null>(null);
   const [showFinishConfirm, setShowFinishConfirm] = useState(false);
   // Track which questions are uploading audio
   const [uploadingAudio, setUploadingAudio] = useState<Record<string, boolean>>({});
@@ -164,27 +173,14 @@ const ExamRunnerHTTP: React.FC = () => {
     onSessionStart: () => {
       toast.success('¡Tu examen ha comenzado!');
     },
-    onSessionEnd: (attemptId: string) => {
+    // The exam is graded in the background (exam-service publishes to
+    // Kafka, grading-service grades asynchronously) — the student never
+    // waits for a result here, whether this fires because finishExam()
+    // succeeded or because the attempt was already closed server-side
+    // (session ended/kicked-adjacent 409 with attemptStatus 'completed').
+    onSessionEnd: () => {
       setExamCompleting(true);
-
-      if (attemptId) {
-        setIsWaitingForResult(true);
-        examResultService.pollForResult(attemptId, 30, 2000)
-          .then((result) => {
-            const resultId = (result as any)._id || (result as any).id;
-            navigate(`/student/results/${resultId}`);
-          })
-          .catch(() => {
-            toast.info('Los resultados se están procesando. Los verás en tu dashboard.', { duration: 5000 });
-            navigate('/student/dashboard');
-          })
-          .finally(() => {
-            setIsWaitingForResult(false);
-          });
-      } else {
-        toast.success('¡Examen completado! Redirigiendo al dashboard...', { duration: 3000 });
-        setTimeout(() => navigate('/student/dashboard'), 2000);
-      }
+      setSubmittedAt(new Date());
     },
     onAutoSave: (success) => {
       if (!success) {
@@ -270,6 +266,16 @@ const ExamRunnerHTTP: React.FC = () => {
             await resumeSession(sessionId);
           } catch (resumeError: any) {
             console.log('⚠️ Resume failed:', resumeError?.message);
+
+            // The attempt is already finished server-side (e.g. the student
+            // refreshed the page after submitting) — resumeExam has nothing
+            // left to resume into and startSession would just 409 the same
+            // way. Send them home instead of a confusing generic error.
+            if (resumeError?.message?.includes('already completed')) {
+              toast.info('Ya enviaste este examen. Tu resultado llegará por correo o notificación cuando esté disponible.', { duration: 6000 });
+              navigate('/student/dashboard');
+              return;
+            }
 
             // Si el error es "time expired", no intentar start
             if (resumeError?.message?.includes('expired') || resumeError?.message?.includes('time')) {
@@ -579,34 +585,10 @@ const ExamRunnerHTTP: React.FC = () => {
     );
   }
 
-  // Completion state - show completion UI
+  // Completion state — the exam is graded in the background, so this is a
+  // terminal screen, not a waiting spinner. Shared with AdaptiveExamRunner.
   if (examCompleting || sessionStatus === 'completed') {
-    return (
-      <MainLayout hideHeader>
-        <div className="min-h-screen flex items-center justify-center">
-          <GradientWrapper intensity="medium" size="lg">
-            <Card className="w-full max-w-md bg-box backdrop-blur-sm border border-line">
-              <CardContent className="p-8">
-                <div className="text-center">
-                  <CheckCircle className="h-12 w-12 text-green-500 mx-auto mb-4" />
-                  <h3 className="text-lg font-semibold text-foreground mb-2">
-                    ¡Examen Completado!
-                  </h3>
-                  <p className="text-muted-foreground">
-                    {isWaitingForResult
-                      ? 'Procesando resultados, espera un momento...'
-                      : 'Tu examen ha sido finalizado exitosamente. Redirigiendo...'}
-                  </p>
-                  <div className="mt-4">
-                    <Spinner className="h-6 w-6 text-blue-500 mx-auto" />
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </GradientWrapper>
-        </div>
-      </MainLayout>
-    );
+    return <ExamSubmittedScreen examName={examName} submittedAt={submittedAt} />;
   }
 
   // Loading state during initialization
