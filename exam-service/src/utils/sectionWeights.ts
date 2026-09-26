@@ -10,30 +10,28 @@
  * Shared by the Zod request schema and ExamService (via
  * assertSectionWeights.ts) so every write path (create, update, clone)
  * enforces the same rule. Kept dependency-free so the schema can import it.
+ *
+ * The underlying sum/tolerance math lives in `weightSum.ts` — shared with
+ * `rubricWeights.ts` (rubric criteria have the exact same "must sum to 100"
+ * rule) so both entities compare at the same 1e-6 scale without duplicating
+ * the formula.
  */
-export const WEIGHT_SUM_TOLERANCE = 0.01;
+import { formatWeight, getWeightsTotal, isWeightSumValid, WEIGHT_SUM_TOLERANCE, type Weighted } from './weightSum';
+
+export { WEIGHT_SUM_TOLERANCE, formatWeight };
 
 export const INVALID_SECTION_WEIGHTS = 'INVALID_SECTION_WEIGHTS';
 
-export interface WeightedSection {
-  weight?: number | null;
-}
-
-/** Rounds to 2 decimals for messages, dropping float noise. */
-export const formatWeight = (value: number): number => Number(value.toFixed(2));
+export type WeightedSection = Weighted;
 
 /** Sum of section weights, or null when there are no sections to check. */
 export function getSectionWeightsTotal(
   sections: ReadonlyArray<WeightedSection> | null | undefined
 ): number | null {
-  if (!sections || sections.length === 0) return null;
-  return sections.reduce((sum, section) => sum + (Number(section?.weight) || 0), 0);
+  return getWeightsTotal(sections);
 }
 
-export const isSectionWeightSumValid = (total: number): boolean =>
-  // Compare at a 1e-6 scale: raw float sums like 10+20+30+39.99
-  // (99.99000000000001) must be judged the same as 33.33*3 (99.99).
-  Math.round(Math.abs(total - 100) * 1e6) < Math.round(WEIGHT_SUM_TOLERANCE * 1e6);
+export const isSectionWeightSumValid = isWeightSumValid;
 
 export const sectionWeightsSumMessage = (total: number): string =>
   `Las secciones deben sumar 100% de peso (suma actual: ${formatWeight(total)}%)`;

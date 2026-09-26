@@ -4,24 +4,9 @@ import { useCallback, useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import type { ApiResponse, Exam, ExamFilters } from '../types';
 import { EXAM_SERVICE_URL } from '@/lib/serviceUrls';
+import { getApiErrorMessage } from '../utils/apiError';
 
 const API_BASE_URL = EXAM_SERVICE_URL;
-
-
-/**
- * Pulls the backend's own message out of a failed request so the teacher sees
- * the Spanish explanation (e.g. section weights) instead of "status code 400".
- * Zod validation errors put the useful text in `errors[0].message`.
- */
-const getApiErrorMessage = (body: unknown, fallback: string): string => {
-  if (body && typeof body === 'object') {
-    const { message, errors } = body as { message?: unknown; errors?: Array<{ message?: unknown }> };
-    const detail = Array.isArray(errors) ? errors[0]?.message : undefined;
-    if (typeof detail === 'string' && detail) return detail;
-    if (typeof message === 'string' && message) return message;
-  }
-  return fallback;
-};
 
 export const useExams = () => {
   const [exams, setExams] = useState<Exam[]>([]);

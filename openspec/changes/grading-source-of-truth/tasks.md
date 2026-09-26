@@ -109,11 +109,18 @@ Merge order: 1a → 1a-bis → 1b → 2a → 2b → 3 → 4. Revert order is the
 
 **Start**: after 2a merged (needs rubric types context, but logic is independent). **Finish**: saving a rubric whose criteria weights don't sum to 100 is rejected; UI surfaces the error. **Rollback**: `git revert`; validation-only, no data change.
 
-- [ ] 2b.1 Add Zod `superRefine` to `exam-service/src/schemas/rubric.schema.ts` (create + update, when `criteria` present): reject when `abs(Σweight-100) >= 0.01`. *(rubric-ai-grading: Rubric Weight Sum Validation and Normalization — save scenario)*
-- [ ] 2b.2 Create `exam-service/tests/rubricSchema.weights.test.ts`: sum=100 passes, sum=90 → 400. Verify: `npm --prefix exam-service test`.
-- [ ] 2b.3 Update `frontend` `RubricForm.tsx` to surface the 400 validation message (form already enforces 100 client-side; wire the server error display).
+- [x] 2b.1 Add Zod `superRefine` to `exam-service/src/schemas/rubric.schema.ts` (create + update, when `criteria` present): reject when `abs(Σweight-100) >= 0.01`. *(rubric-ai-grading: Rubric Weight Sum Validation and Normalization — save scenario)*
+- [x] 2b.2 Create `exam-service/tests/rubricSchema.weights.test.ts`: sum=100 passes, sum=90 → 400. Verify: `npm --prefix exam-service test`.
+- [x] 2b.3 Update `frontend` `RubricForm.tsx` to surface the 400 validation message (form already enforces 100 client-side; wire the server error display).
 
 **Commits**: `feat(exam-service): validate rubric weights sum to 100` → `feat(frontend): surface rubric weight validation error`.
+
+**Landed (chain/30-rubric-weights)**: ~650 changed lines (production ~260, tests ~290). Beyond the three tasks:
+- The weight-sum math is shared with exam sections (`exam-service/src/utils/weightSum.ts`).
+- The service layer also rejects missing or empty criteria on create, update and clone.
+- `useRubrics` shows the backend's own message for every action.
+- A shared `WeightInput` lets teachers clear the field and type decimals in both RubricForm and ExamForm; before, the field snapped back to 0. Checked in Chrome.
+- A fresh review found nothing critical; its warning and suggestions are fixed.
 
 ## PR 3 — Result visibility (`showResults`)
 

@@ -13,8 +13,9 @@ import { useExams } from '../hooks/useExams';
 import { useLevels } from '../hooks/useLevels';
 import { useQuestionAvailability } from '../hooks/useQuestionAvailability';
 import type { Competency, Exam, ExamSection, Level } from '../types';
-import { distributeEvenly, formatWeight, isWeightSumValid, remainingWeight, sumWeights } from '../utils/weights';
+import { distributeEvenly, formatWeight, getWeightInputError, isWeightSumValid, remainingWeight, sumWeights } from '../utils/weights';
 import QuestionAvailabilityIndicator from './QuestionAvailabilityIndicator';
+import WeightInput from './shared/WeightInput';
 
 // Esquema de validación
 const examSectionSchema = z.object({
@@ -24,7 +25,12 @@ const examSectionSchema = z.object({
   instructions: z.string().min(1, 'Las instrucciones son requeridas'),
   questionCount: z.number().min(1, 'Debe tener al menos 1 pregunta'),
   questionTypes: z.array(z.string()).min(1, 'Debe seleccionar al menos un tipo'),
-  weight: z.number().min(0, 'El peso no puede ser negativo').max(100, 'El peso no puede superar 100'),
+  // An empty/invalid weight input is stored as NaN (see WeightInput), which
+  // z.number() rejects as invalid_type — so submit is blocked with this message.
+  weight: z
+    .number({ invalid_type_error: 'Ingresa un peso entre 0 y 100', required_error: 'Ingresa un peso entre 0 y 100' })
+    .min(0, 'El peso no puede ser negativo')
+    .max(100, 'El peso no puede superar 100'),
   duration: z.number().min(1, 'La duración debe ser mayor a 0').optional(),
   order: z.number()
 });
@@ -913,21 +919,21 @@ const ExamForm: React.FC<ExamFormProps> = ({ exam, onCancel, onSaved }) => {
                   name={`structure.sections.${index}.weight`}
                   control={control}
                   render={({ field }) => (
-                    <Input
-                      {...field}
-                      type="number"
+                    <WeightInput
+                      name={field.name}
+                      ref={field.ref}
+                      onBlur={field.onBlur}
                       min="0"
                       max="100"
-                      step="any"
-                      value={field.value ?? 0}
-                      onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
+                      value={field.value}
+                      onValueChange={field.onChange}
                       className={baseInputClass}
                     />
                   )}
                 />
-                {errors.structure?.sections?.[index]?.weight && (
+                {(getWeightInputError(watchedSections[index]?.weight) ?? errors.structure?.sections?.[index]?.weight?.message) && (
                   <p className="text-red-400 text-sm">
-                    {errors.structure.sections[index]?.weight?.message}
+                    {getWeightInputError(watchedSections[index]?.weight) ?? errors.structure?.sections?.[index]?.weight?.message}
                   </p>
                 )}
               </div>

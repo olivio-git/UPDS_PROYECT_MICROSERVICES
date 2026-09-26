@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { CONSTANTS } from '../utils/constants';
+import { getRubricWeightsSumError } from '../utils/rubricWeights';
 
 const rubricLevelSchema = z.object({
   score: z.number().min(0),
@@ -14,6 +15,25 @@ const rubricCriterionSchema = z.object({
   levels: z.array(rubricLevelSchema).min(2)
 });
 
+/**
+ * Weight sum validation (rubric-ai-grading: Rubric Weight Sum Validation and
+ * Normalization — save scenario). Same rule and tolerance as
+ * examSchema/ExamService — see utils/rubricWeights.
+ */
+function validateRubricWeightsSum(
+  criteria: Array<{ weight: number }> | undefined,
+  ctx: z.RefinementCtx
+): void {
+  const message = getRubricWeightsSumError(criteria);
+  if (message) {
+    ctx.addIssue({
+      code: 'custom',
+      message,
+      path: ['criteria'],
+    });
+  }
+}
+
 export const rubricSchema = {
   create: z.object({
     name: z.string().min(3).max(200),
@@ -23,7 +43,7 @@ export const rubricSchema = {
     scoringType: z.enum(Object.values(CONSTANTS.SCORING_TYPES) as [string, ...string[]]),
     maxScore: z.number().min(1).max(100),
     isActive: z.boolean().default(true)
-  }),
+  }).superRefine((data, ctx) => validateRubricWeightsSum(data.criteria, ctx)),
 
   update: z.object({
     name: z.string().min(3).max(200).optional(),
@@ -33,7 +53,7 @@ export const rubricSchema = {
     scoringType: z.enum(Object.values(CONSTANTS.SCORING_TYPES) as [string, ...string[]]).optional(),
     maxScore: z.number().min(1).max(100).optional(),
     isActive: z.boolean().optional()
-  }),
+  }).superRefine((data, ctx) => validateRubricWeightsSum(data.criteria, ctx)),
 
   params: z.object({
     id: z.string().regex(/^[0-9a-fA-F]{24}$/)
