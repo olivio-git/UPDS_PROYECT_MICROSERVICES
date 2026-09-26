@@ -185,7 +185,7 @@ jobs:
           MONGO_EXAM_DB_NAME=cba_platform
           MONGO_USERS_DB_NAME=cba_identity_db
           MONGO_NOTIFICATION_DB_NAME=cba_notification_db
-          MONGO_COLLECTION_EMAILS=emails
+          MONGO_COLLECTION_EMAILS=notification_emails
 
           REDIS_PASSWORD=ci_redis_password
 

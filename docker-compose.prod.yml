@@ -1,0 +1,66 @@
+# Production overrides for the CBA server (exams.cba.org.bo).
+#
+#   docker compose -f docker-compose.yml -f docker-compose.prod.yml <command>
+#
+# The host's own nginx terminates TLS and proxies to the gateway on
+# 127.0.0.1:8088 (see deploy/cba/). Nothing else is published: Docker writes
+# its own firewall rules and bypasses firewalld, so any published port would
+# be reachable from the internet. Services talk to each other over the
+# compose network, which needs no published ports.
+#
+# `!reset` / `!override` need Docker Compose v2.24.4 or newer.
+
+services:
+  api-gateway:
+    ports: !override
+      - "127.0.0.1:${GATEWAY_PORT:-8088}:80"
+    restart: unless-stopped
+
+  frontend:
+    restart: unless-stopped
+
+  zookeeper:
+    ports: !reset []
+    restart: unless-stopped
+    environment:
+      KAFKA_HEAP_OPTS: "-Xms128m -Xmx256m"
+
+  kafka:
+    ports: !reset []
+    restart: unless-stopped
+    environment:
+      # The server is shared with other apps; the default 1 GB heap is more
+      # than a single-broker demo needs.
+      KAFKA_HEAP_OPTS: "-Xms256m -Xmx512m"
+
+  redis:
+    ports: !reset []
+    restart: unless-stopped
+
+  mongo:
+    ports: !reset []
+    restart: unless-stopped
+    # WiredTiger takes half the host RAM by default; cap it.
+    command: ["mongod", "--wiredTigerCacheSizeGB", "0.75"]
+
+  minio:
+    ports: !reset []
+    restart: unless-stopped
+
+  identity-service:
+    restart: unless-stopped
+    environment:
+      # Browsers reach MinIO through the gateway's /minio/ route.
+      - MINIO_PUBLIC_URL=${MINIO_PUBLIC_URL:?set MINIO_PUBLIC_URL in .env}
+
+  notifications-service:
+    restart: unless-stopped
+
+  exam-service:
+    restart: unless-stopped
+
+  session-manager-service:
+    restart: unless-stopped
+
+  grading-service:
+    restart: unless-stopped

@@ -60,6 +60,8 @@ const GATEWAY = process.env.E2E_GATEWAY_URL || 'http://api-gateway';
 // service-to-service, instead of driving the HTTP exam-taking flow.
 const GRADING_SERVICE_URL = process.env.GRADING_SERVICE_URL || 'http://grading-service:3007';
 const SERVICE_TOKEN = process.env.SERVICE_TOKEN;
+// Same lookup as notifications-service/src/config/index.ts.
+const EMAILS_COLLECTION = process.env.MONGO_COLLECTION_EMAILS || 'notification_emails';
 const TAG = `e2e-grading-${Date.now()}`;
 const { ObjectId } = mongoose.Types;
 
@@ -544,7 +546,7 @@ async function main() {
       // The stored email doc must not become a side channel for the score
       // (it is persisted before Resend is even called, so a bounce is fine).
       const hiddenEmailDoc = await waitFor(
-        () => notif.collection('notification_emails').findOne({ to: hiddenEmail, template: 'exam_graded' }),
+        () => notif.collection(EMAILS_COLLECTION).findOne({ to: hiddenEmail, template: 'exam_graded' }),
         15_000
       );
       const td = hiddenEmailDoc?.templateData || {};
@@ -671,7 +673,7 @@ async function main() {
       await people.collection('candidates').deleteMany({ _id: created.hiddenCandidateId });
     }
     if (created.hiddenEmail) {
-      await notif.collection('notification_emails').deleteMany({ to: created.hiddenEmail });
+      await notif.collection(EMAILS_COLLECTION).deleteMany({ to: created.hiddenEmail });
     }
     if (created.personId) {
       await notif.collection('user_notifications').deleteMany({ recipientId: String(created.personId) });
