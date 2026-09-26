@@ -253,6 +253,24 @@ class SessionManagerTechnicalService {
   /**
    * Realizar test de micrófono
    */
+  /**
+   * Sends the measured level (0-1) as `audioLevel`, the field the server
+   * reads, and returns the server's verdict. Any failure counts as "not
+   * working" so the UI never claims a pass the server did not record.
+   */
+  private async reportMicrophoneLevel(verificationId: string, audioLevel: number): Promise<boolean> {
+    try {
+      const response = await this.api.post<{ data?: { isWorking?: boolean } }>(
+        `/${verificationId}/microphone-test`,
+        { audioLevel }
+      );
+      return response.data?.data?.isWorking === true;
+    } catch (error) {
+      console.warn('Backend microphone test update failed:', error);
+      return false;
+    }
+  }
+
   async performMicrophoneTest(verificationId: string): Promise<MicrophoneTestResult> {
     try {
       let micResult: MicrophoneTestResult = {
@@ -296,16 +314,16 @@ class SessionManagerTechnicalService {
               stream.getTracks().forEach(track => track.stop());
               audioContext.close();
 
-              micResult.isWorking = maxLevel > 0.01; // Umbral mínimo de detección
               micResult.level = maxLevel;
               micResult.sampleRate = audioContext.sampleRate;
               micResult.channelCount = stream.getAudioTracks()[0]?.getSettings()?.channelCount || 1;
 
-              // Enviar resultado al backend
-              this.api.post(`/${verificationId}/microphone-test`, micResult)
-                .catch(error => console.warn('Backend microphone test update failed:', error));
-
-              resolve(micResult);
+              // The server decides whether the microphone works: it is the
+              // verdict the exam start checks. Showing a local guess instead
+              // let the UI say "Correcto" while the server stored "not working".
+              this.reportMicrophoneLevel(verificationId, maxLevel)
+                .then((isWorking) => { micResult.isWorking = isWorking; })
+                .finally(() => resolve(micResult));
             }
           };
 
@@ -317,10 +335,9 @@ class SessionManagerTechnicalService {
         micResult.hasPermission = false;
       }
 
-      // Enviar resultado al backend
-      await this.api.post(`/${verificationId}/microphone-test`, micResult)
-        .catch(error => console.warn('Backend microphone test update failed:', error));
-
+      // No access to the microphone: record it as silent so the server's
+      // verdict matches what the student sees.
+      micResult.isWorking = await this.reportMicrophoneLevel(verificationId, 0);
       return micResult;
     } catch (error: any) {
       console.error('Error realizando test de micrófono:', error);

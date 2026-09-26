@@ -142,7 +142,7 @@ const PENDING_HINTS: Record<string, string> = {
 // del examen (TECHNICAL_VERIFICATION_REQUIRED). El `message` ya viene en
 // español desde session-manager-service — esto solo agrega el "cómo lo arreglo".
 const TECHNICAL_REASON_HINTS: Record<string, string> = {
-  MICROPHONE_FAILED: "Permite el acceso al micrófono en tu navegador.",
+  MICROPHONE_FAILED: "Presiona \"Probar\" junto a Micrófono y habla durante la prueba. Si el navegador lo bloqueó, permite el acceso al micrófono.",
   NETWORK_UNSTABLE: "Tu conexión es inestable, verifica tu red.",
   BROWSER_INCOMPATIBLE: "Usa Chrome, Firefox, Edge o Safari.",
   LOW_SCORE: "Vuelve a realizar la verificación técnica para mejorar tu puntaje.",
@@ -661,7 +661,7 @@ const ExamPreparation = () => {
         result.isWorking ? "success" : "error",
         result.isWorking
           ? `Detectado · Nivel: ${Math.round(result.level * 100)}%`
-          : "Micrófono no detectado o sin permiso"
+          : "No detectamos sonido: habla durante la prueba o revisa el permiso"
       );
       syncVerification();
       if (result.isWorking) {
