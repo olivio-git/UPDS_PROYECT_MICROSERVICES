@@ -260,6 +260,33 @@ export interface ICompetencyScore {
   pendingEvaluationCount: number;
 }
 
+/** Level-mastery indicator (design D13, level-mastery-indicator spec). Purely informational — never an input to `passed`. */
+export interface IMasteryCheck {
+  minScore: number;
+  percentage: number;
+  achieved: boolean;
+}
+
+export interface ICompetencyMasteryItem extends IMasteryCheck {
+  competency: string;
+}
+
+export interface ICompetencyMastery {
+  levelCode: string;
+  overall: IMasteryCheck;
+  competencies: ICompetencyMasteryItem[];
+}
+
+/** Minimal shape grading-service reads from exam-service's `levels` collection to compute mastery. */
+export interface ILevel {
+  _id: ObjectId;
+  code: string;
+  description?: string;
+  isActive: boolean;
+  overallMinScore: number;
+  competencyRequirements: Record<string, { minScore: number; description?: string; canDoStatements?: string[] } | undefined>;
+}
+
 export interface IGradingBreakdown {
   questionsMs: number;       // Total time grading all questions (auto + AI + audio)
   autoGradingMs: number;     // Time on auto-gradable questions
@@ -306,6 +333,8 @@ export interface IExamResult {
   passed?: boolean;
   passingScore?: number;
   scoringMethod?: 'weighted_sections' | 'raw_points';
+  // Level mastery indicator (see ICompetencyMastery) — informational only.
+  competencyMastery?: ICompetencyMastery;
   // Grading performance tracking
   gradingStartedAt?: Date;
   gradingCompletedAt?: Date;

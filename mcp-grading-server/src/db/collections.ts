@@ -1,7 +1,7 @@
 import { Collection } from 'mongodb';
 import { getClient, getDB } from './connection.js';
 import { config } from '../config.js';
-import type { IAttempt, IResponse, IQuestion, IExamResult, IExam, IRubric } from '../types/index.js';
+import type { IAttempt, IResponse, IQuestion, IExamResult, IExam, IRubric, ILevel } from '../types/index.js';
 
 export function getAttempts(): Collection<IAttempt> {
   return getDB().collection<IAttempt>('attempts');
@@ -33,9 +33,9 @@ export function getRubrics(): Collection<IRubric> {
   return getDB().collection<IRubric>('rubrics');
 }
 
-export function getLevels(): Collection {
+export function getLevels(): Collection<ILevel> {
   // Levels live in exam-service's own DB (no useDb() override there), same DB grading-service connects to.
-  return getDB().collection('levels');
+  return getDB().collection<ILevel>('levels');
 }
 
 export function getCandidates(): Collection {
