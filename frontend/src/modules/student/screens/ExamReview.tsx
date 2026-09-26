@@ -74,6 +74,10 @@ interface DetailedExamResult {
   recommendedLevel?: string;
   placementMode?: 'static' | 'adaptive';
   levelScores?: LevelScore[];
+  /** result-visibility: teacher hid the result — none of the fields above are present. */
+  resultsHidden?: boolean;
+  /** result-visibility: pending_ai_review — no final score/breakdown is sent yet. */
+  pending?: boolean;
 }
 
 const ExamReview = () => {
@@ -107,11 +111,13 @@ const ExamReview = () => {
       setLoading(true);
       setError(null);
 
-      // Llamada directa para obtener los detalles completos con questionResults
-      const rawResponse = await api.get<{ data: { success: boolean; data: DetailedExamResult; message?: string } }>(`/api/v1/exam-results/${resultId}`);
+      // Llamada directa para obtener los detalles completos con questionResults.
+      // `api.get` already returns the JSON body (`response.data`), so the
+      // envelope is `{ success, data }` at the top level.
+      const body = await api.get<{ success: boolean; data: DetailedExamResult; message?: string }>(`/api/v1/exam-results/${resultId}`);
 
-      if (rawResponse.data.success) {
-        setExamResult(rawResponse.data.data);
+      if (body.success) {
+        setExamResult(body.data);
       } else {
         throw new Error('Failed to fetch exam details');
       }
@@ -315,6 +321,42 @@ const ExamReview = () => {
           <div className="text-center">
             <FileText className="h-8 w-8 text-muted-foreground mx-auto mb-4" />
             <p className="text-foreground/80 mb-4">Examen no encontrado</p>
+            <Button onClick={() => navigate('/student/results')} variant="outline">
+              Volver a Resultados
+            </Button>
+          </div>
+        </div>
+      </MainLayout>
+    );
+  }
+
+  // result-visibility: the pending payload has no final score/breakdown yet —
+  // never render a partial score as if it were final.
+  if (examResult.pending && !examResult.resultsHidden) {
+    return (
+      <MainLayout gradientVariant="primary">
+        <div className="max-w-6xl mx-auto flex items-center justify-center min-h-96">
+          <div className="text-center">
+            <Clock className="h-8 w-8 text-muted-foreground mx-auto mb-4" />
+            <p className="text-foreground/80 mb-4">Tu examen está en revisión. La calificación final estará disponible cuando termine la revisión.</p>
+            <Button onClick={() => navigate('/student/results')} variant="outline">
+              Volver a Resultados
+            </Button>
+          </div>
+        </div>
+      </MainLayout>
+    );
+  }
+
+  // result-visibility: the hidden payload has no questionResults/scores to
+  // review — bail out before the per-question render below touches them.
+  if (examResult.resultsHidden) {
+    return (
+      <MainLayout gradientVariant="primary">
+        <div className="max-w-6xl mx-auto flex items-center justify-center min-h-96">
+          <div className="text-center">
+            <FileText className="h-8 w-8 text-muted-foreground mx-auto mb-4" />
+            <p className="text-foreground/80 mb-4">Resultado no disponible todavía — tu docente lo publicará próximamente.</p>
             <Button onClick={() => navigate('/student/results')} variant="outline">
               Volver a Resultados
             </Button>

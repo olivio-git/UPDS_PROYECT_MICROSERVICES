@@ -38,11 +38,19 @@ function buildAlreadyGradedResponse(
   contact: CandidateContactInfo
 ): GradeExamResponse {
   // The early "already graded" check runs before the exam is fetched, so the
-  // exam type (placement → no verdict) is looked up here for the re-sent event.
+  // exam type (placement → no verdict) and configuration.showResults
+  // (result-visibility) are looked up here for the re-sent event.
   getExams()
-    .findOne({ _id: existingResult.examId }, { projection: { type: 1 } })
-    .catch(() => null)
-    .then(exam => {
+    .findOne({ _id: existingResult.examId }, { projection: { type: 1, 'configuration.showResults': 1 } })
+    // result-visibility, fail closed: a lookup ERROR (DB down, timeout) means
+    // we cannot know whether the teacher hid this result, so the republished
+    // notification is sent as hidden. A genuinely missing exam (findOne
+    // resolves null — deleted/legacy) keeps the spec default: visible.
+    .then(
+      exam => ({ exam, lookupFailed: false }),
+      () => ({ exam: null, lookupFailed: true })
+    )
+    .then(({ exam, lookupFailed }) => {
       // If the exam can't be resolved (deleted exam, legacy data), a stored
       // recommendedLevel is itself the placement signal — only placement
       // results carry it. Placement never republishes a (stale) verdict.
@@ -64,6 +72,7 @@ function buildAlreadyGradedResponse(
         passingScore: isPlacement ? undefined : existingResult.passingScore,
         examType: isPlacement ? 'placement' : exam?.type,
         recommendedLevel: existingResult.recommendedLevel,
+        showResults: lookupFailed ? false : exam?.configuration?.showResults,
       });
     })
     .catch(() => {});
@@ -617,6 +626,7 @@ export async function gradeExam(attemptId: string, options: { force?: boolean } 
     passingScore,
     examType: exam.type,
     recommendedLevel,
+    showResults: exam.configuration?.showResults,
   }).catch(() => {});
 
   // 14. Return structured response

@@ -3,9 +3,11 @@ import { ExamEvaluationService } from '../services/examEvaluation.service';
 import { examResultPDFService } from '../services/exam-result-pdf.service';
 import { Exam } from '../models/exam.model';
 import { resolveExamType, resolvePassFail } from '../utils/passFail';
+import { isResultVisible, toStudentView } from '../utils/resultVisibility';
 import { logger } from '../utils/logger';
 
 const evaluationService = new ExamEvaluationService();
+const EXAM_PROJECTION = { type: 1, structure: 1, 'configuration.showResults': 1 } as const;
 
 export class ExamResultController {
   /**
@@ -16,13 +18,20 @@ export class ExamResultController {
    * (`resolvePassFail`) — frontend/PDF/LLM consumers must not recompute it.
    * `examType` is exposed so consumers can render the recommended level
    * instead of a verdict for placement exams (`passed` is always `null` there).
+   *
+   * `applyVisibility` (default true) additionally routes the result through
+   * `toStudentView` — the admin/teacher endpoint passes `false` so
+   * `showResults` never affects it (spec: Admin/Teacher Endpoint Always Full).
    */
   private async attachPassFail<T extends { examId: any; percentage: number; status: string; passed?: boolean; passingScore?: number }>(
-    result: T
-  ): Promise<T & { passed: boolean | null; passingScore: number | null; examType?: string }> {
-    const exam = await Exam.findById(result.examId, { type: 1, structure: 1 }).lean();
+    result: T,
+    options: { applyVisibility?: boolean } = {}
+  ): Promise<any> {
+    const exam = await Exam.findById(result.examId, EXAM_PROJECTION).lean();
     const { passed, passingScore } = resolvePassFail(result, exam);
-    return { ...result, passed, passingScore, examType: resolveExamType(result, exam) };
+    const withPassFail = { ...result, passed, passingScore, examType: resolveExamType(result, exam) };
+    if (options.applyVisibility === false) return withPassFail;
+    return toStudentView(withPassFail, exam);
   }
 
   /**
@@ -44,14 +53,14 @@ export class ExamResultController {
       // exam's threshold without an N+1 query.
       // Drop missing examIds BEFORE String() — String(undefined) is the truthy "undefined".
       const examIds = [...new Set(results.map(r => r.examId).filter(Boolean).map(String))];
-      const exams = await Exam.find({ _id: { $in: examIds } }, { type: 1, structure: 1 }).lean();
+      const exams = await Exam.find({ _id: { $in: examIds } }, EXAM_PROJECTION).lean();
       const examById = new Map(exams.map(e => [String(e._id), e]));
 
       // Transform to match frontend expectations
       const recentResults = results.map(result => {
         const exam = examById.get(String(result.examId));
         const { passed, passingScore } = resolvePassFail(result, exam);
-        return {
+        return toStudentView({
           id: String(result._id),
           examName: result.examName,
           date: result.evaluatedAt.toISOString(),
@@ -71,7 +80,7 @@ export class ExamResultController {
           passingScore,
           examType: resolveExamType(result, exam),
           recommendedLevel: result.recommendedLevel
-        };
+        }, exam);
       });
 
       res.json({
@@ -206,12 +215,12 @@ export class ExamResultController {
         return;
       }
 
-      const exam = await Exam.findById(result.examId, { type: 1, structure: 1 }).lean();
+      const exam = await Exam.findById(result.examId, EXAM_PROJECTION).lean();
       const { passed, passingScore } = resolvePassFail(result, exam);
 
       res.json({
         success: true,
-        data: {
+        data: toStudentView({
           id: String(result._id),
           examName: result.examName,
           date: result.evaluatedAt.toISOString(),
@@ -234,7 +243,7 @@ export class ExamResultController {
           gradingDurationMs: (result as any).gradingDurationMs,
           gradingBreakdown: (result as any).gradingBreakdown,
           details: result
-        }
+        }, exam)
       });
 
     } catch (error) {
@@ -262,7 +271,8 @@ export class ExamResultController {
         return;
       }
 
-      res.json({ success: true, data: await this.attachPassFail(result) });
+      // Admin/Teacher Endpoint Always Full: showResults must not affect this view.
+      res.json({ success: true, data: await this.attachPassFail(result, { applyVisibility: false }) });
     } catch (error) {
       logger.error('Error getting result details (admin):', error);
       next(error);
@@ -325,6 +335,22 @@ export class ExamResultController {
 
       if (examResult.candidateId.toString() !== String(userCandidateId)) {
         res.status(403).json({ success: false, message: 'Access denied - Result does not belong to this candidate' });
+        return;
+      }
+
+      // result-visibility: a student cannot export a PDF of a result the
+      // teacher configured as hidden — that would leak the score through a
+      // side channel the student endpoint itself already blocks.
+      const examForPdf = await Exam.findById(examResult.examId, EXAM_PROJECTION).lean();
+      if (!isResultVisible(examForPdf)) {
+        res.status(403).json({ success: false, code: 'RESULTS_HIDDEN', message: 'El resultado aún no está disponible.' });
+        return;
+      }
+
+      // Same rule as the student view: a result still under AI review has no
+      // final score yet, so it cannot be exported either.
+      if (examResult.status === 'pending_ai_review') {
+        res.status(409).json({ success: false, code: 'RESULT_PENDING_REVIEW', message: 'El resultado todavía está en revisión.' });
         return;
       }
 

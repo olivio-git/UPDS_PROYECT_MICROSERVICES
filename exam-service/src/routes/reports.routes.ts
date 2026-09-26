@@ -3,7 +3,6 @@ import { z } from 'zod';
 import { ReportsController } from '../controllers/reports.controller';
 import { authMiddleware, requireRole } from '../middleware/auth.middleware';
 import { validateQuery } from '../middleware/validation.middleware';
-import { restrictStudentToOwnCandidate } from '../middleware/searchRefs';
 
 const router = Router();
 const reportsController = new ReportsController();
@@ -123,12 +122,13 @@ router.get(
 /**
  * Historial de un estudiante específico
  * GET /reports/student/:studentId/history
- * Acceso: admin, teacher, student (solo su propio historial)
+ * Acceso: admin, teacher. Students are excluded on purpose (result-visibility):
+ * this full history carries scores the exam's `showResults=false` hides, and no
+ * student screen consumes it — students use /exam-results/my-* instead.
  */
 router.get(
   '/student/:studentId/history',
-  requireRole('admin', 'teacher', 'student'),
-  restrictStudentToOwnCandidate('studentId'),
+  requireRole('admin', 'teacher'),
   reportsController.getStudentHistory.bind(reportsController)
 );
 

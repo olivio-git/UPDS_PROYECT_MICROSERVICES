@@ -45,6 +45,10 @@ export interface ExamResultSummary {
   /** Exam type; `placement` results show `recommendedLevel` instead of a verdict. */
   examType?: string;
   recommendedLevel?: string;
+  /** result-visibility: teacher hid the result — no score/passed/breakdown fields are present. */
+  resultsHidden?: boolean;
+  /** result-visibility: pending_ai_review — no final score/passed/breakdown fields are present yet. */
+  pending?: boolean;
 }
 
 export interface GradingBreakdown {
@@ -104,6 +108,10 @@ export interface DetailedExamResult {
   /** Exam type; `placement` results show `recommendedLevel` instead of a verdict. */
   examType?: string;
   recommendedLevel?: string;
+  /** result-visibility: teacher hid the result — no score/passed/breakdown fields are present. */
+  resultsHidden?: boolean;
+  /** result-visibility: pending_ai_review — no final score/passed/breakdown fields are present yet. */
+  pending?: boolean;
 }
 
 export interface RecentResultsResponse {
@@ -167,6 +175,18 @@ export interface StudentExamResult {
   recommendations: string[];
   nextLevel?: string;
   status: 'partial' | 'completed' | 'pending_ai_review';
+  /**
+   * result-visibility: the teacher configured this exam as hidden. Distinct
+   * from `status === 'pending_ai_review'` (that is "still grading"; this is
+   * "graded, but the teacher hasn't published it"). When `true`, every other
+   * score/verdict field is a neutral placeholder — never render them.
+   */
+  resultsHidden?: boolean;
+  /**
+   * result-visibility: still in pending_ai_review — the backend sends no
+   * final score yet, so score fields are placeholders (never render them).
+   */
+  pending?: boolean;
 }
 
 export interface StudentResultsListResponse {
@@ -355,12 +375,16 @@ class ExamResultService {
           })
           .map(result => this.transformToStudentResult(result));
 
-        // Calculate metrics
-        const averageScore = results.length > 0
-          ? Math.round(results.reduce((sum, r) => sum + r.overallScore, 0) / results.length)
+        // Calculate metrics — only over results that actually carry a score:
+        // hidden (showResults=false) and pending_ai_review results hold
+        // placeholder zeros that would drag the average/trend down (and, for
+        // hidden ones, leak their existence into the numbers).
+        const scoredResults = results.filter(r => !r.resultsHidden && !r.pending);
+        const averageScore = scoredResults.length > 0
+          ? Math.round(scoredResults.reduce((sum, r) => sum + r.overallScore, 0) / scoredResults.length)
           : 0;
 
-        const progressTrend = this.calculateProgressTrend(results);
+        const progressTrend = this.calculateProgressTrend(scoredResults);
 
         return {
           results,
@@ -406,9 +430,55 @@ class ExamResultService {
   }
 
   /**
+   * result-visibility: the neutral shape every hidden (`showResults=false`)
+   * or pending (`pending_ai_review`) result transforms into, regardless of
+   * which endpoint it came from. Every score/verdict field is a safe
+   * placeholder — components must check `resultsHidden`/`pending` before
+   * reading them, never infer "0%"/"not passed" from these values. `level`
+   * is the real exam level so the level filter still finds these results.
+   */
+  private scorelessStudentResult(
+    base: { id: string; examName: string; date: string; level?: string; durationSeconds?: number; status: StudentExamResult['status'] },
+    flags: { resultsHidden: boolean; pending: boolean }
+  ): StudentExamResult {
+    return {
+      id: base.id,
+      examName: base.examName,
+      examType: 'progress',
+      date: base.date,
+      duration: typeof base.durationSeconds === 'number' ? Math.round(base.durationSeconds / 60) : 0,
+      level: base.level ?? '',
+      overallScore: 0,
+      passed: null,
+      isPlacement: false,
+      competencies: {},
+      feedback: flags.resultsHidden
+        ? 'Tu resultado no está disponible todavía. Tu docente lo publicará próximamente.'
+        : 'Tu examen está en revisión. La calificación final estará disponible cuando termine la revisión.',
+      recommendations: [],
+      status: base.status,
+      ...(flags.resultsHidden ? { resultsHidden: true } : {}),
+      ...(flags.pending ? { pending: true } : {}),
+    };
+  }
+
+  /**
    * Transform backend ExamResultSummary to StudentExamResult
    */
   private transformToStudentResult(backendResult: ExamResultSummary): StudentExamResult {
+    if (backendResult.resultsHidden || backendResult.pending) {
+      return this.scorelessStudentResult(
+        {
+          id: backendResult.id,
+          examName: backendResult.examName,
+          date: backendResult.date,
+          level: backendResult.level,
+          durationSeconds: backendResult.duration,
+          status: backendResult.status,
+        },
+        { resultsHidden: !!backendResult.resultsHidden, pending: !!backendResult.pending }
+      );
+    }
     return {
       id: backendResult.id,
       examName: backendResult.examName,
@@ -439,6 +509,19 @@ class ExamResultService {
    * Transform backend DetailedExamResult to StudentExamResult
    */
   private transformDetailedToStudentResult(backendResult: any): StudentExamResult {
+    if (backendResult.resultsHidden || backendResult.pending) {
+      return this.scorelessStudentResult(
+        {
+          id: backendResult.id ?? backendResult._id,
+          examName: backendResult.examName,
+          date: backendResult.date ?? backendResult.evaluatedAt,
+          level: backendResult.level ?? backendResult.examLevel,
+          durationSeconds: backendResult.duration ?? backendResult.examDuration,
+          status: backendResult.status,
+        },
+        { resultsHidden: !!backendResult.resultsHidden, pending: !!backendResult.pending }
+      );
+    }
     const verdict: FallbackVerdictInput = {
       score: backendResult.percentage,
       level: backendResult.examLevel,

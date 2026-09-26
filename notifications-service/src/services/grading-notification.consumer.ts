@@ -104,18 +104,24 @@ async function sendEmailIfEnabled(
 
   console.log(`[notifications-grading] sending grading email to ${data.candidateEmail}`);
 
+  const showResults = data.showResults !== false;
+
+  // result-visibility: no score to show means no PDF worth fetching either
+  // — skip the exam-service round trip entirely when hidden.
   let pdfBase64: string | undefined;
   let pdfFilename: string | undefined;
-  const pdf = await fetchExamResultPDF({
-    examResultId: data.examResultId,
-    firstName: data.candidateFirstName,
-    lastName: data.candidateLastName,
-    email: data.candidateEmail,
-    candidateId: data.candidateId,
-  });
-  if (pdf) {
-    pdfBase64 = pdf;
-    pdfFilename = `Resultado_${data.examName.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.pdf`;
+  if (showResults) {
+    const pdf = await fetchExamResultPDF({
+      examResultId: data.examResultId,
+      firstName: data.candidateFirstName,
+      lastName: data.candidateLastName,
+      email: data.candidateEmail,
+      candidateId: data.candidateId,
+    });
+    if (pdf) {
+      pdfBase64 = pdf;
+      pdfFilename = `Resultado_${data.examName.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.pdf`;
+    }
   }
 
   // Reuses the same email-sending path as the old 'exam.graded' handler.
@@ -136,6 +142,7 @@ async function sendEmailIfEnabled(
     recommendedLevel: data.recommendedLevel,
     pdfBase64,
     pdfFilename,
+    showResults,
   });
 }
 
@@ -156,6 +163,7 @@ async function sendInAppNotification(
   // 7 days (DEDUPE_TTL_SECONDS) and runConsumer would never retry it.
   // Same verdict the email renders (placement → recommended level; pending
   // review is never presented as failed).
+  const hidden = data.showResults === false;
   const verdict = describeGradingVerdict(data);
   const created = await notificationService.createInAppNotification({
     recipientId: data.candidateId,
@@ -163,23 +171,30 @@ async function sendInAppNotification(
     type: 'exam.graded',
     channel: 'in-app',
     content: {
-      title: 'Examen calificado',
-      body: `Tu examen "${data.examName}" ha sido calificado. ${verdict.kind === GRADING_VERDICT_KIND.PLACEMENT ? verdict.label : `Resultado: ${verdict.label}`}. Puntaje: ${formatScoreSummary(data.percentage, data.totalScore, data.maxScore)}`,
+      title: hidden ? 'Examen recibido' : 'Examen calificado',
+      body: hidden
+        ? `Tu examen "${data.examName}" fue recibido. Tu docente publicará el resultado próximamente.`
+        : `Tu examen "${data.examName}" ha sido calificado. ${verdict.kind === GRADING_VERDICT_KIND.PLACEMENT ? verdict.label : `Resultado: ${verdict.label}`}. Puntaje: ${formatScoreSummary(data.percentage, data.totalScore, data.maxScore)}`,
       link: '/student/results',
     },
     read: false,
     priority: 'normal',
-    metadata: {
-      examName: data.examName,
-      score: data.totalScore,
-      maxScore: data.maxScore,
-      percentage: data.percentage,
-      status: data.status,
-      passed: verdict.passed,
-      passingScore: data.passingScore,
-      examType: data.examType,
-      recommendedLevel: data.recommendedLevel,
-    },
+    // Hidden: metadata must not carry percentage/passed — this also feeds
+    // the Socket.IO push to the student room, the other channel a score
+    // could leak through.
+    metadata: hidden
+      ? { examName: data.examName, status: data.status }
+      : {
+          examName: data.examName,
+          score: data.totalScore,
+          maxScore: data.maxScore,
+          percentage: data.percentage,
+          status: data.status,
+          passed: verdict.passed,
+          passingScore: data.passingScore,
+          examType: data.examType,
+          recommendedLevel: data.recommendedLevel,
+        },
   });
 
   if (!created) {

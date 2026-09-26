@@ -125,6 +125,9 @@ async function main() {
     // Phase 3 seeds (one entry per weighted case).
     weightedExamIds: [], weightedAttemptIds: [], weightedQuestionIds: [],
     weightedCandidateIds: [], weightedSessionIds: [],
+    // Phase 4: candidate seeded in the identity DB so grading-service finds an
+    // email and the hidden-result notification_emails doc gets written.
+    hiddenCandidateId: null, hiddenEmail: null,
   };
 
   let kafkaProducer = null;
@@ -327,7 +330,7 @@ async function main() {
         });
         created.weightedAttemptIds.push(attemptId);
         await exams.collection('responses').insertMany(responseDocs);
-        return { attemptId, sessionId };
+        return { attemptId, sessionId, examId, candidateId };
       };
 
       // Case 1: two sections (weight 70/30), A fully correct, B fully wrong →
@@ -395,6 +398,46 @@ async function main() {
           `${regraded1?.scoringMethod}/${regraded1?.passingScore}`);
       }
 
+      // ---- Phase 4: showResults:false hides the score from the student,
+      // admin stays complete, and the in-app notification has no "Puntaje" --
+      const hidden = await seedWeightedCase('hidden', 'final', 60, [
+        { name: 'Sección Única', weight: 100, questions: [{ points: 10, correct: true }] },
+      ]);
+      await exams.collection('exams').updateOne({ _id: hidden.examId }, { $set: { 'configuration.showResults': false } });
+      // Reserved, non-routable domain (RFC 2606), same as Phase 1.
+      const hiddenEmail = `${TAG}-hidden@example.com`;
+      await people.collection('candidates').insertOne({
+        _id: hidden.candidateId, userId: hidden.candidateId,
+        personalInfo: { firstName: 'E2E', lastName: 'Hidden', email: hiddenEmail }, createdAt: new Date(),
+      });
+      created.hiddenCandidateId = hidden.candidateId;
+      created.hiddenEmail = hiddenEmail;
+      const hiddenGrade = await gradingApi('/api/v1/grading/exam', { attemptId: String(hidden.attemptId) });
+      check('hidden-result exam grades successfully', hiddenGrade.status === 200, `HTTP ${hiddenGrade.status}`);
+
+      const hiddenToken = jwt.sign(
+        { userId: String(hidden.candidateId), email: `${TAG}-hidden@example.com`, role: 'student' },
+        process.env.JWT_SECRET,
+        { expiresIn: '10m', issuer: 'cba-auth-service', audience: 'cba-platform' }
+      );
+      const studentView = await api('GET', `/api/v1/exam-results/attempt/${hidden.attemptId}`, hiddenToken);
+      check('student attempt/:id marks the result resultsHidden', studentView.status === 200 && studentView.json?.data?.resultsHidden === true, JSON.stringify(studentView.json));
+      check('student attempt/:id has no percentage/score/details', studentView.json?.data?.score === undefined && studentView.json?.data?.details === undefined, JSON.stringify(studentView.json?.data));
+
+      // The full per-student history carries scores — students are not
+      // allowed on it at all (not even their own id).
+      const historyRes = await api('GET', `/api/v1/reports/student/${hidden.candidateId}/history`, hiddenToken);
+      check('student JWT gets 403 on /reports/student/<own id>/history', historyRes.status === 403, `HTTP ${historyRes.status}`);
+
+      const hiddenResultDoc = await exams.collection('exam_results').findOne({ attemptId: hidden.attemptId });
+      const adminToken = jwt.sign(
+        { userId: String(new ObjectId()), email: 'e2e-admin@example.com', role: 'admin' },
+        process.env.JWT_SECRET,
+        { expiresIn: '10m', issuer: 'cba-auth-service', audience: 'cba-platform' }
+      );
+      const adminView = await api('GET', `/api/v1/exam-results/${hiddenResultDoc._id}/admin`, adminToken);
+      check('admin endpoint stays complete despite showResults:false', adminView.status === 200 && typeof adminView.json?.data?.percentage === 'number', `${adminView.json?.data?.percentage}`);
+
       // Grading notifications are delivered asynchronously (Kafka →
       // notifications-service). Wait for them before cleanup so they can't
       // land after the delete and be left behind as orphans.
@@ -403,7 +446,24 @@ async function main() {
         const n = await notif.collection('user_notifications').countDocuments({ recipientId: { $in: weightedRecipients } });
         return n >= weightedRecipients.length ? n : null;
       }, 15_000);
-      console.log(`Phase 3 in-app notifications observed before cleanup: ${notified ?? 'timeout'}`);
+      console.log(`Phase 3/4 in-app notifications observed before cleanup: ${notified ?? 'timeout'}`);
+
+      const hiddenNotif = await notif.collection('user_notifications').findOne({ recipientId: String(hidden.candidateId) });
+      check('hidden result in-app notification has no "Puntaje"', !!hiddenNotif && !String(hiddenNotif.content?.body).includes('Puntaje'), JSON.stringify(hiddenNotif?.content));
+      check('hidden result in-app metadata carries no score/passed', !!hiddenNotif && hiddenNotif.metadata?.score === undefined && hiddenNotif.metadata?.passed === undefined, JSON.stringify(hiddenNotif?.metadata));
+
+      // The stored email doc must not become a side channel for the score
+      // (it is persisted before Resend is even called, so a bounce is fine).
+      const hiddenEmailDoc = await waitFor(
+        () => notif.collection('notification_emails').findOne({ to: hiddenEmail, template: 'exam_graded' }),
+        15_000
+      );
+      const td = hiddenEmailDoc?.templateData || {};
+      check('hidden result notification_emails doc was stored', !!hiddenEmailDoc, hiddenEmailDoc ? '' : 'timeout');
+      check('hidden result email templateData has no percentage/passed/score', !!hiddenEmailDoc
+        && td.showResults === false
+        && ['score', 'maxScore', 'percentage', 'passed', 'passingScore', 'recommendedLevel', 'pdfBase64'].every((k) => td[k] === undefined),
+        JSON.stringify(td));
     }
   } finally {
     if (kafkaProducer) await kafkaProducer.disconnect().catch(() => {});
@@ -451,6 +511,12 @@ async function main() {
       await exams.collection('questions').deleteMany({ _id: { $in: created.weightedQuestionIds } });
       await exams.collection('exams').deleteMany({ _id: { $in: created.weightedExamIds } });
       await notif.collection('user_notifications').deleteMany({ recipientId: { $in: created.weightedCandidateIds.map(String) } });
+    }
+    if (created.hiddenCandidateId) {
+      await people.collection('candidates').deleteMany({ _id: created.hiddenCandidateId });
+    }
+    if (created.hiddenEmail) {
+      await notif.collection('notification_emails').deleteMany({ to: created.hiddenEmail });
     }
     if (created.personId) {
       await notif.collection('user_notifications').deleteMany({ recipientId: String(created.personId) });

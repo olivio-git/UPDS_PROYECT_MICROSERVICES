@@ -126,15 +126,25 @@ Merge order: 1a → 1a-bis → 1b → 2a → 2b → 3 → 4. Revert order is the
 
 **Start**: after 1b merged (needs event schema + resolvePassFail). **Finish**: hidden results return no score to students/email; admin view unaffected. **Rollback**: `git revert`; field optional, defaults to visible.
 
-- [ ] 3.1 Add `showResults?: z.boolean()` to `shared/events/src/events/grading.ts` (still V1). Rebuild `pack:local`; reinstall in grading/notifications/exam-service.
-- [ ] 3.2 Update `mcp-grading-server` grade-exam.ts to read `exam.configuration.showResults`, publish it on the event, and strip score from the in-app HTTP notification fallback when `false`.
-- [ ] 3.3 Create `exam-service/src/utils/resultVisibility.ts`: `toStudentView(result, exam)` → when `showResults===false` return `{_id/id, examName, examLevel, evaluatedAt/date, status, examDuration, timeAllowed, totalQuestions, resultsHidden:true}`; `pending_ai_review` always renders as pending regardless of `showResults`. *(result-visibility: Student Endpoint Respects showResults; Pending AI Review Is Never Shown As Final)*
-- [ ] 3.4 Create `exam-service/tests/resultVisibility.test.ts`: hidden→stripped, visible→full, pending_ai_review→pending even when visible. Verify: `npm --prefix exam-service test`.
-- [ ] 3.5 Apply `toStudentView` in `examResult.controller.ts` for `my-recent`, `:id`, `:id/detailed`, `attempt/:id`; leave `/admin` and `sessions/:id/results` untouched; `my-stats` excludes hidden results; `export-pdf` returns 403 `RESULTS_HIDDEN`. *(Admin/Teacher Endpoint Always Full)*
-- [ ] 3.6 Update `exam-service/src/services/examEvaluation.service.ts` to route any independently-composed student payload through `resultVisibility`.
-- [ ] 3.7 Update `notifications-service` consumer/notification/email services: `showResults===false` → subject "Examen recibido", no score/verdict, no PDF fetch; default to visible when the field is absent (backward compat). *(Email Respects showResults; Event predates this change)*
-- [ ] 3.8 Update `frontend/src/services/examResultService.ts` and `StudentResults.tsx` to render an "under review" card when `resultsHidden`.
-- [ ] 3.9 Extend `scripts/e2e/grading-pipeline.e2e.js`: `showResults:false` → student `attempt/:id` has `resultsHidden`, no `percentage`; `/admin` still complete; in-app body has no "Puntaje". Verify: docker e2e run.
+- [x] 3.1 Add `showResults?: z.boolean()` to `shared/events/src/events/grading.ts` (still V1). Rebuild `pack:local`; reinstall in grading/notifications/exam-service.
+- [x] 3.2 Update `mcp-grading-server` grade-exam.ts to read `exam.configuration.showResults`, publish it on the event, and strip score from the in-app HTTP notification fallback when `false`.
+- [x] 3.3 Create `exam-service/src/utils/resultVisibility.ts`: `toStudentView(result, exam)` → when `showResults===false` return `{_id/id, examName, examLevel, evaluatedAt/date, status, examDuration, timeAllowed, totalQuestions, resultsHidden:true}`; `pending_ai_review` always renders as pending regardless of `showResults`. *(result-visibility: Student Endpoint Respects showResults; Pending AI Review Is Never Shown As Final)*
+- [x] 3.4 Create `exam-service/tests/resultVisibility.test.ts`: hidden→stripped, visible→full, pending_ai_review→pending even when visible. Verify: `npm --prefix exam-service test`.
+- [x] 3.5 Apply `toStudentView` in `examResult.controller.ts` for `my-recent`, `:id`, `:id/detailed`, `attempt/:id`; leave `/admin` and `sessions/:id/results` untouched; `my-stats` excludes hidden results; `export-pdf` returns 403 `RESULTS_HIDDEN`. *(Admin/Teacher Endpoint Always Full)*
+- [x] 3.6 Update `exam-service/src/services/examEvaluation.service.ts` to route any independently-composed student payload through `resultVisibility`.
+- [x] 3.7 Update `notifications-service` consumer/notification/email services: `showResults===false` → subject "Examen recibido", no score/verdict, no PDF fetch; default to visible when the field is absent (backward compat). *(Email Respects showResults; Event predates this change)*
+- [x] 3.8 Update `frontend/src/services/examResultService.ts` and `StudentResults.tsx` to render an "under review" card when `resultsHidden`.
+- [x] 3.9 Extend `scripts/e2e/grading-pipeline.e2e.js`: `showResults:false` → student `attempt/:id` has `resultsHidden`, no `percentage`; `/admin` still complete; in-app body has no "Puntaje". Verify: docker e2e run.
+
+**Review fixes (judgment-day, landed in PR 3)**:
+- `GET /reports/student/:studentId/history` is admin/teacher only now (students got hidden scores through it; no student screen used it).
+- `notification_emails.templateData` for hidden results stores only `firstName/lastName/examName/status/showResults:false` (no score/maxScore/percentage/passed/passingScore/recommendedLevel/PDF).
+- Adaptive (CAT) exams with `showResults:false`: start/submit/resume responses go through `toStudentAdaptiveView` — no `gradeResult`, no current/final level, no `consecutiveWrong`/`levelHistory`, no `stopReason`; the runner shows a neutral "Respuesta registrada" and "Examen completado" without the level. The algorithm still reads the full `adaptiveState` server-side. `GET /exam-taking/:sessionId/attempts` projects attempts to non-score fields (`toAttemptSummary`).
+- `pending_ai_review` is never shown as final: `toStudentView` strips score fields and flags `pending: true` even when visible; the frontend renders a pending card and excludes hidden/pending results from the average card and progress trend.
+- Hidden results keep their real level so the level filter does not drop them; `my-stats` filters missing `examId`s before the `$in`; `ExamReview` reads the `api.get` body correctly.
+- grading-service already-graded republish fails closed: an exam lookup ERROR sends the notification as hidden; a genuinely missing exam keeps the spec default (visible).
+
+**Known limitation (W1, not migrated)**: in-app notifications and emails created before this PR (or sent while `showResults` was `true`) keep their score; flipping `showResults` to `false` after grading does not retract or rewrite already-sent notifications. Only surfaces read at request time (result endpoints, stats, PDF export) honor the current value.
 
 **Commits**: `feat(events): add optional showResults` → `feat(grading): publish showResults, strip score from in-app fallback` → `feat(exam-service): resultVisibility.toStudentView + apply across student endpoints` → `feat(exam-service): exclude hidden from my-stats, 403 on export-pdf` → `feat(notifications): honor showResults in templates` → `feat(frontend): under-review card` → `test(e2e): showResults hides score for student, admin stays full`.
 

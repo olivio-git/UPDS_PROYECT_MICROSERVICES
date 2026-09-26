@@ -156,9 +156,17 @@ export class EmailService {
      */
     verdict: GradingVerdict,
     pdfBase64?: string,
-    pdfFilename?: string
+    pdfFilename?: string,
+    /** result-visibility: `false` omits score/verdict and skips the PDF attachment. */
+    showResults: boolean = true
   ): Promise<EmailSendResult> {
-    const subject = buildExamGradedSubject(examName, verdict);
+    const subject = buildExamGradedSubject(examName, verdict, showResults);
+
+    if (!showResults) {
+      const htmlContent = this.generateResultsHiddenEmailHtml(firstName, lastName, examName);
+      const textContent = this.generateResultsHiddenEmailText(firstName, examName);
+      return await this.sendEmail(to, subject, htmlContent, textContent);
+    }
 
     const htmlContent = this.generateExamGradedEmailHtml(firstName, lastName, examName, score, maxScore, percentage, verdict, !!pdfBase64);
     const textContent = this.generateExamGradedEmailText(firstName, examName, score, maxScore, percentage, verdict);
@@ -755,6 +763,31 @@ export class EmailService {
     </div>
 </body>
 </html>`;
+  }
+
+  /**
+   * result-visibility: sent instead of `generateExamGradedEmailHtml` when
+   * `showResults===false` — deliberately plain, no score/verdict, no PDF.
+   */
+  private generateResultsHiddenEmailHtml(firstName: string, lastName: string, examName: string): string {
+    const loginUrl = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/student/results`;
+    return `<!DOCTYPE html>
+<html lang="es">
+<head><meta charset="utf-8"><title>Examen recibido - CBA Platform</title></head>
+<body style="font-family: Arial, sans-serif; background-color: #f5f5f7; color: #1d1d1f; margin: 0; padding: 40px 0;">
+  <div style="max-width: 480px; margin: 0 auto; padding: 32px; background: #ffffff; border-radius: 16px; border: 1px solid #e8e8e8; text-align: center;">
+    <h1 style="font-size: 22px; color: #001E41; margin: 0 0 12px;">📥 Examen recibido</h1>
+    <p style="font-size: 15px; color: #5a5a5f;">Hola ${firstName} ${lastName}, tu examen "${examName}" fue recibido correctamente.</p>
+    <p style="font-size: 15px; color: #5a5a5f;">Tu docente publicará el resultado próximamente.</p>
+    <a href="${loginUrl}" style="display: inline-block; margin-top: 16px; padding: 12px 28px; background: #001E41; color: #fff; text-decoration: none; border-radius: 8px; font-size: 14px;">Ver mis exámenes</a>
+  </div>
+</body>
+</html>`;
+  }
+
+  private generateResultsHiddenEmailText(firstName: string, examName: string): string {
+    const loginUrl = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/student/results`;
+    return `CBA Platform - Examen recibido\n\nHola ${firstName},\n\nTu examen "${examName}" fue recibido correctamente. Tu docente publicará el resultado próximamente.\n\n${loginUrl}`;
   }
 
   // Text Email Templates

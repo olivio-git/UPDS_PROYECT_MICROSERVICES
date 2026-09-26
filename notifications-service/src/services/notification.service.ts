@@ -240,32 +240,48 @@ export class NotificationService {
     recommendedLevel?: string;
     pdfBase64?: string;
     pdfFilename?: string;
+    /** result-visibility: `false` hides score/verdict, subject and PDF. Defaults to visible (backward compat). */
+    showResults?: boolean;
   }): Promise<{ success: boolean; emailId?: string }> {
     try {
       // grading-service is the source of truth; this is the ONE documented
       // fallback for notifications-service (design.md — Resolvers).
       // Placement exams get the recommended level instead of a verdict.
+      const showResults = data.showResults !== false;
       const verdict = describeGradingVerdict(data);
-      const subject = buildExamGradedSubject(data.examName, verdict);
+      const subject = buildExamGradedSubject(data.examName, verdict, showResults);
       const emailNotification = await this.notificationRepository.createEmailNotification({
         to: data.email,
         subject,
         template: 'exam_graded',
-        templateData: {
-          firstName: data.firstName,
-          lastName: data.lastName,
-          examName: data.examName,
-          score: data.score,
-          maxScore: data.maxScore,
-          percentage: data.percentage,
-          status: data.status,
-          passed: verdict.passed,
-          passingScore: data.passingScore,
-          examType: data.examType,
-          recommendedLevel: data.recommendedLevel,
-          pdfBase64: data.pdfBase64,
-          pdfFilename: data.pdfFilename,
-        },
+        // result-visibility: a hidden result persists ONLY what the "examen
+        // recibido" template and its retry path need — no score, maxScore,
+        // percentage, passed, passingScore, recommendedLevel or PDF. The
+        // stored email doc must not become a side channel for the score.
+        templateData: showResults
+          ? {
+              firstName: data.firstName,
+              lastName: data.lastName,
+              examName: data.examName,
+              score: data.score,
+              maxScore: data.maxScore,
+              percentage: data.percentage,
+              status: data.status,
+              passed: verdict.passed,
+              passingScore: data.passingScore,
+              examType: data.examType,
+              recommendedLevel: data.recommendedLevel,
+              pdfBase64: data.pdfBase64,
+              pdfFilename: data.pdfFilename,
+              showResults,
+            }
+          : {
+              firstName: data.firstName,
+              lastName: data.lastName,
+              examName: data.examName,
+              status: data.status,
+              showResults: false,
+            },
         status: 'pending',
         priority: 'normal',
         retryCount: 0,
@@ -403,7 +419,11 @@ export class NotificationService {
               recommendedLevel: email.templateData.recommendedLevel,
             }),
             email.templateData.pdfBase64,
-            email.templateData.pdfFilename
+            email.templateData.pdfFilename,
+            // Absent on emails queued before this field existed → visible (backward compat).
+            // Hidden emails store no score fields (undefined above) — the hidden
+            // template only reads firstName/lastName/examName.
+            email.templateData.showResults !== false
           );
           break;
 

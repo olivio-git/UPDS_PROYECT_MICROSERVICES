@@ -44,7 +44,8 @@ import {
   TrendingDown,
   TrendingUp,
   X,
-  XCircle
+  XCircle,
+  EyeOff
 } from 'lucide-react';
 import { useEffect, useMemo, useState, type KeyboardEvent } from 'react';
 import type { DateRange } from 'react-day-picker';
@@ -157,7 +158,12 @@ const StudentResults = () => {
   // never rendered as "No aprobado"). No local threshold: grading-service
   // (and exam-service's legacy fallback) already resolved this. Placement
   // exams have no verdict: they show the recommended level instead.
-  const getPassBadge = ({ passed, isPlacement, recommendedLevel }: Pick<StudentExamResult, 'passed' | 'isPlacement' | 'recommendedLevel'>) => {
+  const getPassBadge = ({ passed, isPlacement, recommendedLevel, resultsHidden }: Pick<StudentExamResult, 'passed' | 'isPlacement' | 'recommendedLevel' | 'resultsHidden'>) => {
+    // Distinct from the "Pendiente" (pending_ai_review) badge below: this
+    // result is fully graded, the teacher just hasn't published it yet.
+    if (resultsHidden) {
+      return { Icon: EyeOff, text: 'No disponible', className: 'border-gray-200 text-gray-700 bg-gray-100 dark:border-gray-500/30 dark:text-gray-300 dark:bg-gray-500/10' };
+    }
     if (isPlacement) {
       return {
         Icon: GraduationCap,
@@ -651,6 +657,56 @@ const StudentResults = () => {
       );
     }
 
+    // result-visibility: the teacher hid this result (showResults=false). It
+    // is never rendered with a score, verdict, breakdown or PDF button. Takes
+    // precedence over the pending card below: a hidden result stays hidden
+    // whether or not it is still in pending_ai_review.
+    if (currentResult.resultsHidden) {
+      return (
+        <MainLayout gradientVariant="primary">
+          <div className="h-full space-y-4 overflow-auto p-4 pb-10 lg:p-6 xl:p-8">
+            <Button variant="outline" size="sm" onClick={handleBackToResults} className="h-8 px-3 text-xs">
+              <ArrowLeft className="h-3.5 w-3.5 mr-1" />
+              Volver
+            </Button>
+            <Card className="bg-card">
+              <CardContent className="flex flex-col items-center gap-3 p-10 text-center">
+                <EyeOff className="h-10 w-10 text-muted-foreground" />
+                <h2 className="text-lg font-semibold text-foreground">{currentResult.examName}</h2>
+                <p className="max-w-md text-sm text-muted-foreground">
+                  Resultado no disponible todavía — tu docente lo publicará próximamente.
+                </p>
+              </CardContent>
+            </Card>
+          </div>
+        </MainLayout>
+      );
+    }
+
+    // result-visibility: pending_ai_review is never shown as final — the
+    // backend sends no score for it, so a pending card replaces the score ring.
+    if (currentResult.pending) {
+      return (
+        <MainLayout gradientVariant="primary">
+          <div className="h-full space-y-4 overflow-auto p-4 pb-10 lg:p-6 xl:p-8">
+            <Button variant="outline" size="sm" onClick={handleBackToResults} className="h-8 px-3 text-xs">
+              <ArrowLeft className="h-3.5 w-3.5 mr-1" />
+              Volver
+            </Button>
+            <Card className="bg-card">
+              <CardContent className="flex flex-col items-center gap-3 p-10 text-center">
+                <Clock className="h-10 w-10 text-muted-foreground" />
+                <h2 className="text-lg font-semibold text-foreground">{currentResult.examName}</h2>
+                <p className="max-w-md text-sm text-muted-foreground">
+                  Tu examen está en revisión. La calificación final estará disponible cuando termine la revisión.
+                </p>
+              </CardContent>
+            </Card>
+          </div>
+        </MainLayout>
+      );
+    }
+
     // Vista detallada de un resultado específico. Orden deliberado, de más
     // a menos importante para el estudiante: (1) el score como hero — un
     // anillo grande en vez de una badge de texto, (2) competencias como
@@ -1107,7 +1163,7 @@ const StudentResults = () => {
                       className="cursor-pointer rounded-none hover:bg-muted/50"
                       role="button"
                       tabIndex={0}
-                      aria-label={`Ver resultado de ${result.examName}, ${result.overallScore}%`}
+                      aria-label={`Ver resultado de ${result.examName}${result.resultsHidden || result.pending ? '' : `, ${result.overallScore}%`}`}
                       onClick={() => handleViewDetails(result)}
                       onKeyDown={(e: KeyboardEvent) => {
                         if (e.key === 'Enter' || e.key === ' ') {
@@ -1137,14 +1193,20 @@ const StudentResults = () => {
                       </ItemContent>
 
                       <ItemActions className="gap-3">
-                        <span className={`text-sm font-semibold tabular-nums ${getScoreColor(result.overallScore)}`}>
-                          {formatPercent(result.overallScore)}
-                          {typeof result.totalScore === 'number' && typeof result.maxScore === 'number' && (
-                            <span className="ml-1 text-xs font-normal text-muted-foreground">
-                              ({formatPoints(result.totalScore, result.maxScore)})
-                            </span>
-                          )}
-                        </span>
+                        {result.resultsHidden ? (
+                          <span className="text-xs font-medium text-muted-foreground">No disponible</span>
+                        ) : result.pending ? (
+                          <span className="text-xs font-medium text-muted-foreground">En revisión</span>
+                        ) : (
+                          <span className={`text-sm font-semibold tabular-nums ${getScoreColor(result.overallScore)}`}>
+                            {formatPercent(result.overallScore)}
+                            {typeof result.totalScore === 'number' && typeof result.maxScore === 'number' && (
+                              <span className="ml-1 text-xs font-normal text-muted-foreground">
+                                ({formatPoints(result.totalScore, result.maxScore)})
+                              </span>
+                            )}
+                          </span>
+                        )}
                         <Button
                           size="sm"
                           variant="ghost"

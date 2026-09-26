@@ -1,4 +1,6 @@
 import { ExamResult, IExamResult } from '../models/examResult.model';
+import { Exam } from '../models/exam.model';
+import { isResultVisible } from '../utils/resultVisibility';
 import { logger } from '../utils/logger';
 
 /**
@@ -98,10 +100,20 @@ export class ExamEvaluationService {
     logger.info(`📊 [ExamEvaluation] Calculating stats for candidate: ${candidateId}`);
 
     // Get all completed results for the candidate
-    const results = await ExamResult.find({
+    const allResults = await ExamResult.find({
       candidateId,
       status: 'completed'
     }).sort({ evaluatedAt: 1 }).exec();
+
+    // result-visibility: a result the teacher hid from the student must not
+    // feed the student's own stats either (it would leak the score back
+    // through the average/competency/frequency numbers).
+    // Drop missing examIds BEFORE String() — String(undefined) is the truthy "undefined"
+    // and would make the $in cast fail (same guard as my-recent).
+    const examIds = [...new Set(allResults.map(r => r.examId).filter(Boolean).map(String))];
+    const exams = await Exam.find({ _id: { $in: examIds } }, { 'configuration.showResults': 1 }).lean();
+    const examById = new Map(exams.map(e => [String(e._id), e]));
+    const results = allResults.filter(r => isResultVisible(examById.get(String(r.examId))));
 
     if (results.length === 0) {
       return {
