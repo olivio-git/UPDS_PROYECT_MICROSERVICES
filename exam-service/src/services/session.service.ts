@@ -394,6 +394,11 @@ export class SessionService {
               flatUpdate[`participants.${pKey}`] = pValue;
             }
           }
+        } else if (key === 'settings' && value && typeof value === 'object') {
+          // Only the settings the request names; the rest keep their values.
+          for (const [sKey, sValue] of Object.entries(value as any)) {
+            if (sValue !== undefined) flatUpdate[`settings.${sKey}`] = sValue;
+          }
         } else {
           flatUpdate[key] = value;
         }
