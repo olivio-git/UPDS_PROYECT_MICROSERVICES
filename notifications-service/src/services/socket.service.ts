@@ -64,7 +64,9 @@ export class SocketService {
           audience: 'cba-platform',
         }) as AccessTokenPayload;
 
-        if (!decoded?.userId) {
+        // jwt.verify only enforces exp when present; a token without one
+        // would keep the socket alive forever, so require it explicitly.
+        if (!decoded?.userId || typeof decoded.exp !== 'number') {
           next(new Error('Invalid token payload'));
           return;
         }

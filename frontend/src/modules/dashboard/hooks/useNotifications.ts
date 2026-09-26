@@ -53,8 +53,10 @@ export function useNotifications() {
     if (!isAuthenticated || !userId) return;
 
     let active = true;
+    // recipientId is derived server-side from the JWT now (see
+    // notification.controller.ts listNotifications) — no need to pass it.
     notificationService
-      .getInAppNotifications({ recipientId: userId, onlyUnread: false, limit: 20 })
+      .getInAppNotifications({ onlyUnread: false, limit: 20 })
       .then((res) => {
         if (active && res?.success && Array.isArray(res.data)) setNotifications(res.data.map(normalize));
       })
