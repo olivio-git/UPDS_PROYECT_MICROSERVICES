@@ -1,6 +1,7 @@
 import { Types } from 'mongoose';
 import axios from 'axios';
-import { Attempt } from '../models/attempt.model';
+import type { ExamAttemptFinishedReason } from '@cba/events';
+import { Attempt, type IAttempt } from '../models/attempt.model';
 import { Exam } from '../models/exam.model';
 import { Question } from '../models/question.model';
 import { Response as ResponseModel } from '../models/response.model';
@@ -71,6 +72,78 @@ export class ExamTakingService {
     }
   }
 
+  /**
+   * The single transition point from 'in_progress' to 'completed'. Every
+   * finishing path (manual submit, time running out, adaptive engine
+   * stopping) goes through here so the attempt is closed with the same
+   * bookkeeping and published for grading exactly once.
+   *
+   * The conditional findOneAndUpdate is the race guard: when two paths try to
+   * finish the same attempt concurrently (e.g. the client's finish() and the
+   * server noticing time is up), only the one whose update matches
+   * status 'in_progress' wins and publishes. The loser gets null back and
+   * must treat the attempt as already finished by someone else.
+   */
+  private async completeAttemptAndPublish(
+    attemptId: unknown,
+    reason: ExamAttemptFinishedReason,
+    logPrefix: string
+  ): Promise<IAttempt | null> {
+    const completed = await Attempt.findOneAndUpdate(
+      { _id: attemptId, status: 'in_progress' },
+      { $set: { status: 'completed', finishedAt: new Date() } },
+      { new: true }
+    );
+    if (!completed) return null;
+
+    logger.info(`🏁 ${logPrefix} Attempt ${completed._id} completed (reason=${reason}), queuing grading...`);
+
+    // Delegate grading to grading-service asynchronously via Kafka (with an
+    // HTTP fallback if Kafka is unavailable) — fire-and-forget.
+    void publishExamAttemptFinished(
+      {
+        attemptId: String(completed._id),
+        examId: String(completed.examId),
+        candidateId: String(completed.candidateId),
+        sessionId: String(completed.sessionId),
+        finishedAt: completed.finishedAt as Date,
+        reason,
+      },
+      logPrefix
+    );
+
+    return completed;
+  }
+
+  private hasTimeRunOut(attempt: IAttempt, now: Date = new Date()): boolean {
+    if (!attempt.startedAt) return false;
+    const elapsed = Math.floor((now.getTime() - attempt.startedAt.getTime()) / 1000);
+    return attempt.timeAllowedSeconds - elapsed <= 0;
+  }
+
+  /**
+   * Time running out is an automatic submission with whatever answers were
+   * saved: the attempt is completed and sent for grading exactly like a
+   * manual finish (reason 'expired' on the event). Idempotent — if another
+   * path already finished it, this is a no-op.
+   */
+  private async completeOnTimeUp(attempt: IAttempt): Promise<void> {
+    // A session cancelled by the teacher is never graded — leave its
+    // attempts untouched instead of auto-submitting them on time-up.
+    const session = await Session.findById(attempt.sessionId).select('status').lean();
+    if ((session as { status?: string } | null)?.status === 'cancelled') return;
+    await this.completeAttemptAndPublish(attempt._id, 'expired', '[TimeUp]');
+  }
+
+  private attemptNotInProgressError(action: string, status: string): AppError {
+    return new AppError(
+      `Cannot ${action}: attempt is ${status}, not in progress`,
+      409,
+      'ATTEMPT_NOT_IN_PROGRESS',
+      status
+    );
+  }
+
   async startExam(sessionId: string, userCandidateId: string) {
     // Validate session and candidate
     const session = await this.sessionService.findById(sessionId);
@@ -107,27 +180,16 @@ export class ExamTakingService {
     const isNewAttempt = !existingAttempt;
 
     if (existingAttempt) {
-      if (existingAttempt.status === 'completed') {
-        throw new Error('Exam already completed');
-      }
-      if (existingAttempt.status === 'cancelled') {
-        throw new Error('Exam was cancelled');
-      }
-
-      // Check if time has expired
-      if (existingAttempt.startedAt) {
-        const elapsed = Math.floor((now.getTime() - existingAttempt.startedAt.getTime()) / 1000);
-        const remaining = Math.max(0, existingAttempt.timeAllowedSeconds - elapsed);
-        if (remaining <= 0) {
-          existingAttempt.status = 'expired';
-          existingAttempt.finishedAt = new Date();
-          await existingAttempt.save();
-          throw new Error('El tiempo del examen ha expirado');
-        }
+      // Terminal attempts surface the structured 409 so the client can route
+      // to the right screen (submitted / removed) without parsing messages.
+      if (existingAttempt.status !== 'in_progress') {
+        throw this.attemptNotInProgressError('start exam', existingAttempt.status);
       }
 
-      if (existingAttempt.status === 'expired') {
-        throw new Error('El tiempo del examen ha expirado');
+      // Time is up: submit automatically with whatever answers were saved.
+      if (this.hasTimeRunOut(existingAttempt, now)) {
+        await this.completeOnTimeUp(existingAttempt);
+        throw this.attemptNotInProgressError('start exam', 'completed');
       }
 
       // A student who started via the adaptive (CAT) path has adaptiveState
@@ -488,65 +550,48 @@ export class ExamTakingService {
     const attempt = await Attempt.findOne({ sessionId, candidateId });
     if (!attempt) throw new Error('Attempt not found');
 
-    if (attempt.status === 'completed') {
-      // Idempotent: the frontend calls finish() on the "time's up" timer AND
-      // on the manual submit button, and a retry after a dropped response
-      // can also resend it. Return the already-finished state instead of
-      // re-publishing exam.attempt.finished — the frontend just polls for
-      // the result by attemptId, which is unaffected by which finish() call
-      // actually performed the transition.
-      return {
-        success: true,
-        attemptId: attempt._id,
-        message: 'Examen finalizado. Los resultados estarán disponibles en unos momentos.'
-      };
-    }
-
-    if (attempt.status !== 'in_progress') {
-      throw new AppError(
-        `Cannot finish exam: attempt is ${attempt.status}`,
-        409,
-        'ATTEMPT_NOT_IN_PROGRESS',
-        attempt.status
-      );
-    }
-
-    attempt.finishedAt = new Date();
-    attempt.status = 'completed';
-    await attempt.save();
-
-    logger.info(`🏁 [FinishExam] Attempt ${attempt._id} finished, starting evaluation...`);
-
-    // Delegate grading to grading-service asynchronously via Kafka (with an
-    // HTTP fallback if Kafka is unavailable) — fire-and-forget.
-    void publishExamAttemptFinished(
-      {
-        attemptId: String(attempt._id),
-        examId: String(attempt.examId),
-        candidateId: String(attempt.candidateId),
-        sessionId: String(attempt.sessionId),
-        finishedAt: attempt.finishedAt as Date,
-        reason: 'submitted',
-      },
-      '[FinishExam]'
-    );
-
-    return {
+    const finished = {
       success: true,
       attemptId: attempt._id,
       message: 'Examen finalizado. Los resultados estarán disponibles en unos momentos.'
     };
+
+    if (attempt.status === 'completed') {
+      // Idempotent: the frontend calls finish() on the "time's up" timer AND
+      // on the manual submit button, a retry after a dropped response can
+      // resend it, and the server itself completes the attempt when time
+      // runs out. Return the already-finished state instead of re-publishing
+      // exam.attempt.finished.
+      return finished;
+    }
+
+    if (attempt.status !== 'in_progress') {
+      throw this.attemptNotInProgressError('finish exam', attempt.status);
+    }
+
+    const completed = await this.completeAttemptAndPublish(attempt._id, 'submitted', '[FinishExam]');
+    if (!completed) {
+      // Lost the race to another finishing path (time-up, session end,
+      // adaptive engine). Report the state the winner left behind.
+      const current = await Attempt.findOne({ sessionId, candidateId });
+      if (current?.status !== 'completed') {
+        throw this.attemptNotInProgressError('finish exam', current?.status ?? 'unknown');
+      }
+    }
+
+    return finished;
   }
 
   async getTimeRemaining(sessionId: string, candidateId: string) {
     const attempt = await Attempt.findOne({ sessionId, candidateId });
     if (!attempt || !attempt.startedAt) return { timeRemaining: 0, sessionEnded: false };
 
-    // If attempt is already completed or expired, return 0 — this is a
-    // normal terminal state the frontend already handles via the polling
-    // response, not an error.
+    // If attempt is already completed or (legacy) expired, return 0 — this is
+    // a normal terminal state the frontend already handles via the polling
+    // response, not an error. Both mean the answers were sent for grading
+    // (legacy 'expired' attempts are picked up by grading-service's sweeper).
     if (attempt.status === 'completed' || attempt.status === 'expired') {
-      return { timeRemaining: 0, sessionEnded: true };
+      return { timeRemaining: 0, sessionEnded: true, attemptStatus: attempt.status };
     }
 
     // A 'cancelled' attempt means the candidate was kicked by a proctor/admin.
@@ -562,10 +607,12 @@ export class ExamTakingService {
       );
     }
 
-    // Check if the parent session was ended/cancelled by admin or teacher
+    // Check if the parent session was ended/cancelled by admin or teacher.
+    // The client must tell them apart: an ended ('completed') session
+    // force-completes attempts and grades them; a 'cancelled' one does not.
     const session = await this.sessionService.findById(sessionId);
     if (session && (session.status === 'completed' || session.status === 'cancelled')) {
-      return { timeRemaining: 0, sessionEnded: true };
+      return { timeRemaining: 0, sessionEnded: true, sessionStatus: session.status };
     }
 
     const now = new Date();
@@ -577,12 +624,10 @@ export class ExamTakingService {
     console.log(`   - Elapsed: ${elapsed}s (${Math.floor(elapsed / 60)} mins)`);
     console.log(`   - Remaining: ${remaining}s (${Math.floor(remaining / 60)} mins)`);
 
-    // Auto-expire if time is up and attempt is still in progress
+    // Time is up: submit automatically with whatever answers were saved.
     if (remaining <= 0 && attempt.status === 'in_progress') {
-      attempt.status = 'expired';
-      attempt.finishedAt = new Date();
-      await attempt.save();
-      logger.info(`Attempt ${attempt._id} auto-expired due to time expiration`);
+      await this.completeOnTimeUp(attempt);
+      return { timeRemaining: 0, sessionEnded: false, attemptStatus: 'completed' };
     }
 
     return { timeRemaining: remaining, sessionEnded: false };
@@ -640,10 +685,8 @@ export class ExamTakingService {
       const remaining = Math.max(0, attempt.timeAllowedSeconds - elapsed);
 
       if (remaining <= 0) {
-        // Auto-expire the attempt
-        attempt.status = 'expired';
-        attempt.finishedAt = new Date();
-        await attempt.save();
+        // Time is up: submit automatically with whatever answers were saved.
+        await this.completeOnTimeUp(attempt);
         return null;
       }
     }
@@ -664,41 +707,19 @@ export class ExamTakingService {
     const attempt = await Attempt.findOne({ sessionId, candidateId });
     if (!attempt) throw new Error('Attempt not found');
 
-    // Check if attempt is already finished
-    if (attempt.status === 'completed') {
-      throw new Error('Exam already completed');
+    // Any terminal attempt (completed / cancelled by a kick / legacy expired)
+    // surfaces the same 409 code the rest of exam-taking uses for
+    // terminal-state mismatches, so a student who reloads the page
+    // (resume-on-mount) is routed to the right screen (submitted / removed)
+    // instead of a generic error.
+    if (attempt.status !== 'in_progress') {
+      throw this.attemptNotInProgressError('resume exam', attempt.status);
     }
 
-    if (attempt.status === 'cancelled') {
-      // The attempt was cancelled by a kick — surface the same 409 code the
-      // rest of exam-taking uses for terminal-state mismatches so a kicked
-      // student who reloads the page (resume-on-mount) is routed to the
-      // "removed" screen instead of a generic error.
-      throw new AppError(
-        'Cannot resume exam: attempt was cancelled',
-        409,
-        'ATTEMPT_NOT_IN_PROGRESS',
-        attempt.status
-      );
-    }
-
-    if (attempt.status === 'expired') {
-      throw new Error('Exam time has expired');
-    }
-
-    // Check if expired by time
-    if (attempt.startedAt) {
-      const now = new Date();
-      const elapsed = Math.floor((now.getTime() - (attempt.startedAt as Date).getTime()) / 1000);
-      const remaining = Math.max(0, attempt.timeAllowedSeconds - elapsed);
-
-      if (remaining <= 0) {
-        // Auto-expire the attempt
-        attempt.status = 'expired';
-        attempt.finishedAt = new Date();
-        await attempt.save();
-        throw new Error('Exam time has expired');
-      }
+    // Time is up: submit automatically with whatever answers were saved.
+    if (this.hasTimeRunOut(attempt)) {
+      await this.completeOnTimeUp(attempt);
+      throw this.attemptNotInProgressError('resume exam', 'completed');
     }
 
     // Get session and questions
@@ -1181,9 +1202,9 @@ export class ExamTakingService {
     this.validateSessionTiming(session, !!existingAttempt, now);
 
     if (existingAttempt) {
-      if (existingAttempt.status === 'completed') throw new Error('Exam already completed');
-      if (existingAttempt.status === 'expired') throw new Error('Exam time has expired');
-      if (existingAttempt.status === 'cancelled') throw new Error('Exam was cancelled');
+      if (existingAttempt.status !== 'in_progress') {
+        throw this.attemptNotInProgressError('start exam', existingAttempt.status);
+      }
       // A student who started via the linear path has no adaptiveState on
       // their attempt — they can't hop over to the adaptive path mid-attempt.
       if (!this.isAdaptiveAttempt(existingAttempt)) {
@@ -1380,8 +1401,6 @@ export class ExamTakingService {
     if (stopReason) {
       state.isFinished = true;
       state.stopReason = stopReason;
-      attempt.status = 'completed';
-      attempt.finishedAt = new Date();
       finished = true;
     } else {
       // Pick next question
@@ -1400,8 +1419,6 @@ export class ExamTakingService {
       if (!nextQuestion) {
         state.isFinished = true;
         state.stopReason = 'max_questions';
-        attempt.status = 'completed';
-        attempt.finishedAt = new Date();
         finished = true;
       } else {
         state.askedQuestionIds.push(String(nextQuestion._id));
@@ -1418,20 +1435,10 @@ export class ExamTakingService {
     attempt.adaptiveState = state;
     await attempt.save();
 
-    // Fire-and-forget full exam grading if finished, via Kafka (HTTP fallback
-    // if Kafka is unavailable).
+    // Close the attempt and queue full exam grading through the shared,
+    // race-safe transition (publishes exactly once).
     if (finished) {
-      void publishExamAttemptFinished(
-        {
-          attemptId: String(attempt._id),
-          examId: String(attempt.examId),
-          candidateId: String(attempt.candidateId),
-          sessionId: String(attempt.sessionId),
-          finishedAt: attempt.finishedAt as Date,
-          reason: 'adaptive_completed',
-        },
-        '[AdaptiveExam]'
-      );
+      await this.completeAttemptAndPublish(attempt._id, 'adaptive_completed', '[AdaptiveExam]');
     }
 
     // result-visibility: showResults=false → no per-answer correctness/points
@@ -1457,15 +1464,27 @@ export class ExamTakingService {
     const attempt = await Attempt.findOne({ sessionId, candidateId });
     if (!attempt) throw new Error('Attempt not found');
 
+    // Same structured 409 the linear resume uses: a kicked candidate
+    // ('cancelled') must not be handed a "finished" view, and a legacy
+    // 'expired' attempt has nothing left to resume.
+    if (attempt.status === 'cancelled' || attempt.status === 'expired') {
+      throw this.attemptNotInProgressError('resume exam', attempt.status);
+    }
+
     const exam = await Exam.findById(attempt.examId);
 
     if (attempt.status === 'completed' || attempt.adaptiveState?.isFinished) {
+      // An engine-finished attempt still marked in_progress (e.g. a crash
+      // between saving the state and closing it) is closed and queued for
+      // grading now — a no-op if it is already completed.
+      if (attempt.status === 'in_progress') {
+        await this.completeAttemptAndPublish(attempt._id, 'adaptive_completed', '[AdaptiveExam]');
+      }
       // result-visibility: the raw adaptiveState carries levelHistory
       // (per-question correctness/score/level) — trimmed when hidden. A missing
       // exam keeps the spec default (visible), as before this change.
       return toStudentAdaptiveView({ finished: true, adaptiveState: attempt.adaptiveState }, exam);
     }
-    if (attempt.status === 'expired') throw new Error('Exam time has expired');
 
     if (!exam) throw new Error('Exam not found');
 
@@ -1483,7 +1502,14 @@ export class ExamTakingService {
 
     const nextQuestion = await this.pickAdaptiveQuestion(exam, state.currentLevel, state.askedQuestionIds);
     if (!nextQuestion) {
-      return toStudentAdaptiveView({ finished: true, adaptiveState: state }, exam);
+      // Question bank exhausted: the exam is over. Record it on the state
+      // (same stop reason submitAdaptiveAnswer uses) and close + publish the
+      // attempt so it is actually graded, not just reported as finished.
+      attempt.set('adaptiveState.isFinished', true);
+      attempt.set('adaptiveState.stopReason', 'max_questions');
+      await attempt.save();
+      await this.completeAttemptAndPublish(attempt._id, 'adaptive_completed', '[AdaptiveExam]');
+      return toStudentAdaptiveView({ finished: true, adaptiveState: attempt.adaptiveState }, exam);
     }
 
     const questionObj = nextQuestion.toObject();

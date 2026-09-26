@@ -564,10 +564,16 @@ export class SessionService {
           status: 'in_progress'
         });
 
-        for (const attempt of activeAttempts) {
-          attempt.status = 'completed';
-          attempt.finishedAt = new Date();
-          await attempt.save();
+        for (const activeAttempt of activeAttempts) {
+          // Conditional on 'in_progress' so a concurrent finish (client
+          // submit, time-up auto-submit) that already closed this attempt
+          // wins and this loop neither overwrites it nor publishes twice.
+          const attempt = await Attempt.findOneAndUpdate(
+            { _id: activeAttempt._id, status: 'in_progress' },
+            { $set: { status: 'completed', finishedAt: new Date() } },
+            { new: true }
+          );
+          if (!attempt) continue;
 
           // Fire-and-forget grading via Kafka (HTTP fallback if Kafka is
           // unavailable) — one event per closed attempt.
@@ -981,9 +987,11 @@ export class SessionService {
 
   async regradeSession(sessionId: string): Promise<{ total: number; queued: number; errors: string[] }> {
     try {
+      // 'expired' is legacy: timed-out attempts used to get it without ever
+      // being graded; grading-service accepts both as submitted attempts.
       const attempts = await Attempt.find({
         sessionId: new Types.ObjectId(sessionId),
-        status: 'completed'
+        status: { $in: ['completed', 'expired'] }
       }).lean();
 
       if (attempts.length === 0) {

@@ -1,15 +1,21 @@
 import { ObjectId } from 'mongodb';
 import { getAttempts, getExamResults } from '../db/collections.js';
-import { gradeExam } from '../tools/grade-exam.js';
+import { gradeExam, GRADABLE_ATTEMPT_STATUSES } from '../tools/grade-exam.js';
 import { config } from '../config.js';
 
 // Reconciliation sweeper: guarantees no completed exam is left ungraded even if the
 // fire-and-forget HTTP call from exam-service (finishExam/endSession) never reached
 // grading-service (grading-service was down, network blip, etc).
 //
-// It periodically looks for attempts with status='completed' that have no matching
-// exam_results document, and grades them the normal way (gradeExam already skips
-// attempts that already have a completed result, so this is safe to re-run).
+// It periodically looks for submitted attempts (status 'completed', or the legacy
+// 'expired' status timed-out attempts used to get before they were auto-submitted)
+// that have no matching exam_results document, and grades them the normal way
+// (gradeExam already skips attempts that already have a completed result, so this
+// is safe to re-run). Legacy 'expired' attempts of a session the teacher cancelled
+// are skipped — a cancelled session is never graded.
+//
+// Note: only attempts finished within GRADING_SWEEP_MAX_AGE_MS (default 7 days) are
+// considered; raise it temporarily to backfill older legacy 'expired' attempts.
 
 let timer: ReturnType<typeof setTimeout> | null = null;
 let running = false;
@@ -34,7 +40,7 @@ async function findUngradedAttempts(
     .aggregate<UngradedAttempt>([
       {
         $match: {
-          status: 'completed',
+          status: { $in: [...GRADABLE_ATTEMPT_STATUSES] },
           finishedAt: { $lte: minAgeCutoff, $gte: maxAgeCutoff },
           ...(excludeIds.length > 0 ? { _id: { $nin: excludeIds } } : {}),
         },
@@ -48,6 +54,19 @@ async function findUngradedAttempts(
         },
       },
       { $match: { result: { $size: 0 } } },
+      {
+        $lookup: {
+          from: 'sessions',
+          localField: 'sessionId',
+          foreignField: '_id',
+          as: 'session',
+        },
+      },
+      {
+        $match: {
+          $nor: [{ status: 'expired', 'session.status': 'cancelled' }],
+        },
+      },
       { $sort: { finishedAt: 1 } },
       { $limit: limit },
       { $project: { _id: 1 } },

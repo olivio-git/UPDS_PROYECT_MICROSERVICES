@@ -283,47 +283,6 @@ class ExamResultService {
   }
 
   /**
-   * Poll for exam result by attempt ID (useful for waiting for AI evaluation)
-   */
-  async pollForResult(attemptId: string, maxAttempts: number = 30, intervalMs: number = 2000): Promise<DetailedExamResult> {
-    let attempts = 0;
-
-    const poll = async (): Promise<DetailedExamResult> => {
-      attempts++;
-
-      try {
-        const result = await this.getResultByAttempt(attemptId);
-
-        // If result is found and fully evaluated, return it
-        if (result.status === 'completed') {
-          return result;
-        }
-
-        // If still pending AI review and we haven't reached max attempts, continue polling
-        if (result.status === 'pending_ai_review' && attempts < maxAttempts) {
-          console.log(`⏳ Result still pending AI evaluation, attempt ${attempts}/${maxAttempts}`);
-          await new Promise(resolve => setTimeout(resolve, intervalMs));
-          return poll();
-        }
-
-        // Return partial result if max attempts reached
-        return result;
-
-      } catch (error: any) {
-        if (attempts < maxAttempts) {
-          console.log(`⏳ Result not ready yet, attempt ${attempts}/${maxAttempts}`);
-          await new Promise(resolve => setTimeout(resolve, intervalMs));
-          return poll();
-        } else {
-          throw error;
-        }
-      }
-    };
-
-    return poll();
-  }
-
-  /**
    * Get evaluation statistics for the current user
    */
   async getMyEvaluationStats(): Promise<EvaluationStats> {

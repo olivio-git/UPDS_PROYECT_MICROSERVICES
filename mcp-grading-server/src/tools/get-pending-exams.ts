@@ -1,12 +1,13 @@
 import { getAttempts, getExamResults, getExams } from '../db/collections.js';
 import type { GetPendingExamsResponse } from '../schemas/grading.schemas.js';
+import { GRADABLE_ATTEMPT_STATUSES } from './grade-exam.js';
 
 export async function getPendingExams(params: { limit?: number }): Promise<GetPendingExamsResponse> {
   const limit = params.limit || 20;
 
-  // 1. Find completed attempts
+  // 1. Find submitted attempts (including legacy 'expired' time-outs)
   const completedAttempts = await getAttempts()
-    .find({ status: 'completed' })
+    .find({ status: { $in: [...GRADABLE_ATTEMPT_STATUSES] } })
     .sort({ finishedAt: -1 })
     .limit(limit * 2)
     .toArray();

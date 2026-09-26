@@ -176,7 +176,7 @@ test.describe('Student exam flow (real browser, real backend)', () => {
     await expect(page).toHaveURL(new RegExp(`/student/exam/${fixture.sessionId}$`), { timeout: 15_000 });
   });
 
-  test('student answers every question, finishes, and sees a graded result', async () => {
+  test('student answers every question, finishes, and sees the submitted screen (no result wait)', async () => {
     // The session was seeded with browserLockdown: true — the runner must
     // show the lockdown indicator (ExamRunnerHTTP.tsx's chip).
     await expect(page.getByText('Modo bloqueo activo')).toBeVisible();
@@ -200,16 +200,26 @@ test.describe('Student exam flow (real browser, real backend)', () => {
       }
     }
 
-    // Auto-graded (multiple_choice only) -> examResultService.pollForResult
-    // should land on the result page well within its own 60s budget.
-    await expect(page).toHaveURL(/\/student\/results\//, { timeout: 45_000 });
-    await expect(page.getByText(/^\d+%$/).first()).toBeVisible({ timeout: 15_000 });
+    // Product decision: exams run in a computer lab with rotating groups —
+    // the student must NEVER wait for grading here. It always happens in
+    // the background (exam-service publishes to Kafka, grading-service
+    // grades asynchronously). Assert the shared "Examen enviado" screen
+    // instead of a navigation to a result page or any score on screen.
+    await expect(page.getByRole('heading', { name: 'Examen enviado' })).toBeVisible({ timeout: 10_000 });
+    await expect(page.getByRole('button', { name: 'Cerrar sesión' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Ir a mi panel' })).toBeVisible();
+    await expect(page).not.toHaveURL(/\/student\/results\//);
+    await expect(page.getByText(/^\d+%$/)).toHaveCount(0);
 
-    // Tie the UI claim back to actual data: exactly one exam_result for
-    // this session+candidate, not zero (still processing) and not more
-    // than one (a double-grade bug).
-    const resultCount = countExamResults(fixture.sessionId, fixture.studentId);
-    expect(resultCount).toBe(1);
+    // Grading still happens — just asynchronously, off the UI thread the
+    // student is looking at. Tie the "enviado" claim back to actual data:
+    // poll until exactly one exam_result exists for this session+candidate
+    // (grading latency varies — AI-graded questions can take a while), then
+    // re-check it stayed at one (more than one would be a double-grade bug).
+    await expect
+      .poll(() => countExamResults(fixture.sessionId, fixture.studentId), { timeout: 45_000 })
+      .toBe(1);
+    expect(countExamResults(fixture.sessionId, fixture.studentId)).toBe(1);
 
     expect(consoleErrors.filter((e) => BAD_CONSOLE_PATTERN.test(e))).toEqual([]);
     expect(badResponses).toEqual([]);

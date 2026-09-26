@@ -11,8 +11,12 @@ import { MainLayout } from '@/components/layout';
 import { cn } from '@/lib/utils';
 import { useBrowserLockdown } from '@/hooks/useBrowserLockdown';
 import { useExamSessionHTTP } from '@/hooks/useExamSessionHTTP';
-import { examResultService } from '@/services/examResultService';
-import { examService, getAttemptTerminationInfo, getTechnicalVerificationRequiredInfo } from '@/services/examService';
+import {
+  examService,
+  getAttemptTerminationInfo,
+  getTechnicalVerificationRequiredInfo,
+  isSubmittedAttemptStatus,
+} from '@/services/examService';
 import { notificationSocket } from '@/services/notifications/notificationSocket';
 import { useExamStore } from '@/stores/examStore';
 import {
@@ -37,6 +41,8 @@ import { toast } from 'sonner';
 import QuestionRenderer from '../components/QuestionRenderer';
 import SectionNavigator from '../components/SectionNavigator';
 import { ProgressRing } from '../components/ProgressRing';
+import { ExamSubmittedScreen } from '../components/ExamSubmittedScreen';
+import { SessionCancelledScreen } from '../components/SessionCancelledScreen';
 
 // Thresholds shared between the ring and the rest of the timer's visual
 // state — amber under 5 minutes, red (+ pulse) under 1 minute.
@@ -91,11 +97,20 @@ const ExamRunnerHTTP: React.FC = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const sessionId = params.sessionId;
+  // Threaded through from ExamPreparation's navigation state, purely for
+  // display on the "Examen enviado" screen — absent after a hard refresh
+  // (router state doesn't survive one), in which case that screen falls
+  // back to a neutral label.
+  const examName = (location.state as { examName?: string } | null)?.examName;
 
   // State for starting/resuming detection
   const [initializingExam, setInitializingExam] = useState(false);
   const [examCompleting, setExamCompleting] = useState(false);
-  const [isWaitingForResult, setIsWaitingForResult] = useState(false);
+  // When the finish request actually succeeded — passed to the shared
+  // "Examen enviado" screen. Set from onSessionEnd below, so it also covers
+  // the remote-termination path (session ended/finish 409'd because the
+  // attempt was already closed server-side).
+  const [submittedAt, setSubmittedAt] = useState<Date | null>(null);
   const [showFinishConfirm, setShowFinishConfirm] = useState(false);
   // Track which questions are uploading audio
   const [uploadingAudio, setUploadingAudio] = useState<Record<string, boolean>>({});
@@ -127,6 +142,7 @@ const ExamRunnerHTTP: React.FC = () => {
     totalQuestions,
     kicked,
     kickReason,
+    sessionCancelled,
 
     // Current section and question helpers
     currentSection,
@@ -164,27 +180,14 @@ const ExamRunnerHTTP: React.FC = () => {
     onSessionStart: () => {
       toast.success('¡Tu examen ha comenzado!');
     },
-    onSessionEnd: (attemptId: string) => {
+    // The exam is graded in the background (exam-service publishes to
+    // Kafka, grading-service grades asynchronously) — the student never
+    // waits for a result here, whether this fires because finishExam()
+    // succeeded or because the attempt was already closed server-side
+    // (session ended/kicked-adjacent 409 with attemptStatus 'completed').
+    onSessionEnd: () => {
       setExamCompleting(true);
-
-      if (attemptId) {
-        setIsWaitingForResult(true);
-        examResultService.pollForResult(attemptId, 30, 2000)
-          .then((result) => {
-            const resultId = (result as any)._id || (result as any).id;
-            navigate(`/student/results/${resultId}`);
-          })
-          .catch(() => {
-            toast.info('Los resultados se están procesando. Los verás en tu dashboard.', { duration: 5000 });
-            navigate('/student/dashboard');
-          })
-          .finally(() => {
-            setIsWaitingForResult(false);
-          });
-      } else {
-        toast.success('¡Examen completado! Redirigiendo al dashboard...', { duration: 3000 });
-        setTimeout(() => navigate('/student/dashboard'), 2000);
-      }
+      setSubmittedAt(new Date());
     },
     onAutoSave: (success) => {
       if (!success) {
@@ -271,11 +274,12 @@ const ExamRunnerHTTP: React.FC = () => {
           } catch (resumeError: any) {
             console.log('⚠️ Resume failed:', resumeError?.message);
 
-            // Si el error es "time expired", no intentar start
-            if (resumeError?.message?.includes('expired') || resumeError?.message?.includes('time')) {
-              toast.error('El tiempo del examen ha expirado');
-              navigate('/student/dashboard');
-              return;
+            // The attempt is already terminal server-side (submitted, time-up
+            // auto-submitted, or kicked) — there is nothing to resume and
+            // startSession would 409 the same way. The outer handler routes
+            // it by its structured code.
+            if (getAttemptTerminationInfo(resumeError)) {
+              throw resumeError;
             }
 
             // If resume fails for other reasons, start fresh
@@ -304,6 +308,14 @@ const ExamRunnerHTTP: React.FC = () => {
           return;
         }
 
+        // The attempt was already submitted (e.g. the student refreshed the
+        // page after finishing, or time ran out and the server auto-submitted
+        // it): show the same "Examen enviado" screen as a normal finish.
+        if (terminationInfo && isSubmittedAttemptStatus(terminationInfo.attemptStatus)) {
+          setExamCompleting(true);
+          return;
+        }
+
         // Deep-link / stale-tab edge case: a brand-new attempt was rejected
         // by exam-service's server-side technical verification gate.
         // Resuming an existing in_progress attempt is never blocked this
@@ -329,13 +341,7 @@ const ExamRunnerHTTP: React.FC = () => {
           return;
         }
 
-        // Check if error is related to expired exam
-        if (error?.message?.includes('expired') || error?.message?.includes('time')) {
-          toast.error('El tiempo del examen ha expirado');
-        } else {
-          toast.error('Error al inicializar el examen');
-        }
-
+        toast.error('Error al inicializar el examen');
         navigate('/student/dashboard');
       } finally {
         setInitializingExam(false);
@@ -579,34 +585,15 @@ const ExamRunnerHTTP: React.FC = () => {
     );
   }
 
-  // Completion state - show completion UI
+  // The teacher cancelled the session — not graded, so never "Examen enviado".
+  if (sessionCancelled) {
+    return <SessionCancelledScreen />;
+  }
+
+  // Completion state — the exam is graded in the background, so this is a
+  // terminal screen, not a waiting spinner. Shared with AdaptiveExamRunner.
   if (examCompleting || sessionStatus === 'completed') {
-    return (
-      <MainLayout hideHeader>
-        <div className="min-h-screen flex items-center justify-center">
-          <GradientWrapper intensity="medium" size="lg">
-            <Card className="w-full max-w-md bg-box backdrop-blur-sm border border-line">
-              <CardContent className="p-8">
-                <div className="text-center">
-                  <CheckCircle className="h-12 w-12 text-green-500 mx-auto mb-4" />
-                  <h3 className="text-lg font-semibold text-foreground mb-2">
-                    ¡Examen Completado!
-                  </h3>
-                  <p className="text-muted-foreground">
-                    {isWaitingForResult
-                      ? 'Procesando resultados, espera un momento...'
-                      : 'Tu examen ha sido finalizado exitosamente. Redirigiendo...'}
-                  </p>
-                  <div className="mt-4">
-                    <Spinner className="h-6 w-6 text-blue-500 mx-auto" />
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </GradientWrapper>
-        </div>
-      </MainLayout>
-    );
+    return <ExamSubmittedScreen examName={examName} submittedAt={submittedAt} />;
   }
 
   // Loading state during initialization

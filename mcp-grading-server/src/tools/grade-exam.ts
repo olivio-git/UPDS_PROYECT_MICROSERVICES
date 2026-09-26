@@ -111,11 +111,24 @@ function buildAlreadyGradedResponse(
   };
 }
 
+/**
+ * Attempt statuses that mean "the candidate's answers were submitted and must
+ * be graded". 'completed' is the only status exam-service writes today (time
+ * running out is an automatic submission). 'expired' is legacy: exam-service
+ * used to mark timed-out attempts 'expired' and never publish them for
+ * grading, so they are still accepted here and reconciled by the sweeper.
+ */
+export const GRADABLE_ATTEMPT_STATUSES = ['completed', 'expired'] as const;
+
+export function isGradableAttemptStatus(status: string): boolean {
+  return (GRADABLE_ATTEMPT_STATUSES as readonly string[]).includes(status);
+}
+
 export async function gradeExam(attemptId: string, options: { force?: boolean } = {}): Promise<GradeExamResponse> {
   // 1. Fetch attempt
   const attempt = await getAttempts().findOne({ _id: new ObjectId(attemptId) });
   if (!attempt) throw new GradingError(`Attempt ${attemptId} no encontrado`, 404);
-  if (attempt.status !== 'completed') {
+  if (!isGradableAttemptStatus(attempt.status)) {
     throw new GradingError(`Attempt no esta completado (status: ${attempt.status})`);
   }
 

@@ -22,6 +22,13 @@
  * passingScore 70 must store 70 / passed) and a `/regrade-session` pass that
  * must keep the weighted percentage and `passed` consistent.
  *
+ * Phase 2b checks the time-up contract: an in_progress attempt whose time
+ * has run out is auto-submitted by exam-service the moment the candidate's
+ * client syncs time (status 'completed', NOT the old 'expired' that was
+ * never graded) and exactly one exam_result is produced; a later finish()
+ * is an idempotent success. It also checks that grading-service still
+ * grades a legacy 'expired' attempt (what the sweeper reconciles).
+ *
  * Phase 5 checks the level-mastery indicator (design D13): using the exam's
  * REAL targetLevel document (every level always defines a full
  * `competencyRequirements`/`overallMinScore`, so nothing is upserted), it
@@ -137,6 +144,8 @@ async function main() {
     // Phase 4: candidate seeded in the identity DB so grading-service finds an
     // email and the hidden-result notification_emails doc gets written.
     hiddenCandidateId: null, hiddenEmail: null,
+    // Phase 2b: extra sessions/attempts seeded for the time-up checks.
+    timeUpSessionIds: [], timeUpAttemptIds: [],
   };
 
   let kafkaProducer = null;
@@ -277,6 +286,77 @@ async function main() {
 
     const countAfterDuplicate = await exams.collection('exam_results').countDocuments({ attemptId });
     check('still exactly one exam_result after duplicate redelivery', countAfterDuplicate === 1, `${countAfterDuplicate}`);
+
+    // ---- Phase 2b: time running out = automatic submission ---------------
+    // Seed a second session for the same candidate with an in_progress
+    // attempt whose time already ran out, plus one saved answer. The
+    // candidate's time sync (GET /time) must complete it and queue grading.
+    const seedTimeUpCase = async (status) => {
+      const tuSessionId = new ObjectId();
+      const tuAttemptId = new ObjectId();
+      created.timeUpSessionIds.push(tuSessionId);
+      created.timeUpAttemptIds.push(tuAttemptId);
+      await exams.collection('sessions').insertOne({
+        _id: tuSessionId, examId: exam._id, sessionName: `${TAG}-timeup-${status}`,
+        scheduling: { startDate: new Date(now - 3_600_000), endDate: new Date(now + 3_600_000), timeZone: 'America/La_Paz', timeSlots: [] },
+        participants: { maxCandidates: 5, registeredCandidates: [id], proctors: [], currentActive: 0 },
+        settings: { requireProctor: false, recordSession: false, browserLockdown: false, allowLateEntry: true, autoStart: false, lateEntryMinutes: 30 },
+        status: 'in_progress', createdBy: id, createdAt: new Date(), updatedAt: new Date(),
+      });
+      const questionObjectId = new ObjectId(questionId);
+      await exams.collection('attempts').insertOne({
+        _id: tuAttemptId, sessionId: tuSessionId, candidateId: id, examId: exam._id,
+        status, startedAt: new Date(now - 30 * 60_000),
+        ...(status === 'expired' ? { finishedAt: new Date(now - 25 * 60_000) } : {}),
+        timeAllowedSeconds: 60, questionIds: [questionObjectId],
+        sectionsStructure: [{ id: 'e2e', name: 'E2E', competency: pick._id.competency, duration: 1, weight: 100, questionCount: 1, questionIds: [questionObjectId] }],
+        createdAt: new Date(), updatedAt: new Date(),
+      });
+      await exams.collection('responses').insertOne({
+        sessionId: tuSessionId, candidateId: id, examId: exam._id, questionId: questionObjectId, competency: pick._id.competency,
+        answer: { selectedOptions: ['e2e-choice'] }, timeSpent: 10, attempts: 1, createdAt: new Date(), updatedAt: new Date(),
+      });
+      return { tuSessionId, tuAttemptId };
+    };
+
+    const timeUp = await seedTimeUpCase('in_progress');
+    const timeRes = await api('GET', `/api/v1/exam-taking/${timeUp.tuSessionId}/time`, token);
+    check('time sync on a timed-out attempt answers 200', timeRes.status === 200, `HTTP ${timeRes.status}`);
+    check('time sync reports the attempt as submitted (attemptStatus completed)',
+      timeRes.json?.data?.timeRemaining === 0 && timeRes.json?.data?.attemptStatus === 'completed', JSON.stringify(timeRes.json?.data));
+    const timedOutAttempt = await exams.collection('attempts').findOne({ _id: timeUp.tuAttemptId });
+    check('[stored] timed-out attempt is completed, not expired', timedOutAttempt?.status === 'completed', `${timedOutAttempt?.status}`);
+    check('[stored] timed-out attempt has finishedAt', timedOutAttempt?.finishedAt instanceof Date);
+
+    const timeUpResult = await waitFor(
+      () => exams.collection('exam_results').findOne({ attemptId: timeUp.tuAttemptId }),
+      60_000
+    );
+    check('exam_result appears for the time-up attempt within 60s', !!timeUpResult);
+
+    const lateFinish = await api('POST', `/api/v1/exam-taking/${timeUp.tuSessionId}/finish`, token);
+    check('finish after time-up is an idempotent success', lateFinish.status === 200, `HTTP ${lateFinish.status}`);
+    await new Promise((r) => setTimeout(r, 5000));
+    const timeUpCount = await exams.collection('exam_results').countDocuments({ attemptId: timeUp.tuAttemptId });
+    check('exactly one exam_result for the time-up attempt', timeUpCount === 1, `${timeUpCount}`);
+
+    const resumeAfterTimeUp = await api('GET', `/api/v1/exam-taking/${timeUp.tuSessionId}/resume`, token);
+    check('resume of the submitted attempt is a structured 409 (completed)',
+      resumeAfterTimeUp.status === 409 && resumeAfterTimeUp.json?.code === 'ATTEMPT_NOT_IN_PROGRESS' && resumeAfterTimeUp.json?.attemptStatus === 'completed',
+      `HTTP ${resumeAfterTimeUp.status} ${JSON.stringify(resumeAfterTimeUp.json)}`);
+
+    if (SERVICE_TOKEN) {
+      // Legacy data: timed-out attempts used to be left 'expired' and never
+      // graded. grading-service must accept them (the sweeper reconciles
+      // them through the same gradeExam path).
+      const legacy = await seedTimeUpCase('expired');
+      const legacyRes = await gradingApi('/api/v1/grading/exam', { attemptId: String(legacy.tuAttemptId) });
+      check('grading-service grades a legacy expired attempt', legacyRes.status === 200, `HTTP ${legacyRes.status} ${JSON.stringify(legacyRes.json)}`);
+      const legacyResult = await exams.collection('exam_results').findOne({ attemptId: legacy.tuAttemptId });
+      check('[stored] exam_result exists for the legacy expired attempt', !!legacyResult);
+    } else {
+      console.log('SKIP legacy expired grading check: SERVICE_TOKEN not present in this container env.');
+    }
 
     // ---- Phase 3: weighted-section scoring + stored pass/fail ------------
     // Deterministic seed, independent of Phase 1/2: a throwaway exam with
@@ -539,7 +619,7 @@ async function main() {
     // Collect every exam_result id this run produced before deleting them, so
     // notifications-service's Redis dedupe keys (notif:grading:<examResultId>:*)
     // can be cleared too.
-    const seededAttemptIds = [...created.weightedAttemptIds];
+    const seededAttemptIds = [...created.weightedAttemptIds, ...created.timeUpAttemptIds];
     if (created.sessionId) {
       seededAttemptIds.push(...(await exams.collection('attempts').find({ sessionId: created.sessionId }).project({ _id: 1 }).toArray()).map((a) => a._id));
     }
@@ -571,6 +651,12 @@ async function main() {
       await exams.collection('responses').deleteMany({ sessionId: created.sessionId });
       await exams.collection('attempts').deleteMany({ sessionId: created.sessionId });
       await exams.collection('sessions').deleteOne({ _id: created.sessionId });
+    }
+    if (created.timeUpSessionIds.length) {
+      await exams.collection('exam_results').deleteMany({ attemptId: { $in: created.timeUpAttemptIds } });
+      await exams.collection('responses').deleteMany({ sessionId: { $in: created.timeUpSessionIds } });
+      await exams.collection('attempts').deleteMany({ _id: { $in: created.timeUpAttemptIds } });
+      await exams.collection('sessions').deleteMany({ _id: { $in: created.timeUpSessionIds } });
     }
     if (created.examId) await exams.collection('exams').deleteOne({ _id: created.examId });
     if (created.weightedExamIds.length) {

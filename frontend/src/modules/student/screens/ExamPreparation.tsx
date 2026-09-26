@@ -466,13 +466,13 @@ const ExamPreparation = () => {
             exam.exam?.type === "placement" &&
             exam.exam?.placementConfig?.mode === "adaptive";
           if (isAdaptive) {
-            navigate(`/student/exam/${exam.sessionId}/adaptive`, { replace: true });
+            navigate(`/student/exam/${exam.sessionId}/adaptive`, { replace: true, state: { examName: exam.name } });
             return;
           }
           try {
             const startResult = await examService.startExam(exam.sessionId);
             if (startResult?.success) {
-              navigate(`/student/exam/${exam.sessionId}`, { replace: true });
+              navigate(`/student/exam/${exam.sessionId}`, { replace: true, state: { examName: exam.name } });
               return;
             }
           } catch (startErr: any) {
@@ -770,7 +770,7 @@ const ExamPreparation = () => {
         examData.exam?.placementConfig?.mode === "adaptive";
 
       if (isAdaptive) {
-        navigate(`/student/exam/${sessionId}/adaptive`, { replace: true });
+        navigate(`/student/exam/${sessionId}/adaptive`, { replace: true, state: { examName: examData.name } });
         return;
       }
 
@@ -781,7 +781,7 @@ const ExamPreparation = () => {
       }
 
       // replace: true so the back button doesn't return to preparation
-      navigate(`/student/exam/${sessionId}`, { replace: true });
+      navigate(`/student/exam/${sessionId}`, { replace: true, state: { examName: examData.name } });
     } catch (err: any) {
       console.error("Error starting exam:", err);
       if (err?.response?.data?.code === "CANDIDATE_REMOVED") {
