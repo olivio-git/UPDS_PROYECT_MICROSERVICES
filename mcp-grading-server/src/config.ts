@@ -27,6 +27,9 @@ export const config = {
     model: process.env.GROQ_MODEL || 'openai/gpt-oss-120b',
     temperature: 0.3,
     maxTokens: 1024,
+    // Rubric-driven evaluation returns a score + feedback per criterion, so
+    // it needs more room than the default 4-criteria call (which keeps 1024).
+    rubricMaxTokens: parseInt(process.env.GROQ_RUBRIC_MAX_TOKENS || '2048', 10),
   },
   mongo: {
     uri: process.env.MONGO_URI || 'mongodb://localhost:27017/cba_platform',

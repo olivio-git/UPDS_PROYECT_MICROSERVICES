@@ -1,5 +1,19 @@
 import { Document, Schema, Types, model } from 'mongoose';
 
+export interface IRubricCriterionScore {
+  name: string;
+  weight: number;
+  score: number;
+  feedback?: string;
+}
+
+export interface IRubricEvaluation {
+  rubricId: Types.ObjectId;
+  rubricName: string;
+  partial?: boolean;
+  criteria: IRubricCriterionScore[];
+}
+
 export interface IQuestionResult {
   questionId: Types.ObjectId;
   questionType: string;
@@ -16,6 +30,8 @@ export interface IQuestionResult {
     feedback: string;
     suggestions: string[];
   };
+  // Rubric-driven AI grading (lockstep with mcp-grading-server/src/types/index.ts IQuestionResult)
+  rubric?: IRubricEvaluation;
 }
 
 export interface ICompetencyScore {
@@ -103,6 +119,20 @@ export interface IExamResult extends Document {
   };
 }
 
+const rubricCriterionScoreSchema = new Schema<IRubricCriterionScore>({
+  name: String,
+  weight: Number,
+  score: Number,
+  feedback: String
+}, { _id: false });
+
+const rubricEvaluationSchema = new Schema<IRubricEvaluation>({
+  rubricId: { type: Schema.Types.ObjectId, ref: 'Rubric' },
+  rubricName: String,
+  partial: Boolean,
+  criteria: { type: [rubricCriterionScoreSchema], default: undefined }
+}, { _id: false });
+
 const questionResultSchema = new Schema<IQuestionResult>({
   questionId: { type: Schema.Types.ObjectId, ref: 'Question', required: true },
   questionType: { type: String, required: true },
@@ -122,7 +152,11 @@ const questionResultSchema = new Schema<IQuestionResult>({
     criteria: Schema.Types.Mixed,
     feedback: String,
     suggestions: [String]
-  }
+  },
+  // Sub-schema with `default: undefined` so results without a rubric
+  // breakdown (default 4-criteria AI path, auto-graded, manual) don't
+  // hydrate to `{ criteria: [] }`.
+  rubric: { type: rubricEvaluationSchema, default: undefined }
 });
 
 const competencyScoreSchema = new Schema<ICompetencyScore>({

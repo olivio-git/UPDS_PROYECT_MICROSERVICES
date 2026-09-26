@@ -194,6 +194,59 @@ export interface IQuestionResult {
     feedback: string;
     suggestions: string[];
   };
+  // Rubric-driven AI grading (essay/open_text only — see rubric-ai-grading spec).
+  rubric?: IRubricEvaluation;
+}
+
+/** Per-criterion score as stored on a graded question result. */
+export interface IRubricCriterionScore {
+  name: string;
+  weight: number;
+  score: number;
+  feedback?: string;
+}
+
+/** Stored breakdown of a rubric-driven AI grading pass on one question. */
+export interface IRubricEvaluation {
+  rubricId: ObjectId;
+  rubricName: string;
+  /** True when the AI response only covered a subset of the rubric's criteria. */
+  partial?: boolean;
+  criteria: IRubricCriterionScore[];
+}
+
+/** Rubric criterion definition, as read from exam-service's `rubrics` collection. */
+export interface IRubricCriterionDefinition {
+  name: string;
+  description: string;
+  weight: number;
+  levels: Array<{ score: number; description: string; examples?: string[] }>;
+}
+
+/** Minimal shape grading-service reads from the `rubrics` collection (owned by exam-service). */
+export interface IRubric {
+  _id: ObjectId;
+  name: string;
+  competency: string;
+  level: string;
+  criteria: IRubricCriterionDefinition[];
+  scoringType: 'holistic' | 'analytic';
+  maxScore: number;
+  isActive: boolean;
+}
+
+/** One criterion score as returned raw by the AI, before matching/clamping/renormalizing. */
+export interface RawRubricCriterionScore {
+  name: string;
+  score: unknown;
+  feedback?: string;
+}
+
+/** Raw, unmatched GROQ response for a rubric-driven evaluation. */
+export interface RubricAIResponse {
+  criteria: RawRubricCriterionScore[];
+  feedback: string;
+  suggestions: string[];
 }
 
 export interface ICompetencyScore {

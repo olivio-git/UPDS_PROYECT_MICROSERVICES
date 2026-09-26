@@ -7,6 +7,12 @@
  * later, to unit-test with a runner.
  */
 
+import type {
+  IRubricCriterionDefinition,
+  IRubricCriterionScore,
+  RawRubricCriterionScore,
+} from '../types/index.js';
+
 /** Default threshold used when an exam has no configured `structure.passingScore`. */
 export const DEFAULT_PASSING_SCORE = 70;
 
@@ -235,4 +241,222 @@ export function buildUnsetForUndefined(
     if (values[key] === undefined) unset[key] = '';
   }
   return Object.keys(unset).length > 0 ? { $unset: unset } : {};
+}
+
+/**
+ * Rubric-driven AI grading (design D9-D12, rubric-ai-grading spec). The AI
+ * scores each criterion 0-100 independently; the code — not the AI's own
+ * total — applies the rubric's weights deterministically. This keeps the
+ * formula auditable and immune to prompt-following drift.
+ *
+ * NOTE: rubrics with `scoringType: 'holistic'` are currently scored exactly
+ * like analytic ones (per criterion, weighted in code). A dedicated holistic
+ * path (one overall band) is intentionally out of scope for now.
+ */
+
+export interface RubricScoringOutcome {
+  /** Matched, clamped, weight-annotated criteria. Empty when nothing matched — callers must fall back to the default-criteria grading path. */
+  criteria: IRubricCriterionScore[];
+  /** True when the AI response covered only a subset of the rubric's scorable criteria. */
+  partial: boolean;
+  /** Final question score in points, already scaled by `points`. */
+  questionScore: number;
+}
+
+/**
+ * The only weight a criterion can contribute: finite and > 0, otherwise 0.
+ * Used for BOTH the denominator and the numerator so a bad weight (NaN,
+ * Infinity, negative, missing) can never leak into the score as NaN.
+ */
+export function effectiveWeight(weight: unknown): number {
+  return typeof weight === 'number' && Number.isFinite(weight) && weight > 0 ? weight : 0;
+}
+
+/** True when the rubric has at least one criterion with a usable (positive, finite) weight. */
+export function hasScorableCriteria(definitions: ReadonlyArray<IRubricCriterionDefinition> | undefined): boolean {
+  return Array.isArray(definitions) && definitions.some(d => effectiveWeight(d?.weight) > 0);
+}
+
+/**
+ * Normalizes a criterion name for matching: NFD + strip combining
+ * diacritics, trim, lowercase, collapse internal whitespace. So "Gramática ",
+ * "gramatica" and "GRAMATICA" all compare equal.
+ */
+export function normalizeCriterionName(name: unknown): string {
+  if (typeof name !== 'string') return '';
+  return name
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, ' ');
+}
+
+/**
+ * Parses an AI-returned criterion score. Only a finite `number` or a
+ * non-empty numeric string are accepted; `null`, booleans, `""`, arrays,
+ * objects and non-numeric strings are invalid (the criterion is then treated
+ * as missing, which marks the breakdown partial). `Number(null)`/`Number([])`
+ * would otherwise silently become 0.
+ */
+export function parseCriterionScore(raw: unknown): number | undefined {
+  if (typeof raw === 'number') return Number.isFinite(raw) ? raw : undefined;
+  if (typeof raw === 'string' && raw.trim() !== '') {
+    const n = Number(raw.trim());
+    return Number.isFinite(n) ? n : undefined;
+  }
+  return undefined;
+}
+
+/**
+ * Applies rubric weights to already-matched criterion scores. Normalizes by
+ * the ACTUAL sum of the effective weights (not an assumed 100) — this is
+ * both the grading-time safety net for legacy rubrics whose weights don't
+ * sum to 100, and the mechanism that makes a partial AI response
+ * renormalize correctly over just the criteria it did return. Criteria with
+ * an effective weight of 0 or a non-finite score contribute to neither sum.
+ * Returns 0 (never NaN) when nothing is scorable.
+ */
+export function computeRubricQuestionScore(
+  criteria: ReadonlyArray<IRubricCriterionScore>,
+  points: number
+): number {
+  let weightSum = 0;
+  let weighted = 0;
+  for (const c of criteria) {
+    const w = effectiveWeight(c.weight);
+    if (w <= 0 || !Number.isFinite(c.score)) continue;
+    weightSum += w;
+    weighted += c.score * w;
+  }
+  if (weightSum <= 0 || !Number.isFinite(points)) return 0;
+
+  const weightedPct = weighted / weightSum;
+  return Math.round((weightedPct / 100) * points * 100) / 100;
+}
+
+/**
+ * Matches the AI's raw per-criterion response against the rubric's defined
+ * criteria and scores the question.
+ *
+ * Matching (deterministic, never assigns one criterion's score to another):
+ *   1. By normalized name (see `normalizeCriterionName`). Every AI entry
+ *      matched this way is consumed.
+ *   2. Duplicate definition names (after normalization): the AI entries with
+ *      that name are paired with the definitions positionally among
+ *      themselves ONLY when their counts are equal; otherwise the whole group
+ *      is ambiguous and every definition in it is treated as missing (its
+ *      AI entries are still consumed so they can't leak into step 3). The
+ *      same applies when the AI repeats a name that the rubric defines once.
+ *   3. Positional fallback, only when the AI returned exactly
+ *      `definitions.length` entries (it followed the prompt's list), the
+ *      definition had no name match at all, and the entry at the same index
+ *      is unconsumed and its normalized name matches NO definition (e.g. a
+ *      translated or misspelled name). Anything else is "missing".
+ *
+ * Validity: only finite numbers / non-empty numeric strings are scores
+ * (`parseCriterionScore`); valid scores are clamped to [0,100].
+ *
+ * Weights: criteria whose effective weight is 0 (non-finite, <= 0, missing)
+ * are excluded from the score AND from the stored breakdown, and don't
+ * count toward `partial` — they can't contribute anything either way.
+ *
+ * Returns empty `criteria` (and `questionScore: 0`) when no scorable
+ * criterion has a valid score — the caller (grade-exam.ts) treats that as
+ * "fall back to the default 4-criteria grading path", covering an
+ * unparseable AI response, a response with only unknown names/invalid
+ * scores, and a rubric with degenerate (all-zero) weights.
+ */
+export function scoreRubricCriteria(
+  definitions: ReadonlyArray<IRubricCriterionDefinition>,
+  aiScores: ReadonlyArray<RawRubricCriterionScore>,
+  points: number
+): RubricScoringOutcome {
+  const defNames = definitions.map(d => normalizeCriterionName(d?.name));
+  const aiNames = aiScores.map(a => normalizeCriterionName(a?.name));
+  const definedNameSet = new Set(defNames.filter(n => n !== ''));
+
+  const consumed = new Set<number>();
+  // Index of the AI entry assigned to each definition (undefined = missing).
+  const assignment: Array<number | undefined> = definitions.map(() => undefined);
+  // Definitions that saw at least one same-name AI entry (matched or ambiguous).
+  const hadNameMatch = definitions.map(() => false);
+
+  // Steps 1-2: name matching, grouped by normalized definition name.
+  const groups = new Map<string, number[]>();
+  defNames.forEach((n, i) => {
+    if (n === '') return;
+    const g = groups.get(n);
+    if (g) g.push(i); else groups.set(n, [i]);
+  });
+  for (const [name, defIdxs] of groups) {
+    const aiIdxs: number[] = [];
+    aiNames.forEach((n, j) => { if (n === name) aiIdxs.push(j); });
+    if (aiIdxs.length === 0) continue;
+    for (const j of aiIdxs) consumed.add(j);
+    for (const i of defIdxs) hadNameMatch[i] = true;
+    if (aiIdxs.length === defIdxs.length) {
+      defIdxs.forEach((defIdx, k) => { assignment[defIdx] = aiIdxs[k]; });
+    }
+    // else: ambiguous → every definition in the group stays missing.
+  }
+
+  // Step 3: strict positional fallback.
+  if (aiScores.length === definitions.length) {
+    definitions.forEach((_, i) => {
+      if (assignment[i] !== undefined || hadNameMatch[i]) return;
+      if (consumed.has(i)) return;
+      if (definedNameSet.has(aiNames[i]!)) return;
+      assignment[i] = i;
+      consumed.add(i);
+    });
+  }
+
+  const matched: IRubricCriterionScore[] = [];
+  let scorableCount = 0;
+  definitions.forEach((def, i) => {
+    const weight = effectiveWeight(def?.weight);
+    if (weight <= 0) return;
+    scorableCount++;
+
+    const j = assignment[i];
+    if (j === undefined) return;
+    const raw = aiScores[j]!;
+    const numericScore = parseCriterionScore(raw.score);
+    if (numericScore === undefined) return;
+
+    const clamped = Math.min(100, Math.max(0, numericScore));
+    const entry: IRubricCriterionScore = { name: def.name, weight, score: clamped };
+    // Only set `feedback` when present: the raw MongoDB driver serializes an
+    // undefined nested key as `null`.
+    if (typeof raw.feedback === 'string' && raw.feedback.trim() !== '') entry.feedback = raw.feedback;
+    matched.push(entry);
+  });
+
+  if (matched.length === 0) {
+    return { criteria: [], partial: false, questionScore: 0 };
+  }
+
+  const questionScore = computeRubricQuestionScore(matched, points);
+  const partial = matched.length < scorableCount;
+  return { criteria: matched, partial, questionScore };
+}
+
+/**
+ * Builds the flat `aiAnalysis.criteria` map (name -> score) from a rubric
+ * breakdown with UNIQUE keys: a rubric may legitimately repeat a criterion
+ * name, and `Object.fromEntries` would silently keep only the last one.
+ * Repeats get a deterministic " (2)", " (3)", ... suffix in breakdown order.
+ */
+export function buildCriteriaScoreMap(
+  criteria: ReadonlyArray<IRubricCriterionScore>
+): Record<string, number> {
+  const out: Record<string, number> = {};
+  for (const c of criteria) {
+    let key = c.name;
+    let n = 2;
+    while (Object.prototype.hasOwnProperty.call(out, key)) key = `${c.name} (${n++})`;
+    out[key] = c.score;
+  }
+  return out;
 }
