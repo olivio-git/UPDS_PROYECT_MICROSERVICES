@@ -1,4 +1,4 @@
-import type { AdminExamResultDetail } from '@/components/exam-review/types';
+import type { AdminExamResultDetail, CompetencyMastery } from '@/components/exam-review/types';
 import { PERFORMANCE_BANDS } from '@/lib/scoreBands';
 import { api } from './api.service';
 
@@ -112,6 +112,8 @@ export interface DetailedExamResult {
   resultsHidden?: boolean;
   /** result-visibility: pending_ai_review — no final score/passed/breakdown fields are present yet. */
   pending?: boolean;
+  /** Level-mastery indicator — informational, never affects `passed`. Present only on `:id`/`:id/detailed` (full view). */
+  competencyMastery?: CompetencyMastery;
 }
 
 export interface RecentResultsResponse {

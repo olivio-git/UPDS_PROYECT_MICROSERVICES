@@ -1,5 +1,5 @@
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/components/atoms/dialog';
-import { QuestionResultCard, useAdminResultDetail, type ReviewCompetencyScore } from '@/components/exam-review';
+import { CompetencyMasteryPanel, QuestionResultCard, useAdminResultDetail, type ReviewCompetencyScore } from '@/components/exam-review';
 import { competencyBarClass } from '@/lib/competency';
 import { scoreTextClass } from '@/lib/scoreBands';
 import { cn } from '@/lib/utils';
@@ -67,6 +67,7 @@ function DetailBody({ resultId }: { resultId: string }) {
   return (
     <>
       <CompetencyScores scores={data.competencyScores ?? []} />
+      <CompetencyMasteryPanel mastery={data.competencyMastery} />
       {data.overallFeedback && (
         <div className="bg-muted/40 border border-border rounded-lg px-3 py-2.5">
           <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1">Retroalimentación general</p>

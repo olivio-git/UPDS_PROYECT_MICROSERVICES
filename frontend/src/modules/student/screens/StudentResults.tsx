@@ -52,6 +52,7 @@ import type { DateRange } from 'react-day-picker';
 import { useNavigate, useParams } from 'react-router-dom';
 import { toast } from 'sonner';
 import { toBrowserMediaUrl } from '@/lib/mediaUrl';
+import { CompetencyMasteryPanel } from '@/components/exam-review';
 import { ProgressRing } from '../components/ProgressRing';
 
 const RESULTS_PAGE_SIZE = 12;
@@ -119,6 +120,9 @@ const StudentResults = () => {
     try {
       setDetailLoading(true);
       setDetailError(null);
+      // Drop the previous result's detail so its mastery/questions never show
+      // under the next result if this request fails.
+      setExamDetailData(null);
 
       // Cargar resumen del resultado para el UI
       const result = await examResultService.getStudentResultDetail(id);
@@ -809,6 +813,12 @@ const StudentResults = () => {
               </div>
             </CardContent>
           </Card>
+
+          {/* Mastery indicator (level-mastery-indicator spec) — deliberately its
+              own muted surface, separate from the Aprobado/No aprobado badge
+              above: it never affects that verdict, only informs the student
+              which competencies met the target level's thresholds. */}
+          <CompetencyMasteryPanel mastery={examDetailData?.competencyMastery} />
 
           <div className="grid gap-4 xl:grid-cols-2">
               <Card className="bg-card">
