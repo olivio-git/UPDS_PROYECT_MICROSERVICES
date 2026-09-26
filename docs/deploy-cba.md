@@ -62,6 +62,7 @@ Production-specific values:
 | `CORS_ORIGIN` | `https://exams.cba.org.bo` |
 | `MINIO_PUBLIC_URL` | `https://exams.cba.org.bo/minio` |
 | `GATEWAY_PORT` | `8088` |
+| `MONGO_COLLECTION_EMAILS` | `notification_emails` (the code default; `scripts/cleanup-and-migrate.js` indexes this name) |
 | `JWT_SECRET`, `REFRESH_TOKEN_SECRET`, `SERVICE_TOKEN`, `REDIS_PASSWORD`, `MONGO_ROOT_PASSWORD`, `MINIO_ROOT_PASSWORD` | fresh values: `openssl rand -hex 32` |
 | `GROQ_API_KEY`, `RESEND_API_KEY` | the real keys |
 
