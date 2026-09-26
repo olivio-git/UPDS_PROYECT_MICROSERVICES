@@ -835,7 +835,12 @@ export const useExamSessionHTTP = (options: UseExamSessionHTTPOptions = {}) => {
     sectionProgress: state.sections[state.currentSectionIndex] ?
       (state.currentQuestionIndex + 1) / state.sections[state.currentSectionIndex].questions.length : 0,
 
-    answeredCount: Object.values(state.answers).filter(isAnswered).length,
+    // Only questions still in the exam: a stored answer to a question that was
+    // deactivated afterwards must not make "answered" exceed the total.
+    answeredCount: state.sections.reduce(
+      (sum, section) => sum + section.questions.filter(q => isAnswered(state.answers[q._id])).length,
+      0
+    ),
 
     sectionStats: state.sections.map(section => {
       const answered = section.questions.filter(q => isAnswered(state.answers[q._id])).length;
