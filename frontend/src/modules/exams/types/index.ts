@@ -107,7 +107,6 @@ export interface Exam {
   structure: {
     sections: ExamSection[];
     totalQuestions: number;
-    totalPoints: number;
     totalDuration: number; // en minutos
     maxAttempts?: number; // Máximo de intentos permitidos
     passingScore?: number;
@@ -137,7 +136,7 @@ export interface ExamSection {
   instructions: string;
   questionCount: number;
   questionTypes: QuestionType[];
-  points: number;
+  weight: number; // porcentaje del puntaje final del examen (las secciones deben sumar 100)
   duration?: number; // en minutos
   order: number;
   passingScore?: number; // Puntaje mínimo para aprobar esta sección

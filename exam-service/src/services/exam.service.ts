@@ -2,6 +2,8 @@ import { Types } from 'mongoose';
 import { Exam, IExam } from '../models/exam.model';
 import { Question } from '../models/question.model';
 import { logger } from '../utils/logger';
+import { assertSectionWeightsSumTo100 } from '../utils/assertSectionWeights';
+import { formatWeight } from '../utils/sectionWeights';
 import { KafkaService } from './kafka.service';
 
 export class ExamService {
@@ -13,6 +15,10 @@ export class ExamService {
 
   async create(examData: Partial<IExam>): Promise<IExam> {
     try {
+      // Enforced here (not only in the route schema) so every write path —
+      // including clone — rejects weights that don't sum to 100.
+      assertSectionWeightsSumTo100(examData.structure?.sections);
+
       const exam = new Exam(examData);
       await exam.save();
 
@@ -165,6 +171,10 @@ export class ExamService {
 
   async update(id: string, updateData: Partial<IExam>): Promise<IExam | null> {
     try {
+      if (updateData.structure?.sections) {
+        assertSectionWeightsSumTo100(updateData.structure.sections);
+      }
+
       const exam = await Exam.findByIdAndUpdate(
         id,
         { $set: updateData },
@@ -316,6 +326,15 @@ export class ExamService {
     try {
       const originalExam = await this.findById(examId);
       if (!originalExam) throw new Error('Exam not found');
+
+      // A legacy exam may predate weight validation: don't copy invalid
+      // weights and don't normalize them silently — the teacher must fix them.
+      assertSectionWeightsSumTo100(
+        originalExam.structure?.sections,
+        (total) =>
+          `No se puede clonar: las secciones del examen original suman ${formatWeight(total)}% de peso ` +
+          '(deben sumar 100%). Corrige los pesos del examen antes de clonarlo.'
+      );
 
       const clonedData = originalExam.toObject();
       delete clonedData._id;

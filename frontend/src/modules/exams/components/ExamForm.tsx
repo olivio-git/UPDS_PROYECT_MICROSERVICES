@@ -4,15 +4,16 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Switch } from '@/components/atoms/switch';
 import { Textarea } from '@/components/atoms/textarea';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Plus, RotateCcw, Save, Trash2, X } from 'lucide-react';
+import { BarChart3, Plus, RotateCcw, Save, Trash2, X } from 'lucide-react';
 import React, { useCallback, useEffect, useState } from 'react';
-import { Controller, useFieldArray, useForm } from 'react-hook-form';
+import { Controller, useFieldArray, useForm, type FieldErrors } from 'react-hook-form';
 import { toast } from 'sonner';
 import { z } from 'zod';
 import { useExams } from '../hooks/useExams';
 import { useLevels } from '../hooks/useLevels';
 import { useQuestionAvailability } from '../hooks/useQuestionAvailability';
-import type { Competency, Exam, Level } from '../types';
+import type { Competency, Exam, ExamSection, Level } from '../types';
+import { distributeEvenly, formatWeight, isWeightSumValid, remainingWeight, sumWeights } from '../utils/weights';
 import QuestionAvailabilityIndicator from './QuestionAvailabilityIndicator';
 
 // Esquema de validación
@@ -23,7 +24,7 @@ const examSectionSchema = z.object({
   instructions: z.string().min(1, 'Las instrucciones son requeridas'),
   questionCount: z.number().min(1, 'Debe tener al menos 1 pregunta'),
   questionTypes: z.array(z.string()).min(1, 'Debe seleccionar al menos un tipo'),
-  points: z.number().min(1, 'Los puntos deben ser mayor a 0'),
+  weight: z.number().min(0, 'El peso no puede ser negativo').max(100, 'El peso no puede superar 100'),
   duration: z.number().min(1, 'La duración debe ser mayor a 0').optional(),
   order: z.number()
 });
@@ -36,7 +37,6 @@ const examSchema = z.object({
   structure: z.object({
     sections: z.array(examSectionSchema).min(0),
     totalQuestions: z.number().min(0),
-    totalPoints: z.number().min(0),
     totalDuration: z.number().min(0),
     passingScore: z.number().min(1).max(100, 'El puntaje mínimo debe estar entre 1 y 100')
   }),
@@ -52,6 +52,7 @@ const examSchema = z.object({
 });
 
 type ExamFormData = z.infer<typeof examSchema>;
+type ExamSectionFormData = z.infer<typeof examSectionSchema>;
 
 interface ExamFormProps {
   exam?: Exam | null;
@@ -69,6 +70,47 @@ const DEFAULT_INSTRUCTIONS: Record<string, string> = {
     'Escucha con atención cada audio antes de responder. Usa auriculares para una mejor experiencia. Los audios se reproducen automáticamente; asegúrate de tener el volumen adecuado antes de iniciar.',
   speaking:
     'Habla con claridad y a un ritmo natural al responder. Asegúrate de que tu micrófono esté funcionando antes de comenzar. Responde de forma completa y fluida dentro del tiempo indicado.',
+};
+
+const DEFAULT_QUESTION_TYPES = ['multiple_choice'];
+
+/**
+ * Persisted sections only store name/competency/duration/questionCount/weight
+ * (exam-service `exam.model.ts`) and Mongo returns `_id` instead of `id`.
+ * The form schema also requires id/instructions/questionTypes/order, so an
+ * exam loaded from the API would fail zodResolver silently and never submit.
+ * Fill the form-only fields with the same defaults a new section gets.
+ */
+const normalizeLoadedSections = (sections: ExamSection[]): ExamSectionFormData[] =>
+  sections.map((section, index) => {
+    const raw = section as Partial<ExamSection> & { _id?: string };
+    const competency = raw.competency ?? 'reading';
+    return {
+      id: raw.id ?? raw._id ?? `section-${index}`,
+      name: raw.name ?? '',
+      competency,
+      instructions: raw.instructions?.trim()
+        ? raw.instructions
+        : DEFAULT_INSTRUCTIONS[competency] ?? DEFAULT_INSTRUCTIONS.reading,
+      questionCount: raw.questionCount ?? 0,
+      questionTypes: raw.questionTypes?.length ? raw.questionTypes : [...DEFAULT_QUESTION_TYPES],
+      weight: raw.weight ?? 0,
+      duration: raw.duration,
+      order: raw.order ?? index + 1
+    };
+  });
+
+/** Flattens react-hook-form errors into their messages (skipping DOM refs). */
+const collectErrorMessages = (node: unknown, acc: string[] = []): string[] => {
+  if (!node || typeof node !== 'object') return acc;
+  const { message } = node as { message?: unknown };
+  if (typeof message === 'string' && message && !acc.includes(message)) acc.push(message);
+  for (const [key, value] of Object.entries(node)) {
+    if (key !== 'ref' && key !== 'message' && key !== 'type' && key !== 'types') {
+      collectErrorMessages(value, acc);
+    }
+  }
+  return acc;
 };
 
 const PLACEMENT_LEVELS = ['A1', 'A2', 'B1', 'B2', 'C1', 'C2'] as const;
@@ -110,7 +152,7 @@ const ExamForm: React.FC<ExamFormProps> = ({ exam, onCancel, onSaved }) => {
       type: exam?.type || '',
       targetLevel: exam?.targetLevel || (levels.length > 0 ? levels[0].code : ''),
       structure: {
-        sections: exam?.structure?.sections || [
+        sections: exam?.structure?.sections ? normalizeLoadedSections(exam.structure.sections) : [
           {
             id: '1',
             name: 'Sección 1',
@@ -118,13 +160,12 @@ const ExamForm: React.FC<ExamFormProps> = ({ exam, onCancel, onSaved }) => {
             instructions: DEFAULT_INSTRUCTIONS.reading,
             questionCount: 10,
             questionTypes: ['multiple_choice'],
-            points: 10,
+            weight: 100,
             duration: 30,
             order: 1
           }
         ],
         totalQuestions: exam?.structure?.totalQuestions || 0,
-        totalPoints: exam?.structure?.totalPoints || 0,
         totalDuration: exam?.structure?.totalDuration || 0,
         passingScore: exam?.structure?.passingScore || 70
       },
@@ -164,11 +205,9 @@ const ExamForm: React.FC<ExamFormProps> = ({ exam, onCancel, onSaved }) => {
         const currentSections = value.structure?.sections || [];
 
         const totalQuestions = currentSections.reduce((sum, section) => sum + (section?.questionCount || 0), 0);
-        const totalPoints = currentSections.reduce((sum, section) => sum + (section?.points || 0), 0);
         const totalDuration = currentSections.reduce((sum, section) => sum + (section?.duration || 0), 0);
 
         setValue('structure.totalQuestions', totalQuestions);
-        setValue('structure.totalPoints', totalPoints);
         setValue('structure.totalDuration', totalDuration);
       }
     });
@@ -176,11 +215,9 @@ const ExamForm: React.FC<ExamFormProps> = ({ exam, onCancel, onSaved }) => {
     // También ejecutar una vez al inicializar
     const currentSections = getValues('structure.sections');
     const totalQuestions = currentSections.reduce((sum, section) => sum + (section.questionCount || 0), 0);
-    const totalPoints = currentSections.reduce((sum, section) => sum + (section.points || 0), 0);
     const totalDuration = currentSections.reduce((sum, section) => sum + (section.duration || 0), 0);
 
     setValue('structure.totalQuestions', totalQuestions);
-    setValue('structure.totalPoints', totalPoints);
     setValue('structure.totalDuration', totalDuration);
 
     return () => subscription.unsubscribe();
@@ -253,6 +290,14 @@ const ExamForm: React.FC<ExamFormProps> = ({ exam, onCancel, onSaved }) => {
     }
   }, [watchedTargetLevel, watchedSections, validateSectionQuestions]);
 
+  // Reinicio explícito: distribuye 100% de peso en partes iguales entre todas
+  // las secciones (el resto va a las primeras para que la suma sea exacta).
+  const distributeSectionWeightsEvenly = () => {
+    distributeEvenly(getValues('structure.sections').length).forEach((weight, i) => {
+      setValue(`structure.sections.${i}.weight`, weight, { shouldValidate: true });
+    });
+  };
+
   const addSection = () => {
     const newSection = {
       id: Date.now().toString(),
@@ -260,8 +305,10 @@ const ExamForm: React.FC<ExamFormProps> = ({ exam, onCancel, onSaved }) => {
       competency: 'reading',
       instructions: DEFAULT_INSTRUCTIONS.reading,
       questionCount: 10,
-      questionTypes: ['multiple_choice'],
-      points: 10,
+      questionTypes: [...DEFAULT_QUESTION_TYPES],
+      // Conservar los pesos que el docente ya definió: la nueva sección recibe
+      // solo lo que falta para llegar a 100 (100 si es la primera).
+      weight: remainingWeight(sumWeights(getValues('structure.sections').map(s => s.weight))),
       duration: 30,
       order: fields.length + 1
     };
@@ -270,6 +317,7 @@ const ExamForm: React.FC<ExamFormProps> = ({ exam, onCancel, onSaved }) => {
 
   const removeSection = (index: number) => {
     if (fields.length > 1) {
+      // Los pesos restantes no se modifican; el total visible muestra la diferencia.
       remove(index);
     } else {
       toast.error('Debe mantener al menos una sección');
@@ -293,6 +341,18 @@ const ExamForm: React.FC<ExamFormProps> = ({ exam, onCancel, onSaved }) => {
 
         if (data.structure.sections.length === 0) {
           toast.error('Debe tener al menos una sección');
+          setIsSubmitting(false);
+          return;
+        }
+
+        // Validar que el peso de las secciones sume 100% (grading-section-weights:
+        // Weight Sum Validation on Write — el backend rechaza el examen si no).
+        const totalWeight = sumWeights(data.structure.sections.map(section => section.weight));
+        if (!isWeightSumValid(totalWeight)) {
+          toast.error(
+            `Las secciones deben sumar 100% de peso (suma actual: ${formatWeight(totalWeight)}%). ` +
+            "Usa 'Distribuir equitativamente' o ajusta a 100 (p. ej. 33.33 / 33.33 / 33.34)."
+          );
           setIsSubmitting(false);
           return;
         }
@@ -340,7 +400,7 @@ const ExamForm: React.FC<ExamFormProps> = ({ exam, onCancel, onSaved }) => {
             ...section,
             competency: section.competency as Competency,
             questionTypes: section.questionTypes as any,
-            weight: section.points ?? 1,
+            weight: section.weight,
             order: index + 1
           }))
         },
@@ -358,14 +418,13 @@ const ExamForm: React.FC<ExamFormProps> = ({ exam, onCancel, onSaved }) => {
       if (data.type === 'placement') {
         apiPayload.placementConfig = placementConfig;
       }
-      console.log(apiPayload);
-      if (exam?._id) {
-        await updateExam(exam._id, apiPayload as Partial<Exam>);
-        toast.success('Examen actualizado exitosamente');
-      } else {
-        await createExam(apiPayload as Partial<Exam>);
-        toast.success('Examen creado exitosamente');
-      }
+      // useExams shows the success/error toast itself and returns null on
+      // failure — keep the form open (with the teacher's input) in that case.
+      const saved = exam?._id
+        ? await updateExam(exam._id, apiPayload as Partial<Exam>)
+        : await createExam(apiPayload as Partial<Exam>);
+
+      if (!saved) return;
 
       onSaved();
     } catch (error) {
@@ -376,10 +435,27 @@ const ExamForm: React.FC<ExamFormProps> = ({ exam, onCancel, onSaved }) => {
     }
   };
 
+  // Errores de campos sin mensaje visible (p. ej. campos ocultos) no deben
+  // bloquear el envío en silencio.
+  const onInvalid = (formErrors: FieldErrors<ExamFormData>) => {
+    const messages = collectErrorMessages(formErrors);
+    toast.error(
+      messages.length > 0
+        ? `No se pudo guardar el examen: ${messages.slice(0, 3).join(' · ')}`
+        : 'No se pudo guardar el examen: revisa los campos del formulario'
+    );
+  };
+
   const baseInputClass = "bg-muted/50 border-border text-foreground placeholder-muted-foreground";
 
+  // Suma de pesos de las secciones — solo relevante cuando hay secciones (se
+  // ignora en modo adaptativo, que las vacía por completo).
+  const rawSectionWeightTotal = sumWeights(watchedSections.map(section => section?.weight));
+  const sectionWeightTotal = formatWeight(rawSectionWeightTotal);
+  const sectionWeightIsValid = watchedSections.length === 0 || isWeightSumValid(rawSectionWeightTotal);
+
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="space-y-8">
+    <form onSubmit={handleSubmit(onSubmit, onInvalid)} className="space-y-8">
       {/* Información básica */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div className="space-y-2">
@@ -535,7 +611,7 @@ const ExamForm: React.FC<ExamFormProps> = ({ exam, onCancel, onSaved }) => {
                         instructions: DEFAULT_INSTRUCTIONS.reading,
                         questionCount: 10,
                         questionTypes: ['multiple_choice'],
-                        points: 10,
+                        weight: 100,
                         duration: 30,
                         order: 1
                       }]);
@@ -643,17 +719,43 @@ const ExamForm: React.FC<ExamFormProps> = ({ exam, onCancel, onSaved }) => {
       <div className="space-y-4">
         <div className="flex items-center justify-between">
           <h3 className="text-lg font-semibold text-foreground">Secciones del Examen</h3>
-          <Button
-            type="button"
-            onClick={addSection}
-            variant="outline"
-            size="sm"
-            className="bg-blue-600 hover:bg-blue-700 text-white"
-          >
-            <Plus className="w-4 h-4 mr-2" />
-            Agregar Sección
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button
+              type="button"
+              onClick={() => distributeSectionWeightsEvenly()}
+              variant="outline"
+              size="sm"
+              className="bg-transparent border-border text-muted-foreground hover:bg-muted"
+            >
+              <BarChart3 className="w-4 h-4 mr-2" />
+              Distribuir equitativamente
+            </Button>
+            <Button
+              type="button"
+              onClick={addSection}
+              variant="outline"
+              size="sm"
+              className="bg-blue-600 hover:bg-blue-700 text-white"
+            >
+              <Plus className="w-4 h-4 mr-2" />
+              Agregar Sección
+            </Button>
+          </div>
         </div>
+
+        <div className="flex items-center justify-between text-sm">
+          <span className="text-muted-foreground">
+            El peso de las secciones determina cuánto aporta cada una al puntaje final.
+          </span>
+          <span className={sectionWeightIsValid ? 'text-green-400 font-medium' : 'text-orange-400 font-medium'}>
+            Peso total: {sectionWeightTotal}%
+          </span>
+        </div>
+        {!sectionWeightIsValid && (
+          <p className="text-red-400 text-sm">
+            {`Las secciones deben sumar 100% de peso (suma actual: ${sectionWeightTotal}%). Usa 'Distribuir equitativamente' o ajusta a 100 (p. ej. 33.33 / 33.33 / 33.34).`}
+          </p>
+        )}
 
         {fields.map((field, index) => (
           <div key={field.id} className="bg-muted/50 rounded-lg p-6 border border-border">
@@ -801,6 +903,33 @@ const ExamForm: React.FC<ExamFormProps> = ({ exam, onCancel, onSaved }) => {
                     />
                   )}
                 />
+              </div>
+
+              <div className="space-y-2">
+                <label className="block text-sm font-medium text-muted-foreground">
+                  Peso (%) *
+                </label>
+                <Controller
+                  name={`structure.sections.${index}.weight`}
+                  control={control}
+                  render={({ field }) => (
+                    <Input
+                      {...field}
+                      type="number"
+                      min="0"
+                      max="100"
+                      step="any"
+                      value={field.value ?? 0}
+                      onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
+                      className={baseInputClass}
+                    />
+                  )}
+                />
+                {errors.structure?.sections?.[index]?.weight && (
+                  <p className="text-red-400 text-sm">
+                    {errors.structure.sections[index]?.weight?.message}
+                  </p>
+                )}
               </div>
             </div>
 
