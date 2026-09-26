@@ -36,6 +36,27 @@ export interface ReviewQuestionResult {
   questionData?: ReviewQuestionData;
 }
 
+/**
+ * Level-mastery indicator (level-mastery-indicator spec). Purely
+ * informational — must never be read as the Aprobado/No aprobado verdict.
+ * Lockstep with mcp-grading-server's `ICompetencyMastery`.
+ */
+export interface MasteryCheck {
+  minScore: number;
+  percentage: number;
+  achieved: boolean;
+}
+
+export interface CompetencyMasteryItem extends MasteryCheck {
+  competency: string;
+}
+
+export interface CompetencyMastery {
+  levelCode: string;
+  overall: MasteryCheck;
+  competencies: CompetencyMasteryItem[];
+}
+
 export interface ReviewCompetencyScore {
   competency: string;
   totalScore: number;
@@ -56,4 +77,6 @@ export interface AdminExamResultDetail {
   recommendations?: string[];
   recommendedLevel?: string;
   gradingDurationMs?: number | null;
+  /** Level-mastery indicator — informational, never affects the pass/fail verdict. */
+  competencyMastery?: CompetencyMastery;
 }

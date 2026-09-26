@@ -8,6 +8,10 @@
  */
 
 import type {
+  ICompetencyMastery,
+  ICompetencyMasteryItem,
+  ILevel,
+  IMasteryCheck,
   IRubricCriterionDefinition,
   IRubricCriterionScore,
   RawRubricCriterionScore,
@@ -175,6 +179,77 @@ export function hasPassFailVerdict(examType: string): boolean {
   return examType !== 'placement';
 }
 
+/** Minimal per-competency shape needed to derive mastery. */
+export interface CompetencyPercentageRef {
+  competency: string;
+  percentage: number;
+}
+
+/**
+ * Computes the level-mastery indicator (design D13, level-mastery-indicator
+ * spec). Purely informational: the caller MUST NOT feed the result back into
+ * `decidePassed`/`passed` above — mastery and pass/fail are two independent
+ * verdicts computed from the same underlying scores.
+ *
+ * Omitted (returns `undefined`) when:
+ *  - `examType === 'placement'` — placement exams have a `recommendedLevel`,
+ *    never a mastery indicator against a `targetLevel`.
+ *  - `level` did not resolve (missing/deleted `targetLevel`) or is inactive.
+ *  - the level has no numeric `overallMinScore` or no usable
+ *    `competencyRequirements` object — nothing to compare against.
+ *
+ * Per-competency (works identically for sectioned and flat-question-pool
+ * exams — both derive `competencyScores` from question results, never from
+ * `sections`): only competencies the exam actually evaluated
+ * (`competencyScores`) are checked against the level's matching requirement.
+ * A competency the level requires but the exam never evaluates is not
+ * surfaced here — the frontend renders that as "no evaluado" by diffing the
+ * returned list against its own fixed competency set (all Level documents
+ * require exactly the same 6 keys — verified against `cba_platform.levels`).
+ * A competency the exam evaluated but the level has no numeric requirement
+ * for is likewise skipped: there is nothing to compare against.
+ *
+ * Overall: compared against the exam's final `percentage` — the weighted
+ * percentage for `weighted_sections` exams (design D3), the same number
+ * stored on `IExamResult.percentage` and shown to the student — never a
+ * separately re-derived raw score.
+ */
+export function computeMastery(
+  competencyScores: ReadonlyArray<CompetencyPercentageRef>,
+  overallPercentage: number,
+  examType: string,
+  level: Pick<ILevel, 'code' | 'isActive' | 'overallMinScore' | 'competencyRequirements'> | null | undefined
+): ICompetencyMastery | undefined {
+  if (examType === 'placement') return undefined;
+  if (!level || !level.isActive) return undefined;
+
+  const overallMinScore = level.overallMinScore;
+  if (typeof overallMinScore !== 'number' || !Number.isFinite(overallMinScore)) return undefined;
+
+  const requirements = level.competencyRequirements;
+  if (!requirements || typeof requirements !== 'object') return undefined;
+
+  const competencies: ICompetencyMasteryItem[] = [];
+  for (const cs of competencyScores) {
+    const minScore = requirements[cs.competency]?.minScore;
+    if (typeof minScore !== 'number' || !Number.isFinite(minScore)) continue;
+    competencies.push({
+      competency: cs.competency,
+      minScore,
+      percentage: cs.percentage,
+      achieved: cs.percentage >= minScore,
+    });
+  }
+
+  const overall: IMasteryCheck = {
+    minScore: overallMinScore,
+    percentage: overallPercentage,
+    achieved: overallPercentage >= overallMinScore,
+  };
+
+  return { levelCode: level.code, overall, competencies };
+}
+
 /**
  * Derives every graded fact grading-service owns (totals, per-section scores,
  * weighted/raw percentage, scoring method, passing threshold and `passed`)
@@ -221,10 +296,12 @@ export function computeExamScoring(input: ExamScoringInput): ExamScoringOutcome 
  * Graded fields that can legitimately be absent on a (re)grading pass and
  * must therefore be removed from an existing document instead of left stale:
  * `passed` is omitted for `pending_ai_review`, `passed`/`passingScore` are
- * omitted for placement exams, and `sections` is omitted for flat
- * (non-sectioned) attempts.
+ * omitted for placement exams, `sections` is omitted for flat
+ * (non-sectioned) attempts, and `competencyMastery` is omitted whenever
+ * `computeMastery` returns `undefined` (placement, no/inactive level, or a
+ * level without usable requirements).
  */
-export const UNSETTABLE_GRADED_FIELDS = ['passed', 'passingScore', 'sections'] as const;
+export const UNSETTABLE_GRADED_FIELDS = ['passed', 'passingScore', 'sections', 'competencyMastery'] as const;
 
 /**
  * Builds a `$unset` stage for every listed key whose value is `undefined` in

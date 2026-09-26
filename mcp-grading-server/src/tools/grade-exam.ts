@@ -1,5 +1,5 @@
 import { ObjectId } from 'mongodb';
-import { getAttempts, getResponses, getQuestions, getExamResults, getExams, getCandidates, getRubrics } from '../db/collections.js';
+import { getAttempts, getResponses, getQuestions, getExamResults, getExams, getCandidates, getRubrics, getLevels } from '../db/collections.js';
 import { autoGrade } from '../grading/auto-grader.js';
 import { evaluateWithGroq, evaluateWithRubric, generateExamFeedback, generatePerQuestionFeedback } from '../grading/groq-evaluator.js';
 import { evaluateAudio } from '../grading/audio-delegator.js';
@@ -7,7 +7,7 @@ import { sendGradingNotification } from '../services/notification.service.js';
 import { AUTO_GRADABLE_TYPES, AI_GRADABLE_TYPES, AUDIO_TYPES } from '../types/index.js';
 import type { IQuestionResult, ICompetencyScore, IExamResult, IGradingBreakdown, QuestionType, IRubric, IRubricEvaluation, AIGradeResult } from '../types/index.js';
 import type { GradeExamResponse } from '../schemas/grading.schemas.js';
-import { buildCriteriaScoreMap, buildUnsetForUndefined, computeExamScoring, hasScorableCriteria, scoreRubricCriteria, UNSETTABLE_GRADED_FIELDS } from '../grading/scoring.js';
+import { buildCriteriaScoreMap, buildUnsetForUndefined, computeExamScoring, computeMastery, hasScorableCriteria, scoreRubricCriteria, UNSETTABLE_GRADED_FIELDS } from '../grading/scoring.js';
 
 class GradingError extends Error {
   statusCode: number;
@@ -438,6 +438,19 @@ export async function gradeExam(attemptId: string, options: { force?: boolean } 
     status,
   });
 
+  // 9.1. Level mastery indicator (design D13, level-mastery-indicator spec) —
+  // resolved from exam.targetLevel, purely informational, never fed back
+  // into `passed` above. Omitted for placement exams (no lookup needed) and
+  // while grading is incomplete: pending questions count as 0 in
+  // competencyScores, so a mastery verdict then would be misleading. A failed
+  // Level lookup omits the indicator instead of failing the whole grading.
+  const targetLevel = exam.type !== 'placement' && status === 'completed'
+    ? await getLevels().findOne({ code: exam.targetLevel, isActive: { $ne: false } }).catch(() => null)
+    : null;
+  const competencyMastery = status === 'completed'
+    ? computeMastery(competencyScores, percentage, exam.type, targetLevel)
+    : undefined;
+
   // 9.5. Placement exam: compute levelScores and recommendedLevel
   const PLACEMENT_LEVELS = ['A1', 'A2', 'B1', 'B2', 'C1', 'C2'];
   let recommendedLevel: string | undefined;
@@ -567,6 +580,7 @@ export async function gradeExam(attemptId: string, options: { force?: boolean } 
     passed,
     passingScore,
     scoringMethod,
+    competencyMastery,
     gradingStartedAt,
     gradingCompletedAt,
     gradingDurationMs,

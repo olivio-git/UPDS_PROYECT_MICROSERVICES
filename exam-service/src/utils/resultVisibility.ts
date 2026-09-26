@@ -8,6 +8,13 @@
  * Review Is Never Shown As Final): even with `showResults` true, the student
  * view strips every score field and flags the result `pending: true` — the
  * partial auto-graded score is not the final one.
+ *
+ * `competencyMastery` (level-mastery-indicator, PR 4) needs no special-casing
+ * here: `toStudentView` is an allowlist, so the visible/non-pending branch
+ * returns `result` unchanged (whatever `competencyMastery` it already
+ * carries), and the hidden/pending minimal shape only copies
+ * `CARRY_OVER_FIELDS` below — `competencyMastery` is not in that list, so it
+ * is stripped by construction.
  */
 
 export interface ExamForVisibility {

@@ -22,8 +22,8 @@ import { autoGrade } from '../grading/auto-grader.js';
 import Groq from 'groq-sdk';
 import { config } from '../config.js';
 import { ObjectId } from 'mongodb';
-import { getQuestions, getExamResults, getAttempts, getExams } from '../db/collections.js';
-import { buildUnsetForUndefined, computeExamScoring, UNSETTABLE_GRADED_FIELDS } from '../grading/scoring.js';
+import { getQuestions, getExamResults, getAttempts, getExams, getLevels } from '../db/collections.js';
+import { buildUnsetForUndefined, computeExamScoring, computeMastery, UNSETTABLE_GRADED_FIELDS } from '../grading/scoring.js';
 import { AUTO_GRADABLE_TYPES } from '../types/index.js';
 import type { IQuestion } from '../types/index.js';
 
@@ -321,6 +321,17 @@ gradingRouter.post(
       .toArray();
     const examMap = new Map(examDocs.map(e => [e._id.toString(), e]));
 
+    // 3.6. Batch-fetch active levels for mastery recompute (design D13) — one
+    // query for every distinct targetLevel among the session's non-placement
+    // exams, instead of a per-result lookup.
+    const levelCodes = [...new Set(
+      examDocs.filter(e => e.type !== 'placement').map(e => e.targetLevel)
+    )];
+    const levelDocs = levelCodes.length > 0
+      ? await getLevels().find({ code: { $in: levelCodes }, isActive: { $ne: false } }).toArray().catch(() => [])
+      : [];
+    const levelByCode = new Map(levelDocs.map(l => [l.code, l]));
+
     // 4. Re-calificar cada resultado
     let regraded = 0;
     let unchanged = 0;
@@ -402,6 +413,16 @@ gradingRouter.post(
           pendingEvaluationCount: data.pending,
         }));
 
+        // Recompute mastery via the same shared function grade-exam.ts uses
+        // (design D13): a fill_blanks/matching/ordering/drag_drop score fix
+        // above can change a competency's percentage, so a stale mastery
+        // verdict must not survive a regrade.
+        const targetLevel = exam.type !== 'placement' ? levelByCode.get(exam.targetLevel) ?? null : null;
+        // Same rule as grade-exam: no mastery while the result is still pending.
+        const competencyMastery = result.status === 'completed'
+          ? computeMastery(newCompetencyScores, scoring.percentage, exam.type, targetLevel)
+          : undefined;
+
         const regradedFields = {
           questionResults: newQuestionResults,
           totalScore: scoring.totalScore,
@@ -412,6 +433,7 @@ gradingRouter.post(
           passingScore: scoring.passingScore,
           passed: scoring.passed,
           competencyScores: newCompetencyScores,
+          competencyMastery,
           evaluatedAt: new Date(),
         };
         await getExamResults().updateOne(

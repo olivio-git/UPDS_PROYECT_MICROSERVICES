@@ -99,6 +99,25 @@ describe('toStudentView', () => {
     expect(toStudentView(pending, null).pending).toBe(true);
   });
 
+  it('level-mastery-indicator: carries competencyMastery through untouched when visible (no rename needed — the full view is the result object as-is)', () => {
+    const withMastery = {
+      ...completedResult,
+      competencyMastery: { levelCode: 'B1', overall: { minScore: 60, percentage: 82.5, achieved: true }, competencies: [] },
+    };
+    const view = toStudentView(withMastery, { configuration: { showResults: true } });
+    expect(view).toBe(withMastery);
+    expect(view.competencyMastery).toEqual(withMastery.competencyMastery);
+  });
+
+  it('level-mastery-indicator: strips competencyMastery when showResults is false', () => {
+    const withMastery = {
+      ...completedResult,
+      competencyMastery: { levelCode: 'B1', overall: { minScore: 60, percentage: 82.5, achieved: true }, competencies: [] },
+    };
+    const view = toStudentView(withMastery, { configuration: { showResults: false } });
+    expect(view.competencyMastery).toBeUndefined();
+  });
+
   it('flags a hidden pending result with both resultsHidden and pending', () => {
     const pending = { ...completedResult, status: 'pending_ai_review', passed: undefined };
     const hiddenView = toStudentView(pending, { configuration: { showResults: false } });
