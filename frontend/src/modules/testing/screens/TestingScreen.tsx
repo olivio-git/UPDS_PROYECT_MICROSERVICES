@@ -47,16 +47,21 @@ import {
 import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
 import { GATEWAY_URL } from '@/lib/serviceUrls';
+import { authSDK } from "@/services/sdk-simple-auth";
 
 // ─── Service config ──────────────────────────────────────────────────────────
 
 
-const SERVICE_PATHS: Record<string, { path: string; anyResponse: boolean }> = {
+// `authenticated`: the gateway only exposes notifications-service's
+// /notifications/health (admin-or-service gated); its public top-level /health
+// is not routed through nginx, so the probe must send the admin's token or it
+// always reads 401 -> "offline".
+const SERVICE_PATHS: Record<string, { path: string; anyResponse: boolean; authenticated?: boolean }> = {
   auth:          { path: "/api/v1/auth/validate",        anyResponse: true  },
   users:         { path: "/api/v1/users/health",         anyResponse: false },
   exam:          { path: "/api/v1/system/health",        anyResponse: false },
   session:       { path: "/api/v1/technical",            anyResponse: true  },
-  notifications: { path: "/api/v1/notifications/health", anyResponse: false },
+  notifications: { path: "/api/v1/notifications/health", anyResponse: false, authenticated: true },
   grading:       { path: "/api/v1/grading/pending",      anyResponse: true  },
 };
 
@@ -170,10 +175,14 @@ const DiagnosticoScreen = () => {
   // ── Health checks ──────────────────────────────────────────────────────────
 
   const checkServiceHealth = useCallback(async (key: ServiceKey) => {
-    const { path, anyResponse } = SERVICE_PATHS[key];
+    const { path, anyResponse, authenticated } = SERVICE_PATHS[key];
     const start = Date.now();
     try {
-      const res = await fetch(`${GATEWAY_URL}${path}`, { signal: AbortSignal.timeout(4000) });
+      const token = authenticated ? authSDK.getAccessToken() : null;
+      const res = await fetch(`${GATEWAY_URL}${path}`, {
+        signal: AbortSignal.timeout(4000),
+        headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+      });
       const latency = Date.now() - start;
       const online = anyResponse ? true : res.ok;
       setServiceHealth(prev => ({

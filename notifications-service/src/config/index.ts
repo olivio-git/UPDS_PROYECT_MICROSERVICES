@@ -60,15 +60,25 @@ export const config = {
   // Same secret identity-service signs access tokens with (jwt.sign with
   // issuer 'cba-auth-service' / audience 'cba-platform' — see
   // identity-service/src/auth/services/jwt.service.ts). Used to authenticate
-  // Socket.IO handshakes so a client can't join an arbitrary `user:<id>`
-  // room just by naming it.
+  // Socket.IO handshakes and the HTTP routes (see auth.middleware.ts) so a
+  // client can't join an arbitrary `user:<id>` room, or read/modify another
+  // user's notifications, just by naming an id.
   jwt: {
     secret: process.env.JWT_SECRET || ''
+  },
+
+  // Shared secret for service-to-service calls (same SERVICE_TOKEN
+  // convention as grading-service and exam-service — see
+  // mcp-grading-server/src/middleware/auth.ts). Lets grading-service's HTTP
+  // fallback (sendInAppFallback) create in-app notifications without a user
+  // token.
+  auth: {
+    serviceToken: process.env.SERVICE_TOKEN || ''
   }
 };
 
 // Validación de configuración crítica
-const requiredEnvVars = ['RESEND_API_KEY', 'MONGO_URI', 'JWT_SECRET'];
+const requiredEnvVars = ['RESEND_API_KEY', 'MONGO_URI', 'JWT_SECRET', 'SERVICE_TOKEN'];
 
 for (const envVar of requiredEnvVars) {
   if (!process.env[envVar]) {

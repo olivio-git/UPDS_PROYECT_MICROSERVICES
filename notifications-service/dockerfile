@@ -23,12 +23,13 @@ WORKDIR /app/notifications-service
 # Copiar archivos de dependencias
 COPY notifications-service/package*.json ./
 
-# Instalar dependencias. Usamos `npm install` en vez de `npm ci` porque el
-# tarball de @cba/events se reconstruye en cada build de la imagen (no es un
-# artefacto reproducible byte a byte), asi que su integrity en el lockfile
-# puede diferir legitimamente del tarball generado en este build — `npm ci`
-# fallaria esa verificacion, `npm install` la reconcilia.
-RUN npm install
+# The @cba/events tarball is rebuilt on every image build and is not
+# byte-reproducible, so its integrity hash in package-lock.json goes stale and
+# even `npm install` fails with EINTEGRITY on a clean build (a warm Docker
+# cache hides it). Drop only that entry's integrity before installing; every
+# other dependency is still checked. Same logic as scripts/ci/install-with-local-events.sh.
+RUN node -e 'const fs=require("fs");const l=JSON.parse(fs.readFileSync("package-lock.json","utf8"));const e=l.packages&&l.packages["node_modules/@cba/events"];if(e)delete e.integrity;fs.writeFileSync("package-lock.json",JSON.stringify(l,null,2));' && \
+    npm install
 
 # Copiar código fuente
 COPY notifications-service/. .
@@ -37,7 +38,10 @@ COPY notifications-service/. .
 RUN npm run build
 
 # Prune dev dependencies to keep the image small
-RUN npm prune --production
+# COPY . . above restores the repo's package-lock.json with the stale
+# @cba/events hash, so strip it again or prune fails with EINTEGRITY.
+RUN node -e 'const fs=require("fs");const l=JSON.parse(fs.readFileSync("package-lock.json","utf8"));const e=l.packages&&l.packages["node_modules/@cba/events"];if(e)delete e.integrity;fs.writeFileSync("package-lock.json",JSON.stringify(l,null,2));' && \
+    npm prune --production
 
 # Crear usuario no-root
 RUN addgroup -g 1001 -S nodejs && \

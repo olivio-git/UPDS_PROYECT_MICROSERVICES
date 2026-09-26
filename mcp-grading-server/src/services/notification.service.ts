@@ -96,29 +96,35 @@ async function sendInAppFallback(data: GradingResultPublishedDataV1): Promise<vo
   // which applies the same rule).
   const hidden = data.showResults === false;
   try {
-    await axios.post(`${config.notificationService.url}/notifications/inapp`, {
-      recipientId: data.candidateId,
-      recipientType: 'candidate',
-      type: 'exam.graded',
-      channel: 'in-app',
-      content: {
-        title: hidden ? 'Examen recibido' : 'Examen calificado',
-        body: hidden
-          ? `Tu examen "${data.examName}" fue recibido. Tu docente publicará el resultado próximamente.`
-          : `Tu examen "${data.examName}" ha sido calificado. Puntaje: ${data.totalScore}/${data.maxScore} (${data.percentage.toFixed(1)}%)`,
-        link: `/student/results`,
+    await axios.post(
+      `${config.notificationService.url}/notifications/inapp`,
+      {
+        recipientId: data.candidateId,
+        recipientType: 'candidate',
+        type: 'exam.graded',
+        channel: 'in-app',
+        content: {
+          title: hidden ? 'Examen recibido' : 'Examen calificado',
+          body: hidden
+            ? `Tu examen "${data.examName}" fue recibido. Tu docente publicará el resultado próximamente.`
+            : `Tu examen "${data.examName}" ha sido calificado. Puntaje: ${data.totalScore}/${data.maxScore} (${data.percentage.toFixed(1)}%)`,
+          link: `/student/results`,
+        },
+        priority: 'normal',
+        metadata: hidden
+          ? { examName: data.examName, status: data.status }
+          : {
+              examName: data.examName,
+              score: data.totalScore,
+              maxScore: data.maxScore,
+              percentage: data.percentage,
+              status: data.status,
+            },
       },
-      priority: 'normal',
-      metadata: hidden
-        ? { examName: data.examName, status: data.status }
-        : {
-            examName: data.examName,
-            score: data.totalScore,
-            maxScore: data.maxScore,
-            percentage: data.percentage,
-            status: data.status,
-          },
-    });
+      // notifications-service requires a user token or this shared service
+      // token on POST /notifications/inapp (its requireService middleware).
+      { headers: { 'X-Service-Token': config.auth.serviceToken } }
+    );
   } catch (error: any) {
     console.error(`[grading-service] HTTP in-app notification fallback failed (examResultId=${data.examResultId}):`, error?.message || error);
   }

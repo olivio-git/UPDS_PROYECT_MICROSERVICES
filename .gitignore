@@ -132,6 +132,11 @@ commandData*
 # Design assets at root
 *.webp
 *.png
+# ...but the frontend's own assets ship with the app
+!frontend/src/assets/**/*.webp
+!frontend/src/assets/**/*.png
+!frontend/public/*.webp
+!frontend/public/*.png
 
 # Docker volumes data (persistencia local)
 data/mongodb/*
