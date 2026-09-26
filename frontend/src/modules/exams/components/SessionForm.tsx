@@ -103,7 +103,7 @@ const SessionForm: React.FC<Props> = ({ session, onCancel, onSaved }) => {
         participants: { maxCandidates: 30 },
         settings: {
           requireProctor: true,
-          enableLockdown: false,
+          enableLockdown: true,
           allowLateEntry: false,
           autoStart: true,
           lateEntryMinutes: 0,

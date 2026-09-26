@@ -113,7 +113,7 @@ const sessionSchema = new Schema<ISession>({
   settings: {
     requireProctor: { type: Boolean, default: true },
     recordSession: { type: Boolean, default: false },
-    browserLockdown: { type: Boolean, default: false },
+    browserLockdown: { type: Boolean, default: true },
     allowLateEntry: { type: Boolean, default: false },
     autoStart: { type: Boolean, default: true },
     lateEntryMinutes: { type: Number, default: 0 }

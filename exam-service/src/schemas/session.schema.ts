@@ -30,7 +30,7 @@ const participantsSchema = z.object({
 const settingsSchema = z.object({
   requireProctor: z.boolean().default(true),
   recordSession: z.boolean().default(false),
-  browserLockdown: z.boolean().default(false),
+  browserLockdown: z.boolean().default(true),
   allowLateEntry: z.boolean().default(false),
   autoStart: z.boolean().default(true),
   lateEntryMinutes: z.number().min(0).max(30).default(0)
@@ -50,7 +50,18 @@ export const sessionSchema = {
     sessionName: z.string().min(3).max(200).optional(),
     scheduling: schedulingSchema.partial().optional(),
     participants: participantsSchema.partial().optional(),
-    settings: settingsSchema.partial().optional(),
+    // No defaults here: Zod 4 still applies `.default()` inside `.partial()`,
+    // so reusing settingsSchema would fill every unsent setting with its
+    // default. (validateRequest does not pass the parsed body on today; the
+    // service only writes the settings the request names.)
+    settings: z.object({
+      requireProctor: z.boolean(),
+      recordSession: z.boolean(),
+      browserLockdown: z.boolean(),
+      allowLateEntry: z.boolean(),
+      autoStart: z.boolean(),
+      lateEntryMinutes: z.number().min(0).max(30)
+    }).partial().optional(),
     status: z.enum(Object.values(CONSTANTS.SESSION_STATUS) as [string, ...string[]]).optional()
   }),
 
