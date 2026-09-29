@@ -2,6 +2,26 @@ import { Collection, Db } from 'mongodb';
 import { EmailNotification, EmailTemplate, EmailQueue } from '../types';
 import { config } from '../config';
 
+/**
+ * Secrets an email carries only so it can be sent. They are removed from the
+ * stored document once it is sent. A 'failed' email keeps them:
+ * retryFailedEmails resends failed emails that still have retries left
+ * (sendOtpEmail marks an email failed on its first failure).
+ */
+const SECRET_TEMPLATE_FIELDS = ['templateData.temporaryPassword', 'templateData.otpCode'];
+
+export function buildEmailStatusUpdate(
+  status: EmailNotification['status'],
+  additionalData?: Partial<EmailNotification>,
+  now: Date = new Date()
+): { $set: Record<string, unknown>; $unset?: Record<string, ''> } {
+  const $set: Record<string, unknown> = { status, updatedAt: now, ...additionalData };
+  if (status === 'sent') $set.sentAt = now;
+
+  if (status !== 'sent') return { $set };
+  return { $set, $unset: Object.fromEntries(SECRET_TEMPLATE_FIELDS.map((field) => [field, ''])) };
+}
+
 export class NotificationRepository {
   private emailsCollection: Collection<EmailNotification>;
   private templatesCollection: Collection<EmailTemplate>;
@@ -56,19 +76,9 @@ export class NotificationRepository {
     status: EmailNotification['status'], 
     additionalData?: Partial<EmailNotification>
   ): Promise<EmailNotification | null> {
-    const updateData = {
-      status,
-      updatedAt: new Date(),
-      ...additionalData
-    };
-
-    if (status === 'sent') {
-      updateData.sentAt = new Date();
-    }
-
     const result = await this.emailsCollection.findOneAndUpdate(
       { _id: emailId as any },
-      { $set: updateData },
+      buildEmailStatusUpdate(status, additionalData),
       { returnDocument: 'after' }
     );
 

@@ -55,6 +55,10 @@ services:
 
   notifications-service:
     restart: unless-stopped
+    environment:
+      # Every email link (login, results, password reset) is built from this;
+      # without it they all point to http://localhost:3000.
+      - FRONTEND_URL=${FRONTEND_URL:-https://exams.cba.org.bo}
 
   exam-service:
     restart: unless-stopped

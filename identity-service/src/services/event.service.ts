@@ -188,20 +188,7 @@ export class EventService {
       if (!this.isProducerConnected) {
         throw new Error('Producer no está conectado');
       }
-      console.log({
-        key: event.userId,
-        value: JSON.stringify({
-          ...event,
-          timestamp: event.timestamp.toISOString(),
-          service: 'user-management-service'
-        }),
-        headers: {
-          eventType: event.eventType,
-          service: 'user-management-service',
-          version: '1.0.0'
-        }
-      },"📤 Evento de usuario a publicar");
-
+      // Never log the event itself: USER_CREATED carries the temporary password.
       const message = {
         key: event.userId,
         value: JSON.stringify({
