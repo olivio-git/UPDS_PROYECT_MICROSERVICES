@@ -185,6 +185,11 @@ export interface FormErrors {
 
 export const USER_ROLES: { value: UserRole; label: string; description: string }[] = [
   {
+    value: 'admin',
+    label: 'Administrador',
+    description: 'Acceso completo al sistema'
+  },
+  {
     value: 'teacher',
     label: 'Profesor',
     description: 'Gestión de exámenes y evaluación'
