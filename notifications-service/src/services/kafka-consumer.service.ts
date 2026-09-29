@@ -163,10 +163,9 @@ export class KafkaConsumerService {
 
   private async handleUserEvent(message: KafkaMessage): Promise<void> {
     const { eventType, data: userData } = message;
-    console.log(userData,"🔍 [DEBUG] Datos del usuario:", userData);
+    // Never log userData itself: USER_CREATED carries the temporary password.
     try {
-      console.log(`🔍 [DEBUG] Evento recibido: ${eventType}`);
-      console.log(`🔍 [DEBUG] Datos completos:`, JSON.stringify(userData, null, 2));
+      console.log(`🔍 [DEBUG] Evento recibido: ${eventType} (${userData?.email ?? 'sin email'})`);
       
       switch (eventType) {
         case 'USER_CREATED':
@@ -175,7 +174,6 @@ export class KafkaConsumerService {
           
           // Verificar si tiene contraseña temporal y requiere email de credenciales
           if (userData.temporaryPassword && userData.requiresPasswordEmail) {
-            console.log(`🔐 [DEBUG] temporaryPassword: ${userData.temporaryPassword}`);
             console.log(`📧 [DEBUG] requiresPasswordEmail: ${userData.requiresPasswordEmail}`);
             console.log(`🔐 Enviando credenciales por email a: ${userData.email}`);
             

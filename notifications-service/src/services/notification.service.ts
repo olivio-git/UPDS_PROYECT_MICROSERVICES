@@ -151,7 +151,6 @@ export class NotificationService {
   }): Promise<{ success: boolean; emailId?: string }> {
     try {
       console.log(`📝 [NOTIFICATION] Creando email de credenciales para: ${userData.email}`);
-      console.log(`🔐 [NOTIFICATION] Contraseña temporal: ${userData.temporaryPassword}`);
       console.log(`👥 [NOTIFICATION] Usuario: ${userData.firstName} ${userData.lastName}`);
       console.log(`🏇 [NOTIFICATION] Rol: ${userData.role}`);
       
@@ -164,8 +163,7 @@ export class NotificationService {
           lastName: userData.lastName,
           email: userData.email,
           temporaryPassword: userData.temporaryPassword,
-          role: userData.role,
-          loginUrl: 'http://localhost:3000/login' // URL del frontend
+          role: userData.role
         },
         status: 'pending',
         priority: 'high', // Alta prioridad para credenciales
@@ -204,8 +202,7 @@ export class NotificationService {
           lastName: userData.lastName,
           email: userData.email,
           temporaryPassword: userData.temporaryPassword,
-          isTemporaryPassword: userData.isTemporaryPassword || true,
-          loginUrl: 'http://localhost:3000/login'
+          isTemporaryPassword: userData.isTemporaryPassword || true
         },
         status: 'pending',
         priority: 'high',
