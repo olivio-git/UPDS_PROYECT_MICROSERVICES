@@ -35,12 +35,23 @@ export interface ICandidate {
   examHistory: any[];
 }
 
+/**
+ * Base URL of identity-service's REST API. USER_MANAGEMENT_SERVICE_URL is set
+ * as a bare host in docker-compose (http://identity-service:3002), while the
+ * routes are mounted under /api/v1 — so append it when missing.
+ */
+export function userManagementApiUrl(): string {
+  const raw = process.env.USER_MANAGEMENT_SERVICE_URL || 'http://localhost:3002';
+  const host = raw.replace(/\/+$/, '').replace(/\/api\/v1$/, '');
+  return `${host}/api/v1`;
+}
+
 export class UserManagementIntegration {
   private client: AxiosInstance;
 
   constructor() {
     this.client = axios.create({
-      baseURL: process.env.USER_MANAGEMENT_SERVICE_URL || 'http://localhost:3002/api/v1',
+      baseURL: userManagementApiUrl(),
       timeout: 5000,
       headers: {
         'Content-Type': 'application/json'
