@@ -10,6 +10,7 @@ import { Question } from '../models/question.model';
 import { Exam } from '../models/exam.model';
 import { resolveExamType, resolvePassFail } from '../utils/passFail';
 import { Types } from 'mongoose';
+import { userManagementApiUrl } from '../integrations/user-management.integration';
 
 export interface StudentInfo {
   candidateId: string;
@@ -103,7 +104,7 @@ export class ExamResultPDFService {
   private userManagementUrl: string;
 
   constructor() {
-    this.userManagementUrl = process.env.USER_MANAGEMENT_SERVICE_URL || 'http://localhost:3001/api/v1';
+    this.userManagementUrl = userManagementApiUrl();
     logger.info('ExamResultPDFService initialized', { userManagementUrl: this.userManagementUrl });
   }
 

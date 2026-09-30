@@ -1150,12 +1150,18 @@ export class ExamTakingService {
       );
     }
 
-    // Validate candidate
-    const candidate = (session as any).candidatesData?.find(
+    // Validate candidate — same fallback as startExam: candidatesData comes
+    // from identity-service and is empty when that call fails, so check the
+    // session's own registeredCandidates before rejecting.
+    let candidate = (session as any).candidatesData?.find(
       (c: any) => String(c._id) === String(userCandidateId)
     ) || null;
     if (!candidate) {
-      throw new AppError('Candidate not registered for this session', 403, 'CANDIDATE_NOT_REGISTERED');
+      const registered: any[] = (session as any).participants?.registeredCandidates || [];
+      if (!registered.some((id: any) => String(id) === String(userCandidateId))) {
+        throw new AppError('Candidate not registered for this session', 403, 'CANDIDATE_NOT_REGISTERED');
+      }
+      candidate = { _id: userCandidateId };
     }
 
     const now = new Date();
