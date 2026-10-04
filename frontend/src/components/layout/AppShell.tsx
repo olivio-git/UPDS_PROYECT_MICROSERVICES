@@ -1,4 +1,4 @@
-import { UserAvatar } from '@/components/atoms/UserAvatar';
+import { UserAvatar } from '@/components/UserAvatar';
 import { BrandLogo } from '@/components/BrandLogo';
 import {
   Sidebar,

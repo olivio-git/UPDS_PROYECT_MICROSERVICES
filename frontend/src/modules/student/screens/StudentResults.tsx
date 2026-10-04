@@ -673,7 +673,7 @@ const StudentResults = () => {
               <ArrowLeft className="h-3.5 w-3.5 mr-1" />
               Volver
             </Button>
-            <Card className="bg-card">
+            <Card>
               <CardContent className="flex flex-col items-center gap-3 p-10 text-center">
                 <EyeOff className="h-10 w-10 text-muted-foreground" />
                 <h2 className="text-lg font-semibold text-foreground">{currentResult.examName}</h2>
@@ -697,7 +697,7 @@ const StudentResults = () => {
               <ArrowLeft className="h-3.5 w-3.5 mr-1" />
               Volver
             </Button>
-            <Card className="bg-card">
+            <Card>
               <CardContent className="flex flex-col items-center gap-3 p-10 text-center">
                 <Clock className="h-10 w-10 text-muted-foreground" />
                 <h2 className="text-lg font-semibold text-foreground">{currentResult.examName}</h2>
@@ -744,7 +744,7 @@ const StudentResults = () => {
       <MainLayout>
         <div id="exam-result-content" className="h-full space-y-4 overflow-auto p-4 pb-10 lg:p-6 xl:p-8">
           {/* Hero: the score ring is the first thing the eye lands on. */}
-          <Card className="bg-card">
+          <Card>
             <CardContent className="p-6">
               <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
                 <div className="flex flex-col items-center gap-5 text-center sm:flex-row sm:text-left">
@@ -804,7 +804,7 @@ const StudentResults = () => {
                   <Button
                     size="sm"
                     onClick={() => handleDownloadPDF(currentResult.id)}
-                    className="h-8 px-3 text-xs bg-blue-600 hover:bg-blue-500"
+                    className="px-3 text-xs"
                   >
                     <Download className="h-3.5 w-3.5 mr-1" />
                     PDF
@@ -821,9 +821,9 @@ const StudentResults = () => {
           <CompetencyMasteryPanel mastery={examDetailData?.competencyMastery} />
 
           <div className="grid gap-4 xl:grid-cols-2">
-              <Card className="bg-card">
+              <Card>
                 <CardHeader className="pb-3">
-                  <CardTitle className="text-foreground flex items-center gap-2 text-sm">
+                  <CardTitle className="flex items-center gap-2 text-sm">
                     <BarChart3 className="h-4 w-4 text-blue-600 dark:text-blue-400" />
                     Desglose por Competencias
                   </CardTitle>
@@ -892,9 +892,9 @@ const StudentResults = () => {
           {/* Detalle de preguntas del examen — full width, its own row below
               the two-column summary. */}
           {examDetailData?.questionResults && (
-                <Card className="bg-card">
+                <Card>
                   <CardHeader className="pb-3">
-                    <CardTitle className="text-foreground flex items-center gap-2 text-sm">
+                    <CardTitle className="flex items-center gap-2 text-sm">
                       <FileSearch className="h-4 w-4 text-purple-600 dark:text-purple-400" />
                       Preguntas del Examen
                     </CardTitle>
@@ -1036,7 +1036,7 @@ const StudentResults = () => {
 
         {/* Estado: error */}
         {error && !loading && (
-          <Card className="bg-card border-red-200 dark:border-red-500/30">
+          <Card className="border-red-200 dark:border-red-500/30">
             <CardContent className="p-8 text-center">
               <AlertCircle className="h-10 w-10 text-red-600 dark:text-red-400 mx-auto mb-3" />
               <h3 className="text-base font-semibold text-foreground mb-1">Error al cargar resultados</h3>
@@ -1047,7 +1047,7 @@ const StudentResults = () => {
         )}
 
         {!loading && !error && resultsData && (
-          <Card className="bg-card">
+          <Card>
             {/* Stats row */}
             <div className="grid grid-cols-2 lg:grid-cols-4 border-b border-border">
               <div className="p-4 border-r border-border">
@@ -1083,7 +1083,7 @@ const StudentResults = () => {
             <CardHeader className="border-b border-border pb-4">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                 <div>
-                  <CardTitle className="text-foreground text-base">Historial de Evaluaciones</CardTitle>
+                  <CardTitle className="text-base">Historial de Evaluaciones</CardTitle>
                   <CardDescription className="text-muted-foreground text-xs mt-0.5">
                     {filteredResults.length > 0
                       ? `${filteredResults.length} resultado${filteredResults.length !== 1 ? 's' : ''}`

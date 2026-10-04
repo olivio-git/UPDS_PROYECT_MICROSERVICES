@@ -1,4 +1,4 @@
-import { HoverCard, HoverCardContent, HoverCardTrigger } from '@/components/atoms/hover-card';
+import { HoverCard, HoverCardContent, HoverCardTrigger } from '@/components/keel/hover-card';
 import { cn } from '@/lib/utils';
 import { SESSION_STATUS_LEGEND, sessionStatus } from '@/modules/exams/sessionStatus';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
@@ -101,17 +101,21 @@ export function MonthCalendar({ viewDate, onViewDateChange, sessionsByDay, selec
               return <div key={key} className={cellClass(state, false)}>{content}</div>;
             }
             return (
-              <HoverCard key={key} openDelay={300} closeDelay={100}>
-                <HoverCardTrigger asChild>
-                  <button
-                    type="button"
-                    aria-pressed={state.isSelected}
-                    aria-label={`${day} de ${MONTHS[month]}: ${sessions.length} sesión${sessions.length !== 1 ? 'es' : ''}`}
-                    onClick={() => onSelectDay(state.isSelected ? null : key)}
-                    className={cellClass(state, true)}
-                  >
-                    {content}
-                  </button>
+              <HoverCard key={key}>
+                <HoverCardTrigger
+                  delay={300}
+                  closeDelay={100}
+                  render={
+                    <button
+                      type="button"
+                      aria-pressed={state.isSelected}
+                      aria-label={`${day} de ${MONTHS[month]}: ${sessions.length} sesión${sessions.length !== 1 ? 'es' : ''}`}
+                      onClick={() => onSelectDay(state.isSelected ? null : key)}
+                      className={cellClass(state, true)}
+                    />
+                  }
+                >
+                  {content}
                 </HoverCardTrigger>
                 <HoverCardContent side="right" align="start" className="w-72 p-0 overflow-hidden border border-border bg-card shadow-xl">
                   <DaySessionsPopover date={new Date(year, month, day)} sessions={sessions} currentUserEmail={currentUserEmail} />

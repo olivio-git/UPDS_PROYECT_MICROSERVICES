@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { Button } from '@/components/atoms/button';
-import { Input } from '@/components/atoms/input';
-import { Label } from '@/components/atoms/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/atoms/select';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/atoms/card';
-import { Badge } from '@/components/atoms/badge';
+import { Button } from '@/components/keel/button';
+import { Input } from '@/components/keel/input';
+import { Label } from '@/components/keel/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/keel/select';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/keel/card';
+import { Badge } from '@/components/keel/badge';
 import { AlertCircle, Save, X, Mail, Phone, Shield, Users } from 'lucide-react';
-import { Alert, AlertDescription } from '@/components/atoms/alert';
+import { Alert, AlertDescription } from '@/components/keel/alert';
 import type {  
   CreateUserRequest, 
   UpdateUserRequest, 
@@ -225,7 +225,7 @@ const UserForm: React.FC<UserFormProps> = ({
         {/* Información básica */}
         <Card>
           <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-foreground">
+            <CardTitle className="flex items-center gap-2">
               <Users className="w-5 h-5" />
               Información Básica
             </CardTitle>
@@ -265,14 +265,15 @@ const UserForm: React.FC<UserFormProps> = ({
                 </Label>
                 <Select
                   value={formData.role}
-                  onValueChange={(value: UserRole) => handleInputChange('role', value)}
+                  onValueChange={(value) => value && handleInputChange('role', value as UserRole)}
+                  items={USER_ROLES}
                 >
-                  <SelectTrigger className={errors.role ? 'border-red-500' : ''}>
+                  <SelectTrigger className="w-full" aria-invalid={!!errors.role}>
                     <SelectValue placeholder="Seleccionar rol" />
                   </SelectTrigger>
-                  <SelectContent className='bg-card border border-line'>
+                  <SelectContent>
                     {USER_ROLES.map((role) => (
-                      <SelectItem key={role.value} value={role.value} className='hover:bg-muted'>
+                      <SelectItem key={role.value} value={role.value}>
                         <div>
                           <div className="font-medium">{role.label}</div>
                           <div className="text-sm text-muted-foreground">{role.description}</div>
@@ -371,10 +372,10 @@ const UserForm: React.FC<UserFormProps> = ({
                 <div className="space-y-2">
                   <Label htmlFor="department">Departamento *</Label>
                   <Select
-                    value={formData.department || ''}
-                    onValueChange={(value) => handleInputChange('department', value)}
+                    value={formData.department || null}
+                    onValueChange={(value) => value && handleInputChange('department', value)}
                   >
-                    <SelectTrigger className={errors.department ? 'border-red-500' : ''}>
+                    <SelectTrigger className="w-full" aria-invalid={!!errors.department}>
                       <SelectValue placeholder="Seleccionar departamento" />
                     </SelectTrigger>
                     <SelectContent>
@@ -453,7 +454,7 @@ const UserForm: React.FC<UserFormProps> = ({
         )}
 
         {formData.role === 'proctor' && (
-          <Card className='border shadow-none border-line'>
+          <Card className="shadow-none">
             <CardHeader>
               <CardTitle>Información del Supervisor</CardTitle>
               <CardDescription>
@@ -555,7 +556,7 @@ const UserForm: React.FC<UserFormProps> = ({
           <Button
             type="submit"
             disabled={isLoading}
-            className="gap-1 bg-blue-600 hover:bg-blue-700 text-white"
+            className="gap-1"
           >
             <Save className="w-4 h-4" />
             {isLoading ? 'Guardando...' : isEditing ? 'Actualizar' : 'Crear Usuario'}

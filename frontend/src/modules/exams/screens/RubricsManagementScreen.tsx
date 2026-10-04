@@ -7,7 +7,7 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from "@/components/atoms/alert-dialog";
+} from "@/components/keel/alert-dialog";
 import { MainLayout } from "@/components/layout";
 import { X } from "lucide-react";
 import { useState } from "react";
@@ -230,21 +230,21 @@ const RubricsManagementScreen = () => {
         open={isDeleteDialogOpen}
         onOpenChange={setIsDeleteDialogOpen}
       >
-        <AlertDialogContent className="bg-card">
+        <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle className="text-foreground">Confirmar eliminación</AlertDialogTitle>
-            <AlertDialogDescription className="text-muted-foreground">
+            <AlertDialogTitle>Confirmar eliminación</AlertDialogTitle>
+            <AlertDialogDescription>
               ¿Estás seguro de que deseas eliminar la rúbrica{" "}
               <strong>"{rubricToDelete?.name}"</strong>? Esta acción no se puede deshacer y puede afectar evaluaciones relacionadas.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel className="bg-transparent text-foreground border border-line focus:outline-none">
+            <AlertDialogCancel>
               Cancelar
             </AlertDialogCancel>
             <AlertDialogAction
               onClick={confirmDeleteRubric}
-              className="bg-red-600 hover:bg-red-700 text-white"
+              variant="destructive"
             >
               Eliminar
             </AlertDialogAction>
@@ -257,21 +257,21 @@ const RubricsManagementScreen = () => {
         open={isDeleteMultipleDialogOpen}
         onOpenChange={setIsDeleteMultipleDialogOpen}
       >
-        <AlertDialogContent className="bg-card">
+        <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle className="text-foreground">Confirmar eliminación múltiple</AlertDialogTitle>
-            <AlertDialogDescription className="text-muted-foreground">
+            <AlertDialogTitle>Confirmar eliminación múltiple</AlertDialogTitle>
+            <AlertDialogDescription>
               ¿Estás seguro de que deseas eliminar {selectedRubrics.length}{" "}
               rúbrica(s) seleccionada(s)? Esta acción no se puede deshacer.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel className="bg-transparent text-foreground border border-line focus:outline-none">
+            <AlertDialogCancel>
               Cancelar
             </AlertDialogCancel>
             <AlertDialogAction
               onClick={confirmDeleteSelectedRubrics}
-              className="bg-red-600 hover:bg-red-700 text-white"
+              variant="destructive"
             >
               Eliminar {selectedRubrics.length} rúbrica(s)
             </AlertDialogAction>

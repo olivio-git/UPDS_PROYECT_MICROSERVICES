@@ -1,7 +1,7 @@
-import { Button } from '@/components/atoms/button';
-import { Calendar } from '@/components/atoms/calendar';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/atoms/popover';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/atoms/select';
+import { Button } from '@/components/keel/button';
+import { Calendar } from '@/components/keel/calendar';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/keel/popover';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/keel/select';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -75,9 +75,10 @@ export function ReportFiltersBar({ filters, sessions, variant }: ReportFiltersBa
     <div className="flex flex-wrap items-center gap-2 bg-card border border-border px-3 py-2">
       <Select
         value={draft.gestion ? String(draft.gestion) : ALL}
-        onValueChange={(v) => filters.setGestion(v === ALL ? undefined : Number(v))}
+        onValueChange={(v) => filters.setGestion(!v || v === ALL ? undefined : Number(v))}
+        items={[{ value: ALL, label: 'Gestión' }, ...YEAR_OPTIONS.map((y) => ({ value: String(y), label: String(y) }))]}
       >
-        <SelectTrigger className="h-7 w-[90px] text-xs border-border bg-muted/60">
+        <SelectTrigger size="sm" className="w-[90px] text-xs">
           <SelectValue placeholder="Gestión" />
         </SelectTrigger>
         <SelectContent>
@@ -95,9 +96,10 @@ export function ReportFiltersBar({ filters, sessions, variant }: ReportFiltersBa
       {sessions.length > 0 && (
         <Select
           value={draft.sessionId ?? ALL}
-          onValueChange={(v) => filters.setSessionId(v === ALL ? undefined : v)}
+          onValueChange={(v) => filters.setSessionId(!v || v === ALL ? undefined : v)}
+          items={[{ value: ALL, label: 'Todas las sesiones' }, ...sessions.map((s) => ({ value: s.id, label: s.name }))]}
         >
-          <SelectTrigger className="h-7 w-[160px] text-xs border-border bg-muted/60">
+          <SelectTrigger size="sm" className="w-[160px] text-xs">
             <SelectValue placeholder="Por sesión" />
           </SelectTrigger>
           <SelectContent>
@@ -110,27 +112,29 @@ export function ReportFiltersBar({ filters, sessions, variant }: ReportFiltersBa
       <Divider />
 
       <Popover>
-        <PopoverTrigger asChild>
-          <button
-            type="button"
-            className={cn(
-              'h-7 flex items-center gap-1.5 px-2 text-xs rounded border border-border bg-muted/60 text-foreground hover:bg-muted transition-colors whitespace-nowrap',
-              !dateRange?.from && 'text-muted-foreground',
-            )}
-          >
-            <CalendarIcon className="h-3 w-3 shrink-0 text-muted-foreground" />
-            <DateRangeLabel from={dateRange?.from} to={dateRange?.to} />
-            {dateRange?.from && (
-              <span
-                role="button"
-                aria-label="Quitar rango de fechas"
-                onClick={(e) => { e.stopPropagation(); filters.setDateRange(undefined); }}
-                className="ml-1 text-muted-foreground hover:text-foreground"
-              >
-                <X className="h-3 w-3" />
-              </span>
-            )}
-          </button>
+        <PopoverTrigger
+          render={
+            <button
+              type="button"
+              className={cn(
+                'h-7 flex items-center gap-1.5 px-2 text-xs rounded border border-border bg-muted/60 text-foreground hover:bg-muted transition-colors whitespace-nowrap',
+                !dateRange?.from && 'text-muted-foreground',
+              )}
+            />
+          }
+        >
+          <CalendarIcon className="h-3 w-3 shrink-0 text-muted-foreground" />
+          <DateRangeLabel from={dateRange?.from} to={dateRange?.to} />
+          {dateRange?.from && (
+            <span
+              role="button"
+              aria-label="Quitar rango de fechas"
+              onClick={(e) => { e.stopPropagation(); filters.setDateRange(undefined); }}
+              className="ml-1 text-muted-foreground hover:text-foreground"
+            >
+              <X className="h-3 w-3" />
+            </span>
+          )}
         </PopoverTrigger>
         <PopoverContent className="w-auto p-0" align="start">
           <Calendar mode="range" selected={dateRange} onSelect={filters.setDateRange} numberOfMonths={2} initialFocus />
@@ -148,11 +152,12 @@ export function ReportFiltersBar({ filters, sessions, variant }: ReportFiltersBa
       )}
 
       <div className="flex gap-1.5 ml-auto">
-        <Button onClick={filters.apply} size="sm" className="h-7 text-xs bg-blue-600 hover:bg-blue-700 text-white px-3">
+        <Button size="sm" onClick={filters.apply} className="px-3">
           Aplicar
         </Button>
         <Button onClick={filters.clear} variant="ghost" size="sm"
-          className="h-7 text-xs text-muted-foreground hover:text-foreground hover:bg-muted px-2">
+          className="h-7 text-xs text-muted-foreground hover:text-foreground hover:bg-muted px-2"
+        >
           Limpiar
         </Button>
       </div>

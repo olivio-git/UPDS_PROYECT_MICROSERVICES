@@ -1,6 +1,6 @@
 import React from 'react';
-import { Button } from '@/components/atoms/button';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/atoms/select';
+import { Button } from '@/components/keel/button';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/keel/select';
 import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from 'lucide-react';
 
 interface PaginationProps {
@@ -77,17 +77,17 @@ const Pagination: React.FC<PaginationProps> = ({
           <span className="text-sm text-gray-200">Mostrar:</span>
           <Select
             value={itemsPerPage.toString()}
-            onValueChange={(value) => onItemsPerPageChange(parseInt(value))}
+            onValueChange={(value) => value && onItemsPerPageChange(parseInt(value))}
             disabled={isLoading}
           >
-            <SelectTrigger className="w-20 h-8 bg-box text-white border border-line">
+            <SelectTrigger size="sm" className="w-20">
               <SelectValue />
             </SelectTrigger>
-            <SelectContent className="bg-box border-line text-white">
-              <SelectItem className="hover:bg-gray-800" value="10">10</SelectItem>
-              <SelectItem className="hover:bg-gray-800" value="25">25</SelectItem>
-              <SelectItem className="hover:bg-gray-800" value="50">50</SelectItem>
-              <SelectItem className="hover:bg-gray-800" value="100">100</SelectItem>
+            <SelectContent>
+              <SelectItem value="10">10</SelectItem>
+              <SelectItem value="25">25</SelectItem>
+              <SelectItem value="50">50</SelectItem>
+              <SelectItem value="100">100</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -101,7 +101,7 @@ const Pagination: React.FC<PaginationProps> = ({
           size="sm"
           onClick={() => onPageChange(1)}
           disabled={!canGoPrevious || isLoading}
-          className="h-8 w-8 p-0 bg-box text-white border border-line hover:bg-gray-200/10"
+          className="w-8 p-0 border"
           title="Primera página"
         >
           <ChevronsLeft className="h-4 w-4" />
@@ -113,7 +113,7 @@ const Pagination: React.FC<PaginationProps> = ({
           size="sm"
           onClick={() => onPageChange(currentPage - 1)}
           disabled={!canGoPrevious || isLoading}
-          className="h-8 w-8 p-0 bg-box text-white border border-line hover:bg-gray-200/10"
+          className="w-8 p-0 border"
           title="Página anterior"
         >
           <ChevronLeft className="h-4 w-4" />
@@ -161,7 +161,7 @@ const Pagination: React.FC<PaginationProps> = ({
           size="sm"
           onClick={() => onPageChange(currentPage + 1)}
           disabled={!canGoNext || isLoading}
-          className="h-8 w-8 p-0 bg-box text-white border border-line hover:bg-gray-200/10"
+          className="w-8 p-0 border"
           title="Página siguiente"
         >
           <ChevronRight className="h-4 w-4" />
@@ -173,7 +173,7 @@ const Pagination: React.FC<PaginationProps> = ({
           size="sm"
           onClick={() => onPageChange(totalPages)}
           disabled={!canGoNext || isLoading}
-          className="h-8 w-8 p-0 bg-box text-white border border-line hover:bg-gray-200/10"
+          className="w-8 p-0 border"
           title="Última página"
         >
           <ChevronsRight className="h-4 w-4" />

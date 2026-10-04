@@ -1,4 +1,4 @@
-import { Button } from '@/components/atoms/button';
+import { Button } from '@/components/keel/button';
 import React from 'react';
 
 interface Props {
@@ -31,7 +31,7 @@ const QuestionActions: React.FC<Props> = ({
         type="button"
         onClick={onSubmit}
         disabled={isLoading || !canSave}
-        className="gap-1 bg-blue-600 hover:bg-blue-700 text-white disabled:opacity-50 disabled:cursor-not-allowed"
+        className="gap-1"
       >
         {isLoading ? (
           <>

@@ -1,12 +1,12 @@
-import { Badge } from "@/components/atoms/badge";
-import { Button } from "@/components/atoms/button";
+import { Badge } from "@/components/keel/badge";
+import { Button } from "@/components/keel/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from "@/components/atoms/dropdown-menu";
+} from "@/components/keel/dropdown-menu";
 import {
   Table,
   TableBody,
@@ -14,7 +14,7 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/atoms/table";
+} from "@/components/keel/table";
 import {
   BookOpen,
   Clock,
@@ -175,22 +175,15 @@ const LevelTable = ({
               
               <TableCell className="text-right">
                 <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button 
-                      variant="ghost" 
-                      size="sm"
-                      className="h-8 w-8 p-0 hover:bg-muted"
-                    >
-                      <MoreHorizontal className="h-4 w-4 text-muted-foreground" />
-                    </Button>
+                  <DropdownMenuTrigger render={<Button variant="ghost" size="icon-sm" />}>
+                    <MoreHorizontal className="h-4 w-4 text-muted-foreground" />
+                  
                   </DropdownMenuTrigger>
                   <DropdownMenuContent
                     align="end"
-                    className="bg-popover border-border"
                   >
                     <DropdownMenuItem 
                       onClick={() => onViewLevel(level)}
-                      className="text-foreground hover:bg-muted focus:bg-muted"
                     >
                       <Eye className="h-4 w-4 mr-2" />
                       Ver detalles
@@ -198,18 +191,16 @@ const LevelTable = ({
                     
                     <DropdownMenuItem 
                       onClick={() => onEditLevel(level)}
-                      className="text-foreground hover:bg-muted focus:bg-muted"
                     >
                       <Edit className="h-4 w-4 mr-2" />
                       Editar
                     </DropdownMenuItem>
                     
-                    <DropdownMenuSeparator className="bg-border" />
+                    <DropdownMenuSeparator />
                     
                     {level.isActive ? (
                       <DropdownMenuItem 
                         onClick={() => onDeactivateLevel(level)}
-                        className="text-orange-400 hover:bg-orange-500/10 focus:bg-orange-500/10"
                       >
                         <ToggleLeft className="h-4 w-4 mr-2" />
                         Desactivar
@@ -217,18 +208,17 @@ const LevelTable = ({
                     ) : (
                       <DropdownMenuItem 
                         onClick={() => onActivateLevel(level)}
-                        className="text-green-400 hover:bg-green-500/10 focus:bg-green-500/10"
                       >
                         <ToggleRight className="h-4 w-4 mr-2" />
                         Activar
                       </DropdownMenuItem>
                     )}
                     
-                    <DropdownMenuSeparator className="bg-border" />
+                    <DropdownMenuSeparator />
                     
                     <DropdownMenuItem 
                       onClick={() => onDeleteLevel(level)}
-                      className="text-red-400 hover:bg-red-500/10 focus:bg-red-500/10"
+                      variant="destructive"
                     >
                       <Trash2 className="h-4 w-4 mr-2" />
                       Eliminar

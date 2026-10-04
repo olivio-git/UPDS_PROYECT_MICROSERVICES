@@ -1,4 +1,4 @@
-import { Button } from '@/components/atoms/button';
+import { Button } from '@/components/keel/button';
 import { cn } from '@/lib/utils';
 import { ArrowLeft, BookOpen, Edit, UserPlus } from 'lucide-react';
 import type { ExamSession } from '../../types';
@@ -53,7 +53,7 @@ export function SessionHeader({ session, onBack, onEdit, onManageCandidates }: S
             <UserPlus className="w-4 h-4 mr-1.5" />
             Candidatos
           </Button>
-          <Button onClick={onEdit} size="sm" className="bg-blue-600 hover:bg-blue-700 text-white" aria-label="Editar sesión">
+          <Button onClick={onEdit} size="sm"  aria-label="Editar sesión">
             <Edit className="w-4 h-4 mr-1.5" />
             Editar
           </Button>

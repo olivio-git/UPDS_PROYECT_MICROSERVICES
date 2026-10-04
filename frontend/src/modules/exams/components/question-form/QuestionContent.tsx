@@ -4,9 +4,9 @@ import {
   CardDescription,
   CardHeader,
   CardTitle,
-} from '@/components/atoms/card';
-import { Label } from '@/components/atoms/label';
-import { Textarea } from '@/components/atoms/textarea';
+} from '@/components/keel/card';
+import { Label } from '@/components/keel/label';
+import { Textarea } from '@/components/keel/textarea';
 import React from 'react';
 import type { Question } from '../../types';
 
@@ -33,9 +33,9 @@ const QuestionContent: React.FC<Props> = ({
   };
 
   return (
-    <Card className="border border-line">
+    <Card>
       <CardHeader>
-        <CardTitle className="text-foreground">Contenido</CardTitle>
+        <CardTitle>Contenido</CardTitle>
         <CardDescription>Enunciado e instrucciones</CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">

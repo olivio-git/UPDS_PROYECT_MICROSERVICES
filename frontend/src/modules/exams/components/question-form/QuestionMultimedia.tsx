@@ -4,15 +4,15 @@ import {
   CardDescription,
   CardHeader,
   CardTitle,
-} from '@/components/atoms/card';
-import { Label } from '@/components/atoms/label';
+} from '@/components/keel/card';
+import { Label } from '@/components/keel/label';
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/atoms/select';
+} from '@/components/keel/select';
 import { Image as ImageIcon, Mic, Volume2 } from 'lucide-react';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
@@ -178,9 +178,9 @@ const QuestionMultimedia: React.FC<Props> = ({
   if (!showMultimedia) return null;
 
   return (
-    <Card className="border border-line">
+    <Card>
       <CardHeader>
-        <CardTitle className="text-foreground flex items-center gap-2">
+        <CardTitle className="flex items-center gap-2">
           <Volume2 className="w-5 h-5 text-blue-400" />
           Multimedia
         </CardTitle>
@@ -291,14 +291,13 @@ const QuestionMultimedia: React.FC<Props> = ({
                 <Label>Tipo de respuesta esperada</Label>
                 <Select
                   value={formData.content?.expectedResponseType || 'sentence'}
-                  onValueChange={(value: 'word' | 'sentence' | 'paragraph') =>
-                    updateContent('expectedResponseType', value)
-                  }
+                  onValueChange={(value) => value && updateContent('expectedResponseType', value)}
+              items={{ word: 'Palabra', sentence: 'Oración', paragraph: 'Párrafo' }}
                 >
                   <SelectTrigger className={baseInputClass}>
                     <SelectValue placeholder="Selecciona el tipo" />
                   </SelectTrigger>
-                  <SelectContent className="bg-card border border-line">
+                  <SelectContent>
                     <SelectItem value="word">Palabra</SelectItem>
                     <SelectItem value="sentence">Oración</SelectItem>
                     <SelectItem value="paragraph">Párrafo</SelectItem>

@@ -1,4 +1,4 @@
-import { Button } from '@/components/atoms/button';
+import { Button } from '@/components/keel/button';
 import { MainLayout } from '@/components/layout';
 import ExportOptionsModal from '@/components/modals/ExportOptionsModal';
 import { cn } from '@/lib/utils';

@@ -1,6 +1,6 @@
-import { Button } from '@/components/atoms/button';
-import { Input } from '@/components/atoms/input';
-import { Label } from '@/components/atoms/label';
+import { Button } from '@/components/keel/button';
+import { Input } from '@/components/keel/input';
+import { Label } from '@/components/keel/label';
 import { Plus, Trash2 } from 'lucide-react';
 import React, { useState } from 'react';
 import type { Question, QuestionOption } from '../../types';

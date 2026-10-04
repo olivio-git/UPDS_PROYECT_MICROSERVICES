@@ -1,5 +1,5 @@
-import { UserAvatar } from '@/components/atoms/UserAvatar';
-import { Button } from '@/components/atoms/button';
+import { UserAvatar } from '@/components/UserAvatar';
+import { Button } from '@/components/keel/button';
 import { X } from 'lucide-react';
 
 export interface StudentIdentity {

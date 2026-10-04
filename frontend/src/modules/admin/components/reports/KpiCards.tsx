@@ -1,4 +1,4 @@
-import { Card } from '@/components/atoms/card';
+import { Card } from '@/components/keel/card';
 import type { DashboardSummary, StudentStats } from '@/services/reportsService';
 import { Award, Clock, FileText, Target, Users, type LucideIcon } from 'lucide-react';
 import { PERFORMANCE_BANDS } from './scoring';
@@ -56,7 +56,7 @@ export function KpiCards({ summary, stats }: { summary: DashboardSummary; stats?
   return (
     <div className="grid grid-cols-2 md:grid-cols-5 gap-2">
       {buildKpis(summary, stats).map(({ label, value, sub, icon: Icon, color, tooltip }) => (
-        <Card key={label} title={tooltip} className="rounded-none border border-border bg-card shadow-none cursor-default">
+        <Card flat key={label} title={tooltip} className="cursor-default">
           <div className="p-3 flex items-center justify-between">
             <div>
               <p className="text-xs text-muted-foreground">{label}</p>

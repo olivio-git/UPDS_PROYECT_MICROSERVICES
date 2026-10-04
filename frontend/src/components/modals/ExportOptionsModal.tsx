@@ -1,7 +1,7 @@
-import { Button } from '@/components/atoms/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/atoms/card';
-import { Input } from '@/components/atoms/input';
-import { Switch } from '@/components/atoms/switch';
+import { Button } from '@/components/keel/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/keel/card';
+import { Input } from '@/components/keel/input';
+import { Switch } from '@/components/keel/switch';
 import { type ExportOptions } from '@/services/reportsService';
 import { Download, FileText, Settings, X } from 'lucide-react';
 import React, { useState } from 'react';
@@ -66,10 +66,10 @@ const ExportOptionsModal: React.FC<ExportOptionsModalProps> = ({
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <Card className="bg-box border-line w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+      <Card className="w-full max-w-2xl max-h-[90vh] overflow-y-auto">
         <CardHeader className="pb-4">
           <div className="flex items-center justify-between">
-            <CardTitle className="flex items-center space-x-2 text-foreground">
+            <CardTitle className="flex items-center space-x-2">
               <Download className="h-5 w-5 text-blue-400" />
               <span>Opciones de Exportación</span>
             </CardTitle>
@@ -99,7 +99,7 @@ const ExportOptionsModal: React.FC<ExportOptionsModalProps> = ({
               <Button
                 onClick={() => handleExport('csv')}
                 disabled={isLoading}
-                className="h-20 flex flex-col items-center justify-center space-y-2 bg-emerald-600 hover:bg-emerald-700 text-white"
+                className="h-20 flex flex-col justify-center space-y-2"
               >
                 <FileText className="h-6 w-6" />
                 <div className="text-center">
@@ -111,7 +111,7 @@ const ExportOptionsModal: React.FC<ExportOptionsModalProps> = ({
               <Button
                 onClick={() => handleExport('pdf')}
                 disabled={isLoading}
-                className="h-20 flex flex-col items-center justify-center space-y-2 bg-blue-600 hover:bg-blue-700 text-white"
+                className="h-20 flex flex-col justify-center space-y-2"
               >
                 <Download className="h-6 w-6" />
                 <div className="text-center">
@@ -225,8 +225,8 @@ const ExportOptionsModal: React.FC<ExportOptionsModalProps> = ({
                 value={exportOptions.companyName || ''}
                 onChange={(e) => handleOptionChange('companyName', e.target.value)}
                 placeholder="Sistema de Evaluación Académica"
-                className="bg-muted border-border text-foreground text-sm"
-              />
+                className="bg-muted text-sm"
+/>
             </div>
           </div>
         </CardContent>

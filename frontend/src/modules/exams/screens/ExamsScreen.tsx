@@ -1,8 +1,8 @@
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem,
   DropdownMenuSeparator, DropdownMenuTrigger,
-} from "@/components/atoms/dropdown-menu";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/atoms/select";
+} from "@/components/keel/dropdown-menu";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/keel/select";
 import CustomizableTable from "@/components/common/CustomizableTable";
 import { MainLayout } from "@/components/layout";
 import { getCoreRowModel, getSortedRowModel, useReactTable, type ColumnDef } from "@tanstack/react-table";
@@ -264,37 +264,33 @@ const ExamsScreen = () => {
         return (
           <div className="text-right">
             <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <button className="p-2 hover:bg-muted rounded-lg transition-colors">
-                  <MoreVertical className="w-4 h-4 text-muted-foreground" />
-                </button>
+              <DropdownMenuTrigger render={<button className="p-2 hover:bg-muted rounded-lg transition-colors" />}>
+                <MoreVertical className="w-4 h-4 text-muted-foreground" />
+              
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="bg-popover border-border">
+              <DropdownMenuContent align="end">
                 <DropdownMenuItem
                   onClick={() => handleViewDetails(exam)}
-                  className="text-foreground hover:bg-muted cursor-pointer"
                 >
                   <Eye className="w-4 h-4 mr-2" />
                   Ver detalles
                 </DropdownMenuItem>
                 <DropdownMenuItem
                   onClick={() => handleEdit(exam)}
-                  className="text-foreground hover:bg-muted cursor-pointer"
                 >
                   <Edit className="w-4 h-4 mr-2" />
                   Editar
                 </DropdownMenuItem>
                 <DropdownMenuItem
                   onClick={() => handleClone(exam)}
-                  className="text-foreground hover:bg-muted cursor-pointer"
                 >
                   <Copy className="w-4 h-4 mr-2" />
                   Clonar
                 </DropdownMenuItem>
-                <DropdownMenuSeparator className="bg-border" />
+                <DropdownMenuSeparator />
                 <DropdownMenuItem
                   onClick={() => askDelete(exam)}
-                  className="text-red-400 hover:bg-muted cursor-pointer"
+                  variant="destructive"
                 >
                   <Trash2 className="w-4 h-4 mr-2" />
                   Eliminar
@@ -399,36 +395,38 @@ const ExamsScreen = () => {
           {/* Tipo */}
           <Select
             value={localFilters.type}
-            onValueChange={(value) => setLocalFilters({ ...localFilters, type: value })}
+            onValueChange={(value) => value && setLocalFilters({ ...localFilters, type: value })}
+            items={{ all: "Todos los tipos", placement: "Nivelación", progress: "Progreso", final: "Final", practice: "Práctica" }}
           >
-            <SelectTrigger className="h-7 text-xs bg-muted/60 border border-border rounded px-2 text-foreground focus:outline-none w-auto min-w-0 gap-1">
+            <SelectTrigger size="sm" className="text-xs">
               <SelectValue placeholder="Tipo" />
             </SelectTrigger>
-            <SelectContent className="bg-background border border-border">
-              <SelectItem className="hover:bg-muted text-xs" value="all">Todos los tipos</SelectItem>
-              <SelectItem className="hover:bg-muted text-xs" value="placement">Nivelación</SelectItem>
-              <SelectItem className="hover:bg-muted text-xs" value="progress">Progreso</SelectItem>
-              <SelectItem className="hover:bg-muted text-xs" value="final">Final</SelectItem>
-              <SelectItem className="hover:bg-muted text-xs" value="practice">Práctica</SelectItem>
+            <SelectContent>
+              <SelectItem className="text-xs" value="all">Todos los tipos</SelectItem>
+              <SelectItem className="text-xs" value="placement">Nivelación</SelectItem>
+              <SelectItem className="text-xs" value="progress">Progreso</SelectItem>
+              <SelectItem className="text-xs" value="final">Final</SelectItem>
+              <SelectItem className="text-xs" value="practice">Práctica</SelectItem>
             </SelectContent>
           </Select>
 
           {/* Nivel */}
           <Select
             value={localFilters.targetLevel}
-            onValueChange={(value) => setLocalFilters({ ...localFilters, targetLevel: value })}
+            onValueChange={(value) => value && setLocalFilters({ ...localFilters, targetLevel: value })}
+            items={{ all: "Todos los niveles", A1: "A1", A2: "A2", B1: "B1", B2: "B2", C1: "C1", C2: "C2" }}
           >
-            <SelectTrigger className="h-7 text-xs bg-muted/60 border border-border rounded px-2 text-foreground focus:outline-none w-auto min-w-0 gap-1">
+            <SelectTrigger size="sm" className="text-xs">
               <SelectValue placeholder="Nivel" />
             </SelectTrigger>
-            <SelectContent className="bg-background border border-border">
-              <SelectItem className="hover:bg-muted text-xs" value="all">Todos los niveles</SelectItem>
-              <SelectItem className="hover:bg-muted text-xs" value="A1">A1</SelectItem>
-              <SelectItem className="hover:bg-muted text-xs" value="A2">A2</SelectItem>
-              <SelectItem className="hover:bg-muted text-xs" value="B1">B1</SelectItem>
-              <SelectItem className="hover:bg-muted text-xs" value="B2">B2</SelectItem>
-              <SelectItem className="hover:bg-muted text-xs" value="C1">C1</SelectItem>
-              <SelectItem className="hover:bg-muted text-xs" value="C2">C2</SelectItem>
+            <SelectContent>
+              <SelectItem className="text-xs" value="all">Todos los niveles</SelectItem>
+              <SelectItem className="text-xs" value="A1">A1</SelectItem>
+              <SelectItem className="text-xs" value="A2">A2</SelectItem>
+              <SelectItem className="text-xs" value="B1">B1</SelectItem>
+              <SelectItem className="text-xs" value="B2">B2</SelectItem>
+              <SelectItem className="text-xs" value="C1">C1</SelectItem>
+              <SelectItem className="text-xs" value="C2">C2</SelectItem>
             </SelectContent>
           </Select>
 
@@ -436,13 +434,14 @@ const ExamsScreen = () => {
           <Select
             value={localFilters.isActive.toString()}
             onValueChange={(value) => setLocalFilters({ ...localFilters, isActive: value === "true" })}
+            items={{ true: "Activos", false: "Inactivos" }}
           >
-            <SelectTrigger className="h-7 text-xs bg-muted/60 border border-border rounded px-2 text-foreground focus:outline-none w-auto min-w-0 gap-1">
+            <SelectTrigger size="sm" className="text-xs">
               <SelectValue />
             </SelectTrigger>
-            <SelectContent className="bg-background border border-border">
-              <SelectItem className="hover:bg-muted text-xs" value="true">Activos</SelectItem>
-              <SelectItem className="hover:bg-muted text-xs" value="false">Inactivos</SelectItem>
+            <SelectContent>
+              <SelectItem className="text-xs" value="true">Activos</SelectItem>
+              <SelectItem className="text-xs" value="false">Inactivos</SelectItem>
             </SelectContent>
           </Select>
 

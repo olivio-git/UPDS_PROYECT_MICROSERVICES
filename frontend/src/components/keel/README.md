@@ -7,11 +7,12 @@ copied at keel commit `79a7958`, on 2026-09-23.
 keel's primitives are built on **@base-ui/react** (Base UI) instead of Radix, which is why
 this frontend now has two coexisting primitive systems on purpose:
 
-- `src/components/atoms/*` — shadcn-over-**Radix** (existing screens, unchanged).
-- `src/components/keel/*` — shadcn-over-**Base UI** (login, app shell/sidebar, student flow).
+- `src/components/atoms/*` — shadcn-over-**Radix**. Legacy: no live screen imports it any more
+  (see "Full-app migration" below); only unreachable files still reference it.
+- `src/components/keel/*` — shadcn-over-**Base UI**. Every screen reachable from `main.tsx` uses
+  these.
 
-Do not migrate the rest of the app to keel components without a deliberate follow-up decision —
-this split is intentional, not a work-in-progress state.
+New screens must import from `@/components/keel/*`, never from `atoms/`.
 
 ## Files ported this slice
 
@@ -49,6 +50,63 @@ selected. `Select` (the Base UI popup version, `select.tsx`) was **not** ported 
 keyboard-and-Playwright-operable, and avoids pulling in `usePortalContainer` for a single
 dropdown. Revisit if a future screen needs multi-select, custom item rendering, or grouped
 options.
+
+## Full-app migration slice (2026-10-04)
+
+Every screen reachable from `main.tsx` (admin, teacher/proctor, users, exams, sessions, reports,
+student) now imports from `keel/` instead of `atoms/`, so the app renders with one set of
+primitives.
+
+### Authored here, not ported — upstream these to keel
+
+keel had no copy of these when the migration ran and its repo was not reachable from this
+environment, so they were written against Base UI 1.5 following keel's own conventions (same
+radii, `ring-1 ring-foreground/10` popups, `usePortalContainer`, `data-slot` attributes, the
+shadcn base-ui API shape). Per the Rule below, port them back into keel and re-port from there so
+the two copies don't drift:
+
+`dialog`, `alert-dialog`, `select`, `dropdown-menu`, `checkbox`, `table`, `avatar`, `sonner`.
+
+API notes for call sites coming from the Radix atoms:
+
+- **No `asChild`.** Triggers take `render={<Button … />}` (or any element) instead.
+- **`select`**: `Select.Value` shows the raw `value` unless the root knows each item's label, so
+  pass `items` (`{ value: label }` record or `{ value, label }[]`) whenever they differ.
+  `onValueChange` can receive `null`; guard it (`(v) => v && …`). `SelectTrigger` is `w-fit` by
+  default; forms pass `className="w-full"`.
+- **`dropdown-menu`**: items fire `onClick`, not Radix's `onSelect`. Use `variant="destructive"`
+  for delete actions instead of red text classes.
+- **`alert-dialog`**: `AlertDialogAction` is a plain `Button` and does **not** close the dialog by
+  itself — callers close it (they already did, after the async action resolves).
+  `AlertDialogCancel` closes it.
+- **`checkbox`**: tri-state is `checked` + `indeterminate` props, not `checked="indeterminate"`.
+- **`hover-card`**: open/close delays live on the trigger (`delay`, `closeDelay`).
+- Radix state selectors (`data-[state=checked]`, `data-[state=open]`) don't match Base UI, which
+  uses `data-checked`, `data-open`, etc.
+
+`UserAvatar` moved from `atoms/UserAvatar.tsx` to `components/UserAvatar.tsx` and is now built on
+`keel/avatar`. `NextExam` used the Radix `useToast`, whose `<Toaster>` was never mounted — it now
+calls `sonner`'s `toast` like the rest of the app.
+
+Call sites also dropped the per-screen colour overrides that made screens look different from each
+other (`bg-blue-600 hover:bg-blue-700 text-white` on buttons, `bg-box`/`border-line` on inputs and
+cards, `bg-popover border-border` on menus): buttons use keel variants (`default` = primary,
+`destructive`, `secondary`, `outline`), and `Card`s that were flattened with `rounded-none` use
+`flat`.
+
+### Still on `atoms/`
+
+Nothing reachable. The files below are not imported from `main.tsx` (directly, through a lazy
+route, or transitively) and were left untouched; deleting them together with `atoms/` and the
+Radix dependencies is the remaining cleanup:
+`components/background/*` (except `GrandWrapperSection`), `components/technical-verification/*`,
+`components/ui/*`, `hooks/use-toast.ts`, `modules/dashboard/components/Header.tsx`,
+`modules/dashboard/screens/{content,dashboard,layout,list-01,list-02,list-03,profile-01,sidebar,top-nav}.tsx`,
+`modules/exams/components/{ImportModal,QuestionModal,QuestionsList}.tsx`,
+`modules/exams/components/question-form/*`, `modules/exams/pages/ExamsModule.tsx`,
+`modules/student/components/{DashboardCards,Performance,SectionedExamRenderer,SectionedQuestionRenderer,StudentHeader}.tsx`,
+`modules/student/screens/ExamReview.tsx`, `modules/users/components/Pagination.tsx`,
+`navigation/components/NavigationBreadcrumb.tsx`.
 
 ## Import path changes made on port
 

@@ -1157,10 +1157,10 @@ const QuestionRenderer: React.FC<Props> = ({
                 }
               </p>
               <Button
+                variant="outline"
                 onClick={shuffleMatchingOptions}
                 size="sm"
-                variant="outline"
-                className="flex items-center gap-1 text-blue-600 border-blue-400 hover:bg-blue-100 dark:text-blue-300 dark:border-blue-600 dark:hover:bg-blue-900/30"
+                className="flex gap-1"
               >
                 <Shuffle className="w-4 h-4" />
                 Mezclar opciones

@@ -1,13 +1,13 @@
-import { Badge } from '@/components/atoms/badge';
-import { Button } from '@/components/atoms/button';
+import { Badge } from '@/components/keel/badge';
+import { Button } from '@/components/keel/button';
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-} from '@/components/atoms/card';
-import { Progress } from '@/components/atoms/progress';
+} from '@/components/keel/card';
+import { Progress } from '@/components/keel/progress';
 import { ContentGradientSection } from '@/components/background';
 import { MainLayout } from '@/components/layout';
 import {
@@ -384,12 +384,13 @@ const ExamReview = () => {
               </p>
             </div>
             <div className="flex gap-2">
-              <Button onClick={handleDownloadPDF} className="bg-blue-700 hover:bg-blue-600 text-white border-line">
+              <Button onClick={handleDownloadPDF}>
                 <Download className="h-4 w-4 mr-2" />
                 Descargar PDF
               </Button>
               <Button variant="outline" onClick={() => navigate(`/student/results/${resultId}`)}
-                className="text-foreground/80 hover:bg-muted bg-box border-line">
+                className="text-foreground/80 hover:bg-muted"
+              >
                 <ArrowLeft className="h-4 w-4 mr-2" />
                 Volver a Resultado
               </Button>
@@ -415,9 +416,9 @@ const ExamReview = () => {
 
         {/* Placement: Desempeño por Nivel MCER */}
         {examResult.levelScores && examResult.levelScores.length > 0 && (
-          <Card className="bg-card backdrop-blur-sm border border-line">
+          <Card>
             <CardHeader>
-              <CardTitle className="text-foreground">Desempeño por Nivel MCER</CardTitle>
+              <CardTitle>Desempeño por Nivel MCER</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               {['A1', 'A2', 'B1', 'B2', 'C1', 'C2'].map(level => {
@@ -447,9 +448,9 @@ const ExamReview = () => {
         )}
 
         {/* Resumen del examen */}
-        <Card className="bg-card backdrop-blur-sm border border-line">
+        <Card>
           <CardHeader>
-            <CardTitle className="text-foreground">Resumen General</CardTitle>
+            <CardTitle>Resumen General</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
@@ -484,11 +485,11 @@ const ExamReview = () => {
         {/* Lista de preguntas */}
         <div className="space-y-6">
           {examResult.questionResults.map((question, index) => (
-            <Card key={question.questionId} className="bg-card backdrop-blur-sm border border-line">
+            <Card key={question.questionId}>
               <CardHeader>
                 <div className="flex items-start justify-between">
                   <div className="flex-1">
-                    <CardTitle className="text-foreground text-lg flex items-center gap-3">
+                    <CardTitle className="text-lg flex items-center gap-3">
                       <span className="bg-muted text-foreground px-3 py-1 rounded-full text-sm">
                         {index + 1}
                       </span>

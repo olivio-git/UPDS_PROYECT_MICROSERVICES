@@ -559,7 +559,7 @@ const ExamRunnerHTTP: React.FC = () => {
       <MainLayout hideHeader>
         <div className="min-h-screen flex items-center justify-center">
           <GradientWrapper intensity="medium" size="lg">
-            <Card className="w-full max-w-md bg-box backdrop-blur-sm border border-line">
+            <Card className="w-full max-w-md">
               <CardContent className="p-8 text-center">
                 <UserX className="h-12 w-12 text-red-500 mx-auto mb-4" />
                 <h3 className="text-lg font-semibold text-foreground mb-2">
@@ -602,7 +602,7 @@ const ExamRunnerHTTP: React.FC = () => {
       <MainLayout hideHeader>
         <div className="min-h-screen flex items-center justify-center">
           <GradientWrapper intensity="medium" size="lg">
-            <Card className="w-full max-w-md bg-box backdrop-blur-sm border border-line">
+            <Card className="w-full max-w-md">
               <CardContent className="p-8">
                 <div className="text-center">
                   <Spinner className="h-12 w-12 text-blue-500 mx-auto mb-4" />
@@ -627,7 +627,7 @@ const ExamRunnerHTTP: React.FC = () => {
       <MainLayout hideHeader>
         <div className="min-h-screen flex items-center justify-center">
           <GradientWrapper intensity="medium" size="lg">
-            <Card className="w-full max-w-md bg-box backdrop-blur-sm border border-line">
+            <Card className="w-full max-w-md">
               <CardContent className="p-8">
                 <Alert variant="destructive">
                   <AlertCircle className="h-4 w-4" />
@@ -653,7 +653,7 @@ const ExamRunnerHTTP: React.FC = () => {
       <MainLayout hideHeader>
         <div className="min-h-screen flex items-center justify-center">
           <GradientWrapper intensity="medium" size="lg">
-            <Card className="w-full max-w-md bg-box backdrop-blur-sm border border-line">
+            <Card className="w-full max-w-md">
               <CardContent className="p-8 text-center">
                 <AlertTriangle className="h-12 w-12 text-yellow-500 mx-auto mb-4" />
                 <h3 className="text-lg font-semibold text-foreground mb-2">
@@ -954,7 +954,7 @@ const ExamRunnerHTTP: React.FC = () => {
                 {isLastQuestionOverall ? (
                   <Button
                     onClick={handleFinishExam}
-                    className="bg-emerald-600 hover:bg-emerald-500 text-white gap-2"
+                    className="gap-2"
                   >
                     <Flag className="h-4 w-4" />
                     Entregar examen
@@ -963,7 +963,6 @@ const ExamRunnerHTTP: React.FC = () => {
                   <Button
                     onClick={goToNextQuestion}
                     disabled={isLastQuestionOverall}
-                    className="bg-blue-600 hover:bg-blue-700 text-white"
                   >
                     {isLastQuestionInSection ? 'Siguiente Sección' : 'Siguiente'}
                     <ChevronRight className="h-4 w-4 ml-1" />

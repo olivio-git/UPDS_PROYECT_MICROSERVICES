@@ -1,6 +1,6 @@
-import { Button } from '@/components/atoms/button';
-import { Calendar } from '@/components/atoms/calendar';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/atoms/popover';
+import { Button } from '@/components/keel/button';
+import { Calendar } from '@/components/keel/calendar';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/keel/popover';
 import { MainLayout } from '@/components/layout';
 import { auditLogService, type AuditFilters, type AuditLogEntry } from '@/services/auditLogService';
 import { cn } from '@/lib/utils';
@@ -194,35 +194,39 @@ const AuditLogsScreen: React.FC = () => {
         {/* Filtros */}
         <div className="bg-card border border-border rounded-lg px-3 py-2 flex flex-wrap items-center gap-2 shrink-0">
           <Popover>
-            <PopoverTrigger asChild>
-              <button className={cn(
-                'h-7 flex items-center gap-1.5 px-2 text-xs rounded border border-border bg-muted/60 text-foreground hover:bg-muted transition-colors whitespace-nowrap',
-                !dateRange?.from && 'text-muted-foreground'
-              )}>
-                <CalendarIcon className="h-3 w-3 shrink-0 text-muted-foreground" />
-                {dateRange?.from ? (
-                  dateRange.to ? (
-                    <>
-                      {format(dateRange.from, 'd MMM', { locale: es })}
-                      {' — '}
-                      {format(dateRange.to, 'd MMM yyyy', { locale: es })}
-                    </>
-                  ) : (
-                    format(dateRange.from, 'd MMM yyyy', { locale: es })
-                  )
+            <PopoverTrigger
+              render={
+                <button
+                  className={cn(
+                    'h-7 flex items-center gap-1.5 px-2 text-xs rounded border border-border bg-muted/60 text-foreground hover:bg-muted transition-colors whitespace-nowrap',
+                    !dateRange?.from && 'text-muted-foreground'
+                  )}
+                />
+              }
+            >
+              <CalendarIcon className="h-3 w-3 shrink-0 text-muted-foreground" />
+              {dateRange?.from ? (
+                dateRange.to ? (
+                  <>
+                    {format(dateRange.from, 'd MMM', { locale: es })}
+                    {' — '}
+                    {format(dateRange.to, 'd MMM yyyy', { locale: es })}
+                  </>
                 ) : (
-                  'Rango de fechas'
-                )}
-                {dateRange?.from && (
-                  <span
-                    role="button"
-                    onClick={e => { e.stopPropagation(); handleDateRangeChange(undefined); }}
-                    className="ml-1 text-muted-foreground hover:text-foreground"
-                  >
-                    <X className="h-3 w-3" />
-                  </span>
-                )}
-              </button>
+                  format(dateRange.from, 'd MMM yyyy', { locale: es })
+                )
+              ) : (
+                'Rango de fechas'
+              )}
+              {dateRange?.from && (
+                <span
+                  role="button"
+                  onClick={e => { e.stopPropagation(); handleDateRangeChange(undefined); }}
+                  className="ml-1 text-muted-foreground hover:text-foreground"
+                >
+                  <X className="h-3 w-3" />
+                </span>
+              )}
             </PopoverTrigger>
             <PopoverContent className="w-auto p-0" align="start">
               <Calendar

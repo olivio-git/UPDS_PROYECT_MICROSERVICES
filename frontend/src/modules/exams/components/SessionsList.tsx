@@ -1,5 +1,5 @@
-import { Calendar } from '@/components/atoms/calendar';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/atoms/popover';
+import { Calendar } from '@/components/keel/calendar';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/keel/popover';
 import CustomizableTable from '@/components/common/CustomizableTable';
 import { MainLayout } from '@/components/layout';
 import { cn } from '@/lib/utils';
@@ -581,17 +581,19 @@ const SessionsList: React.FC = () => {
 
         return (
           <Popover>
-            <PopoverTrigger asChild>
-              <button
-                className={`p-1.5 rounded-md transition-colors hover:bg-muted/60 ${
-                  isInProgress
-                    ? 'text-cyan-500 dark:text-cyan-400 hover:bg-cyan-500/10'
-                    : 'text-muted-foreground hover:text-foreground'
-                }`}
-                title="Acciones"
-              >
-                <MoreHorizontal className="h-4 w-4" />
-              </button>
+            <PopoverTrigger
+              render={
+                <button
+                  className={`p-1.5 rounded-md transition-colors hover:bg-muted/60 ${
+                    isInProgress
+                      ? 'text-cyan-500 dark:text-cyan-400 hover:bg-cyan-500/10'
+                      : 'text-muted-foreground hover:text-foreground'
+                  }`}
+                  title="Acciones"
+                />
+              }
+            >
+              <MoreHorizontal className="h-4 w-4" />
             </PopoverTrigger>
             <PopoverContent align="end" className="w-44 p-1">
               {menuItems.map((item, i) => (
@@ -845,27 +847,31 @@ const SessionsList: React.FC = () => {
 
           {/* Date range */}
           <Popover>
-            <PopoverTrigger asChild>
-              <button className={cn(
-                'h-7 flex items-center gap-1.5 px-2 text-xs rounded border border-border bg-muted/60 text-foreground hover:bg-muted transition-colors whitespace-nowrap',
-                !dateRange?.from && 'text-muted-foreground'
-              )}>
-                <Clock className="h-3 w-3 shrink-0 text-muted-foreground" />
-                {dateRange?.from ? (
-                  dateRange.to
-                    ? <>{format(dateRange.from, 'd MMM', { locale: es })} — {format(dateRange.to, 'd MMM yy', { locale: es })}</>
-                    : format(dateRange.from, 'd MMM yyyy', { locale: es })
-                ) : 'Rango de fechas'}
-                {dateRange?.from && (
-                  <span
-                    role="button"
-                    onClick={e => { e.stopPropagation(); handleDateRangeChange(undefined); }}
-                    className="ml-1 text-muted-foreground hover:text-foreground"
-                  >
-                    <XCircle className="h-3 w-3" />
-                  </span>
-                )}
-              </button>
+            <PopoverTrigger
+              render={
+                <button
+                  className={cn(
+                    'h-7 flex items-center gap-1.5 px-2 text-xs rounded border border-border bg-muted/60 text-foreground hover:bg-muted transition-colors whitespace-nowrap',
+                    !dateRange?.from && 'text-muted-foreground'
+                  )}
+                />
+              }
+            >
+              <Clock className="h-3 w-3 shrink-0 text-muted-foreground" />
+              {dateRange?.from ? (
+                dateRange.to
+                  ? <>{format(dateRange.from, 'd MMM', { locale: es })} — {format(dateRange.to, 'd MMM yy', { locale: es })}</>
+                  : format(dateRange.from, 'd MMM yyyy', { locale: es })
+              ) : 'Rango de fechas'}
+              {dateRange?.from && (
+                <span
+                  role="button"
+                  onClick={e => { e.stopPropagation(); handleDateRangeChange(undefined); }}
+                  className="ml-1 text-muted-foreground hover:text-foreground"
+                >
+                  <XCircle className="h-3 w-3" />
+                </span>
+              )}
             </PopoverTrigger>
             <PopoverContent className="w-auto p-0" align="start">
               <Calendar

@@ -1,4 +1,4 @@
-import { Badge } from '@/components/atoms/badge';
+import { Badge } from '@/components/keel/badge';
 
 export type MCERLevel = 'A1' | 'A2' | 'B1' | 'B2' | 'C1' | 'C2';
 

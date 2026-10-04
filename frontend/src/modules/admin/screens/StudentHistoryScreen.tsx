@@ -1,4 +1,4 @@
-import { Button } from '@/components/atoms/button';
+import { Button } from '@/components/keel/button';
 import { MainLayout } from '@/components/layout';
 import ExportOptionsModal from '@/components/modals/ExportOptionsModal';
 import type { Candidate } from '@/services/candidateService';
@@ -104,7 +104,7 @@ const StudentHistoryScreen: React.FC = () => {
             </div>
           </div>
           {data && (
-            <Button onClick={() => setExportOpen(true)} size="sm" className="bg-emerald-600 hover:bg-emerald-700 text-white h-7 text-xs">
+            <Button size="sm" onClick={() => setExportOpen(true)}>
               <Download className="h-3 w-3 mr-1" />Exportar
             </Button>
           )}

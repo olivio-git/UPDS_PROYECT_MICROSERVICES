@@ -1,6 +1,6 @@
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/atoms/card';
-import { Progress } from '@/components/atoms/progress';
-import { Badge } from '@/components/atoms/badge';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/keel/card';
+import { Progress } from '@/components/keel/progress';
+import { Badge } from '@/components/keel/badge';
 
 interface EducationalStatsProps {
   totalStudents?: number;

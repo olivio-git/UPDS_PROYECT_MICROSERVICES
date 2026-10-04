@@ -1,4 +1,4 @@
-import { Card } from '@/components/atoms/card';
+import { Card } from '@/components/keel/card';
 import { cn } from '@/lib/utils';
 import type { LucideIcon } from 'lucide-react';
 import type { ReactNode } from 'react';
@@ -17,7 +17,7 @@ interface ReportCardProps {
 /** Card shell shared by every section of the reports screen. */
 export function ReportCard({ icon: Icon, title, actions, subheader, bodyClassName, children }: ReportCardProps) {
   return (
-    <Card className="rounded-none border border-border bg-card shadow-none">
+    <Card flat>
       <div className="px-4 py-2.5 border-b border-border/50">
         <div className="flex items-center justify-between gap-2">
           <div className="flex items-center gap-2 text-sm font-medium text-foreground">

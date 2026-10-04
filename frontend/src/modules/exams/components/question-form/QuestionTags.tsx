@@ -4,10 +4,10 @@ import {
   CardDescription,
   CardHeader,
   CardTitle,
-} from '@/components/atoms/card';
-import { Button } from '@/components/atoms/button';
-import { Input } from '@/components/atoms/input';
-import { Label } from '@/components/atoms/label';
+} from '@/components/keel/card';
+import { Button } from '@/components/keel/button';
+import { Input } from '@/components/keel/input';
+import { Label } from '@/components/keel/label';
 import React, { useState } from 'react';
 import type { Question } from '../../types';
 
@@ -65,9 +65,9 @@ const QuestionTags: React.FC<Props> = ({
   };
 
   return (
-    <Card className="border border-line">
+    <Card>
       <CardHeader>
-        <CardTitle className="text-foreground">Etiquetas</CardTitle>
+        <CardTitle>Etiquetas</CardTitle>
         <CardDescription>
           Palabras clave para búsqueda y categorización
         </CardDescription>

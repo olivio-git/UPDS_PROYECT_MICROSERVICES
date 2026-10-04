@@ -1,5 +1,5 @@
-import { Button } from '@/components/atoms/button';
-import { Card, CardContent } from '@/components/atoms/card';
+import { Button } from '@/components/keel/button';
+import { Card, CardContent } from '@/components/keel/card';
 import type { Question } from '@/modules/exams/types';
 import { AlertTriangle, CheckCircle2, Loader2, PanelLeftClose, PanelLeftOpen, Save } from 'lucide-react';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
@@ -366,10 +366,11 @@ const SectionedExamRenderer: React.FC<SectionedExamRendererProps> = ({
           )}
           {!showFinishConfirm ? (
             <Button
+              variant="destructive"
               onClick={() => setShowFinishConfirm(true)}
               disabled={loading || disabled}
               size="sm"
-              className="bg-red-600 hover:bg-red-700 text-white gap-2 px-5"
+              className="gap-2"
             >
               {loading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : null}
               Entregar Examen
@@ -380,10 +381,11 @@ const SectionedExamRenderer: React.FC<SectionedExamRendererProps> = ({
                 ¿Seguro?
               </span>
               <Button
+                variant="destructive"
+                size="sm"
                 onClick={handleFinishExam}
                 disabled={loading}
-                size="sm"
-                className="bg-red-600 hover:bg-red-700 text-white h-7 px-3 text-xs gap-1"
+                className="px-3 gap-1"
               >
                 {loading
                   ? <Loader2 className="h-3 w-3 animate-spin" />

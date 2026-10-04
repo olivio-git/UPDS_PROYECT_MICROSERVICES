@@ -1,6 +1,6 @@
-import { Button } from '@/components/atoms/button';
-import { Input } from '@/components/atoms/input';
-import { UserAvatar } from '@/components/atoms/UserAvatar';
+import { Button } from '@/components/keel/button';
+import { Input } from '@/components/keel/input';
+import { UserAvatar } from '@/components/UserAvatar';
 import {
   AlertCircle, Check, Loader2, Search,
   UserMinus, UserPlus, Users,

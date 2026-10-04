@@ -1,4 +1,4 @@
-import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/components/atoms/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/components/keel/dialog';
 import { QuestionResultCard, useAdminResultDetail } from '@/components/exam-review';
 import { scoreBadgeClass, scoreBarClass, scoreTextClass } from '@/lib/scoreBands';
 import { cn } from '@/lib/utils';
@@ -108,13 +108,13 @@ interface ExamDetailDialogProps {
 export function ExamDetailDialog({ exam, onClose }: ExamDetailDialogProps) {
   return (
     <Dialog open={exam !== null} onOpenChange={(open) => { if (!open) onClose(); }}>
-      <DialogContent className="max-w-2xl max-h-[90vh] p-0 gap-0 flex flex-col overflow-hidden rounded-xl">
+      <DialogContent className="sm:max-w-2xl max-h-[90vh] p-0 gap-0 flex flex-col overflow-hidden">
         {exam && (
           <>
             <div className="flex items-start justify-between gap-3 px-5 py-4 pr-12 border-b border-border shrink-0">
               <div className="min-w-0">
-                <DialogTitle className="text-sm font-semibold text-foreground truncate">{exam.examTitle}</DialogTitle>
-                <DialogDescription className="text-xs text-muted-foreground mt-0.5">{exam.sessionName}</DialogDescription>
+                <DialogTitle className="truncate">{exam.examTitle}</DialogTitle>
+                <DialogDescription className="mt-0.5">{exam.sessionName}</DialogDescription>
               </div>
               <span className={cn('inline-flex items-center px-2.5 py-1 rounded-full text-sm font-bold border shrink-0', scoreBadgeClass(exam.percentage))}>
                 {exam.percentage.toFixed(1)}%

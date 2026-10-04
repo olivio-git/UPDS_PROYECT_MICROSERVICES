@@ -1,6 +1,6 @@
-import { Button } from "@/components/atoms/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/atoms/card";
-import { Input } from "@/components/atoms/input";
+import { Button } from "@/components/keel/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/keel/card";
+import { Input } from "@/components/keel/input";
 import { authService } from "@/modules/auth/services/authService";
 import { Eye, EyeOff, KeyRound, Lock, Mail, Shield, X } from "lucide-react";
 import { useState } from "react";
@@ -137,12 +137,12 @@ export const ChangePasswordFlow: React.FC<ChangePasswordFlowProps> = ({
 
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
-      <Card className="w-full max-w-md bg-card border border-border shadow-xl">
+      <Card className="w-full max-w-md shadow-xl">
         <CardHeader>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Shield className="h-5 w-5 text-blue-400" />
-              <CardTitle className="text-foreground">
+              <CardTitle>
                 {step === 'initial' && 'Cambiar Contraseña'}
                 {step === 'otp_verification' && 'Verificación OTP'}
                 {step === 'success' && 'Contraseña Actualizada'}
@@ -176,9 +176,9 @@ export const ChangePasswordFlow: React.FC<ChangePasswordFlowProps> = ({
                     type={showCurrentPassword ? "text" : "password"}
                     value={formData.currentPassword}
                     onChange={(e) => updateFormData('currentPassword', e.target.value)}
-                    className="bg-muted border-border text-foreground pr-10"
+                    className="bg-muted pr-10"
                     placeholder="Ingresa tu contraseña actual"
-                  />
+/>
                   <Button
                     type="button"
                     variant="ghost"
@@ -203,9 +203,9 @@ export const ChangePasswordFlow: React.FC<ChangePasswordFlowProps> = ({
                     type={showNewPassword ? "text" : "password"}
                     value={formData.newPassword}
                     onChange={(e) => updateFormData('newPassword', e.target.value)}
-                    className="bg-muted border-border text-foreground pr-10"
+                    className="bg-muted pr-10"
                     placeholder="Mínimo 8 caracteres"
-                  />
+/>
                   <Button
                     type="button"
                     variant="ghost"
@@ -229,9 +229,9 @@ export const ChangePasswordFlow: React.FC<ChangePasswordFlowProps> = ({
                   type="password"
                   value={formData.confirmPassword}
                   onChange={(e) => updateFormData('confirmPassword', e.target.value)}
-                  className="bg-muted border-border text-foreground"
+                  className="bg-muted"
                   placeholder="Repite tu nueva contraseña"
-                />
+/>
                 {errors.confirmPassword && (
                   <p className="text-red-400 text-sm">{errors.confirmPassword}</p>
                 )}
@@ -248,7 +248,7 @@ export const ChangePasswordFlow: React.FC<ChangePasswordFlowProps> = ({
                 </Button>
                 <Button
                   size={"sm"}
-                  className="flex-1 bg-blue-600 hover:bg-blue-700 text-white"
+                  className="flex-1"
                   onClick={handleInitialSubmit}
                   disabled={loading}
                 >
@@ -290,10 +290,10 @@ export const ChangePasswordFlow: React.FC<ChangePasswordFlowProps> = ({
                   type="text"
                   value={formData.otpCode}
                   onChange={(e) => updateFormData('otpCode', e.target.value.replace(/\D/g, '').slice(0, 6))}
-                  className="bg-muted border-border text-foreground text-center text-xl tracking-widest"
+                  className="bg-muted text-center text-xl tracking-widest"
                   placeholder="000000"
                   maxLength={6}
-                />
+/>
                 {errors.otpCode && (
                   <p className="text-red-400 text-sm">{errors.otpCode}</p>
                 )}
@@ -309,7 +309,7 @@ export const ChangePasswordFlow: React.FC<ChangePasswordFlowProps> = ({
                   Volver
                 </Button>
                 <Button
-                  className="flex-1 bg-green-600 hover:bg-green-700 text-white"
+                  className="flex-1"
                   onClick={handleOtpSubmit}
                   size={"sm"}
                   disabled={loading || formData.otpCode.length !== 6}
@@ -343,7 +343,7 @@ export const ChangePasswordFlow: React.FC<ChangePasswordFlowProps> = ({
               </div>
               <Button
                 size={"sm"}
-                className="w-full bg-green-600 hover:bg-green-700 text-white"
+                className="w-full"
                 onClick={handleClose}
               >
                 Continuar

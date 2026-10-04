@@ -1,4 +1,4 @@
-import { Card } from '@/components/atoms/card';
+import { Card } from '@/components/keel/card';
 import type { CompetencyAnalysis, DashboardSummary } from '@/services/reportsService';
 import { COMPETENCY_LABELS } from './constants';
 
@@ -15,7 +15,7 @@ export function InsightsCard({ summary, competency }: InsightsCardProps) {
     .filter(({ data }) => (data?.studentsEvaluated ?? 0) > 0);
 
   return (
-    <Card className="rounded-none border border-border bg-card shadow-none">
+    <Card flat>
       <div className="p-4 grid grid-cols-1 md:grid-cols-2 gap-4">
         <section>
           <p

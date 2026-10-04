@@ -1,9 +1,9 @@
-import { Button } from "@/components/atoms/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/atoms/card";
-import { Input } from "@/components/atoms/input";
-import { Label } from "@/components/atoms/label";
-import { Switch } from "@/components/atoms/switch";
-import { Textarea } from "@/components/atoms/textarea";
+import { Button } from "@/components/keel/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/keel/card";
+import { Input } from "@/components/keel/input";
+import { Label } from "@/components/keel/label";
+import { Switch } from "@/components/keel/switch";
+import { Textarea } from "@/components/keel/textarea";
 import { Plus, Save, Trash2, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import { COMPETENCIES, COMPETENCY_LABELS, type Competency, type MCERLevel } from "../../constants/academic.constants";
@@ -160,9 +160,9 @@ const LevelForm = ({
     <div className="space-y-6">
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* Información Básica */}
-        <Card className="bg-muted/30 border-border">
+        <Card className="bg-muted/30">
           <CardHeader>
-            <CardTitle className="text-foreground">Información Básica</CardTitle>
+            <CardTitle>Información Básica</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -192,8 +192,7 @@ const LevelForm = ({
                   max="100"
                   value={formData.overallMinScore}
                   onChange={(e) => handleInputChange('overallMinScore', parseInt(e.target.value))}
-                  className="bg-muted/50 border-border text-foreground"
-                />
+/>
                 {errors.overallMinScore && (
                   <p className="text-red-400 text-sm">{errors.overallMinScore}</p>
                 )}
@@ -209,8 +208,7 @@ const LevelForm = ({
                 value={formData.name}
                 onChange={(e) => handleInputChange('name', e.target.value)}
                 placeholder="Ej: Usuario Básico - Acceso"
-                className="bg-muted/50 border-border text-foreground"
-              />
+/>
               {errors.name && (
                 <p className="text-red-400 text-sm">{errors.name}</p>
               )}
@@ -225,8 +223,8 @@ const LevelForm = ({
                 value={formData.description}
                 onChange={(e) => handleInputChange('description', e.target.value)}
                 placeholder="Describe las características y objetivos de este nivel..."
-                className="bg-muted/50 border-border text-foreground min-h-20"
-              />
+                className="min-h-20"
+/>
               {errors.description && (
                 <p className="text-red-400 text-sm">{errors.description}</p>
               )}
@@ -236,7 +234,6 @@ const LevelForm = ({
               <Switch
                 id="isActive"
                 checked={formData.isActive}
-                className="bg-input data-[state=checked]:bg-blue-600"
                 onCheckedChange={(checked) => handleInputChange('isActive', checked)}
               />
               <Label htmlFor="isActive" className="text-muted-foreground">
@@ -247,9 +244,9 @@ const LevelForm = ({
         </Card>
 
         {/* Requisitos por Competencia */}
-        <Card className="bg-muted/30 border-border">
+        <Card className="bg-muted/30">
           <CardHeader>
-            <CardTitle className="text-foreground">Requisitos por Competencia</CardTitle>
+            <CardTitle>Requisitos por Competencia</CardTitle>
           </CardHeader>
           <CardContent className="space-y-6">
             {COMPETENCIES.map((competency) => (
@@ -273,8 +270,7 @@ const LevelForm = ({
                         'minScore', 
                         parseInt(e.target.value)
                       )}
-                      className="bg-muted/50 border-border text-foreground"
-                    />
+/>
                     {errors[`competency_${competency}_score`] && (
                       <p className="text-red-400 text-sm">{errors[`competency_${competency}_score`]}</p>
                     )}
@@ -292,8 +288,7 @@ const LevelForm = ({
                         e.target.value
                       )}
                       placeholder={`Descripción para ${COMPETENCY_LABELS[competency]}`}
-                      className="bg-muted/50 border-border text-foreground"
-                    />
+/>
                     {errors[`competency_${competency}_desc`] && (
                       <p className="text-red-400 text-sm">{errors[`competency_${competency}_desc`]}</p>
                     )}
@@ -324,15 +319,14 @@ const LevelForm = ({
                         value={statement}
                         onChange={(e) => updateCanDoStatement(competency, index, e.target.value)}
                         placeholder={`Descriptor ${index + 1} para ${COMPETENCY_LABELS[competency]}`}
-                        className="bg-muted/50 border-border text-foreground flex-1"
-                      />
+                        className="flex-1"
+/>
                       {formData.competencyRequirements[competency]?.canDoStatements?.length > 1 && (
                         <Button
+                          variant="destructive"
                           type="button"
-                          variant="ghost"
                           size="sm"
                           onClick={() => removeCanDoStatement(competency, index)}
-                          className="text-red-400 hover:text-red-300 hover:bg-red-500/10"
                         >
                           <Trash2 className="h-4 w-4" />
                         </Button>
@@ -362,7 +356,6 @@ const LevelForm = ({
             type="submit"
             disabled={isLoading}
             size={'sm'}
-            className="bg-blue-600 hover:bg-blue-700 text-white"
           >
             {isLoading ? (
               <div className="flex items-center">

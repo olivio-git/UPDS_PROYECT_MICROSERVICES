@@ -4,16 +4,16 @@ import {
   CardDescription,
   CardHeader,
   CardTitle,
-} from '@/components/atoms/card';
-import { Input } from '@/components/atoms/input';
-import { Label } from '@/components/atoms/label';
+} from '@/components/keel/card';
+import { Input } from '@/components/keel/input';
+import { Label } from '@/components/keel/label';
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/atoms/select';
+} from '@/components/keel/select';
 import React from 'react';
 import type {
   Competency,
@@ -91,9 +91,9 @@ const QuestionMetadata: React.FC<Props> = ({
   const typeIsFixed = availableTypes.length === 1;
 
   return (
-    <Card className="border border-line">
+    <Card>
       <CardHeader>
-        <CardTitle className="text-foreground">Metadatos</CardTitle>
+        <CardTitle>Metadatos</CardTitle>
         <CardDescription>Configura tipo, competencia y nivel</CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -102,23 +102,24 @@ const QuestionMetadata: React.FC<Props> = ({
           <div className="space-y-2">
             <Label>Competencia</Label>
             <Select
-              value={formData.competency as string}
-              onValueChange={handleCompetencyChange}
+              value={(formData.competency as string) || null}
+              onValueChange={(v) => v && handleCompetencyChange(v as Competency)}
+              items={{ reading: 'Comprensión Lectora', writing: 'Expresión Escrita', listening: 'Comprensión Auditiva', speaking: 'Expresión Oral' }}
             >
               <SelectTrigger className={baseInputClass}>
                 <SelectValue placeholder="Selecciona la competencia" />
               </SelectTrigger>
-              <SelectContent className="bg-popover border border-line">
-                <SelectItem className="hover:bg-muted" value="reading">
+              <SelectContent>
+                <SelectItem value="reading">
                   Comprensión Lectora
                 </SelectItem>
-                <SelectItem className="hover:bg-muted" value="writing">
+                <SelectItem value="writing">
                   Expresión Escrita
                 </SelectItem>
-                <SelectItem className="hover:bg-muted" value="listening">
+                <SelectItem value="listening">
                   Comprensión Auditiva
                 </SelectItem>
-                <SelectItem className="hover:bg-muted" value="speaking">
+                <SelectItem value="speaking">
                   Expresión Oral
                 </SelectItem>
               </SelectContent>
@@ -135,15 +136,16 @@ const QuestionMetadata: React.FC<Props> = ({
               </div>
             ) : (
               <Select
-                value={formData.type as string}
-                onValueChange={(v: QuestionType) => updateField('type', v)}
+                value={(formData.type as string) || null}
+                onValueChange={(v) => v && updateField('type', v as QuestionType)}
+                items={TYPE_LABELS}
               >
                 <SelectTrigger className={baseInputClass}>
                   <SelectValue placeholder="Selecciona el tipo" />
                 </SelectTrigger>
-                <SelectContent className="bg-popover border border-line">
+                <SelectContent>
                   {availableTypes.map(type => (
-                    <SelectItem key={type} className="hover:bg-muted" value={type}>
+                    <SelectItem key={type} value={type}>
                       {TYPE_LABELS[type]}
                     </SelectItem>
                   ))}
@@ -156,19 +158,19 @@ const QuestionMetadata: React.FC<Props> = ({
           <div className="space-y-2">
             <Label>Nivel MCER</Label>
             <Select
-              value={formData.level as string}
-              onValueChange={(v: Level) => updateField('level', v)}
+              value={(formData.level as string) || null}
+              onValueChange={(v) => v && updateField('level', v as Level)}
             >
               <SelectTrigger className={baseInputClass}>
                 <SelectValue placeholder="Selecciona el nivel" />
               </SelectTrigger>
-              <SelectContent className="bg-popover border border-line">
-                <SelectItem className="hover:bg-muted" value="A1">A1</SelectItem>
-                <SelectItem className="hover:bg-muted" value="A2">A2</SelectItem>
-                <SelectItem className="hover:bg-muted" value="B1">B1</SelectItem>
-                <SelectItem className="hover:bg-muted" value="B2">B2</SelectItem>
-                <SelectItem className="hover:bg-muted" value="C1">C1</SelectItem>
-                <SelectItem className="hover:bg-muted" value="C2">C2</SelectItem>
+              <SelectContent>
+                <SelectItem value="A1">A1</SelectItem>
+                <SelectItem value="A2">A2</SelectItem>
+                <SelectItem value="B1">B1</SelectItem>
+                <SelectItem value="B2">B2</SelectItem>
+                <SelectItem value="C1">C1</SelectItem>
+                <SelectItem value="C2">C2</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -180,17 +182,18 @@ const QuestionMetadata: React.FC<Props> = ({
             <Label>Dificultad</Label>
             <Select
               value={String(formData.difficulty ?? 3)}
-              onValueChange={v => updateField('difficulty', Number(v))}
+              onValueChange={v => v && updateField('difficulty', Number(v))}
+              items={{ 1: 'Muy Fácil', 2: 'Fácil', 3: 'Medio', 4: 'Difícil', 5: 'Muy Difícil' }}
             >
               <SelectTrigger className={baseInputClass}>
                 <SelectValue placeholder="Selecciona la dificultad" />
               </SelectTrigger>
-              <SelectContent className="bg-popover border border-line">
-                <SelectItem className="hover:bg-muted" value="1">Muy Fácil</SelectItem>
-                <SelectItem className="hover:bg-muted" value="2">Fácil</SelectItem>
-                <SelectItem className="hover:bg-muted" value="3">Medio</SelectItem>
-                <SelectItem className="hover:bg-muted" value="4">Difícil</SelectItem>
-                <SelectItem className="hover:bg-muted" value="5">Muy Difícil</SelectItem>
+              <SelectContent>
+                <SelectItem value="1">Muy Fácil</SelectItem>
+                <SelectItem value="2">Fácil</SelectItem>
+                <SelectItem value="3">Medio</SelectItem>
+                <SelectItem value="4">Difícil</SelectItem>
+                <SelectItem value="5">Muy Difícil</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -211,13 +214,14 @@ const QuestionMetadata: React.FC<Props> = ({
             <Select
               value={formData.isActive ?? true ? 'true' : 'false'}
               onValueChange={v => updateField('isActive', v === 'true')}
+              items={{ true: 'Activa', false: 'Inactiva' }}
             >
               <SelectTrigger className={baseInputClass}>
                 <SelectValue placeholder="Selecciona el estado" />
               </SelectTrigger>
-              <SelectContent className="bg-popover border border-line">
-                <SelectItem className="hover:bg-muted" value="true">Activa</SelectItem>
-                <SelectItem className="hover:bg-muted" value="false">Inactiva</SelectItem>
+              <SelectContent>
+                <SelectItem value="true">Activa</SelectItem>
+                <SelectItem value="false">Inactiva</SelectItem>
               </SelectContent>
             </Select>
           </div>

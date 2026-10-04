@@ -1,14 +1,14 @@
-import { Button } from '@/components/atoms/button';
-import { Input } from '@/components/atoms/input';
-import { Label } from '@/components/atoms/label';
+import { Button } from '@/components/keel/button';
+import { Input } from '@/components/keel/input';
+import { Label } from '@/components/keel/label';
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/atoms/select';
-import { Textarea } from '@/components/atoms/textarea';
+} from '@/components/keel/select';
+import { Textarea } from '@/components/keel/textarea';
 import { Plus, Trash2 } from 'lucide-react';
 import React from 'react';
 import type { Question } from '../../types';
@@ -193,14 +193,13 @@ const QuestionSpecialTypes: React.FC<Props> = ({
             <Label>Tipo de respuesta esperada</Label>
             <Select
               value={formData.content?.expectedResponseType || 'sentence'}
-              onValueChange={(value: 'word' | 'sentence' | 'paragraph') =>
-                updateContent('expectedResponseType', value)
-              }
+              onValueChange={(value) => value && updateContent('expectedResponseType', value)}
+              items={{ word: 'Palabra', sentence: 'Oración', paragraph: 'Párrafo' }}
             >
               <SelectTrigger className={baseInputClass}>
                 <SelectValue placeholder="Selecciona el tipo" />
               </SelectTrigger>
-              <SelectContent className="bg-card border border-line">
+              <SelectContent>
                 <SelectItem value="word">Palabra</SelectItem>
                 <SelectItem value="sentence">Oración</SelectItem>
                 <SelectItem value="paragraph">Párrafo</SelectItem>

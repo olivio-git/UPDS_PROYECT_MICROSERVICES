@@ -1356,7 +1356,7 @@ const ExamPreparation = () => {
                   entryStatus === 'too_early' ||
                   entryStatus === 'prep_window'
                 }
-                className="w-full h-10 bg-blue-600 hover:bg-blue-500 disabled:opacity-40 disabled:cursor-not-allowed"
+                className="w-full h-10"
               >
                 {isStarting ? (
                   <>

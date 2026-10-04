@@ -1,5 +1,5 @@
-import { Button } from '@/components/atoms/button';
-import { UserAvatar } from '@/components/atoms/UserAvatar';
+import { Button } from '@/components/keel/button';
+import { UserAvatar } from '@/components/UserAvatar';
 import { useAuthStore } from '@/modules/auth/services/authStore';
 import { protectedRoutes } from '@/navigation/Protected.Route';
 import { notificationService } from '@/services/notifications/notificationService';

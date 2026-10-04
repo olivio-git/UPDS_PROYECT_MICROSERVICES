@@ -1,5 +1,5 @@
 import { AlertTriangle, RefreshCw } from "lucide-react";
-import { Button } from "../atoms/button";
+import { Button } from "@/components/keel/button";
 
 interface ErrorDataProps {
     onRetry?: () => void;

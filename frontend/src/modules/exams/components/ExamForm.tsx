@@ -1,8 +1,8 @@
-import { Button } from '@/components/atoms/button';
-import { Input } from '@/components/atoms/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/atoms/select';
-import { Switch } from '@/components/atoms/switch';
-import { Textarea } from '@/components/atoms/textarea';
+import { Button } from '@/components/keel/button';
+import { Input } from '@/components/keel/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/keel/select';
+import { Switch } from '@/components/keel/switch';
+import { Textarea } from '@/components/keel/textarea';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { BarChart3, Plus, RotateCcw, Save, Trash2, X } from 'lucide-react';
 import React, { useCallback, useEffect, useState } from 'react';
@@ -452,8 +452,6 @@ const ExamForm: React.FC<ExamFormProps> = ({ exam, onCancel, onSaved }) => {
     );
   };
 
-  const baseInputClass = "bg-muted/50 border-border text-foreground placeholder-muted-foreground";
-
   // Suma de pesos de las secciones — solo relevante cuando hay secciones (se
   // ignora en modo adaptativo, que las vacía por completo).
   const rawSectionWeightTotal = sumWeights(watchedSections.map(section => section?.weight));
@@ -475,7 +473,6 @@ const ExamForm: React.FC<ExamFormProps> = ({ exam, onCancel, onSaved }) => {
               <Input
                 {...field}
                 placeholder="Ej: Examen de Nivelación A1"
-                className={baseInputClass}
               />
             )}
           />
@@ -492,8 +489,8 @@ const ExamForm: React.FC<ExamFormProps> = ({ exam, onCancel, onSaved }) => {
             name="type"
             control={control}
             render={({ field }) => (
-              <Select value={field.value} onValueChange={field.onChange}>
-                <SelectTrigger className={baseInputClass}>
+              <Select value={field.value || null} onValueChange={(v) => v && field.onChange(v)} items={{ placement: 'Colocación', progress: 'Progreso', final: 'Final', practice: 'Práctica' }}>
+                <SelectTrigger className="w-full">
                   <SelectValue placeholder="Selecciona el tipo" />
                 </SelectTrigger>
                 <SelectContent>
@@ -518,8 +515,13 @@ const ExamForm: React.FC<ExamFormProps> = ({ exam, onCancel, onSaved }) => {
             name="targetLevel"
             control={control}
             render={({ field }) => (
-              <Select value={field.value} onValueChange={field.onChange} disabled={isLoadingLevels}>
-                <SelectTrigger className={baseInputClass}>
+              <Select
+                value={field.value || null}
+                onValueChange={(v) => v && field.onChange(v)}
+                items={levels.map((level) => ({ value: level.code, label: `${level.code} - ${level.name}` }))}
+                disabled={isLoadingLevels}
+              >
+                <SelectTrigger className="w-full">
                   <SelectValue placeholder={isLoadingLevels ? "Cargando niveles..." : "Selecciona el nivel"} />
                 </SelectTrigger>
                 <SelectContent>
@@ -559,7 +561,6 @@ const ExamForm: React.FC<ExamFormProps> = ({ exam, onCancel, onSaved }) => {
                 min="1"
                 max="100"
                 onChange={(e) => field.onChange(parseInt(e.target.value) || 0)}
-                className={baseInputClass}
               />
             )}
           />
@@ -582,7 +583,6 @@ const ExamForm: React.FC<ExamFormProps> = ({ exam, onCancel, onSaved }) => {
               {...field}
               placeholder="Descripción del examen..."
               rows={3}
-              className={baseInputClass}
             />
           )}
         />
@@ -598,7 +598,9 @@ const ExamForm: React.FC<ExamFormProps> = ({ exam, onCancel, onSaved }) => {
               <label className="block text-sm font-medium text-muted-foreground">Modo</label>
               <Select
                 value={placementConfig.mode}
+                items={{ static: 'Estático (secciones fijas)', adaptive: 'Adaptativo (CAT)' }}
                 onValueChange={(v) => {
+                  if (!v) return;
                   const newMode = v as 'static' | 'adaptive';
                   setPlacementConfig(p => ({ ...p, mode: newMode }));
                   if (newMode === 'adaptive') {
@@ -625,7 +627,7 @@ const ExamForm: React.FC<ExamFormProps> = ({ exam, onCancel, onSaved }) => {
                   }
                 }}
               >
-                <SelectTrigger className={baseInputClass}>
+                <SelectTrigger className="w-full">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -645,7 +647,6 @@ const ExamForm: React.FC<ExamFormProps> = ({ exam, onCancel, onSaved }) => {
                 max="100"
                 value={placementConfig.levelPassingThreshold}
                 onChange={(e) => setPlacementConfig(p => ({ ...p, levelPassingThreshold: parseInt(e.target.value) || 60 }))}
-                className={baseInputClass}
               />
             </div>
 
@@ -655,9 +656,9 @@ const ExamForm: React.FC<ExamFormProps> = ({ exam, onCancel, onSaved }) => {
                   <label className="block text-sm font-medium text-muted-foreground">Nivel de inicio</label>
                   <Select
                     value={placementConfig.startingLevel}
-                    onValueChange={(v) => setPlacementConfig(p => ({ ...p, startingLevel: v }))}
+                    onValueChange={(v) => v && setPlacementConfig(p => ({ ...p, startingLevel: v }))}
                   >
-                    <SelectTrigger className={baseInputClass}>
+                    <SelectTrigger className="w-full">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -676,7 +677,6 @@ const ExamForm: React.FC<ExamFormProps> = ({ exam, onCancel, onSaved }) => {
                     max="50"
                     value={placementConfig.maxQuestions}
                     onChange={(e) => setPlacementConfig(p => ({ ...p, maxQuestions: parseInt(e.target.value) || 20 }))}
-                    className={baseInputClass}
                   />
                 </div>
 
@@ -690,7 +690,6 @@ const ExamForm: React.FC<ExamFormProps> = ({ exam, onCancel, onSaved }) => {
                     max="10"
                     value={placementConfig.consecutiveWrongThreshold}
                     onChange={(e) => setPlacementConfig(p => ({ ...p, consecutiveWrongThreshold: parseInt(e.target.value) || 3 }))}
-                    className={baseInputClass}
                   />
                 </div>
 
@@ -704,7 +703,6 @@ const ExamForm: React.FC<ExamFormProps> = ({ exam, onCancel, onSaved }) => {
                     max="300"
                     value={watch('structure.totalDuration') || 60}
                     onChange={(e) => setValue('structure.totalDuration', parseInt(e.target.value) || 60)}
-                    className={baseInputClass}
                   />
                 </div>
               </>
@@ -739,9 +737,7 @@ const ExamForm: React.FC<ExamFormProps> = ({ exam, onCancel, onSaved }) => {
             <Button
               type="button"
               onClick={addSection}
-              variant="outline"
               size="sm"
-              className="bg-blue-600 hover:bg-blue-700 text-white"
             >
               <Plus className="w-4 h-4 mr-2" />
               Agregar Sección
@@ -769,11 +765,11 @@ const ExamForm: React.FC<ExamFormProps> = ({ exam, onCancel, onSaved }) => {
               <h4 className="font-medium text-foreground">Sección {index + 1}</h4>
               {fields.length > 1 && (
                 <Button
+                  variant="destructive"
                   type="button"
                   onClick={() => removeSection(index)}
-                  variant="outline"
                   size="sm"
-                  className="text-red-400 bg-muted hover:bg-muted"
+                  className="bg-muted hover:bg-muted"
                 >
                   <Trash2 className="w-4 h-4" />
                 </Button>
@@ -792,7 +788,6 @@ const ExamForm: React.FC<ExamFormProps> = ({ exam, onCancel, onSaved }) => {
                     <Input
                       {...field}
                       placeholder="Ej: Comprensión Lectora"
-                      className={baseInputClass}
                     />
                   )}
                 />
@@ -813,7 +808,9 @@ const ExamForm: React.FC<ExamFormProps> = ({ exam, onCancel, onSaved }) => {
                   render={({ field }) => (
                     <Select
                       value={field.value}
+                      items={{ reading: 'Comprensión Lectora', writing: 'Expresión Escrita', listening: 'Comprensión Auditiva', speaking: 'Expresión Oral' }}
                       onValueChange={(value) => {
+                        if (!value) return;
                         field.onChange(value);
                         // Auto-rellenar instrucciones si están vacías
                         const currentInstructions = getValues(`structure.sections.${index}.instructions`);
@@ -826,7 +823,7 @@ const ExamForm: React.FC<ExamFormProps> = ({ exam, onCancel, onSaved }) => {
                         }
                       }}
                     >
-                      <SelectTrigger className={baseInputClass}>
+                      <SelectTrigger className="w-full">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
@@ -867,9 +864,7 @@ const ExamForm: React.FC<ExamFormProps> = ({ exam, onCancel, onSaved }) => {
                             validateSectionQuestions(index, watchedSections[index].competency, finalValue, watchedTargetLevel);
                           }
                         }}
-                        className={`${baseInputClass} ${
-                          validationErrors[`section-${index}`] ? 'border-red-500' : ''
-                        }`}
+                        aria-invalid={!!validationErrors[`section-${index}`]}
                       />
 
                       {/* Indicador de disponibilidad */}
@@ -905,7 +900,6 @@ const ExamForm: React.FC<ExamFormProps> = ({ exam, onCancel, onSaved }) => {
                       type="number"
                       min="1"
                       onChange={(e) => field.onChange(parseInt(e.target.value) || 0)}
-                      className={baseInputClass}
                     />
                   )}
                 />
@@ -927,7 +921,6 @@ const ExamForm: React.FC<ExamFormProps> = ({ exam, onCancel, onSaved }) => {
                       max="100"
                       value={field.value}
                       onValueChange={field.onChange}
-                      className={baseInputClass}
                     />
                   )}
                 />
@@ -966,7 +959,6 @@ const ExamForm: React.FC<ExamFormProps> = ({ exam, onCancel, onSaved }) => {
                     {...field}
                     placeholder="Instrucciones para esta sección..."
                     rows={2}
-                    className={baseInputClass}
                   />
                 )}
               />
@@ -1096,7 +1088,6 @@ const ExamForm: React.FC<ExamFormProps> = ({ exam, onCancel, onSaved }) => {
                     max="10"
                     disabled={true}
                     onChange={(e) => field.onChange(parseInt(e.target.value) || 1)}
-                    className={baseInputClass}
                   />
                 )}
               />
@@ -1145,7 +1136,6 @@ const ExamForm: React.FC<ExamFormProps> = ({ exam, onCancel, onSaved }) => {
         <Button
           type="submit"
           disabled={isSubmitting}
-          className="bg-blue-600 hover:bg-blue-700"
         >
           {isSubmitting ? (
             <div className="flex items-center gap-2">

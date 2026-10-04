@@ -1,5 +1,5 @@
 import { MainLayout } from "@/components/layout";
-import { UserAvatar } from "@/components/atoms/UserAvatar";
+import { UserAvatar } from "@/components/UserAvatar";
 import { examService } from "@/services/examService";
 import { notificationSocket } from "@/services/notifications/notificationSocket";
 import type { AuditLogEntry } from "@/services/auditLogService";

@@ -1,4 +1,4 @@
-import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger } from "@/components/atoms/dropdown-menu"
+import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger } from "@/components/keel/dropdown-menu"
 import { Bell, ChevronRight, ImageDownIcon } from "lucide-react"
 import Profile01 from "./profile-01" 
 import { Link } from "react-router"

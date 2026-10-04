@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { UserAvatar } from '@/components/atoms/UserAvatar';
+import { UserAvatar } from '@/components/UserAvatar';
 import {
   createColumnHelper,
   useReactTable,
@@ -9,16 +9,16 @@ import {
 } from '@tanstack/react-table';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
-// import { Badge } from '@/components/atoms/badge';
-import { Button } from '@/components/atoms/button';
-import { Checkbox } from '@/components/atoms/checkbox';
+// import { Badge } from '@/components/keel/badge';
+import { Button } from '@/components/keel/button';
+import { Checkbox } from '@/components/keel/checkbox';
 import { 
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
   DropdownMenuSeparator
-} from '@/components/atoms/dropdown-menu';
+} from '@/components/keel/dropdown-menu';
 import CustomizableTable from '@/components/common/CustomizableTable';
 import { 
   MoreVertical,
@@ -127,10 +127,8 @@ const UserTable: React.FC<UserTableProps> = ({
         <div className='flex items-center justify-center w-full'>
 
         <Checkbox
-          checked={
-            table.getIsAllPageRowsSelected() ||
-            (table.getIsSomePageRowsSelected() && 'indeterminate')
-          }
+          checked={table.getIsAllPageRowsSelected()}
+          indeterminate={!table.getIsAllPageRowsSelected() && table.getIsSomePageRowsSelected()}
           onCheckedChange={(value) => {
             if (value) {
               onSelectAllUsers(users.map(user => user._id));
@@ -298,21 +296,20 @@ const UserTable: React.FC<UserTableProps> = ({
         
         return (
           <DropdownMenu>
-            <DropdownMenuTrigger asChild className='bg-card border border-border rounded-md p-1 hover:bg-muted'>
-              <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                <MoreVertical className="h-4 w-4 text-foreground" />
-                <span className="sr-only">Abrir menú</span>
-              </Button>
+            <DropdownMenuTrigger render={<Button variant="ghost" size="icon-sm" />}>
+              <MoreVertical className="h-4 w-4 text-foreground" />
+              <span className="sr-only">Abrir menú</span>
+            
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-48 bg-popover border-border text-foreground">
+            <DropdownMenuContent align="end" className="w-48">
               {/* Ver detalles */}
-              <DropdownMenuItem className='hover:bg-muted' onClick={() => onViewUser(user)}>
+              <DropdownMenuItem onClick={() => onViewUser(user)}>
                 <Eye className="mr-2 h-4 w-4" />
                 Ver detalles
               </DropdownMenuItem>
 
               {/* Editar */}
-              <DropdownMenuItem className='hover:bg-muted' onClick={() => onEditUser(user)}>
+              <DropdownMenuItem onClick={() => onEditUser(user)}>
                 <Edit className="mr-2 h-4 w-4" />
                 Editar
               </DropdownMenuItem>
@@ -320,13 +317,13 @@ const UserTable: React.FC<UserTableProps> = ({
               <DropdownMenuSeparator />
 
               {/* Asignar rol */}
-              <DropdownMenuItem className='hover:bg-muted' onClick={() => onAssignRole(user)}>
+              <DropdownMenuItem onClick={() => onAssignRole(user)}>
                 <Shield className="mr-2 h-4 w-4" />
                 Asignar rol
               </DropdownMenuItem>
 
               {/* Generar contraseña */}
-              <DropdownMenuItem className='hover:bg-muted' onClick={() => onGeneratePassword(user)}>
+              <DropdownMenuItem onClick={() => onGeneratePassword(user)}>
                 <Key className="mr-2 h-4 w-4" />
                 Nueva contraseña
               </DropdownMenuItem>
@@ -337,7 +334,6 @@ const UserTable: React.FC<UserTableProps> = ({
               {user.status === 'active' ? (
                 <DropdownMenuItem
                   onClick={() => onDeactivateUser(user)}
-                  className="text-orange-600 hover:bg-muted"
                 >
                   <UserX className="mr-2 h-4 w-4" />
                   Desactivar
@@ -345,7 +341,6 @@ const UserTable: React.FC<UserTableProps> = ({
               ) : (
                 <DropdownMenuItem
                   onClick={() => onActivateUser(user)}
-                  className="text-green-600 hover:bg-muted"
                 >
                   <UserCheck className="mr-2 h-4 w-4" />
                   Activar
@@ -357,7 +352,7 @@ const UserTable: React.FC<UserTableProps> = ({
               {/* Eliminar */}
               <DropdownMenuItem
                 onClick={() => onDeleteUser(user)}
-                className="text-red-600 hover:bg-muted"
+                variant="destructive"
               >
                 <Trash2 className="mr-2 h-4 w-4" />
                 Eliminar

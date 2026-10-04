@@ -1,4 +1,4 @@
-import { Button } from '@/components/atoms/button';
+import { Button } from '@/components/keel/button';
 import { ArrowLeft, BookOpen, Clock, Edit, Settings, Target } from 'lucide-react';
 import React from 'react';
 import type { Exam } from '../types';
@@ -71,7 +71,7 @@ const ExamDetailView: React.FC<ExamDetailViewProps> = ({ exam, onBack, onEdit })
 
         <Button
           onClick={onEdit}
-          className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center"
+          className="flex"
         >
           <Edit className="w-4 h-4 mr-2" />
           Editar Examen

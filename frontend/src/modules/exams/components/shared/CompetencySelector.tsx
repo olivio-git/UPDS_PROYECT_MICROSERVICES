@@ -4,7 +4,7 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/atoms/select";
+} from "@/components/keel/select";
 import { COMPETENCIES, COMPETENCY_LABELS } from "../../constants/academic.constants";
 import type { Competency } from "../../types";
 
@@ -25,19 +25,19 @@ const CompetencySelector = ({
 }: CompetencySelectorProps) => {
   return (
     <Select
-      value={value}
-      onValueChange={onValueChange}
+      value={value ?? null}
+      onValueChange={(v) => v && onValueChange(v)}
+      items={COMPETENCY_LABELS}
       disabled={disabled}
     >
-      <SelectTrigger className={`bg-input border-line text-foreground ${className}`}>
+      <SelectTrigger className={`w-full ${className}`}>
         <SelectValue placeholder={placeholder} />
       </SelectTrigger>
-      <SelectContent className="bg-box border-line">
+      <SelectContent>
         {COMPETENCIES.map((competency) => (
           <SelectItem
             key={competency}
             value={competency}
-            className="text-foreground hover:bg-line/50 focus:bg-line/50"
           >
             <div className="flex flex-col">
               <span className="font-medium">{COMPETENCY_LABELS[competency]}</span>

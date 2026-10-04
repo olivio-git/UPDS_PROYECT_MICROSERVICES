@@ -1,5 +1,5 @@
-import { Button } from '@/components/atoms/button';
-import { Input } from '@/components/atoms/input';
+import { Button } from '@/components/keel/button';
+import { Input } from '@/components/keel/input';
 import { AlertCircle, Check, Loader2, Search, UserMinus, UserPlus, Users } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
 import { toast } from 'sonner';
@@ -171,7 +171,6 @@ const ProctorAssignmentModal: React.FC<ProctorAssignmentModalProps> = ({
           <Button
             onClick={handleAssignProctors}
             disabled={loading || selectedProctors.length === 0}
-            className="bg-blue-600 hover:bg-blue-700 text-white"
           >
             {loading ? (
               <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2" />

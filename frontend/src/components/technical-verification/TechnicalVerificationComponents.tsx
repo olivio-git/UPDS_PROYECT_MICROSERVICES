@@ -1,7 +1,7 @@
-import { Alert, AlertDescription } from "@/components/atoms/alert";
-import { Badge } from "@/components/atoms/badge";
-import { Button } from "@/components/atoms/button";
-import { Progress } from "@/components/atoms/progress";
+import { Alert, AlertDescription } from "@/components/keel/alert";
+import { Badge } from "@/components/keel/badge";
+import { Button } from "@/components/keel/button";
+import { Progress } from "@/components/keel/progress";
 import {
   AlertTriangle,
   Camera,
@@ -609,9 +609,10 @@ export const MicrophoneTest: React.FC<MicrophoneTestProps> = ({ onTestComplete }
         {/* Controles */}
         <div className="flex gap-2 justify-center">
           <Button
+            variant="destructive"
             onClick={startRecording}
             disabled={isRecording}
-            className="bg-red-600 hover:bg-red-700 disabled:bg-gray-600"
+            
             size="sm"
           >
             {isRecording ? (

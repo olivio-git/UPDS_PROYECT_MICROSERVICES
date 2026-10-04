@@ -27,7 +27,7 @@ export function SessionCancelledScreen() {
     <MainLayout hideHeader>
       <div className="min-h-screen flex items-center justify-center p-4">
         <GradientWrapper intensity="medium" size="lg">
-          <Card className="w-full max-w-md bg-box backdrop-blur-sm border border-line">
+          <Card className="w-full max-w-md">
             <CardContent className="p-8 text-center space-y-5">
               <div className="w-14 h-14 rounded-full bg-muted/50 border border-line flex items-center justify-center mx-auto">
                 <Ban className="h-8 w-8 text-muted-foreground" />

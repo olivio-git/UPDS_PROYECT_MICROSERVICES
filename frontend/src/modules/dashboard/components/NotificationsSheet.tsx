@@ -14,7 +14,7 @@ import {
   SheetContent,
   SheetHeader,
   SheetTitle,
-} from '@/components/atoms/sheet';
+} from '@/components/keel/sheet';
 
 interface Notification {
   id: string;

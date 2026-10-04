@@ -1,4 +1,4 @@
-import { Button } from '@/components/atoms/button';
+import { Button } from '@/components/keel/button';
 import GradientWrapper from '@/components/background/GrandWrapperSection';
 import { cn } from '@/lib/utils';
 import type { UpcomingSessionsData } from '@/services/reportsService';
@@ -39,14 +39,14 @@ export function UpcomingHeader({ data, viewMode, onToggleView, onExport, onRefre
                 ? <><List className="h-3.5 w-3.5" /> Lista</>
                 : <><CalendarDays className="h-3.5 w-3.5" /> Calendario</>}
             </Button>
-            <Button size="sm" onClick={onExport} className="bg-green-600 hover:bg-green-700 text-white border-0 gap-1.5">
+            <Button size="sm" onClick={onExport} className="gap-1.5">
               <Download className="h-3.5 w-3.5" /> Exportar
             </Button>
             <Button size="sm" onClick={onRefresh} disabled={refreshing} className="bg-transparent hover:bg-muted/60 text-foreground/70 border border-border gap-1.5">
               <RefreshCw className={cn('h-3.5 w-3.5', refreshing && 'animate-spin')} /> Actualizar
             </Button>
             {onCreateSession && (
-              <Button size="sm" onClick={onCreateSession} className="bg-blue-600 hover:bg-blue-700 text-white border-0 gap-1.5">
+              <Button size="sm" onClick={onCreateSession} className="gap-1.5">
                 <Plus className="h-3.5 w-3.5" /> Nueva Sesión
               </Button>
             )}

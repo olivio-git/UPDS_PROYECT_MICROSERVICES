@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Button } from "@/components/atoms/button";
+import { Button } from "@/components/keel/button";
 import { Menu, X, LogOut, User, Bell, BookOpen, TrendingUp } from "lucide-react";
 import { useNavigate, useLocation } from "react-router-dom";
 import useAuth from "@/hooks/useAuth";

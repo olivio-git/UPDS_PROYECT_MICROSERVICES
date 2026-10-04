@@ -7,7 +7,7 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from "@/components/atoms/alert-dialog";
+} from "@/components/keel/alert-dialog";
 import { MainLayout } from "@/components/layout";
 import { useState } from "react";
 import { X } from "lucide-react";
@@ -223,21 +223,21 @@ const LevelsManagementScreen = () => {
         open={isDeleteDialogOpen}
         onOpenChange={setIsDeleteDialogOpen}
       >
-        <AlertDialogContent className="bg-card">
+        <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle className="text-foreground">Confirmar eliminación</AlertDialogTitle>
-            <AlertDialogDescription className="text-muted-foreground">
+            <AlertDialogTitle>Confirmar eliminación</AlertDialogTitle>
+            <AlertDialogDescription>
               ¿Estás seguro de que deseas eliminar el nivel{" "}
               <strong>{levelToDelete?.code}</strong>? Esta acción no se puede deshacer y puede afectar preguntas y exámenes relacionados.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel className="bg-transparent text-foreground border border-line focus:outline-none">
+            <AlertDialogCancel>
               Cancelar
             </AlertDialogCancel>
             <AlertDialogAction
               onClick={confirmDeleteLevel}
-              className="bg-red-600 hover:bg-red-700 text-white"
+              variant="destructive"
             >
               Eliminar
             </AlertDialogAction>

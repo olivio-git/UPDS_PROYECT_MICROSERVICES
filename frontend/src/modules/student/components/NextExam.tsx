@@ -22,8 +22,8 @@ import {
   HoverCardTrigger,
 } from '@/components/keel/hover-card';
 import { Spinner } from '@/components/keel/spinner';
-import { useToast } from '@/hooks/use-toast';
-import { UserAvatar } from '@/components/atoms/UserAvatar';
+import { toast } from 'sonner';
+import { UserAvatar } from '@/components/UserAvatar';
 import {
   AlertCircle,
   BookOpen,
@@ -56,7 +56,6 @@ const NextExam: React.FC<PropsNextExam> = ({
   const [error, setError] = useState<string | null>(null);
   const [startingExam, setStartingExam] = useState(false);
   const [now, setNow] = useState(() => Date.now());
-  const { toast } = useToast();
 
   // Tick cada 30 segundos para actualizar countdown/elapsed
   useEffect(() => {
@@ -171,10 +170,8 @@ const NextExam: React.FC<PropsNextExam> = ({
       //   });
       // }
     } catch (error) {
-      toast({
-        title: 'Error inesperado',
+      toast.error('Error inesperado', {
         description: 'No se pudo iniciar el examen. Intenta nuevamente.',
-        variant: 'destructive',
       });
     } finally {
       setStartingExam(false);
@@ -225,9 +222,9 @@ const NextExam: React.FC<PropsNextExam> = ({
 
   if (loading) {
     return ( 
-        <Card className="flex flex-col bg-card backdrop-blur-sm border border-line shadow-none">
+        <Card className="flex flex-col shadow-none">
           <CardHeader className="space-y-1 border-b border-line pb-3">
-            <CardTitle className="text-foreground flex items-center gap-2 font-bold">
+            <CardTitle className="flex items-center gap-2 font-bold">
               <Calendar className="h-6 w-6 text-brand-gray bg-muted rounded-full p-1" />
               Próximo Examen
             </CardTitle>
@@ -246,9 +243,9 @@ const NextExam: React.FC<PropsNextExam> = ({
 
   if (error) {
     return ( 
-        <Card className="flex flex-col bg-card backdrop-blur-sm border border-line shadow-none">
+        <Card className="flex flex-col shadow-none">
           <CardHeader className="space-y-1 border-b border-line pb-3">
-            <CardTitle className="text-foreground flex items-center gap-2 font-bold">
+            <CardTitle className="flex items-center gap-2 font-bold">
               <Calendar className="h-6 w-6 text-brand-gray bg-muted rounded-full p-1" />
               Próximo Examen
             </CardTitle>
@@ -274,9 +271,9 @@ const NextExam: React.FC<PropsNextExam> = ({
   }
   if (!nextExam) {
     return ( 
-        <Card className="flex flex-col bg-card backdrop-blur-sm border border-line shadow-none">
+        <Card className="flex flex-col shadow-none">
           <CardHeader className="space-y-1 border-b border-line pb-3">
-            <CardTitle className="text-foreground flex items-center gap-2 font-bold">
+            <CardTitle className="flex items-center gap-2 font-bold">
               <Calendar className="h-6 w-6 text-brand-gray bg-muted rounded-full p-1" />
               Próximo Examen
             </CardTitle>
@@ -311,9 +308,9 @@ const NextExam: React.FC<PropsNextExam> = ({
   }
 
   return (
-    <Card className="flex flex-col bg-card backdrop-blur-sm border border-line shadow-none">
+    <Card className="flex flex-col shadow-none">
       <CardHeader className="space-y-1 border-b border-line pb-3">
-        <CardTitle className="text-foreground flex items-center gap-2 font-bold">
+        <CardTitle className="flex items-center gap-2 font-bold">
           <Calendar className="h-6 w-6 text-brand-gray bg-muted rounded-full p-1" />
           Próximo Examen
         </CardTitle>

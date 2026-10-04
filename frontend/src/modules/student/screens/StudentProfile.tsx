@@ -1,8 +1,8 @@
-import { Badge } from "@/components/atoms/badge";
-import { Button } from "@/components/atoms/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/atoms/card";
-import { Input } from "@/components/atoms/input";
-import { UserAvatar } from "@/components/atoms/UserAvatar";
+import { Badge } from "@/components/keel/badge";
+import { Button } from "@/components/keel/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/keel/card";
+import { Input } from "@/components/keel/input";
+import { UserAvatar } from "@/components/UserAvatar";
 import { MainLayout } from "@/components/layout";
 import { useNavigate } from "react-router-dom";
 import { useAuthStore } from "@/modules/auth/services/authStore";
@@ -122,7 +122,7 @@ const StudentProfile = () => {
         <div className="flex flex-col md:flex-row gap-6 md:items-start">
           {/* ── Left: Profile card ── */}
           <div className="w-full md:w-64 shrink-0">
-            <Card className="bg-card border border-border shadow-none">
+            <Card className="shadow-none">
               <CardContent className="pt-6 pb-5 px-5 space-y-4">
                 {/* Avatar */}
                 <div className="flex flex-col items-center text-center gap-3">
@@ -186,7 +186,7 @@ const StudentProfile = () => {
                     <>
                       <Button
                         size="sm"
-                        className="w-full bg-green-600 hover:bg-green-700 text-white"
+                        className="w-full"
                         onClick={handleSave}
                         disabled={isSaving}
                       >
@@ -252,9 +252,9 @@ const StudentProfile = () => {
 
             {/* ── Tab: Personal ── */}
             {activeTab === "personal" && (
-              <Card className="bg-card border border-border shadow-none">
+              <Card className="shadow-none">
                 <CardHeader className="pb-3">
-                  <CardTitle className="text-base text-foreground flex items-center gap-2">
+                  <CardTitle className="text-base flex items-center gap-2">
                     <span className="icon-wrap-blue p-1.5 rounded-md">
                       <User className="h-3.5 w-3.5" />
                     </span>
@@ -394,9 +394,9 @@ const StudentProfile = () => {
 
             {/* ── Tab: Preferences ── */}
             {activeTab === "preferences" && (
-              <Card className="bg-card border border-border shadow-none">
+              <Card className="shadow-none">
                 <CardHeader className="pb-3">
-                  <CardTitle className="text-base text-foreground flex items-center gap-2">
+                  <CardTitle className="text-base flex items-center gap-2">
                     <span className="icon-wrap-purple p-1.5 rounded-md">
                       <Bell className="h-3.5 w-3.5" />
                     </span>
@@ -443,9 +443,9 @@ const StudentProfile = () => {
 
             {/* ── Tab: Security ── */}
             {activeTab === "security" && (
-              <Card className="bg-card border border-border shadow-none">
+              <Card className="shadow-none">
                 <CardHeader className="pb-3">
-                  <CardTitle className="text-base text-foreground flex items-center gap-2">
+                  <CardTitle className="text-base flex items-center gap-2">
                     <span className="icon-wrap-red p-1.5 rounded-md">
                       <Shield className="h-3.5 w-3.5" />
                     </span>

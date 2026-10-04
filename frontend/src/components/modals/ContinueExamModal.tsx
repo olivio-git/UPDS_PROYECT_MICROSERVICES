@@ -1,6 +1,6 @@
-import { Alert, AlertDescription } from '@/components/atoms/alert';
-import { Button } from '@/components/atoms/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/atoms/card';
+import { Alert, AlertDescription } from '@/components/keel/alert';
+import { Button } from '@/components/keel/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/keel/card';
 import { useActiveSessionDetection } from '@/hooks/useActiveSessionDetection';
 import { AlertCircle, Clock, Play, X } from 'lucide-react';
 import React from 'react';
@@ -31,12 +31,12 @@ export const ContinueExamModal: React.FC<ContinueExamModalProps> = ({
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <Card className="w-full max-w-md bg-box backdrop-blur-sm border border-line">
+      <Card className="w-full max-w-md">
         <CardHeader className="pb-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <AlertCircle className="h-5 w-5 text-amber-500" />
-              <CardTitle className="text-white">Examen en Progreso</CardTitle>
+              <CardTitle>Examen en Progreso</CardTitle>
             </div>
             <Button
               variant="ghost"
@@ -100,9 +100,9 @@ export const ContinueExamModal: React.FC<ContinueExamModalProps> = ({
           {/* Action Buttons */}
           <div className="flex gap-3 pt-2">
             <Button
-              variant="outline"
+              variant="secondary"
               onClick={onClose}
-              className="flex-1 bg-gray-700 hover:bg-gray-600 text-white"
+              className="flex-1"
             >
               Más Tarde
             </Button>

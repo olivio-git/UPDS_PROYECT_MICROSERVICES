@@ -1,12 +1,12 @@
-import { Badge } from '@/components/atoms/badge';
-import { Button } from '@/components/atoms/button';
+import { Badge } from '@/components/keel/badge';
+import { Button } from '@/components/keel/button';
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-} from '@/components/atoms/card';
+} from '@/components/keel/card';
 import GradientWrapper from '@/components/background/GrandWrapperSection';
 import {
   examResultService,
@@ -78,7 +78,7 @@ const Performance = ({ initiallyExpanded = false }: PropsPerformance) => {
       animate={false}
       variant="cosmic"
     >
-      <Card className="bg-card backdrop-blur-sm border border-line transition-all duration-200 hover:border-line/80">
+      <Card className="transition-all duration-200 hover:border-line/80">
         <CardHeader
           className="cursor-pointer select-none"
           onClick={() => setIsExpanded(!isExpanded)}
@@ -86,7 +86,7 @@ const Performance = ({ initiallyExpanded = false }: PropsPerformance) => {
           <div className="flex items-center justify-between">
             <div className="flex-1 text-center">
               <Crown className="h-5 w-5 text-yellow-400" />
-              <CardTitle className="text-foreground flex items-center gap-2 text-lg justify-center">
+              <CardTitle className="flex items-center gap-2 text-lg justify-center">
                 Estadísticas de Rendimiento
               </CardTitle>
               <CardDescription className="text-brand-gray text-xs">

@@ -1,6 +1,6 @@
-import { Badge } from '@/components/atoms/badge';
-import { Button } from '@/components/atoms/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/atoms/card';
+import { Badge } from '@/components/keel/badge';
+import { Button } from '@/components/keel/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/keel/card';
 import { MainLayout } from '@/components/layout';
 import { useBrowserLockdown } from '@/hooks/useBrowserLockdown';
 import {
@@ -377,7 +377,7 @@ const AdaptiveExamRunner: React.FC = () => {
     return (
       <MainLayout gradientVariant="primary">
         <div className="max-w-3xl mx-auto flex items-center justify-center min-h-96">
-          <Card className="bg-card border border-line w-full max-w-md">
+          <Card className="w-full max-w-md">
             <CardContent className="p-10 text-center space-y-4">
               <UserX className="h-12 w-12 text-red-400 mx-auto" />
               <h2 className="text-xl font-bold text-foreground">Has sido retirado del examen</h2>
@@ -403,7 +403,7 @@ const AdaptiveExamRunner: React.FC = () => {
     return (
       <MainLayout gradientVariant="primary">
         <div className="max-w-3xl mx-auto flex items-center justify-center min-h-96">
-          <Card className="bg-card border border-line w-full max-w-md">
+          <Card className="w-full max-w-md">
             <CardContent className="p-10 text-center space-y-4">
               <AlertCircle className="h-10 w-10 text-red-400 mx-auto" />
               <h2 className="text-xl font-bold text-foreground">No se pudo enviar el examen</h2>
@@ -434,7 +434,7 @@ const AdaptiveExamRunner: React.FC = () => {
       {/* ── Fullscreen re-entry overlay (browser lockdown) ─────────────────── */}
       {lockdownEnabled && showFullscreenPrompt && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
-          <Card className="bg-card border border-amber-400/60 dark:border-amber-500/50 w-full max-w-sm">
+          <Card className="border-amber-400/60 dark:border-amber-500/50 w-full max-w-sm">
             <CardContent className="p-6 text-center space-y-4">
               <div className="w-12 h-12 rounded-full bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-700/50 flex items-center justify-center mx-auto">
                 <Maximize className="h-6 w-6 text-amber-600 dark:text-amber-400" />
@@ -525,9 +525,9 @@ const AdaptiveExamRunner: React.FC = () => {
 
         {/* Question Card */}
         {currentQuestion && !showFeedback && (
-          <Card className="bg-card border border-line">
+          <Card>
             <CardHeader>
-              <CardTitle className="text-foreground text-base font-medium flex items-center gap-2">
+              <CardTitle className="text-base font-medium flex items-center gap-2">
                 <Brain className="h-4 w-4 text-blue-400" />
                 Pregunta {(adaptiveState?.questionsAnswered ?? 0) + 1}
               </CardTitle>

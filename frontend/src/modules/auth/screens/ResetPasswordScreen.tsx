@@ -151,9 +151,8 @@ const ResetPasswordScreen = () => {
                       disabled={isLoading}
                       required
                       autoFocus={true}
-                      className="input-no-bg epilogue-uniquifier block w-full px-0 py-2 border-0 border-b border-border
-                      focus:outline-none focus:border-b-blue-500 pl-2 focus:ring-0 rounded-none font-medium text-card-foreground"
-                    />
+                      className="input-no-bg epilogue-uniquifier block w-full px-0 py-2 border-0 border-b focus:outline-none focus:border-b-blue-500 pl-2 focus:ring-0 rounded-none font-medium text-card-foreground"
+/>
                   </Field>
 
                   <Field>
@@ -172,9 +171,8 @@ const ResetPasswordScreen = () => {
                       placeholder="Confirma tu nueva contraseña"
                       disabled={isLoading}
                       required
-                      className="input-no-bg epilogue-uniquifier block w-full px-0 py-2 border-0 border-b border-border
-                      focus:outline-none focus:border-b-blue-500 pl-2 focus:ring-0 rounded-none font-medium text-card-foreground"
-                    />
+                      className="input-no-bg epilogue-uniquifier block w-full px-0 py-2 border-0 border-b focus:outline-none focus:border-b-blue-500 pl-2 focus:ring-0 rounded-none font-medium text-card-foreground"
+/>
                   </Field>
 
                   <Button

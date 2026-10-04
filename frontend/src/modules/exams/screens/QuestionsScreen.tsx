@@ -4,7 +4,7 @@ import {
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from '@/components/atoms/dropdown-menu';
+} from '@/components/keel/dropdown-menu';
 import { AudioPlayer } from '@/components/audio';
 import CustomizableTable from '@/components/common/CustomizableTable';
 import { MainLayout } from '@/components/layout';
@@ -298,20 +298,19 @@ const QuestionsScreen = () => {
         const q = row.original;
         return (
           <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <button className="p-1.5 hover:bg-muted rounded-md transition-colors text-muted-foreground hover:text-foreground">
-                <MoreVertical className="w-4 h-4" />
-              </button>
+            <DropdownMenuTrigger render={<button className="p-1.5 hover:bg-muted rounded-md transition-colors text-muted-foreground hover:text-foreground" />}>
+              <MoreVertical className="w-4 h-4" />
+            
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-40">
-              <DropdownMenuItem onClick={() => handleViewDetails(q)} className="cursor-pointer">
+              <DropdownMenuItem onClick={() => handleViewDetails(q)}>
                 <FileText className="w-3.5 h-3.5 mr-2" /> Ver detalles
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => handleEdit(q)} className="cursor-pointer">
+              <DropdownMenuItem onClick={() => handleEdit(q)}>
                 <Edit className="w-3.5 h-3.5 mr-2" /> Editar
               </DropdownMenuItem>
               <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={() => askDelete(q)} className="cursor-pointer text-red-500 focus:text-red-500">
+              <DropdownMenuItem onClick={() => askDelete(q)} variant="destructive">
                 <Trash2 className="w-3.5 h-3.5 mr-2" /> Eliminar
               </DropdownMenuItem>
             </DropdownMenuContent>
