@@ -73,12 +73,11 @@ export function CandidateSearch({ onSelect }: { onSelect: (candidate: Candidate)
             <p className="text-xs text-muted-foreground text-center px-4 py-2.5">Sin resultados</p>
           ) : (
             results.slice(0, MAX_RESULTS).map((c) => (
-              <Button
-                variant="outline"
+              <button
                 key={c._id}
                 type="button"
                 onClick={() => { setOpen(false); setQuery(''); onSelect(c); }}
-                className="w-full"
+                className="w-full flex items-center gap-2.5 px-3 py-2 hover:bg-muted/60 focus:bg-muted/60 focus:outline-none transition-colors text-left border-b border-border/40 last:border-0"
               >
                 <UserAvatar avatarUrl={c.avatarUrl} firstName={c.personalInfo.firstName} lastName={c.personalInfo.lastName} size="sm" />
                 <div className="flex-1 min-w-0">
@@ -88,7 +87,7 @@ export function CandidateSearch({ onSelect }: { onSelect: (candidate: Candidate)
                 <span className="text-xs bg-muted text-muted-foreground border border-border px-1.5 py-0.5 rounded-full shrink-0">
                   {c.academicInfo.currentLevel}
                 </span>
-              </Button>
+              </button>
             ))
           )}
         </div>

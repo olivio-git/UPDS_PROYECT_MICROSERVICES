@@ -71,7 +71,7 @@ const UpcomingSessionsScreen: React.FC = () => {
 
   return (
     <MainLayout>
-      <div className="flex h-full min-h-0 w-full flex-col gap-4 overflow-auto px-4 pb-4">
+      <div className="flex h-full min-h-0 w-full flex-col gap-4 overflow-auto px-4 pb-4 *:shrink-0">
         <UpcomingHeader
           data={data}
           viewMode={viewMode}
