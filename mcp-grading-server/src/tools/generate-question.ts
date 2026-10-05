@@ -3,6 +3,7 @@ import { ObjectId } from 'mongodb';
 import { config } from '../config.js';
 import { getLevels, getQuestions } from '../db/collections.js';
 import type { IQuestion, QuestionType, Competency, Level } from '../types/index.js';
+import { normalizeGeneratedContent } from './question-validation.js';
 
 export interface GenerateQuestionInput {
   competency: Competency;
@@ -25,7 +26,12 @@ export interface GenerateQuestionOutput {
 }
 
 const TYPE_HINTS: Partial<Record<QuestionType, string>> = {
-  multiple_choice: 'Provide options array with exactly 4 items, exactly one isCorrect=true. Set correctAnswer to the id of the correct option.',
+  multiple_choice:
+    'Provide options with exactly 4 items and exactly one isCorrect=true. ' +
+    'DISTRACTORS: each wrong option must be plausible for a learner at this level — same grammatical form, ' +
+    'similar length and register as the correct one, and clearly wrong given the text or rule being tested. ' +
+    'Never use "all of the above", "none of the above", jokes, or options that are wrong only by spelling. ' +
+    'Only one option may be defensible as correct.',
   true_false:
     'The "question" field MUST be a STATEMENT (NOT a question), e.g. "The cat is sitting on the mat." ' +
     '— the student decides whether that statement is True or False. ' +
@@ -34,10 +40,23 @@ const TYPE_HINTS: Partial<Record<QuestionType, string>> = {
     'OR { id: "true", text: "True", isCorrect: false } if the statement is wrong. ' +
     'second: { id: "false", text: "False", isCorrect: <opposite> }. ' +
     'NEVER use content-based option texts — always "True" and "False" literally.',
-  fill_blanks: 'Provide template string with ___ for each blank. Provide blanks array with position (1-based), correctAnswers array. Also set correctAnswer as array of answers.',
-  matching: 'Provide items array where each item has content and matchingPair (its correct match).',
-  ordering: 'Provide items array where each item has content and correctPosition (1-based integer).',
-  drag_drop: 'Provide items array where each item has content and correctPosition (1-based integer).',
+  fill_blanks:
+    'Provide "template": one or two sentences with 1 to 3 blanks, each written as exactly ___ (three underscores). ' +
+    'Provide "blanks" in the same order as the ___ marks: { position (1-based), correctAnswers }. ' +
+    'Each blank must have ONE answer that the context makes unambiguous (test one word: a verb form, preposition, article, etc.); ' +
+    'list accepted variants in correctAnswers (e.g. ["is not", "isn\'t"]). Do not put the answer in the question text.',
+  matching:
+    'Provide 4 or 5 items; each has "content" (left column) and "matchingPair" (its match). ' +
+    'All pairs share one relation (word → definition, question → reply, word → opposite…). ' +
+    'Every matchingPair must be distinct and fit only its own row — no row may plausibly match two pairs.',
+  ordering:
+    'Provide 4 to 6 items (steps of a process, events of a story, lines of a dialogue) with correctPosition 1..N. ' +
+    'There must be exactly one logical/chronological order; avoid items whose position is interchangeable.',
+  drag_drop:
+    'SENTENCE BUILDER: write ONE target sentence and split it into 4 to 8 chunks (words or short phrases) as items, ' +
+    'with correctPosition 1..N giving the order of the sentence. Exactly one word order must be grammatical — ' +
+    'avoid adverbs or phrases that can move. Keep the final punctuation attached to the last chunk. ' +
+    'The "question" asks the student to build the sentence (e.g. a translation or a description of the meaning).',
   essay:
     'ESSAY is a WRITING PRODUCTION task — NOT a comprehension question. ' +
     'The "question" field MUST be a writing prompt that asks the student to PRODUCE their own text, ' +
@@ -325,66 +344,59 @@ export async function generateQuestion(input: GenerateQuestionInput): Promise<Ge
     },
   };
 
-  const completion = await groq.chat.completions.create({
-    model: config.groq.model,
-    messages: [
-      { role: 'system', content: systemPrompt },
-      { role: 'user', content: userPrompt },
-    ],
-    tools: [tool],
-    tool_choice: { type: 'function', function: { name: 'register_question' } },
-    temperature: 0.8, // Higher creativity than grading (0.3)
-    max_tokens: 1500,
-  });
+  // ── Call the model, validate, and retry once with the problems spelled out ──
+  const messages: Groq.Chat.Completions.ChatCompletionMessageParam[] = [
+    { role: 'system', content: systemPrompt },
+    { role: 'user', content: userPrompt },
+  ];
+  const MAX_ATTEMPTS = 2;
+  let args: { content: IQuestion['content']; metadata: IQuestion['metadata'] } | undefined;
+  let modelUsed = config.groq.model;
+  let problems: string[] = [];
 
-  const toolCall = completion.choices[0]?.message?.tool_calls?.[0];
-  if (!toolCall || toolCall.function.name !== 'register_question') {
-    throw new Error('GROQ did not call register_question tool');
-  }
+  for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+    const completion = await groq.chat.completions.create({
+      model: config.groq.model,
+      messages,
+      tools: [tool],
+      tool_choice: { type: 'function', function: { name: 'register_question' } },
+      temperature: attempt === 1 ? 0.8 : 0.4, // creative first, conservative when fixing
+      max_tokens: 1500,
+    });
+    modelUsed = completion.model;
 
-  // Structured JSON — no text parsing, no regex, no fallbacks
-  const args = JSON.parse(toolCall.function.arguments) as {
-    content: IQuestion['content'];
-    metadata: IQuestion['metadata'];
-  };
-
-  // Normalize: generate IDs server-side if GROQ omitted them
-  if (args.content.options) {
-    // Special case: true_false MUST always use id="true"/"false" with literal text "True"/"False"
-    // GROQ sometimes generates content-based options (e.g. "The dog is brown.") — fix that here.
-    if (input.type === 'true_false') {
-      const opts = args.content.options;
-      // Try to identify which GROQ option represents "True" (correct fact / first option)
-      const trueOpt = opts.find(o => o.id === 'true' || (o.text ?? '').toLowerCase() === 'true');
-      const falseOpt = opts.find(o => o.id === 'false' || (o.text ?? '').toLowerCase() === 'false');
-
-      if (trueOpt && falseOpt) {
-        // GROQ followed the hint correctly — just normalise ids and text
-        args.content.options = [
-          { id: 'true',  text: 'True',  isCorrect: trueOpt.isCorrect  ?? false },
-          { id: 'false', text: 'False', isCorrect: falseOpt.isCorrect ?? false },
-        ];
-      } else {
-        // GROQ generated content-based options — treat first as the "True" option
-        // (the statement in `question` represents a fact to verify)
-        const firstIsCorrect = opts[0]?.isCorrect ?? true;
-        args.content.options = [
-          { id: 'true',  text: 'True',  isCorrect:  firstIsCorrect },
-          { id: 'false', text: 'False', isCorrect: !firstIsCorrect },
-        ];
-      }
-    } else {
-      args.content.options = args.content.options.map((opt, i) => ({
-        ...opt,
-        id: opt.id ?? String.fromCharCode(65 + i), // A, B, C, D
-      }));
+    const toolCall = completion.choices[0]?.message?.tool_calls?.[0];
+    if (!toolCall || toolCall.function.name !== 'register_question') {
+      problems = ['the model did not call register_question'];
+      continue;
     }
+
+    let parsed: { content?: IQuestion['content']; metadata?: IQuestion['metadata'] };
+    try {
+      parsed = JSON.parse(toolCall.function.arguments);
+    } catch {
+      problems = ['register_question arguments were not valid JSON'];
+      continue;
+    }
+
+    const result = normalizeGeneratedContent(input.type, parsed.content ?? ({} as IQuestion['content']));
+    problems = result.problems;
+    args = { content: result.content, metadata: parsed.metadata ?? {} };
+    if (!problems.length) break;
+
+    messages.push(
+      { role: 'assistant', content: `register_question(${toolCall.function.arguments})` },
+      {
+        role: 'user',
+        content:
+          'That question cannot be used as is. Fix these problems and call register_question again with the complete question:\n' +
+          problems.map((p) => `- ${p}`).join('\n'),
+      },
+    );
   }
-  if (args.content.items) {
-    args.content.items = args.content.items.map((item, i) => ({
-      ...item,
-      id: item.id ?? String(i + 1),
-    }));
+
+  if (!args || problems.length) {
+    throw new Error(`La IA generó una pregunta inválida: ${problems.join('; ')}`);
   }
 
   const questionDoc: Omit<IQuestion, '_id'> = {
@@ -420,6 +432,6 @@ export async function generateQuestion(input: GenerateQuestionInput): Promise<Ge
   return {
     question: questionDoc,
     savedId,
-    model: completion.model,
+    model: modelUsed,
   };
 }
