@@ -113,7 +113,7 @@ const ReportsScreen: React.FC = () => {
             size="sm"
             variant="ghost"
             aria-label="Actualizar reportes"
-            className="text-muted-foreground hover:text-foreground hover:bg-muted h-8 w-8 p-0"
+            className="h-8 w-8 p-0"
             disabled={refreshing}
           >
             <RefreshCw className={cn('h-3.5 w-3.5', refreshing && 'animate-spin')} />

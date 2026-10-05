@@ -1,3 +1,5 @@
+import { NativeSelect, NativeSelectOption } from '@/components/keel/native-select';
+import { Input } from '@/components/keel/input';
 import { Button } from '@/components/keel/button';
 import { Calendar } from '@/components/keel/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/keel/popover';
@@ -168,7 +170,7 @@ const AuditLogsScreen: React.FC = () => {
 
   return (
     <MainLayout>
-      <div className="flex flex-col gap-3 p-4 h-[calc(100vh-4rem)]">
+      <div className="flex h-full min-h-0 flex-col gap-3 p-3">
 
         {/* Header */}
         <div className="flex items-center justify-between shrink-0">
@@ -184,7 +186,7 @@ const AuditLogsScreen: React.FC = () => {
             <Button
               onClick={() => fetchPage(1, filtersRef.current, true)}
               size="sm" variant="ghost"
-              className="h-8 w-8 p-0 text-muted-foreground hover:text-foreground hover:bg-muted"
+              className="h-8 w-8 p-0"
             >
               <RefreshCw className={cn('h-3.5 w-3.5', loading && 'animate-spin')} />
             </Button>
@@ -241,37 +243,36 @@ const AuditLogsScreen: React.FC = () => {
 
           <div className="w-px h-5 bg-border shrink-0" />
 
-          <select
+          <NativeSelect size="sm" className="text-xs w-auto"
             value={filters.service || ''}
             onChange={e => handleFilterChange('service', e.target.value)}
-            className="h-7 text-xs bg-muted/60 border border-border rounded px-2 text-foreground focus:outline-none focus:ring-1 focus:ring-ring"
           >
-            <option value="">Todos los servicios</option>
-            <option value="identity-service">Identity Service</option>
-            <option value="exam-service">Exam Service</option>
-          </select>
+            <NativeSelectOption value="">Todos los servicios</NativeSelectOption>
+            <NativeSelectOption value="identity-service">Identity Service</NativeSelectOption>
+            <NativeSelectOption value="exam-service">Exam Service</NativeSelectOption>
+          </NativeSelect>
 
           <div className="relative">
             <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3 w-3 text-muted-foreground pointer-events-none" />
-            <input
+            <Input
               type="text" placeholder="Acción..." value={filters.action || ''}
               onChange={e => handleFilterChange('action', e.target.value)}
-              className="h-7 pl-6 pr-2 text-xs bg-muted/60 border border-border rounded text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring w-36"
+              className="w-36 h-7 pl-6 pr-2 text-xs"
             />
           </div>
 
           <div className="relative">
             <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3 w-3 text-muted-foreground pointer-events-none" />
-            <input
+            <Input
               type="text" placeholder="Email actor..." value={filters.actorEmail || ''}
               onChange={e => handleFilterChange('actorEmail', e.target.value)}
-              className="h-7 pl-6 pr-2 text-xs bg-muted/60 border border-border rounded text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring w-40"
+              className="w-40 h-7 pl-6 pr-2 text-xs"
             />
           </div>
 
           <Button
             onClick={handleClear} variant="ghost" size="sm"
-            className="h-7 text-xs text-muted-foreground hover:text-foreground hover:bg-muted px-2 ml-auto"
+            className="h-7 text-xs px-2 ml-auto"
           >
             Hoy
           </Button>

@@ -409,13 +409,14 @@ const UserTable: React.FC<UserTableProps> = ({
             usuarios
           </div>
           <div className="flex items-center gap-2">
-            <button
+            <Button
+              variant="outline"
+              size="icon"
               onClick={() => onPageChange(currentPage - 1)}
               disabled={currentPage === 1}
-              className="p-2 bg-muted/50 border border-border rounded-lg hover:bg-muted disabled:opacity-50 disabled:cursor-not-allowed transition-all"
             >
               <ChevronLeft className="w-4 h-4 text-muted-foreground" />
-            </button>
+            </Button>
 
             <div className="flex gap-1">
               {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
@@ -436,13 +437,14 @@ const UserTable: React.FC<UserTableProps> = ({
               })}
             </div>
 
-            <button
+            <Button
+              variant="outline"
+              size="icon"
               onClick={() => onPageChange(currentPage + 1)}
               disabled={currentPage === totalPages}
-              className="p-2 bg-muted/50 border border-border rounded-lg hover:bg-muted disabled:opacity-50 disabled:cursor-not-allowed transition-all"
             >
               <ChevronRight className="w-4 h-4 text-muted-foreground" />
-            </button>
+            </Button>
           </div>
         </div>
       )}

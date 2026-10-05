@@ -29,7 +29,7 @@ export function SessionCancelledScreen() {
         <GradientWrapper intensity="medium" size="lg">
           <Card className="w-full max-w-md">
             <CardContent className="p-8 text-center space-y-5">
-              <div className="w-14 h-14 rounded-full bg-muted/50 border border-line flex items-center justify-center mx-auto">
+              <div className="w-14 h-14 rounded-full bg-muted/50 border border-border flex items-center justify-center mx-auto">
                 <Ban className="h-8 w-8 text-muted-foreground" />
               </div>
 
@@ -48,7 +48,7 @@ export function SessionCancelledScreen() {
                 <Button
                   onClick={() => navigate('/student/dashboard')}
                   variant="outline"
-                  className="w-full gap-2 border-line bg-transparent text-foreground/80 hover:bg-muted hover:text-foreground"
+                  className="w-full gap-2"
                 >
                   <LayoutDashboard className="h-4 w-4" />
                   Ir a mi panel

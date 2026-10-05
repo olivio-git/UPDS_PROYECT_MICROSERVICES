@@ -23,7 +23,7 @@ const QuestionActions: React.FC<Props> = ({
         variant="outline"
         onClick={onCancel}
         disabled={isLoading}
-        className="gap-1 text-foreground bg-transparent border border-line hover:bg-muted disabled:opacity-50"
+        className="gap-1 disabled:opacity-50"
       >
         Cancelar
       </Button>

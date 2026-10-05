@@ -632,7 +632,7 @@ export const MicrophoneTest: React.FC<MicrophoneTestProps> = ({ onTestComplete }
             <Button
               onClick={playRecording}
               variant="outline"
-              className="border-gray-600 text-gray-300 bg-transparent"
+              className="border-gray-600 text-gray-300"
               size="sm"
             >
               <Volume2 className="h-4 w-4 mr-2" />
@@ -945,7 +945,7 @@ export const CameraTest: React.FC<CameraTestProps> = ({ onTestComplete }) => {
             <Button
               onClick={startCamera}
               variant="outline"
-              className="border-gray-600 text-gray-300 bg-transparent"
+              className="border-gray-600 text-gray-300"
               size="sm"
             >
               <Settings className="h-4 w-4 mr-2" />

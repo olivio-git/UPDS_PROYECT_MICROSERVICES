@@ -141,7 +141,7 @@ const QuestionOptions: React.FC<Props> = ({
                 type="button"
                 variant="outline"
                 onClick={() => removeOption(opt.id)}
-                className="p-2 border-border hover:bg-muted"
+                className="p-2"
                 title="Eliminar opción"
               >
                 <Trash2 className="w-4 h-4 text-red-500" />

@@ -1,3 +1,4 @@
+import { Button, buttonVariants } from '@/components/keel/button';
 import React, { useState } from "react";
 import { Upload, FileText } from "lucide-react";
 
@@ -24,7 +25,7 @@ const ImportPanel: React.FC<Props> = ({ onCancel, onImported }) => {
 
   return (
     <div className="space-y-6">
-      <div className="p-4 bg-dark-light border border-line rounded-lg">
+      <div className="border border-border bg-card p-4">
         <div className="flex items-center gap-3">
           <Upload className="w-5 h-5 text-muted-foreground" />
           <div>
@@ -34,7 +35,7 @@ const ImportPanel: React.FC<Props> = ({ onCancel, onImported }) => {
         </div>
 
         <div className="mt-4 flex items-center gap-3">
-          <label className="px-4 py-2 bg-dark-light border border-line rounded-lg hover:bg-dark-light/80 cursor-pointer text-muted-foreground flex items-center gap-2">
+          <label className={buttonVariants({ variant: "outline", className: "cursor-pointer" })}>
             <FileText className="w-4 h-4" />
             <span>Seleccionar archivo</span>
             <input
@@ -50,16 +51,15 @@ const ImportPanel: React.FC<Props> = ({ onCancel, onImported }) => {
       </div>
 
       <div className="flex justify-end gap-3">
-        <button onClick={onCancel} className="px-4 py-2 bg-dark-light border border-line rounded-lg text-muted-foreground hover:bg-dark-light/80">
+        <Button variant="outline" onClick={onCancel}>
           Cancelar
-        </button>
-        <button
+        </Button>
+        <Button
           onClick={handleImport}
           disabled={!file || isLoading}
-          className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
         >
           {isLoading ? "Importando..." : "Importar"}
-        </button>
+        </Button>
       </div>
     </div>
   );

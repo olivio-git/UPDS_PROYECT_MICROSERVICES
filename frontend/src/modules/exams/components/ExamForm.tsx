@@ -1,3 +1,7 @@
+import { Label } from '@/components/keel/label';
+import { FormSection } from '@/components/layout';
+import { Alert, AlertDescription } from '@/components/keel/alert';
+import { Spinner } from '@/components/keel/spinner';
 import { Button } from '@/components/keel/button';
 import { Input } from '@/components/keel/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/keel/select';
@@ -459,13 +463,14 @@ const ExamForm: React.FC<ExamFormProps> = ({ exam, onCancel, onSaved }) => {
   const sectionWeightIsValid = watchedSections.length === 0 || isWeightSumValid(rawSectionWeightTotal);
 
   return (
-    <form onSubmit={handleSubmit(onSubmit, onInvalid)} className="space-y-8">
+    <form onSubmit={handleSubmit(onSubmit, onInvalid)} className="flex flex-col gap-3">
       {/* Información básica */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <FormSection title="Información básica">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div className="space-y-2">
-          <label className="block text-sm font-medium text-muted-foreground">
+          <Label>
             Nombre del Examen *
-          </label>
+          </Label>
           <Controller
             name="name"
             control={control}
@@ -477,14 +482,14 @@ const ExamForm: React.FC<ExamFormProps> = ({ exam, onCancel, onSaved }) => {
             )}
           />
           {errors.name && (
-            <p className="text-red-400 text-sm">{errors.name.message}</p>
+            <p className="text-xs text-destructive">{errors.name.message}</p>
           )}
         </div>
 
         <div className="space-y-2">
-          <label className="block text-sm font-medium text-muted-foreground">
+          <Label>
             Tipo de Examen *
-          </label>
+          </Label>
           <Controller
             name="type"
             control={control}
@@ -503,14 +508,14 @@ const ExamForm: React.FC<ExamFormProps> = ({ exam, onCancel, onSaved }) => {
             )}
           />
           {errors.type && (
-            <p className="text-red-400 text-sm">{errors.type.message}</p>
+            <p className="text-xs text-destructive">{errors.type.message}</p>
           )}
         </div>
 
         <div className="space-y-2">
-          <label className="block text-sm font-medium text-muted-foreground">
+          <Label>
             Nivel Objetivo *
-          </label>
+          </Label>
           <Controller
             name="targetLevel"
             control={control}
@@ -543,14 +548,14 @@ const ExamForm: React.FC<ExamFormProps> = ({ exam, onCancel, onSaved }) => {
             )}
           />
           {errors.targetLevel && (
-            <p className="text-red-400 text-sm">{errors.targetLevel.message}</p>
+            <p className="text-xs text-destructive">{errors.targetLevel.message}</p>
           )}
         </div>
 
         <div className="space-y-2">
-          <label className="block text-sm font-medium text-muted-foreground">
+          <Label>
             Puntaje Mínimo (%) *
-          </label>
+          </Label>
           <Controller
             name="structure.passingScore"
             control={control}
@@ -565,16 +570,16 @@ const ExamForm: React.FC<ExamFormProps> = ({ exam, onCancel, onSaved }) => {
             )}
           />
           {errors.structure?.passingScore && (
-            <p className="text-red-400 text-sm">{errors.structure.passingScore.message}</p>
+            <p className="text-xs text-destructive">{errors.structure.passingScore.message}</p>
           )}
         </div>
       </div>
 
       {/* Descripción */}
       <div className="space-y-2">
-        <label className="block text-sm font-medium text-foreground/80">
+        <Label>
           Descripción
-        </label>
+        </Label>
         <Controller
           name="description"
           control={control}
@@ -587,15 +592,15 @@ const ExamForm: React.FC<ExamFormProps> = ({ exam, onCancel, onSaved }) => {
           )}
         />
       </div>
+      </FormSection>
 
       {/* Configuración de Nivelación (solo para type=placement) */}
       {watchedType === 'placement' && (
-        <div className="bg-blue-50 border border-blue-200 dark:bg-blue-900/10 dark:border-blue-800/30 rounded-lg p-6 space-y-5">
-          <h3 className="text-lg font-semibold text-blue-700 dark:text-blue-200">Configuración de Examen de Nivelación</h3>
+        <FormSection title="Configuración de nivelación" description="Cómo se elige el nivel del candidato">
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
             <div className="space-y-2">
-              <label className="block text-sm font-medium text-muted-foreground">Modo</label>
+              <Label>Modo</Label>
               <Select
                 value={placementConfig.mode}
                 items={{ static: 'Estático (secciones fijas)', adaptive: 'Adaptativo (CAT)' }}
@@ -638,9 +643,9 @@ const ExamForm: React.FC<ExamFormProps> = ({ exam, onCancel, onSaved }) => {
             </div>
 
             <div className="space-y-2">
-              <label className="block text-sm font-medium text-muted-foreground">
+              <Label>
                 % mínimo por nivel para aprobar
-              </label>
+              </Label>
               <Input
                 type="number"
                 min="1"
@@ -653,7 +658,7 @@ const ExamForm: React.FC<ExamFormProps> = ({ exam, onCancel, onSaved }) => {
             {placementConfig.mode === 'adaptive' && (
               <>
                 <div className="space-y-2">
-                  <label className="block text-sm font-medium text-muted-foreground">Nivel de inicio</label>
+                  <Label>Nivel de inicio</Label>
                   <Select
                     value={placementConfig.startingLevel}
                     onValueChange={(v) => v && setPlacementConfig(p => ({ ...p, startingLevel: v }))}
@@ -670,7 +675,7 @@ const ExamForm: React.FC<ExamFormProps> = ({ exam, onCancel, onSaved }) => {
                 </div>
 
                 <div className="space-y-2">
-                  <label className="block text-sm font-medium text-muted-foreground">Máx. preguntas</label>
+                  <Label>Máx. preguntas</Label>
                   <Input
                     type="number"
                     min="5"
@@ -681,9 +686,9 @@ const ExamForm: React.FC<ExamFormProps> = ({ exam, onCancel, onSaved }) => {
                 </div>
 
                 <div className="space-y-2">
-                  <label className="block text-sm font-medium text-muted-foreground">
+                  <Label>
                     Errores consecutivos para finalizar
-                  </label>
+                  </Label>
                   <Input
                     type="number"
                     min="1"
@@ -694,9 +699,9 @@ const ExamForm: React.FC<ExamFormProps> = ({ exam, onCancel, onSaved }) => {
                 </div>
 
                 <div className="space-y-2">
-                  <label className="block text-sm font-medium text-muted-foreground">
+                  <Label>
                     Duración total (minutos)
-                  </label>
+                  </Label>
                   <Input
                     type="number"
                     min="5"
@@ -710,57 +715,48 @@ const ExamForm: React.FC<ExamFormProps> = ({ exam, onCancel, onSaved }) => {
           </div>
 
           {placementConfig.mode === 'adaptive' && (
-            <div className="bg-yellow-50 border border-yellow-200 dark:bg-yellow-900/10 dark:border-yellow-700/30 rounded-lg p-4 text-sm text-yellow-700 dark:text-yellow-300">
-              En modo adaptativo, el sistema selecciona preguntas dinámicamente. No es necesario configurar secciones (se ignorarán).
-            </div>
+            <Alert>
+              <AlertDescription>
+                En modo adaptativo, el sistema selecciona preguntas dinámicamente. No es necesario configurar secciones (se ignorarán).
+              </AlertDescription>
+            </Alert>
           )}
-        </div>
+        </FormSection>
       )}
 
       {/* Secciones del examen — ocultar en modo adaptativo */}
       {!(watchedType === 'placement' && placementConfig.mode === 'adaptive') && (
       <>
-      <div className="space-y-4">
-        <div className="flex items-center justify-between">
-          <h3 className="text-lg font-semibold text-foreground">Secciones del Examen</h3>
-          <div className="flex items-center gap-2">
-            <Button
-              type="button"
-              onClick={() => distributeSectionWeightsEvenly()}
-              variant="outline"
-              size="sm"
-              className="bg-transparent border-border text-muted-foreground hover:bg-muted"
-            >
-              <BarChart3 className="w-4 h-4 mr-2" />
+      <FormSection
+        title="Secciones del examen"
+        description="El peso de cada sección determina cuánto aporta al puntaje final."
+        actions={
+          <>
+            <Button type="button" onClick={() => distributeSectionWeightsEvenly()} variant="outline" size="sm">
+              <BarChart3 />
               Distribuir equitativamente
             </Button>
-            <Button
-              type="button"
-              onClick={addSection}
-              size="sm"
-            >
-              <Plus className="w-4 h-4 mr-2" />
-              Agregar Sección
+            <Button type="button" onClick={addSection} size="sm">
+              <Plus />
+              Agregar sección
             </Button>
-          </div>
-        </div>
+          </>
+        }
+      >
 
-        <div className="flex items-center justify-between text-sm">
-          <span className="text-muted-foreground">
-            El peso de las secciones determina cuánto aporta cada una al puntaje final.
-          </span>
-          <span className={sectionWeightIsValid ? 'text-green-400 font-medium' : 'text-orange-400 font-medium'}>
+        <div className="flex items-center justify-end text-sm">
+          <span className={sectionWeightIsValid ? 'text-emerald-600 dark:text-emerald-400 font-medium' : 'text-orange-500 font-medium'}>
             Peso total: {sectionWeightTotal}%
           </span>
         </div>
         {!sectionWeightIsValid && (
-          <p className="text-red-400 text-sm">
+          <p className="text-xs text-destructive">
             {`Las secciones deben sumar 100% de peso (suma actual: ${sectionWeightTotal}%). Usa 'Distribuir equitativamente' o ajusta a 100 (p. ej. 33.33 / 33.33 / 33.34).`}
           </p>
         )}
 
         {fields.map((field, index) => (
-          <div key={field.id} className="bg-muted/50 rounded-lg p-6 border border-border">
+          <div key={field.id} className="rounded-lg border border-border p-4">
             <div className="flex items-center justify-between mb-4">
               <h4 className="font-medium text-foreground">Sección {index + 1}</h4>
               {fields.length > 1 && (
@@ -778,9 +774,9 @@ const ExamForm: React.FC<ExamFormProps> = ({ exam, onCancel, onSaved }) => {
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               <div className="space-y-2">
-                <label className="block text-sm font-medium text-muted-foreground">
+                <Label>
                   Nombre de la Sección *
-                </label>
+                </Label>
                 <Controller
                   name={`structure.sections.${index}.name`}
                   control={control}
@@ -792,16 +788,16 @@ const ExamForm: React.FC<ExamFormProps> = ({ exam, onCancel, onSaved }) => {
                   )}
                 />
                 {errors.structure?.sections?.[index]?.name && (
-                  <p className="text-red-400 text-sm">
+                  <p className="text-xs text-destructive">
                     {errors.structure.sections[index]?.name?.message}
                   </p>
                 )}
               </div>
 
               <div className="space-y-2">
-                <label className="block text-sm font-medium text-muted-foreground">
+                <Label>
                   Competencia *
-                </label>
+                </Label>
                 <Controller
                   name={`structure.sections.${index}.competency`}
                   control={control}
@@ -838,9 +834,9 @@ const ExamForm: React.FC<ExamFormProps> = ({ exam, onCancel, onSaved }) => {
               </div>
 
               <div className="space-y-2">
-                <label className="block text-sm font-medium text-muted-foreground">
+                <Label>
                   Número de Preguntas *
-                </label>
+                </Label>
                 <Controller
                   name={`structure.sections.${index}.questionCount`}
                   control={control}
@@ -888,9 +884,9 @@ const ExamForm: React.FC<ExamFormProps> = ({ exam, onCancel, onSaved }) => {
               </div>
 
               <div className="space-y-2">
-                <label className="block text-sm font-medium text-muted-foreground">
+                <Label>
                   Duración (min) *
-                </label>
+                </Label>
                 <Controller
                   name={`structure.sections.${index}.duration`}
                   control={control}
@@ -906,9 +902,9 @@ const ExamForm: React.FC<ExamFormProps> = ({ exam, onCancel, onSaved }) => {
               </div>
 
               <div className="space-y-2">
-                <label className="block text-sm font-medium text-muted-foreground">
+                <Label>
                   Peso (%) *
-                </label>
+                </Label>
                 <Controller
                   name={`structure.sections.${index}.weight`}
                   control={control}
@@ -925,7 +921,7 @@ const ExamForm: React.FC<ExamFormProps> = ({ exam, onCancel, onSaved }) => {
                   )}
                 />
                 {(getWeightInputError(watchedSections[index]?.weight) ?? errors.structure?.sections?.[index]?.weight?.message) && (
-                  <p className="text-red-400 text-sm">
+                  <p className="text-xs text-destructive">
                     {getWeightInputError(watchedSections[index]?.weight) ?? errors.structure?.sections?.[index]?.weight?.message}
                   </p>
                 )}
@@ -934,9 +930,9 @@ const ExamForm: React.FC<ExamFormProps> = ({ exam, onCancel, onSaved }) => {
 
             <div className="mt-4 space-y-2">
               <div className="flex items-center justify-between">
-                <label className="block text-sm font-medium text-muted-foreground">
+                <Label>
                   Instrucciones *
-                </label>
+                </Label>
                 {DEFAULT_INSTRUCTIONS[watchedSections[index]?.competency] && (
                   <button
                     type="button"
@@ -963,52 +959,45 @@ const ExamForm: React.FC<ExamFormProps> = ({ exam, onCancel, onSaved }) => {
                 )}
               />
               {errors.structure?.sections?.[index]?.instructions && (
-                <p className="text-red-400 text-sm">
+                <p className="text-xs text-destructive">
                   {errors.structure.sections[index]?.instructions?.message}
                 </p>
               )}
             </div>
           </div>
         ))}
-      </div>
 
-      {/* Resumen de totales */}
-      <div className="bg-blue-50 border border-blue-200 dark:bg-blue-900/20 dark:border-blue-800/30 rounded-lg p-4">
-        <h4 className="font-medium text-blue-700 dark:text-blue-200 mb-3">Resumen del Examen</h4>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-          <div>
-            <span className="text-muted-foreground">Total Preguntas:</span>
-            <p className="text-foreground font-medium">{watch('structure.totalQuestions')}</p>
-          </div>
-          <div>
-            <span className="text-muted-foreground">Duración Total:</span>
-            <p className="text-foreground font-medium">{watch('structure.totalDuration')} min</p>
-          </div>
-          <div>
-            <span className="text-muted-foreground">Puntaje Mínimo:</span>
-            <p className="text-foreground font-medium">{watch('structure.passingScore')}%</p>
-          </div>
+        {/* Resumen de totales */}
+        <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+          {[
+            { label: 'Total preguntas', value: String(watch('structure.totalQuestions') ?? '—') },
+            { label: 'Duración total', value: `${watch('structure.totalDuration')} min` },
+            { label: 'Puntaje mínimo', value: `${watch('structure.passingScore')}%` },
+          ].map((item) => (
+            <div key={item.label} className="rounded-lg bg-muted/40 px-3 py-2">
+              <p className="mb-0.5 text-[10px] leading-none tracking-wide text-muted-foreground uppercase">{item.label}</p>
+              <p className="text-sm font-medium text-foreground">{item.value}</p>
+            </div>
+          ))}
         </div>
-      </div>
+      </FormSection>
       </>
       )}
 
       {/* Configuración */}
-      <div className="space-y-4">
-        <h3 className="text-lg font-semibold text-foreground">Configuración</h3>
-        
+      <FormSection title="Configuración">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div className="space-y-4">
             <div className="flex items-center justify-between">
-              <label className="text-sm font-medium text-foreground/80">
+              <Label>
                 Aleatorizar preguntas
-              </label>
+              </Label>
               <Controller
                 name="configuration.randomizeQuestions" 
                 control={control}
                 render={({ field }) => (
                   <Switch
-                    className="bg-muted border border-border"
+                    
                     checked={field.value}
                   disabled={true}
                     onCheckedChange={field.onChange}
@@ -1018,15 +1007,15 @@ const ExamForm: React.FC<ExamFormProps> = ({ exam, onCancel, onSaved }) => {
             </div>
 
             <div className="flex items-center justify-between">
-              <label className="text-sm font-medium text-foreground/80">
+              <Label>
                 Aleatorizar opciones
-              </label>
+              </Label>
               <Controller
                 name="configuration.randomizeOptions"
                 control={control}
                 render={({ field }) => (
                   <Switch
-                    className="bg-muted border border-border"
+                    
                     checked={field.value}
                     disabled={true}
                     onCheckedChange={field.onChange}
@@ -1036,15 +1025,15 @@ const ExamForm: React.FC<ExamFormProps> = ({ exam, onCancel, onSaved }) => {
             </div>
 
             <div className="flex items-center justify-between">
-              <label className="text-sm font-medium text-foreground/80">
+              <Label>
                 Mostrar resultados
-              </label>
+              </Label>
               <Controller
                 name="configuration.showResults"
                 control={control}
                 render={({ field }) => (
                   <Switch
-                    className="bg-muted border border-border"
+                    
                     checked={field.value}
                     disabled={true}
                     onCheckedChange={field.onChange}
@@ -1056,15 +1045,15 @@ const ExamForm: React.FC<ExamFormProps> = ({ exam, onCancel, onSaved }) => {
 
           <div className="space-y-4">
             <div className="flex items-center justify-between">
-              <label className="text-sm font-medium text-foreground/80">
+              <Label>
                 Permitir revisión
-              </label>
+              </Label>
               <Controller
                 name="configuration.allowReview"
                 control={control}
                 render={({ field }) => (
                   <Switch
-                    className="bg-muted border border-border"
+                    
                     checked={field.value}
                     disabled={true}
                     onCheckedChange={field.onChange}
@@ -1074,9 +1063,9 @@ const ExamForm: React.FC<ExamFormProps> = ({ exam, onCancel, onSaved }) => {
             </div>
 
             <div className="space-y-2">
-              <label className="block text-sm font-medium text-muted-foreground">
+              <Label>
                 Máximo de intentos
-              </label>
+              </Label>
               <Controller
                 name="configuration.maxAttempts"
                 control={control}
@@ -1094,15 +1083,15 @@ const ExamForm: React.FC<ExamFormProps> = ({ exam, onCancel, onSaved }) => {
             </div>
 
             <div className="flex items-center justify-between">
-              <label className="text-sm font-medium text-foreground/80">
+              <Label>
                 Es plantilla
-              </label>
+              </Label>
               <Controller
                 name="isTemplate"
                 control={control}
                 render={({ field }) => (
                   <Switch
-                    className="bg-muted border border-border"
+                    
                     checked={field.value}
                     disabled={true}
                     onCheckedChange={field.onChange}
@@ -1112,15 +1101,15 @@ const ExamForm: React.FC<ExamFormProps> = ({ exam, onCancel, onSaved }) => {
             </div>
 
             <div className="flex items-center justify-between">
-              <label className="text-sm font-medium text-foreground/80">
+              <Label>
                 Activo
-              </label>
+              </Label>
               <Controller
                 name="isActive"
                 control={control}
                 render={({ field }) => (
                   <Switch
-                    className="bg-muted border border-border"
+                    
                     checked={field.value}
                     onCheckedChange={field.onChange}
                   />
@@ -1129,35 +1118,17 @@ const ExamForm: React.FC<ExamFormProps> = ({ exam, onCancel, onSaved }) => {
             </div>
           </div>
         </div>
-      </div>
+      </FormSection>
 
       {/* Botones de acción */}
-      <div className="flex items-center gap-4 pt-6 border-t border-border">
-        <Button
-          type="submit"
-          disabled={isSubmitting}
-        >
-          {isSubmitting ? (
-            <div className="flex items-center gap-2">
-              <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-              Guardando...
-            </div>
-          ) : (
-            <div className="flex items-center gap-2 text-white">
-              <Save className="w-4 h-4" />
-              {exam ? 'Actualizar' : 'Crear'} Examen
-            </div>
-          )}
-        </Button>
-
-        <Button
-          type="button"
-          onClick={onCancel}
-          variant="outline"
-          className="border-border bg-card text-foreground/80 hover:bg-muted"
-        >
-          <X className="w-4 h-4 mr-2" />
+      <div className="-mx-3 flex items-center justify-end gap-2 border-t border-border px-3 pt-3">
+        <Button type="button" onClick={onCancel} variant="outline">
+          <X />
           Cancelar
+        </Button>
+        <Button type="submit" disabled={isSubmitting}>
+          {isSubmitting ? <Spinner /> : <Save />}
+          {isSubmitting ? 'Guardando...' : exam ? 'Actualizar examen' : 'Crear examen'}
         </Button>
       </div>
     </form>

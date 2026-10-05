@@ -1,3 +1,4 @@
+import { Button } from '@/components/keel/button';
 import {
   AlertTriangle,
   Bell,
@@ -186,21 +187,23 @@ const NotificationsSheet = ({
                         {/* Acciones */}
                         <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0">
                           {!notification.read && (
-                            <button
+                            <Button
+                              variant="ghost"
+                              size="icon-sm"
                               onClick={() => onMarkAsRead(notification.id)}
-                              className="p-1 rounded hover:bg-muted transition-colors"
                               title="Marcar como leída"
                             >
                               <Check className="h-3.5 w-3.5 text-green-400" />
-                            </button>
+                            </Button>
                           )}
-                          <button
+                          <Button
+                            variant="ghost"
+                            size="icon-sm"
                             onClick={() => onDelete(notification.id)}
-                            className="p-1 rounded hover:bg-muted transition-colors"
                             title="Eliminar"
                           >
                             <Trash2 className="h-3.5 w-3.5 text-red-400" />
-                          </button>
+                          </Button>
                         </div>
                       </div>
 

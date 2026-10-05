@@ -94,7 +94,7 @@ const StudentHeader = () => {
                             <Button
                                 variant="outline"
                                 size="icon"
-                                className="border border-border/40 bg-background/80 backdrop-blur-sm hover:border-border hover:bg-muted transition-all duration-300"
+                                className="border-border/40 bg-background/80 backdrop-blur-sm hover:border-border transition-all duration-300"
                             >
                                 <Bell className="h-4 w-4 text-foreground" />
                             </Button>
@@ -106,7 +106,7 @@ const StudentHeader = () => {
                                 variant="outline"
                                 size="icon"
                                 onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
-                                className="border border-border/40 bg-background/80 backdrop-blur-sm hover:border-border hover:bg-muted transition-all duration-300"
+                                className="border-border/40 bg-background/80 backdrop-blur-sm hover:border-border transition-all duration-300"
                             >
                                 <User className="h-4 w-4 text-foreground" />
                             </Button>
@@ -151,7 +151,7 @@ const StudentHeader = () => {
                                 variant="outline"
                                 size="icon"
                                 onClick={toggleMobileMenu}
-                                className="md:hidden border border-border/40 bg-background/80 backdrop-blur-sm hover:border-border hover:bg-muted transition-all duration-300"
+                                className="md:hidden border-border/40 bg-background/80 backdrop-blur-sm hover:border-border transition-all duration-300"
                             >
                                 <Menu className="h-4 w-4 text-white" />
                             </Button>
@@ -180,7 +180,6 @@ const StudentHeader = () => {
                                     variant="ghost"
                                     size="icon"
                                     onClick={toggleMobileMenu}
-                                    className="text-muted-foreground hover:text-foreground"
                                 >
                                     <X className="h-4 w-4 text-foreground" />
                                 </Button>

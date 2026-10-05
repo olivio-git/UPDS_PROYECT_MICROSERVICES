@@ -1,3 +1,7 @@
+import { EmptyState } from '@/components/common/EmptyState';
+import { Input } from '@/components/keel/input';
+import { Button } from '@/components/keel/button';
+import { FormPage } from '@/components/layout';
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem,
   DropdownMenuSeparator, DropdownMenuTrigger,
@@ -13,8 +17,7 @@ import {
   Eye,
   MoreVertical,
   Plus, Search,
-  Trash2,
-  X
+  Trash2
 } from "lucide-react";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
@@ -327,19 +330,7 @@ const ExamsScreen = () => {
 
     if (viewMode === "create" || viewMode === "edit") {
       return (
-        <div className="bg-card border border-border p-6">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-semibold text-foreground">
-              {viewMode === "edit" ? "Editar Examen" : "Nuevo Examen"}
-            </h2>
-            <button
-              onClick={handleBackToTable}
-              className="px-3 py-2 bg-muted/50 border border-border rounded-lg text-muted-foreground hover:bg-muted flex items-center gap-2"
-            >
-              <X className="w-4 h-4" /> Volver
-            </button>
-          </div>
-
+        <FormPage title={viewMode === "edit" ? "Editar Examen" : "Nuevo Examen"} onBack={handleBackToTable}>
           <ExamForm
             exam={viewMode === "edit" ? selectedExam : null}
             onCancel={handleBackToTable}
@@ -348,7 +339,7 @@ const ExamsScreen = () => {
               loadExams(); 
             }}
           />
-        </div>
+        </FormPage>
       );
     }
 
@@ -365,12 +356,12 @@ const ExamsScreen = () => {
             </p>
           </div>
           <div className="flex items-center gap-2">
-            <button
+            <Button
+              size="sm"
               onClick={handleCreate}
-              className="h-8 flex items-center gap-1.5 px-3 text-xs rounded-md bg-blue-600 hover:bg-blue-700 text-white transition-colors"
             >
               <Plus className="w-3.5 h-3.5" /> Nuevo Examen
-            </button>
+            </Button>
           </div>
         </div>
 
@@ -380,13 +371,13 @@ const ExamsScreen = () => {
           {/* Search */}
           <div className="relative">
             <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3 w-3 text-muted-foreground pointer-events-none" />
-            <input
+            <Input
               type="text"
               placeholder="Buscar exámenes..."
               value={searchTerm}
               onChange={e => setSearchTerm(e.target.value)}
               onKeyDown={e => e.key === 'Enter' && handleApplyFilters()}
-              className="h-7 pl-6 pr-2 text-xs bg-muted/60 border border-border rounded text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring w-44"
+              className="w-44 h-7 pl-6 pr-2 text-xs"
             />
           </div>
 
@@ -445,18 +436,19 @@ const ExamsScreen = () => {
             </SelectContent>
           </Select>
 
-          <button
+          <Button
+            size="sm"
             onClick={handleApplyFilters}
-            className="h-7 px-2.5 text-xs rounded bg-blue-600 hover:bg-blue-700 text-white transition-colors"
           >
             Aplicar
-          </button>
-          <button
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
             onClick={handleClearFilters}
-            className="h-7 px-2 text-xs rounded text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
           >
             Limpiar
-          </button>
+          </Button>
         </div>
 
         {/* Table */}
@@ -469,24 +461,19 @@ const ExamsScreen = () => {
           ) : error ? (
             <div className="flex flex-1 min-h-0 flex-col items-center justify-center text-center">
               <p className="text-sm text-red-400 mb-4">{error}</p>
-              <button
+              <Button
+                size="sm"
                 onClick={() => loadExams()}
-                className="px-3 py-1.5 text-xs bg-blue-600 text-white rounded-lg hover:bg-blue-700"
               >
                 Reintentar
-              </button>
+              </Button>
             </div>
           ) : exams.length === 0 ? (
-            <div className="flex flex-1 min-h-0 flex-col items-center justify-center text-center">
-              <BookOpen className="w-10 h-10 text-muted-foreground/40 mx-auto mb-3" />
-              <p className="text-sm text-muted-foreground mb-4">No se encontraron exámenes</p>
-              <button
-                onClick={handleCreate}
-                className="px-3 py-1.5 text-xs bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-              >
-                Crear primer examen
-              </button>
-            </div>
+            <EmptyState
+              icon={BookOpen}
+              title="No se encontraron exámenes"
+              action={<Button size="sm" onClick={handleCreate}>Crear primer examen</Button>}
+            />
           ) : (
             <>
               <div className="flex-1 min-h-0">
@@ -508,13 +495,14 @@ const ExamsScreen = () => {
                     {(currentPage - 1) * 10 + 1}–{Math.min(currentPage * 10, totalItems)} de {totalItems} exámenes
                   </span>
                   <div className="flex items-center gap-1">
-                    <button
+                    <Button
+                      variant="outline"
+                      size="icon-sm"
                       onClick={() => changePage(currentPage - 1)}
                       disabled={currentPage === 1}
-                      className="p-1.5 bg-muted/50 border border-border rounded hover:bg-muted disabled:opacity-40 disabled:cursor-not-allowed transition-all"
                     >
                       <ChevronLeft className="w-3.5 h-3.5 text-muted-foreground" />
-                    </button>
+                    </Button>
                     {(() => {
                       const maxVisible = 5;
                       const half = Math.floor(maxVisible / 2);
@@ -535,13 +523,14 @@ const ExamsScreen = () => {
                         </button>
                       ));
                     })()}
-                    <button
+                    <Button
+                      variant="outline"
+                      size="icon-sm"
                       onClick={() => changePage(currentPage + 1)}
                       disabled={currentPage === totalPages}
-                      className="p-1.5 bg-muted/50 border border-border rounded hover:bg-muted disabled:opacity-40 disabled:cursor-not-allowed transition-all"
                     >
                       <ChevronRight className="w-3.5 h-3.5 text-muted-foreground" />
-                    </button>
+                    </Button>
                   </div>
                 </div>
               )}
@@ -554,7 +543,7 @@ const ExamsScreen = () => {
 
   return (
     <MainLayout gradientVariant="aurora">
-      <div className="flex h-full min-h-0 flex-col gap-3 p-3 epilogue-uniquifier">
+      <div className="flex h-full min-h-0 flex-col gap-3 p-3">
         {renderView()}
       </div>
 

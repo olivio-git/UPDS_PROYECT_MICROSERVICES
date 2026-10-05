@@ -844,7 +844,7 @@ const ExamRunnerHTTP: React.FC = () => {
                 variant="outline"
                 size="sm"
                 disabled={autoSaveStatus === 'saving' || autoSaveStatus === 'idle'}
-                className="gap-1.5 border-line bg-transparent text-foreground/80 hover:bg-muted hover:text-foreground disabled:cursor-not-allowed disabled:opacity-40"
+                className="gap-1.5 border-border bg-transparent text-foreground/80 hover:bg-muted hover:text-foreground disabled:cursor-not-allowed disabled:opacity-40"
               >
                 <Save className="h-3.5 w-3.5" />
                 <span className="hidden sm:inline">Guardar avance</span>
@@ -855,7 +855,7 @@ const ExamRunnerHTTP: React.FC = () => {
 
         {/* ── Rail (full-height question navigator) + main content ── */}
         <div className="grid min-h-0 flex-1 grid-cols-1 lg:grid-cols-[320px_1fr]">
-          <div className="order-2 max-h-64 overflow-hidden border-t border-line bg-box p-3 lg:order-1 lg:h-full lg:max-h-none lg:border-t-0 lg:border-r">
+          <div className="order-2 max-h-64 overflow-hidden border-t border-border bg-card p-3 lg:order-1 lg:h-full lg:max-h-none lg:border-t-0 lg:border-r">
             <SectionNavigator
               sections={sectionStats.map(section => ({
                 ...section,
@@ -922,13 +922,13 @@ const ExamRunnerHTTP: React.FC = () => {
             </div>
 
             {/* Navigation controls — pinned below the scroll area */}
-            <div className="shrink-0 border-t border-line bg-box px-4 py-3 lg:px-6">
+            <div className="shrink-0 border-t border-border bg-card px-4 py-3 lg:px-6">
               <div className="flex items-center justify-between gap-3">
                 <Button
                   onClick={goToPreviousQuestion}
                   disabled={isFirstQuestionOverall}
                   variant="outline"
-                  className="text-foreground/80 border-line bg-transparent hover:bg-muted hover:text-foreground disabled:opacity-30 disabled:cursor-not-allowed"
+                  className="text-foreground/80 border-border bg-transparent hover:bg-muted hover:text-foreground disabled:opacity-30 disabled:cursor-not-allowed"
                 >
                   <ChevronLeft className="h-4 w-4 mr-1" />
                   Anterior

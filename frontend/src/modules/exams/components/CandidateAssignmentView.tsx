@@ -171,7 +171,6 @@ const CandidateAssignmentModal: React.FC<CandidateAssignmentModalProps> = ({
             type="button"
             variant="outline"
             onClick={onClose}
-            className="border-border text-foreground/80 bg-transparent"
           >
             Cancelar
           </Button>
@@ -303,13 +302,14 @@ const CandidateAssignmentModal: React.FC<CandidateAssignmentModalProps> = ({
                           {c.academicInfo.currentLevel}
                         </span>
                       )}
-                      <button
+                      <Button
+                        variant="ghost"
+                        size="icon-sm"
                         onClick={() => handleRemove(c._id)}
-                        className="w-7 h-7 rounded-lg flex items-center justify-center text-muted-foreground hover:bg-red-50 hover:text-red-500 dark:hover:bg-red-900/20 transition-colors"
                         title="Remover candidato"
                       >
                         <UserMinus className="h-4 w-4" />
-                      </button>
+                      </Button>
                     </div>
                   </div>
                 ))}

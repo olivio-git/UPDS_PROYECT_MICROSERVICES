@@ -1,100 +1,69 @@
-import { Button } from "@/components/keel/button";
-import GradientWrapper from "@/components/background/GrandWrapperSection";
-import { MainLayout } from "@/components/layout";
+import { Badge } from "@/components/keel/badge";
+import { Item, ItemActions, ItemContent, ItemDescription, ItemMedia, ItemTitle } from "@/components/keel/item";
+import { MainLayout, Page, PageHeader } from "@/components/layout";
 import { useAuthStore } from "@/modules/auth/services/authStore";
-import { useEffect } from "react";
-import { useNavigate } from "react-router";
+import { menuForRole } from "@/navigation/menu";
+import { ChevronRight } from "lucide-react";
+import { useMemo } from "react";
+import { Link } from "react-router-dom";
 
+const ROLE_LABEL: Record<string, string> = {
+  admin: "Administrador",
+  teacher: "Docente",
+  proctor: "Supervisor",
+  student: "Estudiante",
+};
+
+/**
+ * Home for staff roles. It used to be a centred hero ("¡Bienvenido!") with a
+ * single button; now it is a full-width index of what this role can open,
+ * grouped the same way as the sidebar so both read as one map of the app.
+ */
 const DashboardScreen = () => {
   const { user } = useAuthStore();
-  const navigate = useNavigate();
-  // const [forceUpdate, setForceUpdate] = useState(0);
-  
-  // Escuchar eventos de cambio de autenticación
-  useEffect(() => {
-    const handleAuthChange = () => {};
-    window.addEventListener('auth-state-changed', handleAuthChange);
-    return () => window.removeEventListener('auth-state-changed', handleAuthChange);
-  }, []);
-   
-  const getRoleBadgeColor = (role: string) => {
-    switch (role) {
-      case "admin":
-        return "bg-muted text-foreground shadow-md";
-      case "teacher":
-        return "bg-muted text-foreground shadow-md";
-      case "proctor":
-        return "bg-green-500/20 text-green-600 dark:text-green-300 border border-green-500/30";
-      case "student":
-        return "bg-muted text-foreground shadow-md";
-      default:
-        return "bg-muted/50 text-muted-foreground border border-border";
-    }
-  };
-
-  const getRoleLabel = (role: string) => {
-    switch (role) {
-      case "admin":
-        return "Administrador";
-      case "teacher":
-        return "Profesor";
-      case "proctor":
-        return "Supervisor";
-      case "student":
-        return "Estudiante";
-      default:
-        return role;
-    }
-  };
+  const groups = useMemo(
+    () =>
+      menuForRole(user?.role)
+        .map((group) => ({ ...group, items: group.items.filter((item) => item.path !== "/dashboard") }))
+        .filter((group) => group.items.length > 0),
+    [user?.role],
+  );
 
   return (
-    <MainLayout gradientVariant="primary">
-      <div className="max-w-6xl mx-auto">
-        <GradientWrapper
-          variant="cosmic"
-          position="center"
-          className="min-h-[80vh] flex items-center justify-center"
-          size="xl"
-          intensity="high"
-          animate={false}
-        > 
-            <div className="text-center space-y-6">
-              <div className="space-y-2">
-                <h1 className="mb-4 text-3xl font-extrabold text-foreground md:text-5xl lg:text-6xl">
-                  ¡Bienvenido,{" "}
-                  <span className="text-transparent bg-clip-text bg-gradient-to-r to-emerald-600 from-sky-400">
-                    {user?.firstName}!
-                  </span>
-                </h1>
-                <p className="text-sm text-muted-foreground max-w-2xl mx-auto font-portfolio">
-                  Todo lo que necesitas para gestionar tu cuenta y acceder a tus
-                  recursos académicos en un solo lugar.
-                </p> 
-                <Button
-                  onClick={() => {
-                    if (user?.role === "admin") {
-                      navigate("/dashboard");
-                    } else {
-                      navigate(`/${user?.role}/dashboard`);
-                    }
-                  }}
-                  className="mt-2 text-sm"
-                >
-                  <span className="flex items-center gap-2">
-                    Ir a mi Pannel
-                    <span
-                    className={`px-2 py-1 rounded-md text-xs font-extralight ${getRoleBadgeColor(
-                      user?.role || ""
-                    )}`}
-                  >
-                    {getRoleLabel(user?.role || "")}
-                  </span>
-                  </span>
-                </Button>
+    <MainLayout>
+      <Page>
+        <PageHeader
+          title={`Hola, ${user?.firstName ?? ""}`.trim()}
+          description="Accesos a todo lo que puedes gestionar desde tu cuenta"
+          meta={user?.role && <Badge variant="secondary">{ROLE_LABEL[user.role] ?? user.role}</Badge>}
+        />
+
+        <div className="flex flex-col gap-4">
+          {groups.map((group, i) => (
+            <section key={group.label ?? `group-${i}`} className="flex flex-col gap-2">
+              {group.label && (
+                <h2 className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">{group.label}</h2>
+              )}
+              <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
+                {group.items.map(({ path, label, hint, icon: Icon }) => (
+                  <Item key={path} variant="outline" render={<Link to={path} />}>
+                    <ItemMedia variant="icon">
+                      <Icon />
+                    </ItemMedia>
+                    <ItemContent>
+                      <ItemTitle>{label}</ItemTitle>
+                      {hint && <ItemDescription>{hint}</ItemDescription>}
+                    </ItemContent>
+                    <ItemActions>
+                      <ChevronRight className="size-4 text-muted-foreground" />
+                    </ItemActions>
+                  </Item>
+                ))}
               </div>
-            </div>
-        </GradientWrapper>
-      </div>
+            </section>
+          ))}
+        </div>
+      </Page>
     </MainLayout>
   );
 };

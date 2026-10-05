@@ -1,3 +1,4 @@
+import { EmptyState } from '@/components/common/EmptyState';
 import { Badge } from "@/components/keel/badge";
 import { Button } from "@/components/keel/button";
 import {
@@ -99,16 +100,12 @@ const LevelTable = ({
 
   if (levels.length === 0) {
     return (
-      <div className="flex flex-1 min-h-0 flex-col items-center justify-center border-t border-border bg-card text-center">
-        <div className="space-y-4">
-          <BookOpen className="h-12 w-12 text-muted-foreground mx-auto" />
-          <div className="space-y-2">
-            <h3 className="text-lg font-medium text-foreground">No hay niveles configurados</h3>
-            <p className="text-muted-foreground max-w-md mx-auto">
-              Comienza creando tu primer nivel MCER para estructurar el sistema de evaluación.
-            </p>
-          </div>
-        </div>
+      <div className="flex flex-1 min-h-0 flex-col border-t border-border bg-card">
+        <EmptyState
+          icon={BookOpen}
+          title="No hay niveles configurados"
+          description="Comienza creando tu primer nivel MCER para estructurar el sistema de evaluación."
+        />
       </div>
     );
   }

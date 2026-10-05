@@ -1,3 +1,4 @@
+import { Input } from '@/components/keel/input';
 import { useDebouncedValue } from '@/hooks/useDebouncedValue';
 import { cn } from '@/lib/utils';
 import type { ReportFilters, StudentListEntry } from '@/services/reportsService';
@@ -93,13 +94,13 @@ export function StudentListCard({ filters }: { filters: ReportFilters }) {
       actions={
         <div className="relative">
           <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3 w-3 text-muted-foreground pointer-events-none" />
-          <input
+          <Input
             type="text"
             placeholder="Buscar por nombre..."
             aria-label="Buscar estudiante por nombre"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="h-7 pl-6 pr-2 text-xs bg-muted/60 border border-border rounded text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring w-44"
+            className="w-44 h-7 pl-6 pr-2 text-xs"
           />
         </div>
       }

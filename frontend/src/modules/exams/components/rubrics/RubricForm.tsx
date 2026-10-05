@@ -1,3 +1,4 @@
+import { Spinner } from '@/components/keel/spinner';
 import { Button } from "@/components/keel/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/keel/card";
 import { Input } from "@/components/keel/input";
@@ -212,17 +213,17 @@ const RubricForm = ({
   };
 
   return (
-    <div className="space-y-6">
-      <form onSubmit={handleSubmit} className="space-y-6">
+    <div className="flex flex-col gap-3">
+      <form onSubmit={handleSubmit} className="flex flex-col gap-3">
         {/* Información Básica */}
-        <Card className="bg-muted/30">
+        <Card flat>
           <CardHeader>
             <CardTitle>Información Básica</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="name" className="text-muted-foreground">
+                <Label htmlFor="name">
                   Nombre de la Rúbrica *
                 </Label>
                 <Input
@@ -230,14 +231,14 @@ const RubricForm = ({
                   value={formData.name}
                   onChange={(e) => handleInputChange('name', e.target.value)}
                   placeholder="Ej: Rúbrica de Expresión Oral B1"
-/>
+                />
                 {errors.name && (
-                  <p className="text-red-400 text-sm">{errors.name}</p>
+                  <p className="text-xs text-destructive">{errors.name}</p>
                 )}
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="maxScore" className="text-muted-foreground">
+                <Label htmlFor="maxScore">
                   Puntaje Máximo *
                 </Label>
                 <Input
@@ -247,16 +248,16 @@ const RubricForm = ({
                   max="1000"
                   value={formData.maxScore}
                   onChange={(e) => handleInputChange('maxScore', parseInt(e.target.value))}
-/>
+                />
                 {errors.maxScore && (
-                  <p className="text-red-400 text-sm">{errors.maxScore}</p>
+                  <p className="text-xs text-destructive">{errors.maxScore}</p>
                 )}
               </div>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="space-y-2">
-                <Label className="text-muted-foreground">
+                <Label>
                   Competencia *
                 </Label>
                 <CompetencySelector
@@ -265,12 +266,12 @@ const RubricForm = ({
                   placeholder="Seleccionar competencia"
                 />
                 {errors.competency && (
-                  <p className="text-red-400 text-sm">{errors.competency}</p>
+                  <p className="text-xs text-destructive">{errors.competency}</p>
                 )}
               </div>
 
               <div className="space-y-2">
-                <Label className="text-muted-foreground">
+                <Label>
                   Nivel MCER *
                 </Label>
                 <MCERLevelSelector
@@ -280,12 +281,12 @@ const RubricForm = ({
                   showDescriptions={false}
                 />
                 {errors.level && (
-                  <p className="text-red-400 text-sm">{errors.level}</p>
+                  <p className="text-xs text-destructive">{errors.level}</p>
                 )}
               </div>
 
               <div className="space-y-2">
-                <Label className="text-muted-foreground">
+                <Label>
                   Tipo de Evaluación *
                 </Label>
                 <Select
@@ -318,7 +319,7 @@ const RubricForm = ({
                 checked={formData.isActive}
                 onCheckedChange={(checked) => handleInputChange('isActive', checked)}
               />
-              <Label htmlFor="isActive" className="text-muted-foreground">
+              <Label htmlFor="isActive">
                 Rúbrica activa
               </Label>
             </div>
@@ -326,7 +327,7 @@ const RubricForm = ({
         </Card>
 
         {/* Criterios de Evaluación */}
-        <Card className="bg-muted/30">
+        <Card flat>
           <CardHeader>
             <div className="flex items-center justify-between">
               <CardTitle>Criterios de Evaluación</CardTitle>
@@ -336,7 +337,6 @@ const RubricForm = ({
                   variant="outline"
                   size="sm"
                   onClick={distributeWeightsEvenly}
-                  className="bg-transparent border-border text-muted-foreground hover:bg-muted"
                 >
                   <BarChart3 className="h-4 w-4 mr-2" />
                   Distribuir Evenly
@@ -346,7 +346,6 @@ const RubricForm = ({
                   variant="outline"
                   size="sm"
                   onClick={addCriterion}
-                  className="bg-transparent border-border text-muted-foreground hover:bg-muted"
                 >
                   <Plus className="h-4 w-4 mr-2" />
                   Agregar Criterio
@@ -362,10 +361,10 @@ const RubricForm = ({
               </div>
             </div>
             {errors.totalWeight && (
-              <p className="text-red-400 text-sm">{errors.totalWeight}</p>
+              <p className="text-xs text-destructive">{errors.totalWeight}</p>
             )}
             {errors.criteria && (
-              <p className="text-red-400 text-sm">{errors.criteria}</p>
+              <p className="text-xs text-destructive">{errors.criteria}</p>
             )}
           </CardHeader>
           <CardContent className="space-y-6">
@@ -390,21 +389,21 @@ const RubricForm = ({
                 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div className="space-y-2">
-                    <Label className="text-muted-foreground">
+                    <Label>
                       Nombre del Criterio *
                     </Label>
                     <Input
                       value={criterion.name}
                       onChange={(e) => updateCriterion(criterionIndex, 'name', e.target.value)}
                       placeholder="Ej: Fluidez"
-/>
+                    />
                     {errors[`criterion_${criterionIndex}_name`] && (
-                      <p className="text-red-400 text-sm">{errors[`criterion_${criterionIndex}_name`]}</p>
+                      <p className="text-xs text-destructive">{errors[`criterion_${criterionIndex}_name`]}</p>
                     )}
                   </div>
 
                   <div className="space-y-2">
-                    <Label className="text-muted-foreground">
+                    <Label>
                       Peso (%) *
                     </Label>
                     <WeightInput
@@ -415,30 +414,30 @@ const RubricForm = ({
                       className="bg-muted/50 border-border text-foreground"
                     />
                     {(getWeightInputError(criterion.weight) ?? errors[`criterion_${criterionIndex}_weight`]) && (
-                      <p className="text-red-400 text-sm">
+                      <p className="text-xs text-destructive">
                         {getWeightInputError(criterion.weight) ?? errors[`criterion_${criterionIndex}_weight`]}
                       </p>
                     )}
                   </div>
 
                   <div className="space-y-2">
-                    <Label className="text-muted-foreground">
+                    <Label>
                       Descripción *
                     </Label>
                     <Input
                       value={criterion.description}
                       onChange={(e) => updateCriterion(criterionIndex, 'description', e.target.value)}
                       placeholder="Descripción del criterio"
-/>
+                    />
                     {errors[`criterion_${criterionIndex}_description`] && (
-                      <p className="text-red-400 text-sm">{errors[`criterion_${criterionIndex}_description`]}</p>
+                      <p className="text-xs text-destructive">{errors[`criterion_${criterionIndex}_description`]}</p>
                     )}
                   </div>
                 </div>
 
                 {/* Niveles de Desempeño */}
                 <div className="space-y-3">
-                  <Label className="text-muted-foreground">Niveles de Desempeño</Label>
+                  <Label>Niveles de Desempeño</Label>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                     {criterion.levels.map((level, levelIndex) => (
                       <div key={levelIndex} className="border border-border/50 rounded-lg p-3 space-y-2">
@@ -451,13 +450,13 @@ const RubricForm = ({
                             onChange={(e) => updateCriterionLevel(criterionIndex, levelIndex, 'score', parseInt(e.target.value))}
                             className="w-20"
                             placeholder="Puntaje"
-/>
+                          />
                           <Input
                             value={level.description}
                             onChange={(e) => updateCriterionLevel(criterionIndex, levelIndex, 'description', e.target.value)}
                             placeholder="Descripción del nivel"
                             className="flex-1"
-/>
+                          />
                         </div>
                       </div>
                     ))}
@@ -469,33 +468,14 @@ const RubricForm = ({
         </Card>
 
         {/* Botones de acción */}
-        <div className="flex justify-end space-x-3">
-          <Button
-            type="button"
-            variant="outline"
-            onClick={onCancel}
-            disabled={isLoading}
-            className="bg-transparent border-border text-muted-foreground hover:bg-muted"
-          >
-            <X className="h-4 w-4 mr-2" />
+        <div className="-mx-3 flex items-center justify-end gap-2 border-t border-border px-3 pt-3">
+          <Button type="button" variant="outline" onClick={onCancel} disabled={isLoading}>
+            <X />
             Cancelar
           </Button>
-          <Button
-            type="submit"
-            disabled={isLoading}
-            className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white"
-          >
-            {isLoading ? (
-              <div className="flex items-center">
-                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-foreground/30 mr-2"></div>
-                Guardando...
-              </div>
-            ) : (
-              <>
-                <Save className="h-4 w-4 mr-2" />
-                {isEditing ? 'Actualizar Rúbrica' : 'Crear Rúbrica'}
-              </>
-            )}
+          <Button type="submit" disabled={isLoading}>
+            {isLoading ? <Spinner /> : <Save />}
+            {isLoading ? 'Guardando...' : isEditing ? 'Actualizar rúbrica' : 'Crear rúbrica'}
           </Button>
         </div>
       </form>

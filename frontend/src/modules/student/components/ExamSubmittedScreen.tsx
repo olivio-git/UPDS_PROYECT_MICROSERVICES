@@ -93,7 +93,7 @@ export function ExamSubmittedScreen({ examName, submittedAt }: ExamSubmittedScre
                 <Button
                   onClick={() => navigate('/student/dashboard')}
                   variant="outline"
-                  className="w-full gap-2 border-line bg-transparent text-foreground/80 hover:bg-muted hover:text-foreground"
+                  className="w-full gap-2"
                 >
                   <LayoutDashboard className="h-4 w-4" />
                   Ir a mi panel

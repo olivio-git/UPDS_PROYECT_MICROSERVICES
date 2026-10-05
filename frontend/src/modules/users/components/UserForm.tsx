@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/keel/button';
+import { FormPage } from '@/components/layout';
 import { Input } from '@/components/keel/input';
 import { Label } from '@/components/keel/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/keel/select';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/keel/card';
 import { Badge } from '@/components/keel/badge';
-import { AlertCircle, Save, X, Mail, Phone, Shield, Users } from 'lucide-react';
-import { Alert, AlertDescription } from '@/components/keel/alert';
+import { Save, X, Mail, Phone, Shield, Users } from 'lucide-react';
 import type {  
   CreateUserRequest, 
   UpdateUserRequest, 
@@ -205,32 +205,34 @@ const UserForm: React.FC<UserFormProps> = ({
   const selectedRoleConfig = USER_ROLES.find(r => r.value === formData.role);
 
   return (
-    <div className="max-w-4xl mx-auto space-y-6  bg-box p-4 rounded-lg border border-line">
-      {/* Header */}
-      <div className="flex items-center gap-4 text-foreground">
-        <div>
-          <h2 className="text-2xl font-bold text-foreground">
-            {isEditing ? 'Editar Usuario' : 'Nuevo Usuario'}
-          </h2>
-          <p className="text-muted-foreground">
-            {isEditing 
-              ? `Modificando información de ${user?.firstName} ${user?.lastName}`
-              : 'Completa la información para crear un nuevo usuario'
-            }
-          </p>
-        </div>
-      </div>
-
-      <form onSubmit={handleSubmit} className="space-y-6">
+    <FormPage
+      title={isEditing ? 'Editar usuario' : 'Nuevo usuario'}
+      onBack={onCancel}
+      onSubmit={handleSubmit}
+      footer={
+        <>
+          <Button type="button" variant="outline" onClick={onCancel} disabled={isLoading}>
+            <X />
+            Cancelar
+          </Button>
+          <Button type="submit" disabled={isLoading}>
+            <Save />
+            {isLoading ? 'Guardando...' : isEditing ? 'Actualizar' : 'Crear usuario'}
+          </Button>
+        </>
+      }
+    >
         {/* Información básica */}
-        <Card>
+        <Card flat>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Users className="w-5 h-5" />
               Información Básica
             </CardTitle>
             <CardDescription>
-              Datos personales del usuario
+              {isEditing
+                ? `Modificando información de ${user?.firstName} ${user?.lastName}`
+                : 'Datos personales del usuario'}
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -246,14 +248,11 @@ const UserForm: React.FC<UserFormProps> = ({
                   value={formData.email}
                   onChange={(e) => handleInputChange('email', e.target.value)}
                   placeholder="usuario@ejemplo.com"
-                  className={errors.email ? 'border-red-500' : "bg-muted/50 border-border text-foreground placeholder:text-muted-foreground"}
+                  aria-invalid={!!errors.email}
                   disabled={isEditing} // No permitir cambiar email en edición
                 />
                 {errors.email && (
-                  <Alert variant="destructive" className="py-2">
-                    <AlertCircle className="h-4 w-4" />
-                    <AlertDescription>{errors.email}</AlertDescription>
-                  </Alert>
+                  <p className="text-xs text-destructive">{errors.email}</p>
                 )}
               </div>
 
@@ -288,10 +287,7 @@ const UserForm: React.FC<UserFormProps> = ({
                   </div>
                 )}
                 {errors.role && (
-                  <Alert variant="destructive" className="py-2">
-                    <AlertCircle className="h-4 w-4" />
-                    <AlertDescription>{errors.role}</AlertDescription>
-                  </Alert>
+                  <p className="text-xs text-destructive">{errors.role}</p>
                 )}
               </div>
             </div>
@@ -305,13 +301,10 @@ const UserForm: React.FC<UserFormProps> = ({
                   value={formData.firstName}
                   onChange={(e) => handleInputChange('firstName', e.target.value)}
                   placeholder="Juan"
-                  className={errors.firstName ? 'border-red-500' : "bg-muted/50 border-border text-foreground placeholder:text-muted-foreground"}
+                  aria-invalid={!!errors.firstName}
                 />
                 {errors.firstName && (
-                  <Alert variant="destructive" className="py-2">
-                    <AlertCircle className="h-4 w-4" />
-                    <AlertDescription>{errors.firstName}</AlertDescription>
-                  </Alert>
+                  <p className="text-xs text-destructive">{errors.firstName}</p>
                 )}
               </div>
 
@@ -323,13 +316,10 @@ const UserForm: React.FC<UserFormProps> = ({
                   value={formData.lastName}
                   onChange={(e) => handleInputChange('lastName', e.target.value)}
                   placeholder="Pérez"
-                  className={errors.lastName ? 'border-red-500' : "bg-muted/50 border-border text-foreground placeholder:text-muted-foreground"}
+                  aria-invalid={!!errors.lastName}
                 />
                 {errors.lastName && (
-                  <Alert variant="destructive" className="py-2">
-                    <AlertCircle className="h-4 w-4" />
-                    <AlertDescription>{errors.lastName}</AlertDescription>
-                  </Alert>
+                  <p className="text-xs text-destructive">{errors.lastName}</p>
                 )}
               </div>
             </div>
@@ -345,13 +335,10 @@ const UserForm: React.FC<UserFormProps> = ({
                 value={formData.phone || ''}
                 onChange={(e) => handleInputChange('phone', e.target.value)}
                 placeholder="+591 70123456"
-                className={errors.phone ? 'border-red-500' : "bg-muted/50 border-border text-foreground placeholder:text-muted-foreground"}
+                aria-invalid={!!errors.phone}
               />
               {errors.phone && (
-                <Alert variant="destructive" className="py-2">
-                  <AlertCircle className="h-4 w-4" />
-                  <AlertDescription>{errors.phone}</AlertDescription>
-                </Alert>
+                <p className="text-xs text-destructive">{errors.phone}</p>
               )}
             </div>
           </CardContent>
@@ -359,7 +346,7 @@ const UserForm: React.FC<UserFormProps> = ({
 
         {/* Información específica por rol */}
         {formData.role === 'teacher' && (
-          <Card>
+          <Card flat>
             <CardHeader>
               <CardTitle>Información del Profesor</CardTitle>
               <CardDescription>
@@ -387,10 +374,7 @@ const UserForm: React.FC<UserFormProps> = ({
                     </SelectContent>
                   </Select>
                   {errors.department && (
-                    <Alert variant="destructive" className="py-2">
-                      <AlertCircle className="h-4 w-4" />
-                      <AlertDescription>{errors.department}</AlertDescription>
-                    </Alert>
+                    <p className="text-xs text-destructive">{errors.department}</p>
                   )}
                 </div>
 
@@ -404,13 +388,10 @@ const UserForm: React.FC<UserFormProps> = ({
                     value={formData.experience || ''}
                     onChange={(e) => handleInputChange('experience', parseInt(e.target.value) || 0)}
                     placeholder="5"
-                    className={errors.experience ? 'border-red-500' : "bg-muted/50 border-border text-foreground placeholder:text-muted-foreground"}
+                    aria-invalid={!!errors.experience}
                   />
                   {errors.experience && (
-                    <Alert variant="destructive" className="py-2">
-                      <AlertCircle className="h-4 w-4" />
-                      <AlertDescription>{errors.experience}</AlertDescription>
-                    </Alert>
+                    <p className="text-xs text-destructive">{errors.experience}</p>
                   )}
                 </div>
               </div>
@@ -422,7 +403,7 @@ const UserForm: React.FC<UserFormProps> = ({
                   {SPECIALIZATIONS.map((specialization) => (
                     <div
                       key={specialization}
-                      className={`p-2 border border-line rounded-lg cursor-pointer transition-colors ${
+                      className={`p-2 border border-border rounded-lg cursor-pointer transition-colors ${
                         selectedSpecializations.includes(specialization)
                           ? 'bg-muted text-foreground border-blue-500'
                           : 'hover:bg-muted'
@@ -443,10 +424,7 @@ const UserForm: React.FC<UserFormProps> = ({
                   </div>
                 )}
                 {errors.specialization && (
-                  <Alert variant="destructive" className="py-2">
-                    <AlertCircle className="h-4 w-4" />
-                    <AlertDescription>{errors.specialization}</AlertDescription>
-                  </Alert>
+                  <p className="text-xs text-destructive">{errors.specialization}</p>
                 )}
               </div>
             </CardContent>
@@ -454,7 +432,7 @@ const UserForm: React.FC<UserFormProps> = ({
         )}
 
         {formData.role === 'proctor' && (
-          <Card className="shadow-none">
+          <Card flat>
             <CardHeader>
               <CardTitle>Información del Supervisor</CardTitle>
               <CardDescription>
@@ -471,13 +449,10 @@ const UserForm: React.FC<UserFormProps> = ({
                     value={formData.certificationLevel || ''}
                     onChange={(e) => handleInputChange('certificationLevel', e.target.value)}
                     placeholder="Nivel de certificación"
-                    className={errors.certificationLevel ? 'border-red-500' : "bg-muted/50 border-border text-foreground placeholder:text-muted-foreground"}
+                    aria-invalid={!!errors.certificationLevel}
                   />
                   {errors.certificationLevel && (
-                    <Alert variant="destructive" className="py-2">
-                      <AlertCircle className="h-4 w-4" />
-                      <AlertDescription>{errors.certificationLevel}</AlertDescription>
-                    </Alert>
+                    <p className="text-xs text-destructive">{errors.certificationLevel}</p>
                   )}
                 </div>
 
@@ -492,13 +467,10 @@ const UserForm: React.FC<UserFormProps> = ({
                     value={formData.maxSimultaneousSessions || ''}
                     onChange={(e) => handleInputChange('maxSimultaneousSessions', parseInt(e.target.value) || 1)}
                     placeholder="3"
-                    className={errors.maxSimultaneousSessions ? 'border-red-500' : "bg-muted/50 border-border text-foreground placeholder:text-muted-foreground"}
+                    aria-invalid={!!errors.maxSimultaneousSessions}
                   />
                   {errors.maxSimultaneousSessions && (
-                    <Alert variant="destructive" className="py-2">
-                      <AlertCircle className="h-4 w-4" />
-                      <AlertDescription>{errors.maxSimultaneousSessions}</AlertDescription>
-                    </Alert>
+                    <p className="text-xs text-destructive">{errors.maxSimultaneousSessions}</p>
                   )}
                 </div>
               </div>
@@ -510,7 +482,7 @@ const UserForm: React.FC<UserFormProps> = ({
                   {LANGUAGES.map((language) => (
                     <div
                       key={language}
-                      className={`p-2 border border-line rounded-lg cursor-pointer transition-colors ${
+                      className={`p-2 border border-border rounded-lg cursor-pointer transition-colors ${
                         selectedLanguages.includes(language)
                           ? 'bg-muted text-foreground border-blue-500'
                           : 'hover:bg-muted'
@@ -531,39 +503,14 @@ const UserForm: React.FC<UserFormProps> = ({
                   </div>
                 )}
                 {errors.languages && (
-                  <Alert variant="destructive" className="py-2">
-                    <AlertCircle className="h-4 w-4" />
-                    <AlertDescription>{errors.languages}</AlertDescription>
-                  </Alert>
+                  <p className="text-xs text-destructive">{errors.languages}</p>
                 )}
               </div>
             </CardContent>
           </Card>
         )}
 
-        {/* Botones de acción */}
-        <div className="flex justify-end gap-3 pt-6 border-t border-line">
-          <Button
-            type="button"
-            variant="outline"
-            onClick={onCancel}
-            disabled={isLoading}
-            className="gap-1 text-foreground bg-transparent border border-line hover:bg-muted"
-          >
-            <X className="w-4 h-4" />
-            Cancelar
-          </Button>
-          <Button
-            type="submit"
-            disabled={isLoading}
-            className="gap-1"
-          >
-            <Save className="w-4 h-4" />
-            {isLoading ? 'Guardando...' : isEditing ? 'Actualizar' : 'Crear Usuario'}
-          </Button>
-        </div>
-      </form>
-    </div>
+    </FormPage>
   );
 };
 

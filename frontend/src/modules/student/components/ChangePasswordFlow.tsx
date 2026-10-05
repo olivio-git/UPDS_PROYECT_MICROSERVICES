@@ -1,3 +1,4 @@
+import { Label } from '@/components/keel/label';
 import { Button } from "@/components/keel/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/keel/card";
 import { Input } from "@/components/keel/input";
@@ -152,7 +153,6 @@ export const ChangePasswordFlow: React.FC<ChangePasswordFlowProps> = ({
               variant="ghost"
               size="sm"
               onClick={handleClose}
-              className="text-muted-foreground hover:text-foreground"
             >
               <X className="h-4 w-4" />
             </Button>
@@ -168,9 +168,9 @@ export const ChangePasswordFlow: React.FC<ChangePasswordFlowProps> = ({
           {step === 'initial' && (
             <>
               <div className="space-y-2">
-                <label className="text-sm font-medium text-foreground/80">
+                <Label>
                   Contraseña Actual
-                </label>
+                </Label>
                 <div className="relative">
                   <Input
                     type={showCurrentPassword ? "text" : "password"}
@@ -178,12 +178,12 @@ export const ChangePasswordFlow: React.FC<ChangePasswordFlowProps> = ({
                     onChange={(e) => updateFormData('currentPassword', e.target.value)}
                     className="bg-muted pr-10"
                     placeholder="Ingresa tu contraseña actual"
-/>
+                  />
                   <Button
                     type="button"
                     variant="ghost"
                     size="sm"
-                    className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                    className="absolute right-2 top-1/2 -translate-y-1/2"
                     onClick={() => setShowCurrentPassword(!showCurrentPassword)}
                   >
                     {showCurrentPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
@@ -195,9 +195,9 @@ export const ChangePasswordFlow: React.FC<ChangePasswordFlowProps> = ({
               </div>
 
               <div className="space-y-2">
-                <label className="text-sm font-medium text-foreground/80">
+                <Label>
                   Nueva Contraseña
-                </label>
+                </Label>
                 <div className="relative">
                   <Input
                     type={showNewPassword ? "text" : "password"}
@@ -205,12 +205,12 @@ export const ChangePasswordFlow: React.FC<ChangePasswordFlowProps> = ({
                     onChange={(e) => updateFormData('newPassword', e.target.value)}
                     className="bg-muted pr-10"
                     placeholder="Mínimo 8 caracteres"
-/>
+                  />
                   <Button
                     type="button"
                     variant="ghost"
                     size="sm"
-                    className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                    className="absolute right-2 top-1/2 -translate-y-1/2"
                     onClick={() => setShowNewPassword(!showNewPassword)}
                   >
                     {showNewPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
@@ -222,16 +222,16 @@ export const ChangePasswordFlow: React.FC<ChangePasswordFlowProps> = ({
               </div>
 
               <div className="space-y-2">
-                <label className="text-sm font-medium text-foreground/80">
+                <Label>
                   Confirmar Nueva Contraseña
-                </label>
+                </Label>
                 <Input
                   type="password"
                   value={formData.confirmPassword}
                   onChange={(e) => updateFormData('confirmPassword', e.target.value)}
                   className="bg-muted"
                   placeholder="Repite tu nueva contraseña"
-/>
+                />
                 {errors.confirmPassword && (
                   <p className="text-red-400 text-sm">{errors.confirmPassword}</p>
                 )}
@@ -241,7 +241,7 @@ export const ChangePasswordFlow: React.FC<ChangePasswordFlowProps> = ({
                 <Button
                   variant="outline"
                   size={"sm"}
-                  className="flex-1 bg-card hover:bg-muted border border-line text-foreground/80"
+                  className="flex-1"
                   onClick={handleClose}
                 >
                   Cancelar
@@ -283,9 +283,9 @@ export const ChangePasswordFlow: React.FC<ChangePasswordFlowProps> = ({
               </div>
 
               <div className="space-y-2">
-                <label className="text-sm font-medium text-foreground/80">
+                <Label>
                   Código de Verificación
-                </label>
+                </Label>
                 <Input
                   type="text"
                   value={formData.otpCode}
@@ -293,7 +293,7 @@ export const ChangePasswordFlow: React.FC<ChangePasswordFlowProps> = ({
                   className="bg-muted text-center text-xl tracking-widest"
                   placeholder="000000"
                   maxLength={6}
-/>
+                />
                 {errors.otpCode && (
                   <p className="text-red-400 text-sm">{errors.otpCode}</p>
                 )}
@@ -303,7 +303,7 @@ export const ChangePasswordFlow: React.FC<ChangePasswordFlowProps> = ({
                 <Button
                   variant="outline"
                   size={"sm"}
-                  className="flex-1 bg-card hover:bg-muted border border-line text-foreground/80"
+                  className="flex-1"
                   onClick={() => setStep('initial')}
                 >
                   Volver

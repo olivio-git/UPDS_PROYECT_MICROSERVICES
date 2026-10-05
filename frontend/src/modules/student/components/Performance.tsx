@@ -96,7 +96,7 @@ const Performance = ({ initiallyExpanded = false }: PropsPerformance) => {
             <Button
               variant="ghost"
               size="sm"
-              className="p-1 h-8 w-8 text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+              className="p-1 h-8 w-8 transition-colors cursor-pointer"
             >
               {isExpanded ? (
                 <ChevronUp className="h-4 w-4" />
@@ -312,7 +312,7 @@ const Performance = ({ initiallyExpanded = false }: PropsPerformance) => {
                 {/* Botón para ver análisis detallado */}
                 <Button
                   variant="outline"
-                  className="w-full mt-4 border-border text-muted-foreground hover:border-yellow-500 bg-card transition-colors hover:cursor-pointer"
+                  className="w-full mt-4 hover:border-yellow-500 transition-colors hover:cursor-pointer"
                   onClick={() => navigate('/student/analytics')}
                 >
                   <Trophy className="h-4 w-4 mr-2" />

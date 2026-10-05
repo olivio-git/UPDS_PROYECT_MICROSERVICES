@@ -496,7 +496,7 @@ const AdaptiveExamRunner: React.FC = () => {
 
         {/* Feedback overlay — neutral when results are hidden */}
         {showFeedback && resultsHidden && (
-          <div className="p-4 rounded-lg border flex items-center gap-3 transition-all bg-muted/50 border-line">
+          <div className="p-4 rounded-lg border flex items-center gap-3 transition-all bg-muted/50 border-border">
             <CheckCircle className="h-5 w-5 text-muted-foreground shrink-0" />
             <p className="font-medium text-foreground">Respuesta registrada</p>
           </div>

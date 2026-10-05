@@ -1,6 +1,7 @@
-import { MainLayout } from "@/components/layout";
+import { Item, ItemActions, ItemContent, ItemDescription, ItemMedia, ItemTitle } from "@/components/keel/item";
+import { MainLayout, Page, PageHeader } from "@/components/layout";
 import { Award, BarChart3, BookOpen, ChevronRight, HelpCircle } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 
 const configOptions = [
   {
@@ -8,82 +9,50 @@ const configOptions = [
     description: "Gestionar niveles del Marco Común Europeo de Referencia para lenguas",
     icon: BarChart3,
     path: "/levels",
-    accent: "text-blue-400",
-    bg: "bg-blue-500/10",
-    border: "border-blue-500/20",
-    hoverBorder: "hover:border-blue-500/40",
   },
   {
     title: "Rúbricas de Evaluación",
     description: "Crear y gestionar rúbricas de calificación por competencia lingüística",
     icon: Award,
     path: "/rubrics",
-    accent: "text-emerald-400",
-    bg: "bg-emerald-500/10",
-    border: "border-emerald-500/20",
-    hoverBorder: "hover:border-emerald-500/40",
   },
   {
     title: "Banco de Preguntas",
     description: "Administrar preguntas multimodal: audio, texto, imagen y más",
     icon: HelpCircle,
     path: "/questions",
-    accent: "text-amber-400",
-    bg: "bg-amber-500/10",
-    border: "border-amber-500/20",
-    hoverBorder: "hover:border-amber-500/40",
   },
   {
     title: "Gestión de Exámenes",
     description: "Configurar exámenes, sesiones y asignación de candidatos",
     icon: BookOpen,
     path: "/exams",
-    accent: "text-purple-400",
-    bg: "bg-purple-500/10",
-    border: "border-purple-500/20",
-    hoverBorder: "hover:border-purple-500/40",
   },
 ];
 
 const AcademicConfigScreen = () => {
-  const navigate = useNavigate();
-
   return (
     <MainLayout>
-      <div className="flex h-full flex-col gap-3 p-3">
+      <Page>
+        <PageHeader title="Configuración Académica" description="Niveles · Rúbricas · Preguntas · Exámenes" />
 
-        {/* Header */}
-        <div>
-          <h1 className="text-xl font-bold text-foreground">Configuración Académica</h1>
-          <p className="text-xs text-muted-foreground mt-0.5">
-            Niveles · Rúbricas · Preguntas · Exámenes
-          </p>
+        <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
+          {configOptions.map(({ path, title, description, icon: Icon }) => (
+            <Item key={path} variant="outline" render={<Link to={path} />}>
+              <ItemMedia variant="icon">
+                <Icon />
+              </ItemMedia>
+              <ItemContent>
+                <ItemTitle>{title}</ItemTitle>
+                <ItemDescription>{description}</ItemDescription>
+              </ItemContent>
+              <ItemActions>
+                <ChevronRight className="size-4 text-muted-foreground" />
+              </ItemActions>
+            </Item>
+          ))}
         </div>
-
-        {/* Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          {configOptions.map((option) => {
-            const Icon = option.icon;
-            return (
-              <button
-                key={option.path}
-                onClick={() => navigate(option.path)}
-                className={`group flex items-center gap-4 bg-card border ${option.border} ${option.hoverBorder} rounded-lg p-5 text-left transition-all duration-200 hover:bg-muted/30`}
-              >
-                <div className={`shrink-0 p-2.5 rounded-lg ${option.bg} border ${option.border}`}>
-                  <Icon className={`h-5 w-5 ${option.accent}`} />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-semibold text-foreground">{option.title}</p>
-                  <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">{option.description}</p>
-                </div>
-                <ChevronRight className={`h-4 w-4 shrink-0 text-muted-foreground/40 group-hover:${option.accent} group-hover:translate-x-0.5 transition-all`} />
-              </button>
-            );
-          })}
-        </div>
-
-      </div>
+      </Page>
     </MainLayout>
   );
 };

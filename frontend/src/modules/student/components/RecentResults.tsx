@@ -108,7 +108,7 @@ const RecentResults = ({
       animate={false}
       variant="cosmic"
     >
-      <Card className="flex flex-col shadow-none">
+      <Card flat className="flex flex-col">
         <CardHeader className="pb-3">
           <CardTitle className="flex items-center gap-2">
             <FileText className="h-5 w-5 text-muted-foreground" />

@@ -165,7 +165,7 @@ const ProctorAssignmentModal: React.FC<ProctorAssignmentModalProps> = ({
           <p className="text-sm text-muted-foreground">Sesión: {session.sessionName}</p>
         </div>
         <div className="flex gap-2">
-          <Button type="button" variant="outline" onClick={onClose} className="border-line text-muted-foreground bg-transparent">
+          <Button type="button" variant="outline" onClick={onClose}>
             Cancelar
           </Button>
           <Button
@@ -260,13 +260,13 @@ const ProctorAssignmentModal: React.FC<ProctorAssignmentModalProps> = ({
                           {proctor.proctorData.certificationLevel}
                         </span>
                       )}
-                      <button
+                      <Button
+                        variant="destructive"
                         onClick={() => handleRemoveProctor(proctor._id)}
-                        className="text-red-300 hover:text-red-200"
                         title="Remover proctor"
                       >
                         <UserMinus className="h-4 w-4" />
-                      </button>
+                      </Button>
                     </div>
                   </div>
                 ))}

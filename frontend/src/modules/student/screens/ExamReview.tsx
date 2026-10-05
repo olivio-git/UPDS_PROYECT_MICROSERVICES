@@ -389,7 +389,6 @@ const ExamReview = () => {
                 Descargar PDF
               </Button>
               <Button variant="outline" onClick={() => navigate(`/student/results/${resultId}`)}
-                className="text-foreground/80 hover:bg-muted"
               >
                 <ArrowLeft className="h-4 w-4 mr-2" />
                 Volver a Resultado

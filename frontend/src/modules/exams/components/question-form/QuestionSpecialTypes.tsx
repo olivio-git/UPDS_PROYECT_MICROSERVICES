@@ -151,7 +151,7 @@ const QuestionSpecialTypes: React.FC<Props> = ({
                     const newItems = formData.content?.items?.filter((_, i) => i !== index) || [];
                     updateContent('items', newItems);
                   }}
-                  className="p-2 border-border hover:bg-muted"
+                  className="p-2"
                   title="Eliminar elemento"
                 >
                   <Trash2 className="w-4 h-4 text-red-500" />

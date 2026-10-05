@@ -1,3 +1,5 @@
+import { Input } from '@/components/keel/input';
+import { Button } from '@/components/keel/button';
 import { Plus, Search } from "lucide-react";
 
 type FilterType = 'all' | 'active' | 'inactive';
@@ -40,12 +42,12 @@ const LevelTableHeader = ({
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <button
+          <Button
+            size="sm"
             onClick={onCreateLevel}
-            className="h-8 flex items-center gap-1.5 px-3 text-xs rounded-md bg-blue-600 hover:bg-blue-700 text-white transition-colors"
           >
             <Plus className="w-3.5 h-3.5" /> Nuevo Nivel
-          </button>
+          </Button>
         </div>
       </div>
 
@@ -55,12 +57,12 @@ const LevelTableHeader = ({
         {/* Search */}
         <div className="relative">
           <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3 w-3 text-muted-foreground pointer-events-none" />
-          <input
+          <Input
             type="text"
             placeholder="Buscar niveles..."
             value={searchTerm}
             onChange={e => onSearchChange(e.target.value)}
-            className="h-7 pl-6 pr-2 text-xs bg-muted/60 border border-border rounded text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring w-44"
+            className="w-44 h-7 pl-6 pr-2 text-xs"
           />
         </div>
 

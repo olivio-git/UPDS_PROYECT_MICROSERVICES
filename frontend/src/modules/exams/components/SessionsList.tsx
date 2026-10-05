@@ -1,3 +1,6 @@
+import { NativeSelect, NativeSelectOption } from '@/components/keel/native-select';
+import { Input } from '@/components/keel/input';
+import { Button } from '@/components/keel/button';
 import { Calendar } from '@/components/keel/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/keel/popover';
 import CustomizableTable from '@/components/common/CustomizableTable';
@@ -671,12 +674,13 @@ const SessionsList: React.FC = () => {
                 {selectedSession.sessionName} · puedes hacerlo ahora o más tarde desde la tabla
               </p>
             </div>
-            <button
+            <Button
+              variant="outline"
+              size="sm"
               onClick={() => { goTable(); loadSessions(); }}
-              className="h-8 px-3 text-xs rounded-md bg-muted/60 border border-border text-foreground hover:bg-muted transition-colors"
             >
               Finalizar
-            </button>
+            </Button>
           </div>
 
           <div className="mb-4 flex items-center gap-1 border-b border-border">
@@ -719,7 +723,7 @@ const SessionsList: React.FC = () => {
 
     if (viewMode === 'candidates' && selectedSession) {
       return (
-        <div className="bg-card border border-border p-6">
+        <div className="border border-border bg-card p-4">
           <CandidateAssignmentView
             session={selectedSession}
             onClose={goTable}
@@ -734,7 +738,7 @@ const SessionsList: React.FC = () => {
     }
     if (viewMode === 'proctors' && selectedSession) {
       return (
-        <div className="bg-card border border-border p-6">
+        <div className="border border-border bg-card p-4">
           <ProctorAssignmentModal
             session={selectedSession}
             onClose={goTable}
@@ -761,12 +765,11 @@ const SessionsList: React.FC = () => {
       return (
         <div className="flex h-full min-h-0 flex-1 flex-col items-center justify-center gap-4 text-center">
           <p className="text-red-400 mb-4">{error}</p>
-          <button
+          <Button
             onClick={() => loadSessions()}
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-all"
           >
             Reintentar
-          </button> 
+          </Button> 
         </div>
       );
     }
@@ -792,22 +795,23 @@ const SessionsList: React.FC = () => {
           </div>
           <div className="flex items-center gap-2">
             {!socketConnected && (
-              <button
+              <Button
+                variant="outline"
+                size="sm"
                 onClick={handleRetryConnection}
                 disabled={isRetrying}
-                className="h-7 flex items-center gap-1.5 px-2 text-xs rounded border border-border bg-muted/60 text-foreground hover:bg-muted transition-colors disabled:opacity-50"
               >
                 <RefreshCw className={`w-3 h-3 ${isRetrying ? 'animate-spin' : ''}`} />
                 {isRetrying ? 'Conectando...' : 'Reintentar'}
-              </button>
+              </Button>
             )}
-            <button
+            <Button
+              size="sm"
               onClick={goCreate}
-              className="h-8 flex items-center gap-1.5 px-3 text-xs rounded-md bg-blue-600 hover:bg-blue-700 text-white transition-colors"
             >
               <Plus className="w-3.5 h-3.5" />
               Nueva Sesión
-            </button>
+            </Button>
           </div>
         </div>
 
@@ -817,31 +821,30 @@ const SessionsList: React.FC = () => {
           {/* Search */}
           <div className="relative">
             <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3 w-3 text-muted-foreground pointer-events-none" />
-            <input
+            <Input
               type="text"
               placeholder="Buscar sesión..."
               value={searchTerm}
               onChange={e => setSearchTerm(e.target.value)}
               onKeyDown={e => e.key === 'Enter' && handleSearch()}
-              className="h-7 pl-6 pr-2 text-xs bg-muted/60 border border-border rounded text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring w-44"
+              className="w-44 h-7 pl-6 pr-2 text-xs"
             />
           </div>
 
           <div className="w-px h-5 bg-border shrink-0" />
 
           {/* Estado */}
-          <select
+          <NativeSelect size="sm" className="text-xs w-auto"
             value={localFilters.status}
             onChange={e => setLocalFilters(prev => ({ ...prev, status: e.target.value }))}
-            className="h-7 text-xs bg-muted/60 border border-border rounded px-2 text-foreground focus:outline-none focus:ring-1 focus:ring-ring"
           >
-            <option value="all">Todos los estados</option>
-            <option value="scheduled">Programada</option>
-            <option value="in_progress">En Progreso</option>
-            <option value="completed">Completada</option>
-            <option value="cancelled">Cancelada</option>
-            <option value="expired">Expirada</option>
-          </select>
+            <NativeSelectOption value="all">Todos los estados</NativeSelectOption>
+            <NativeSelectOption value="scheduled">Programada</NativeSelectOption>
+            <NativeSelectOption value="in_progress">En Progreso</NativeSelectOption>
+            <NativeSelectOption value="completed">Completada</NativeSelectOption>
+            <NativeSelectOption value="cancelled">Cancelada</NativeSelectOption>
+            <NativeSelectOption value="expired">Expirada</NativeSelectOption>
+          </NativeSelect>
 
           <div className="w-px h-5 bg-border shrink-0" />
 
@@ -887,42 +890,41 @@ const SessionsList: React.FC = () => {
           <div className="w-px h-5 bg-border shrink-0" />
 
           {/* Ordenar por */}
-          <select
+          <NativeSelect size="sm" className="text-xs w-auto"
             value={localFilters.sortBy}
             onChange={e => setLocalFilters(prev => ({ ...prev, sortBy: e.target.value }))}
-            className="h-7 text-xs bg-muted/60 border border-border rounded px-2 text-foreground focus:outline-none focus:ring-1 focus:ring-ring"
           >
-            <option value="startDate">Fecha inicio</option>
-            <option value="endDate">Fecha fin</option>
-            <option value="sessionName">Nombre</option>
-            <option value="status">Estado</option>
-            <option value="createdAt">Creación</option>
-            <option value="candidatesCount">Candidatos</option>
-          </select>
+            <NativeSelectOption value="startDate">Fecha inicio</NativeSelectOption>
+            <NativeSelectOption value="endDate">Fecha fin</NativeSelectOption>
+            <NativeSelectOption value="sessionName">Nombre</NativeSelectOption>
+            <NativeSelectOption value="status">Estado</NativeSelectOption>
+            <NativeSelectOption value="createdAt">Creación</NativeSelectOption>
+            <NativeSelectOption value="candidatesCount">Candidatos</NativeSelectOption>
+          </NativeSelect>
 
           {/* Orden */}
-          <select
+          <NativeSelect size="sm" className="text-xs w-auto"
             value={localFilters.sortOrder}
             onChange={e => setLocalFilters(prev => ({ ...prev, sortOrder: e.target.value as 'asc' | 'desc' }))}
-            className="h-7 text-xs bg-muted/60 border border-border rounded px-2 text-foreground focus:outline-none focus:ring-1 focus:ring-ring"
           >
-            <option value="desc">Descendente</option>
-            <option value="asc">Ascendente</option>
-          </select>
+            <NativeSelectOption value="desc">Descendente</NativeSelectOption>
+            <NativeSelectOption value="asc">Ascendente</NativeSelectOption>
+          </NativeSelect>
 
-          <button
+          <Button
+            size="sm"
             onClick={handleSearch}
-            className="h-7 px-2.5 text-xs rounded bg-blue-600 hover:bg-blue-700 text-white transition-colors"
           >
             Aplicar
-          </button>
+          </Button>
 
-          <button
+          <Button
+            variant="ghost"
+            size="sm"
             onClick={handleClearFilters}
-            className="h-7 px-2 text-xs rounded text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
           >
             Limpiar
-          </button>
+          </Button>
         </div>
 
         {/* Tabla */}
@@ -946,13 +948,14 @@ const SessionsList: React.FC = () => {
                 {(currentPage - 1) * 10 + 1}–{Math.min(currentPage * 10, totalItems)} de {totalItems} sesiones
               </span>
               <div className="flex items-center gap-1">
-                <button
+                <Button
+                  variant="outline"
+                  size="icon-sm"
                   onClick={() => changePage(currentPage - 1)}
                   disabled={currentPage === 1}
-                  className="p-1.5 bg-muted/50 border border-border rounded hover:bg-muted disabled:opacity-40 disabled:cursor-not-allowed transition-all"
                 >
                   <ChevronLeft className="w-3.5 h-3.5 text-muted-foreground" />
-                </button>
+                </Button>
                 {Array.from({ length: Math.min(5, totalPages) }, (_, i) => i + 1).map(page => (
                   <button
                     key={page}
@@ -966,13 +969,14 @@ const SessionsList: React.FC = () => {
                     {page}
                   </button>
                 ))}
-                <button
+                <Button
+                  variant="outline"
+                  size="icon-sm"
                   onClick={() => changePage(currentPage + 1)}
                   disabled={currentPage === totalPages}
-                  className="p-1.5 bg-muted/50 border border-border rounded hover:bg-muted disabled:opacity-40 disabled:cursor-not-allowed transition-all"
                 >
                   <ChevronRight className="w-3.5 h-3.5 text-muted-foreground" />
-                </button>
+                </Button>
               </div>
             </div>
           )}

@@ -1,3 +1,4 @@
+import { EmptyState } from '@/components/common/EmptyState';
 import { Badge } from "@/components/keel/badge";
 import { Button } from "@/components/keel/button";
 import { Checkbox } from "@/components/keel/checkbox";
@@ -148,16 +149,12 @@ const RubricTable = ({
 
   if (rubrics.length === 0) {
     return (
-      <div className="flex flex-1 min-h-0 flex-col items-center justify-center border-t border-border bg-card text-center">
-        <div className="space-y-4">
-          <Award className="h-12 w-12 text-muted-foreground mx-auto" />
-          <div className="space-y-2">
-            <h3 className="text-lg font-medium text-foreground">No hay rúbricas disponibles</h3>
-            <p className="text-muted-foreground max-w-md mx-auto">
-              Comienza creando tu primera rúbrica de evaluación para estructurar el proceso de calificación.
-            </p>
-          </div>
-        </div>
+      <div className="flex flex-1 min-h-0 flex-col border-t border-border bg-card">
+        <EmptyState
+          icon={Award}
+          title="No hay rúbricas disponibles"
+          description="Comienza creando tu primera rúbrica de evaluación para estructurar el proceso de calificación."
+        />
       </div>
     );
   }

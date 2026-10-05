@@ -1,5 +1,7 @@
+import { FormPage, PageHeader } from '@/components/layout';
+import { Label } from '@/components/keel/label';
 import { Button } from '@/components/keel/button';
-import { ArrowLeft, BookOpen, Clock, Edit, Settings, Target } from 'lucide-react';
+import { BookOpen, Clock, Edit, Settings, Target } from 'lucide-react';
 import React from 'react';
 import type { Exam } from '../types';
 
@@ -51,57 +53,41 @@ const ExamDetailView: React.FC<ExamDetailViewProps> = ({ exam, onBack, onEdit })
   };
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4"> 
-        <Button
-            variant="outline"
-            onClick={onBack}
-            className="px-3 py-2 bg-dark-light border border-line rounded-lg text-foreground hover:bg-dark-light/80 flex items-center gap-2"
-          >
-            <ArrowLeft className="w-4 h-4" />
-            Volver
+    <FormPage title="Detalle del examen" onBack={onBack}>
+      <PageHeader
+        title={exam.name}
+        actions={
+          <Button size="sm" onClick={onEdit}>
+            <Edit />
+            Editar examen
           </Button>
-          <div>
-            <h2 className="text-xl font-semibold text-foreground">Detalles del examen</h2>
-            <p className="text-sm text-muted-foreground">ID: {exam.name}</p>
-          </div>
-          </div>
-
-        <Button
-          onClick={onEdit}
-          className="flex"
-        >
-          <Edit className="w-4 h-4 mr-2" />
-          Editar Examen
-        </Button>
-      </div>
+        }
+      />
 
       {/* Información general */}
-      <div className="bg-box border border-line rounded-xl p-6">
-        <h2 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
+      <div className="border border-border bg-card p-4">
+        <h2 className="mb-4 flex items-center gap-2 text-base font-medium text-foreground">
           <BookOpen className="w-5 h-5 text-blue-400" />
           Información General
         </h2>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           <div>
-            <label className="block text-sm font-medium text-muted-foreground mb-2">Tipo</label>
+            <Label className="mb-2">Tipo</Label>
             <span className={`inline-flex px-3 py-1 text-sm font-medium border rounded-lg ${getExamTypeColor(exam.type)}`}>
               {getExamTypeLabel(exam.type)}
             </span>
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-muted-foreground mb-2">Nivel Objetivo</label>
+            <Label className="mb-2">Nivel Objetivo</Label>
             <span className="inline-flex px-3 py-1 text-sm font-medium bg-purple-900/20 text-purple-400 border border-purple-800/30 rounded-lg">
               {exam.targetLevel}
             </span>
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-muted-foreground mb-2">Estado</label>
+            <Label className="mb-2">Estado</Label>
             <div className="flex items-center gap-2">
               {exam.isTemplate && (
                 <span className="inline-flex px-3 py-1 text-sm font-medium bg-orange-900/20 text-orange-400 border border-orange-800/30 rounded-lg">
@@ -119,7 +105,7 @@ const ExamDetailView: React.FC<ExamDetailViewProps> = ({ exam, onBack, onEdit })
           </div>
                 {/* 
           <div>
-            <label className="block text-sm font-medium text-muted-foreground mb-2">Puntaje Mínimo</label>
+            <Label className="mb-2">Puntaje Mínimo</Label>
             <div className="flex items-center gap-2">
               <Award className="w-4 h-4 text-yellow-400" />
               <span className="text-foreground font-medium">{exam.structure.passingScore}%</span>
@@ -130,7 +116,7 @@ const ExamDetailView: React.FC<ExamDetailViewProps> = ({ exam, onBack, onEdit })
 
         {exam.description && (
           <div className="mt-6">
-            <label className="block text-sm font-medium text-muted-foreground mb-2">Descripción</label>
+            <Label className="mb-2">Descripción</Label>
             <p className="text-foreground/80 leading-relaxed">{exam.description}</p>
           </div>
         )}
@@ -138,7 +124,7 @@ const ExamDetailView: React.FC<ExamDetailViewProps> = ({ exam, onBack, onEdit })
 
       {/* Estadísticas rápidas */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <div className="bg-box border border-line rounded-xl p-6 text-center">
+        <div className="border border-border bg-card p-4 text-center">
           <div className="w-12 h-12 bg-blue-900/20 rounded-full flex items-center justify-center mx-auto mb-3">
             <BookOpen className="w-6 h-6 text-blue-400" />
           </div>
@@ -148,7 +134,7 @@ const ExamDetailView: React.FC<ExamDetailViewProps> = ({ exam, onBack, onEdit })
           <div className="text-sm text-muted-foreground">Secciones</div>
         </div>
 
-        <div className="bg-box border border-line rounded-xl p-6 text-center">
+        <div className="border border-border bg-card p-4 text-center">
           <div className="w-12 h-12 bg-green-900/20 rounded-full flex items-center justify-center mx-auto mb-3">
             <Target className="w-6 h-6 text-green-400" />
           </div>
@@ -158,7 +144,7 @@ const ExamDetailView: React.FC<ExamDetailViewProps> = ({ exam, onBack, onEdit })
           <div className="text-sm text-muted-foreground">Preguntas</div>
         </div>
 
-        <div className="bg-box border border-line rounded-xl p-6 text-center">
+        <div className="border border-border bg-card p-4 text-center">
           <div className="w-12 h-12 bg-yellow-900/20 rounded-full flex items-center justify-center mx-auto mb-3">
             <Clock className="w-6 h-6 text-yellow-400" />
           </div>
@@ -170,15 +156,15 @@ const ExamDetailView: React.FC<ExamDetailViewProps> = ({ exam, onBack, onEdit })
       </div>
 
       {/* Secciones del examen */}
-      <div className="bg-box border border-line rounded-xl p-6">
-        <h2 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
+      <div className="border border-border bg-card p-4">
+        <h2 className="mb-4 flex items-center gap-2 text-base font-medium text-foreground">
           <Target className="w-5 h-5 text-green-400" />
           Secciones del Examen
         </h2>
 
         <div className="space-y-4">
           {exam.structure.sections?.map((section, index) => (
-            <div key={section.id} className="bg-muted/50 rounded-lg p-4 border border-border">
+            <div key={section.id} className="rounded-lg border border-border p-4">
               <div className="flex items-start justify-between mb-3">
                 <div>
                   <h3 className="font-medium text-foreground">{section.name}</h3>
@@ -224,8 +210,8 @@ const ExamDetailView: React.FC<ExamDetailViewProps> = ({ exam, onBack, onEdit })
       </div>
 
       {/* Configuración */}
-      <div className="bg-box border border-line rounded-xl p-6">
-        <h2 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
+      <div className="border border-border bg-card p-4">
+        <h2 className="mb-4 flex items-center gap-2 text-base font-medium text-foreground">
           <Settings className="w-5 h-5 text-muted-foreground" />
           Configuración
         </h2>
@@ -290,7 +276,7 @@ const ExamDetailView: React.FC<ExamDetailViewProps> = ({ exam, onBack, onEdit })
 
       {/* Metadatos */}
       {(exam.createdAt || exam.updatedAt) && (
-        <div className="bg-box border border-line rounded-xl p-6">
+        <div className="border border-border bg-card p-4">
           <h2 className="text-lg font-semibold text-foreground mb-4">Metadatos</h2>
           
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
@@ -326,7 +312,7 @@ const ExamDetailView: React.FC<ExamDetailViewProps> = ({ exam, onBack, onEdit })
           </div>
         </div>
       )}
-    </div>
+    </FormPage>
   );
 };
 

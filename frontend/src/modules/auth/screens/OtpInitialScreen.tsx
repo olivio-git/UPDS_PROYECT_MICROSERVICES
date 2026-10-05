@@ -103,7 +103,7 @@ const OtpInitialScreen = () => {
     <>
       <GradientBackground grid={false} objs={false} lights={true} size="sm" />
 
-      <div className="min-h-screen flex items-center justify-center p-4 epilogue-uniquifier">
+      <div className="min-h-screen flex items-center justify-center p-4">
         <Card className="w-full max-w-md bg-transparent shadow-none">
           <CardHeader className="space-y-1">
             <AuthHeader step={0} />

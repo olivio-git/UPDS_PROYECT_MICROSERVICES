@@ -1,4 +1,9 @@
-import { ChevronLeft, ChevronRight, Image as ImageIcon, Mic, Plus, Sparkles, Trash2, Volume2 } from 'lucide-react';
+import { Button, buttonVariants } from '@/components/keel/button';
+import { Textarea } from '@/components/keel/textarea';
+import { NativeSelect, NativeSelectOption } from '@/components/keel/native-select';
+import { Label } from '@/components/keel/label';
+import { Input } from '@/components/keel/input';
+import { ChevronLeft, ChevronRight, Image as ImageIcon, Mic, Plus, Save, Sparkles, Trash2, Volume2, X } from 'lucide-react';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { toast } from 'sonner';
 
@@ -510,19 +515,20 @@ const QuestionForm: React.FC<Props> = ({ question, onCancel, onSaved }) => {
 
   return (
     <div className="flex gap-4 items-start">
-    <form onSubmit={handleSubmit} className="flex-1 min-w-0 space-y-4">
+    <form onSubmit={handleSubmit} className="flex flex-1 min-w-0 flex-col gap-3">
       {/* Meta */}
-      <div className="bg-card border border-border rounded-xl p-5 space-y-4">
-        <div className="flex items-start justify-between mb-4">
+      <div className="flex flex-col gap-4 border border-border bg-card p-4">
+        <div className="flex items-start justify-between">
           <div>
-            <h3 className="text-base font-semibold text-foreground">Metadatos</h3>
+            <h3 className="text-base font-medium text-foreground">Metadatos</h3>
             <p className="text-xs text-muted-foreground mt-0.5">Configura tipo, competencia y nivel</p>
           </div>
-          <button
+          <Button
+            variant="outline"
+            size="sm"
             type="button"
             onClick={() => setShowAIGenerator(v => !v)}
             disabled={!formData.competency || !formData.level}
-            className="flex items-center gap-1 h-7 px-2 text-xs rounded-md border border-purple-300 dark:border-purple-600/70 bg-purple-100 dark:bg-purple-900/40 text-purple-700 dark:text-purple-300 hover:bg-purple-200 dark:hover:bg-purple-800/50 hover:border-purple-400 dark:hover:border-purple-500 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
           >
             <Sparkles className="w-3 h-3" />
             IA
@@ -530,35 +536,35 @@ const QuestionForm: React.FC<Props> = ({ question, onCancel, onSaved }) => {
               ? <ChevronLeft className="w-3 h-3" />
               : <ChevronRight className="w-3 h-3" />
             }
-          </button>
+          </Button>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
           {/* Tipo de pregunta — filtrado por competencia */}
           <div className="space-y-2">
-            <label className="text-xs font-medium text-foreground/80">Tipo de Pregunta</label>
+            <Label>Tipo de Pregunta</Label>
             {typeIsFixed ? (
-              <div className="w-full h-9 px-3 text-sm bg-muted/50 border border-border rounded-lg text-foreground flex items-center gap-2">
+              <div className="flex h-8 w-full items-center gap-2 rounded-lg border border-input px-2.5 text-sm text-foreground">
                 <span>{TYPE_LABELS[availableTypes[0]]}</span>
                 <span className="ml-auto text-xs text-muted-foreground italic">único disponible</span>
               </div>
             ) : (
-              <select
+              <NativeSelect
                 value={formData.type as string}
                 onChange={e => setFormData((p: Partial<Question>) => ({ ...p, type: e.target.value as QuestionType }))}
-                className="w-full h-9 px-2 text-sm bg-muted/50 border border-border rounded-lg text-foreground focus:outline-none focus:ring-1 focus:ring-ring"
+                className="w-full"
               >
                 {availableTypes.map(type => (
-                  <option key={type} value={type}>{TYPE_LABELS[type]}</option>
+                  <NativeSelectOption key={type} value={type}>{TYPE_LABELS[type]}</NativeSelectOption>
                 ))}
-              </select>
+              </NativeSelect>
             )}
           </div>
 
           {/* Competencia */}
           <div className="space-y-2">
-            <label className="text-xs font-medium text-foreground/80">Competencia</label>
-            <select
+            <Label>Competencia</Label>
+            <NativeSelect
               value={formData.competency as string}
               onChange={e => {
                 const v = e.target.value as Competency;
@@ -569,44 +575,44 @@ const QuestionForm: React.FC<Props> = ({ question, onCancel, onSaved }) => {
                   : DEFAULT_TYPE_BY_COMPETENCY[v];
                 setFormData((p: Partial<Question>) => ({ ...p, competency: v, type: newType }));
               }}
-              className="w-full h-9 px-2 text-sm bg-muted/50 border border-border rounded-lg text-foreground focus:outline-none focus:ring-1 focus:ring-ring"
+              className="w-full"
             >
-              <option value="reading">Comprensión Lectora</option>
-              <option value="writing">Expresión Escrita</option>
-              <option value="listening">Comprensión Auditiva</option>
-              <option value="speaking">Expresión Oral</option>
-            </select>
+              <NativeSelectOption value="reading">Comprensión Lectora</NativeSelectOption>
+              <NativeSelectOption value="writing">Expresión Escrita</NativeSelectOption>
+              <NativeSelectOption value="listening">Comprensión Auditiva</NativeSelectOption>
+              <NativeSelectOption value="speaking">Expresión Oral</NativeSelectOption>
+            </NativeSelect>
           </div>
 
           {/* Nivel */}
           <div className="space-y-2">
-            <label className="text-xs font-medium text-foreground/80">Nivel MCER</label>
-            <select
+            <Label>Nivel MCER</Label>
+            <NativeSelect
               value={formData.level as string}
               onChange={e => setFormData((p: Partial<Question>) => ({ ...p, level: e.target.value as Level }))}
               disabled={isLoadingLevels}
-              className="w-full h-9 px-2 text-sm bg-muted/50 border border-border rounded-lg text-foreground focus:outline-none focus:ring-1 focus:ring-ring"
+              className="w-full"
             >
               {isLoadingLevels ? (
-                <option value="">Cargando niveles...</option>
+                <NativeSelectOption value="">Cargando niveles...</NativeSelectOption>
               ) : (
                 levels
                   .filter(level => level.isActive)
                   .map((level) => (
-                    <option key={level._id} value={level.code}>
+                    <NativeSelectOption key={level._id} value={level.code}>
                       {level.code} - {level.name}
-                    </option>
+                    </NativeSelectOption>
                   ))
               )}
-            </select>
+            </NativeSelect>
           </div>
 
           {/* Rúbrica - Para tipos subjetivos en competencias que la soportan */}
           {(['essay', 'open_text', 'audio_response'].includes(formData.type || '') &&
             ['reading', 'writing', 'listening', 'speaking'].includes(formData.competency || '')) && (
             <div className="space-y-2">
-              <label className="text-xs font-medium text-foreground/80">Rúbrica de Evaluación</label>
-              <select
+              <Label>Rúbrica de Evaluación</Label>
+              <NativeSelect
                 value={formData.metadata?.rubricId || ''}
                 onChange={e => {
                   const rubricId = e.target.value;
@@ -620,21 +626,21 @@ const QuestionForm: React.FC<Props> = ({ question, onCancel, onSaved }) => {
                   }));
                 }}
                 disabled={isLoadingRubrics || availableRubrics.length === 0}
-                className="w-full h-9 px-2 text-sm bg-muted/50 border border-border rounded-lg text-foreground focus:outline-none focus:ring-1 focus:ring-ring"
+                className="w-full"
               >
-                <option value="">
+                <NativeSelectOption value="">
                   {isLoadingRubrics
                     ? "Cargando rúbricas..."
                     : availableRubrics.length === 0
                       ? "No hay rúbricas disponibles"
                       : "Selecciona una rúbrica"}
-                </option>
+                </NativeSelectOption>
                 {availableRubrics.map((rubric: Rubric) => (
-                  <option key={rubric._id} value={rubric._id!}>
+                  <NativeSelectOption key={rubric._id} value={rubric._id!}>
                     {rubric.name} — {rubric.scoringType === 'holistic' ? 'Holística' : 'Analítica'} · {rubric.criteria.length} criterio(s) · Max: {rubric.maxScore}
-                  </option>
+                  </NativeSelectOption>
                 ))}
-              </select>
+              </NativeSelect>
 
               {/* Mensaje informativo */}
               {availableRubrics.length === 0 && (formData.competency && formData.level) && (
@@ -652,23 +658,23 @@ const QuestionForm: React.FC<Props> = ({ question, onCancel, onSaved }) => {
         {/* Dificultad / Puntos / Estado */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
           <div className="space-y-2">
-            <label className="text-xs font-medium text-foreground/80">Dificultad</label>
-            <select
+            <Label>Dificultad</Label>
+            <NativeSelect
               value={String(formData.difficulty ?? 3)}
               onChange={e => setFormData((p: Partial<Question>) => ({ ...p, difficulty: Number(e.target.value) }))}
-              className="w-full h-9 px-2 text-sm bg-muted/50 border border-border rounded-lg text-foreground focus:outline-none focus:ring-1 focus:ring-ring"
+              className="w-full"
             >
-              <option value="1">Muy Fácil</option>
-              <option value="2">Fácil</option>
-              <option value="3">Medio</option>
-              <option value="4">Difícil</option>
-              <option value="5">Muy Difícil</option>
-            </select>
+              <NativeSelectOption value="1">Muy Fácil</NativeSelectOption>
+              <NativeSelectOption value="2">Fácil</NativeSelectOption>
+              <NativeSelectOption value="3">Medio</NativeSelectOption>
+              <NativeSelectOption value="4">Difícil</NativeSelectOption>
+              <NativeSelectOption value="5">Muy Difícil</NativeSelectOption>
+            </NativeSelect>
           </div>
 
           <div className="space-y-2">
-            <label className="text-xs font-medium text-foreground/80">Puntos</label>
-            <input
+            <Label>Puntos</Label>
+            <Input
               type="number"
               min={1}
               value={formData.points ?? 1}
@@ -678,35 +684,35 @@ const QuestionForm: React.FC<Props> = ({ question, onCancel, onSaved }) => {
                   points: Number(e.target.value),
                 }))
               }
-              className="w-full h-9 px-3 text-sm bg-muted/50 border border-border rounded-lg text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring"
+              className="w-full"
             />
           </div>
 
           <div className="space-y-2">
-            <label className="text-xs font-medium text-foreground/80">Estado</label>
-            <select
+            <Label>Estado</Label>
+            <NativeSelect
               value={formData.isActive ?? true ? 'true' : 'false'}
               onChange={e => setFormData((p: Partial<Question>) => ({ ...p, isActive: e.target.value === 'true' }))}
-              className="w-full h-9 px-2 text-sm bg-muted/50 border border-border rounded-lg text-foreground focus:outline-none focus:ring-1 focus:ring-ring"
+              className="w-full"
             >
-              <option value="true">Activa</option>
-              <option value="false">Inactiva</option>
-            </select>
+              <NativeSelectOption value="true">Activa</NativeSelectOption>
+              <NativeSelectOption value="false">Inactiva</NativeSelectOption>
+            </NativeSelect>
           </div>
         </div>
       </div>
 
       {/* Contenido */}
-      <div className="bg-card border border-border rounded-xl p-5 space-y-4">
-        <div className="mb-4">
-          <h3 className="text-base font-semibold text-foreground">Contenido</h3>
+      <div className="flex flex-col gap-4 border border-border bg-card p-4">
+        <div>
+          <h3 className="text-base font-medium text-foreground">Contenido</h3>
           <p className="text-xs text-muted-foreground mt-0.5">Enunciado e instrucciones</p>
         </div>
 
         <div className="grid grid-cols-1 gap-3">
           <div className="space-y-2">
-            <label className="text-xs font-medium text-foreground/80">Pregunta *</label>
-            <textarea
+            <Label>Pregunta *</Label>
+            <Textarea
               rows={2}
               value={formData.content?.question || ''}
               onChange={e =>
@@ -715,13 +721,13 @@ const QuestionForm: React.FC<Props> = ({ question, onCancel, onSaved }) => {
                   content: { ...p.content!, question: e.target.value },
                 }))
               }
-              className="w-full px-3 py-2 text-sm bg-muted/50 border border-border rounded-lg text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring resize-y"
+              className="w-full resize-y"
             />
           </div>
 
           <div className="space-y-2">
-            <label className="text-xs font-medium text-foreground/80">Instrucciones (opcional)</label>
-            <textarea
+            <Label>Instrucciones (opcional)</Label>
+            <Textarea
               rows={2}
               value={formData.content?.instructions || ''}
               onChange={e =>
@@ -730,14 +736,14 @@ const QuestionForm: React.FC<Props> = ({ question, onCancel, onSaved }) => {
                   content: { ...p.content!, instructions: e.target.value },
                 }))
               }
-              className="w-full px-3 py-2 text-sm bg-muted/50 border border-border rounded-lg text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring resize-y"
+              className="w-full resize-y"
             />
           </div>
 
           {/* Campo de Contexto para Reading Comprehension */}
           {(formData.competency === 'reading' || formData.competency === 'listening') && (
             <div className="space-y-2">
-              <label className="text-xs font-medium text-foreground/80 flex items-center gap-2">
+              <Label>
                 Contexto {formData.competency === 'reading' ? '(Texto para leer)' : '(Descripción del audio)'}
                 {/* {formData.content?.context && (
                   <span className="text-xs bg-green-500/20 text-green-600 dark:text-green-400 px-2 py-1 rounded">
@@ -747,8 +753,8 @@ const QuestionForm: React.FC<Props> = ({ question, onCancel, onSaved }) => {
                 <span className="text-xs text-muted-foreground">
                   - Texto que los estudiantes usarán para responder
                 </span>
-              </label>
-              <textarea
+              </Label>
+              <Textarea
                 rows={formData.content?.context ? Math.min(6, Math.ceil((formData.content.context.length || 0) / 100)) : 4}
                 value={formData.content?.context || ''}
                 onChange={e =>
@@ -784,9 +790,9 @@ const QuestionForm: React.FC<Props> = ({ question, onCancel, onSaved }) => {
         {/* Opciones */}
         {needsOptions && (
           <div className="space-y-2">
-            <label className="text-xs font-medium text-foreground/80">Opciones</label>
+            <Label>Opciones</Label>
             <div className="flex gap-2">
-              <input
+              <Input
                 value={newOption}
                 onChange={e => setNewOption(e.target.value)}
                 onKeyDown={e => {
@@ -796,16 +802,16 @@ const QuestionForm: React.FC<Props> = ({ question, onCancel, onSaved }) => {
                   }
                 }}
                 placeholder="Escribe una opción..."
-                className="w-full h-9 px-3 text-sm bg-muted/50 border border-border rounded-lg text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring flex-1"
+                className="w-full flex-1"
               />
-              <button
+              <Button
+                variant="outline"
                 type="button"
                 onClick={addOption}
-                className="h-9 px-4 text-sm rounded-lg border border-border text-foreground hover:bg-muted/60 transition-colors flex items-center gap-1.5"
               >
                 <Plus className="w-4 h-4" />
                 Agregar
-              </button>
+              </Button>
             </div>
 
             <div className="space-y-2">
@@ -822,14 +828,15 @@ const QuestionForm: React.FC<Props> = ({ question, onCancel, onSaved }) => {
                     className="w-4 h-4"
                   />
                   <span className="flex-1 text-foreground/90">{opt.text}</span>
-                  <button
+                  <Button
+                    variant="outline"
+                    size="icon"
                     type="button"
                     onClick={() => removeOption(opt.id)}
-                    className="h-8 w-8 flex items-center justify-center rounded-lg border border-border hover:bg-muted/60 transition-colors text-red-500"
                     title="Eliminar opción"
                   >
                     <Trash2 className="w-4 h-4" />
-                  </button>
+                  </Button>
                 </div>
               ))}
             </div>
@@ -840,12 +847,12 @@ const QuestionForm: React.FC<Props> = ({ question, onCancel, onSaved }) => {
         {needsFillBlanks && (
           <div className="space-y-4">
             <div className="space-y-2">
-              <label className="text-xs font-medium text-foreground/80">Plantilla con espacios en blanco</label>
+              <Label>Plantilla con espacios en blanco</Label>
               <p className="text-sm text-muted-foreground">
                 Usa <code className="bg-muted px-1 rounded">___</code> para
                 marcar los espacios en blanco
               </p>
-              <textarea
+              <Textarea
                 rows={3}
                 value={formData.content?.template || ''}
                 onChange={e =>
@@ -855,17 +862,17 @@ const QuestionForm: React.FC<Props> = ({ question, onCancel, onSaved }) => {
                   }))
                 }
                 placeholder="Ejemplo: The cat is ___ the house and the dog is ___ the garden."
-                className="w-full px-3 py-2 text-sm bg-muted/50 border border-border rounded-lg text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring resize-y"
+                className="w-full resize-y"
               />
             </div>
 
             <div className="space-y-2">
-              <label className="text-xs font-medium text-foreground/80">Respuestas correctas (opcional)</label>
+              <Label>Respuestas correctas (opcional)</Label>
               <p className="text-sm text-muted-foreground">
                 Define respuestas específicas para cada espacio. Si no se
                 definen, se evaluará como texto libre.
               </p>
-              <input
+              <Input
                 value={
                   typeof formData.content?.correctAnswer === 'string'
                     ? formData.content.correctAnswer
@@ -881,7 +888,7 @@ const QuestionForm: React.FC<Props> = ({ question, onCancel, onSaved }) => {
                   }))
                 }
                 placeholder="in, outside (separadas por comas)"
-                className="w-full h-9 px-3 text-sm bg-muted/50 border border-border rounded-lg text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring"
+                className="w-full"
               />
             </div>
           </div>
@@ -890,12 +897,12 @@ const QuestionForm: React.FC<Props> = ({ question, onCancel, onSaved }) => {
         {/* Items para drag_drop, matching, ordering */}
         {needsItems && (
           <div className="space-y-4">
-            <label className="text-xs font-medium text-foreground/80">
+            <Label>
               {formData.type === 'drag_drop' &&
                 'Elementos para arrastrar y soltar'}
               {formData.type === 'matching' && 'Elementos para emparejar'}
               {formData.type === 'ordering' && 'Elementos para ordenar'}
-            </label>
+            </Label>
 
             <div className="space-y-3">
               {formData.content?.items?.map((item, index) => (
@@ -908,7 +915,9 @@ const QuestionForm: React.FC<Props> = ({ question, onCancel, onSaved }) => {
                     <span className="text-sm text-foreground/80 font-medium">
                       Elemento {index + 1}
                     </span>
-                    <button
+                    <Button
+                      variant="outline"
+                      size="icon"
                       type="button"
                       onClick={() => {
                         const newItems =
@@ -920,20 +929,19 @@ const QuestionForm: React.FC<Props> = ({ question, onCancel, onSaved }) => {
                           content: { ...p.content!, items: newItems },
                         }));
                       }}
-                      className="h-8 w-8 flex items-center justify-center rounded-lg border border-border hover:bg-muted/60 transition-colors text-red-500"
                       title="Eliminar elemento"
                     >
                       <Trash2 className="w-4 h-4" />
-                    </button>
+                    </Button>
                   </div>
 
                   {/* Contenido principal */}
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                     <div className="space-y-2">
-                      <label className="text-xs font-medium text-foreground/80">
+                      <Label>
                         {formData.type === 'matching' ? 'Elemento A' : 'Contenido'}
-                      </label>
-                      <input
+                      </Label>
+                      <Input
                         value={item.content}
                         onChange={e => {
                           const newItems = [...(formData.content?.items || [])];
@@ -944,14 +952,14 @@ const QuestionForm: React.FC<Props> = ({ question, onCancel, onSaved }) => {
                           }));
                         }}
                         placeholder="Contenido del elemento"
-                        className="w-full h-9 px-3 text-sm bg-muted/50 border border-border rounded-lg text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring"
+                        className="w-full"
                       />
                     </div>
 
                     {formData.type === 'matching' && (
                       <div className="space-y-2">
-                        <label className="text-xs font-medium text-foreground/80">Elemento B (pareja)</label>
-                        <input
+                        <Label>Elemento B (pareja)</Label>
+                        <Input
                           value={item.matchingPair || ''}
                           onChange={e => {
                             const newItems = [...(formData.content?.items || [])];
@@ -965,15 +973,15 @@ const QuestionForm: React.FC<Props> = ({ question, onCancel, onSaved }) => {
                             }));
                           }}
                           placeholder="Pareja correspondiente"
-                          className="w-full h-9 px-3 text-sm bg-muted/50 border border-border rounded-lg text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring"
+                          className="w-full"
                         />
                       </div>
                     )}
 
                     {formData.type === 'ordering' && (
                       <div className="space-y-2">
-                        <label className="text-xs font-medium text-foreground/80">Posición correcta</label>
-                        <input
+                        <Label>Posición correcta</Label>
+                        <Input
                           type="number"
                           value={item.correctPosition || ''}
                           onChange={e => {
@@ -988,7 +996,7 @@ const QuestionForm: React.FC<Props> = ({ question, onCancel, onSaved }) => {
                             }));
                           }}
                           placeholder="Posición correcta"
-                          className="w-full h-9 px-3 text-sm bg-muted/50 border border-border rounded-lg text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring"
+                          className="w-full"
                           min={1}
                         />
                       </div>
@@ -1005,7 +1013,8 @@ const QuestionForm: React.FC<Props> = ({ question, onCancel, onSaved }) => {
                 </div>
               ))}
 
-              <button
+              <Button
+                variant="outline"
                 type="button"
                 onClick={() => {
                   const newItem = {
@@ -1027,11 +1036,11 @@ const QuestionForm: React.FC<Props> = ({ question, onCancel, onSaved }) => {
                     },
                   }));
                 }}
-                className="w-full h-9 text-sm rounded-lg border border-border text-foreground hover:bg-muted/60 transition-colors flex items-center justify-center gap-1.5"
+                className="w-full"
               >
                 <Plus className="w-4 h-4" />
                 Agregar elemento
-              </button>
+              </Button>
             </div>
           </div>
         )}
@@ -1039,7 +1048,7 @@ const QuestionForm: React.FC<Props> = ({ question, onCancel, onSaved }) => {
 
       {/* Multimedia mejorado */}
       {showMultimedia && (
-        <div className="bg-card border border-border rounded-xl p-5 space-y-4">
+        <div className="flex flex-col gap-4 border border-border bg-card p-4">
           <div className="mb-4">
             <h3 className="text-base font-semibold text-foreground flex items-center gap-2">
               <Volume2 className="w-5 h-5 text-blue-500 dark:text-blue-400" />
@@ -1060,9 +1069,9 @@ const QuestionForm: React.FC<Props> = ({ question, onCancel, onSaved }) => {
             <div className="space-y-4">
               <div className="flex items-center gap-2 mb-3">
                 <Volume2 className="w-5 h-5 text-blue-500 dark:text-blue-400" />
-                <label className="text-xs font-medium text-foreground/80">
+                <Label>
                   Audio para Comprensión Auditiva
-                </label>
+                </Label>
               </div>
 
               {!anyItemHasMedia() ? (
@@ -1096,9 +1105,7 @@ const QuestionForm: React.FC<Props> = ({ question, onCancel, onSaved }) => {
 
                   {/* Botón para subir nuevo audio */}
                   <div className="flex items-center gap-3">
-                    <label
-                      className="flex items-center gap-2 px-4 py-2 rounded-lg cursor-pointer border border-border transition-all hover:bg-muted/50 text-sm text-foreground bg-muted/50"
-                    >
+                    <label className={buttonVariants({ variant: "outline", className: "cursor-pointer" })}>
                       <Volume2 className="w-4 h-4" />
                       <span>
                         {formData.content?.mediaUrl &&
@@ -1133,9 +1140,9 @@ const QuestionForm: React.FC<Props> = ({ question, onCancel, onSaved }) => {
             <div className="space-y-4">
               <div className="flex items-center gap-2 mb-3">
                 <Mic className="w-5 h-5 text-red-600 dark:text-red-400" />
-                <label className="text-xs font-medium text-foreground/80">
+                <Label>
                   Audio de Pregunta y Configuración
-                </label>
+                </Label>
               </div>
 
               <div className="bg-muted/30 rounded-lg p-4 border border-border">
@@ -1146,8 +1153,8 @@ const QuestionForm: React.FC<Props> = ({ question, onCancel, onSaved }) => {
 
                 {/* Tipo de respuesta esperada */}
                 <div className="space-y-2 mb-4">
-                  <label className="text-xs font-medium text-foreground/80">Tipo de respuesta esperada</label>
-                  <select
+                  <Label>Tipo de respuesta esperada</Label>
+                  <NativeSelect
                     value={formData.content?.expectedResponseType || 'sentence'}
                     onChange={e =>
                       setFormData((p: Partial<Question>) => ({
@@ -1158,12 +1165,12 @@ const QuestionForm: React.FC<Props> = ({ question, onCancel, onSaved }) => {
                         },
                       }))
                     }
-                    className="w-full h-9 px-2 text-sm bg-muted/50 border border-border rounded-lg text-foreground focus:outline-none focus:ring-1 focus:ring-ring"
+                    className="w-full"
                   >
-                    <option value="word">Palabra</option>
-                    <option value="sentence">Oración</option>
-                    <option value="paragraph">Párrafo</option>
-                  </select>
+                    <NativeSelectOption value="word">Palabra</NativeSelectOption>
+                    <NativeSelectOption value="sentence">Oración</NativeSelectOption>
+                    <NativeSelectOption value="paragraph">Párrafo</NativeSelectOption>
+                  </NativeSelect>
                 </div>
 
                 {/* Mostrar reproductor si hay audio existente */}
@@ -1206,9 +1213,7 @@ const QuestionForm: React.FC<Props> = ({ question, onCancel, onSaved }) => {
                   <div className="text-sm text-muted-foreground mb-2">
                     O sube un archivo de audio:
                   </div>
-                  <label
-                    className="inline-flex items-center gap-2 px-3 py-2 rounded-lg cursor-pointer border border-border transition-all hover:bg-muted/50 text-sm text-foreground bg-muted/50"
-                  >
+                  <label className={buttonVariants({ variant: "outline", className: "cursor-pointer" })}>
                     <Volume2 className="w-4 h-4" />
                     <span>Seleccionar archivo</span>
                     <input
@@ -1232,9 +1237,9 @@ const QuestionForm: React.FC<Props> = ({ question, onCancel, onSaved }) => {
           <div className="space-y-4">
             <div className="flex items-center gap-2">
               <ImageIcon className="w-5 h-5 text-green-500 dark:text-green-400" />
-              <label className="text-xs font-medium text-foreground/80">
+              <Label>
                 Imagen (opcional)
-              </label>
+              </Label>
             </div>
 
             {/* Mostrar imagen existente si hay */}
@@ -1258,9 +1263,7 @@ const QuestionForm: React.FC<Props> = ({ question, onCancel, onSaved }) => {
               )}
 
             <div className="flex items-center gap-3">
-              <label
-                className="flex items-center gap-2 px-4 py-2 rounded-lg cursor-pointer border border-border transition-all hover:bg-muted/50 text-sm text-foreground bg-muted/50"
-              >
+              <label className={buttonVariants({ variant: "outline", className: "cursor-pointer" })}>
                 <ImageIcon className="w-4 h-4" />
                 <span>
                   {formData.content?.mediaUrl &&
@@ -1286,9 +1289,9 @@ const QuestionForm: React.FC<Props> = ({ question, onCancel, onSaved }) => {
       )}
 
       {/* Metadatos adicionales y Etiquetas combinados */}
-      <div className="bg-card border border-border rounded-xl p-5 space-y-4">
-        <div className="mb-4">
-          <h3 className="text-base font-semibold text-foreground">Información adicional</h3>
+      <div className="flex flex-col gap-4 border border-border bg-card p-4">
+        <div>
+          <h3 className="text-base font-medium text-foreground">Información adicional</h3>
           <p className="text-xs text-muted-foreground mt-0.5">
             Tema, subtema y etiquetas para organización
           </p>
@@ -1296,8 +1299,8 @@ const QuestionForm: React.FC<Props> = ({ question, onCancel, onSaved }) => {
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           <div className="space-y-2">
-            <label className="text-xs font-medium text-foreground/80">Tema</label>
-            <input
+            <Label>Tema</Label>
+            <Input
               value={formData.metadata?.topic || ''}
               onChange={e =>
                 setFormData((p: Partial<Question>) => ({
@@ -1305,14 +1308,14 @@ const QuestionForm: React.FC<Props> = ({ question, onCancel, onSaved }) => {
                   metadata: { ...p.metadata!, topic: e.target.value },
                 }))
               }
-              className="w-full h-9 px-3 text-sm bg-muted/50 border border-border rounded-lg text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring"
+              className="w-full"
               placeholder="Ej: Gramática"
             />
           </div>
 
           <div className="space-y-2">
-            <label className="text-xs font-medium text-foreground/80">Subtema</label>
-            <input
+            <Label>Subtema</Label>
+            <Input
               value={formData.metadata?.subtopic || ''}
               onChange={e =>
                 setFormData((p: Partial<Question>) => ({
@@ -1320,7 +1323,7 @@ const QuestionForm: React.FC<Props> = ({ question, onCancel, onSaved }) => {
                   metadata: { ...p.metadata!, subtopic: e.target.value },
                 }))
               }
-              className="w-full h-9 px-3 text-sm bg-muted/50 border border-border rounded-lg text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring"
+              className="w-full"
               placeholder="Ej: Present Simple"
             />
           </div>
@@ -1328,9 +1331,9 @@ const QuestionForm: React.FC<Props> = ({ question, onCancel, onSaved }) => {
 
         {/* Etiquetas integradas */}
         <div className="space-y-3">
-          <label className="text-xs font-medium text-foreground/80">Etiquetas</label>
+          <Label>Etiquetas</Label>
           <div className="flex gap-2">
-            <input
+            <Input
               value={tagInput}
               onChange={e => setTagInput(e.target.value)}
               onKeyDown={e => {
@@ -1340,28 +1343,28 @@ const QuestionForm: React.FC<Props> = ({ question, onCancel, onSaved }) => {
                 }
               }}
               placeholder="Agregar etiqueta..."
-              className="w-full h-9 px-3 text-sm bg-muted/50 border border-border rounded-lg text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring flex-1"
+              className="w-full flex-1"
             />
-            <button
+            <Button
+              variant="outline"
               type="button"
               onClick={addTag}
-              className="h-9 px-4 text-sm rounded-lg border border-border text-foreground hover:bg-muted/60 transition-colors flex items-center gap-1.5"
             >
               Agregar
-            </button>
+            </Button>
           </div>
           {formData?.metadata?.tags && formData.metadata.tags.length > 0 && (
             <div className="flex flex-wrap gap-1.5">
               {formData.metadata.tags.map((tag: string, i: number) => (
                 <span
                   key={`${tag}-${i}`}
-                  className="px-2 py-1 bg-muted/50 border border-border text-foreground/90 rounded-full text-xs flex items-center gap-1.5"
+                  className="flex items-center gap-1.5 rounded-full border border-border bg-muted/50 px-2 py-1 text-xs text-foreground"
                 >
                   {tag}
                   <button
                     type="button"
                     onClick={() => removeTag(i)}
-                    className="hover:text-red-500 dark:hover:text-red-400 text-xs"
+                    className="text-xs hover:text-destructive"
                     title="Quitar etiqueta"
                   >
                     ×
@@ -1374,20 +1377,15 @@ const QuestionForm: React.FC<Props> = ({ question, onCancel, onSaved }) => {
       </div>
 
       {/* Acciones */}
-      <div className="flex justify-end gap-3 pt-4 border-t border-border">
-        <button
-          type="button"
-          onClick={onCancel}
-          className="h-9 px-4 text-sm rounded-lg border border-border text-foreground hover:bg-muted/60 transition-colors"
-        >
+      <div className="-mx-3 flex items-center justify-end gap-2 border-t border-border px-3 pt-3">
+        <Button variant="outline" type="button" onClick={onCancel}>
+          <X />
           Cancelar
-        </button>
-        <button
-          type="submit"
-          className="h-9 px-4 text-sm rounded-lg bg-blue-600 hover:bg-blue-700 text-white transition-colors"
-        >
-          {question ? 'Guardar Cambios' : 'Crear Pregunta'}
-        </button>
+        </Button>
+        <Button type="submit">
+          <Save />
+          {question ? 'Guardar cambios' : 'Crear pregunta'}
+        </Button>
       </div>
 
     </form>

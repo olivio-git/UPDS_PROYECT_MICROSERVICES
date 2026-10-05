@@ -1,3 +1,4 @@
+import { Button } from '@/components/keel/button';
 import { scoreBarClass, scoreTextClass } from '@/lib/scoreBands';
 import { cn } from '@/lib/utils';
 import type { SessionResultRow } from '@/services/examResultService';
@@ -108,14 +109,15 @@ export function SessionResultsCard({ sessionId, completed }: { sessionId: string
       <Centered className="py-10">
         <AlertTriangle className="w-6 h-6 text-red-400" />
         <p className="text-sm text-red-400 text-center">{results.error.message}</p>
-        <button
+        <Button
+          variant="outline"
+          size="sm"
           type="button"
           onClick={() => results.refetch()}
-          className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg bg-muted hover:bg-muted/80 text-foreground/80 border border-border transition-colors"
         >
           <RefreshCw className="w-3.5 h-3.5" />
           Reintentar
-        </button>
+        </Button>
       </Centered>
     );
   } else if (rows.length === 0) {

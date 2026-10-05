@@ -28,7 +28,7 @@ export function SelectedStudent({ student, onClear }: { student: StudentIdentity
         size="sm"
         onClick={onClear}
         aria-label="Elegir otro estudiante"
-        className="h-6 w-6 p-0 shrink-0 text-muted-foreground hover:text-foreground"
+        className="h-6 w-6 p-0 shrink-0"
       >
         <X className="h-3.5 w-3.5" />
       </Button>

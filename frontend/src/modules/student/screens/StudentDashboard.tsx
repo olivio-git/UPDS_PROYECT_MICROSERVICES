@@ -1,14 +1,14 @@
-import { MainLayout } from "@/components/layout";
+import { MainLayout, PageHeader } from "@/components/layout";
 import { ContinueExamModal } from "@/components/modals/ContinueExamModal";
 import { useActiveSessionDetection } from "@/hooks/useActiveSessionDetection";
-// import { useAuthStore } from "@/modules/auth/services/authStore";
+import { useAuthStore } from "@/modules/auth/services/authStore";
 import { useNavigate } from "react-router-dom";
 import NextExam from "../components/NextExam";
 import ExamCalendar from "../components/ExamCalendar";
 import RecentResults from "../components/RecentResults";
 
 const StudentDashboard = () => {
-  // const { user } = useAuthStore();
+  const user = useAuthStore((s) => s.user);
   const navigate = useNavigate();
 
   // Active session detection
@@ -45,8 +45,12 @@ const StudentDashboard = () => {
 
   return (
     <>
-      <MainLayout gradientVariant="primary" showGradient={true}>
+      <MainLayout>
         <div className="flex h-full flex-col gap-3 p-3">
+          <PageHeader
+            title={`Hola, ${user?.firstName ?? ""}`.trim()}
+            description="Tus próximos exámenes y resultados"
+          />
           {/* At 1280 (xl, 12 cols) the next exam and calendar sit side by
               side and results stack full-width below. At 1920 (2xl) there's
               room for a real third column instead of wider cards — next

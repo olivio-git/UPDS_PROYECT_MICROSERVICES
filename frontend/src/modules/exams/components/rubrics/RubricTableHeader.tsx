@@ -1,3 +1,6 @@
+import { NativeSelect, NativeSelectOption } from '@/components/keel/native-select';
+import { Input } from '@/components/keel/input';
+import { Button } from '@/components/keel/button';
 import { Plus, Search, Trash2 } from "lucide-react";
 import type { MCERLevel, ScoringType } from "../../constants/academic.constants";
 import type { Competency } from "../../types";
@@ -71,19 +74,20 @@ const RubricTableHeader = ({
         </div>
         <div className="flex items-center gap-2">
           {selectedCount > 0 && (
-            <button
+            <Button
+              variant="destructive"
+              size="sm"
               onClick={onDeleteSelected}
-              className="h-8 flex items-center gap-1.5 px-3 text-xs rounded-md border border-red-500/60 bg-red-500/10 hover:bg-red-500/20 text-red-500 transition-colors"
             >
               <Trash2 className="w-3.5 h-3.5" /> Eliminar ({selectedCount})
-            </button>
+            </Button>
           )}
-          <button
+          <Button
+            size="sm"
             onClick={onCreateRubric}
-            className="h-8 flex items-center gap-1.5 px-3 text-xs rounded-md bg-blue-600 hover:bg-blue-700 text-white transition-colors"
           >
             <Plus className="w-3.5 h-3.5" /> Nueva Rúbrica
-          </button>
+          </Button>
         </div>
       </div>
 
@@ -93,74 +97,71 @@ const RubricTableHeader = ({
         {/* Search */}
         <div className="relative">
           <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3 w-3 text-muted-foreground pointer-events-none" />
-          <input
+          <Input
             type="text"
             placeholder="Buscar rúbricas..."
             value={filters.search || ''}
             onChange={e => handleSearchChange(e.target.value)}
-            className="h-7 pl-6 pr-2 text-xs bg-muted/60 border border-border rounded text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring w-44"
+            className="w-44 h-7 pl-6 pr-2 text-xs"
           />
         </div>
 
         <div className="w-px h-5 bg-border shrink-0" />
 
         {/* Competencia */}
-        <select
+        <NativeSelect size="sm" className="text-xs w-auto"
           value={filters.competency || 'all'}
           onChange={e => handleCompetencyChange(e.target.value === 'all' ? undefined : e.target.value as Competency)}
-          className="h-7 text-xs bg-muted/60 border border-border rounded px-2 text-foreground focus:outline-none focus:ring-1 focus:ring-ring"
         >
-          <option value="all">Todas las competencias</option>
-          <option value="reading">Comprensión Lectora</option>
-          <option value="writing">Expresión Escrita</option>
-          <option value="listening">Comprensión Auditiva</option>
-          <option value="speaking">Expresión Oral</option>
-        </select>
+          <NativeSelectOption value="all">Todas las competencias</NativeSelectOption>
+          <NativeSelectOption value="reading">Comprensión Lectora</NativeSelectOption>
+          <NativeSelectOption value="writing">Expresión Escrita</NativeSelectOption>
+          <NativeSelectOption value="listening">Comprensión Auditiva</NativeSelectOption>
+          <NativeSelectOption value="speaking">Expresión Oral</NativeSelectOption>
+        </NativeSelect>
 
         {/* Nivel MCER */}
-        <select
+        <NativeSelect size="sm" className="text-xs w-auto"
           value={filters.level || 'all'}
           onChange={e => handleLevelChange(e.target.value === 'all' ? undefined : e.target.value as MCERLevel)}
-          className="h-7 text-xs bg-muted/60 border border-border rounded px-2 text-foreground focus:outline-none focus:ring-1 focus:ring-ring"
         >
-          <option value="all">Todos los niveles</option>
-          <option value="A1">A1</option>
-          <option value="A2">A2</option>
-          <option value="B1">B1</option>
-          <option value="B2">B2</option>
-          <option value="C1">C1</option>
-          <option value="C2">C2</option>
-        </select>
+          <NativeSelectOption value="all">Todos los niveles</NativeSelectOption>
+          <NativeSelectOption value="A1">A1</NativeSelectOption>
+          <NativeSelectOption value="A2">A2</NativeSelectOption>
+          <NativeSelectOption value="B1">B1</NativeSelectOption>
+          <NativeSelectOption value="B2">B2</NativeSelectOption>
+          <NativeSelectOption value="C1">C1</NativeSelectOption>
+          <NativeSelectOption value="C2">C2</NativeSelectOption>
+        </NativeSelect>
 
         {/* Tipo de evaluación */}
-        <select
+        <NativeSelect size="sm" className="text-xs w-auto"
           value={filters.scoringType || 'all'}
           onChange={e => handleScoringTypeChange(e.target.value === 'all' ? undefined : e.target.value as ScoringType)}
-          className="h-7 text-xs bg-muted/60 border border-border rounded px-2 text-foreground focus:outline-none focus:ring-1 focus:ring-ring"
         >
-          <option value="all">Todos los tipos</option>
-          <option value="holistic">Holística</option>
-          <option value="analytic">Analítica</option>
-        </select>
+          <NativeSelectOption value="all">Todos los tipos</NativeSelectOption>
+          <NativeSelectOption value="holistic">Holística</NativeSelectOption>
+          <NativeSelectOption value="analytic">Analítica</NativeSelectOption>
+        </NativeSelect>
 
         {/* Estado */}
-        <select
+        <NativeSelect size="sm" className="text-xs w-auto"
           value={currentStatus}
           onChange={e => handleStatusChange(e.target.value)}
-          className="h-7 text-xs bg-muted/60 border border-border rounded px-2 text-foreground focus:outline-none focus:ring-1 focus:ring-ring"
         >
-          <option value="all">Todos los estados</option>
-          <option value="active">Activas</option>
-          <option value="inactive">Inactivas</option>
-        </select>
+          <NativeSelectOption value="all">Todos los estados</NativeSelectOption>
+          <NativeSelectOption value="active">Activas</NativeSelectOption>
+          <NativeSelectOption value="inactive">Inactivas</NativeSelectOption>
+        </NativeSelect>
 
         {hasActiveFilters && (
-          <button
+          <Button
+            variant="ghost"
+            size="sm"
             onClick={clearFilters}
-            className="h-7 px-2 text-xs rounded text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
           >
             Limpiar
-          </button>
+          </Button>
         )}
       </div>
     </div>

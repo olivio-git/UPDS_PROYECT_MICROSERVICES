@@ -156,7 +156,7 @@ export function ReportFiltersBar({ filters, sessions, variant }: ReportFiltersBa
           Aplicar
         </Button>
         <Button onClick={filters.clear} variant="ghost" size="sm"
-          className="h-7 text-xs text-muted-foreground hover:text-foreground hover:bg-muted px-2"
+          className="h-7 text-xs px-2"
         >
           Limpiar
         </Button>

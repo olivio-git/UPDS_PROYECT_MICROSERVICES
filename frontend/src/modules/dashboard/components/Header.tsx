@@ -389,7 +389,7 @@ const Header = () => {
                 variant="outline"
                 size="icon"
                 onClick={() => setIsNotificationsOpen(!isNotificationsOpen)}
-                className="relative border border-border bg-card backdrop-blur-sm hover:bg-muted transition-all duration-300"
+                className="relative backdrop-blur-sm transition-all duration-300"
               >
                 <Bell className="h-4 w-4 text-foreground" />
                 {unreadCount > 0 && (
@@ -511,7 +511,7 @@ const Header = () => {
                 variant="outline"
                 size="icon"
                 onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
-                className="border border-border bg-card backdrop-blur-sm hover:bg-muted transition-all duration-300 overflow-hidden p-0 rounded-full w-10 h-10"
+                className="backdrop-blur-sm transition-all duration-300 overflow-hidden p-0 rounded-full w-10 h-10"
               >
                 <UserAvatar
                   avatarUrl={user?.profile?.avatarUrl}
@@ -581,7 +581,7 @@ const Header = () => {
                 variant="outline"
                 size="icon"
                 onClick={toggleMobileMenu}
-                className="lg:hidden border border-border bg-card backdrop-blur-sm hover:bg-muted transition-all duration-300"
+                className="lg:hidden backdrop-blur-sm transition-all duration-300"
               >
                 <Menu className="h-4 w-4 text-foreground" />
               </Button>
@@ -612,7 +612,6 @@ const Header = () => {
                   variant="ghost"
                   size="icon"
                   onClick={toggleMobileMenu}
-                  className="text-muted-foreground hover:text-foreground"
                 >
                   <X className="h-4 w-4" />
                 </Button>
@@ -636,7 +635,7 @@ const Header = () => {
                 <Button
                   variant="outline"
                   size="icon"
-                  className="border border-border bg-card backdrop-blur-sm hover:bg-muted transition-all duration-300 relative"
+                  className="backdrop-blur-sm transition-all duration-300 relative"
                   onClick={() => {
                     setIsMobileMenuOpen(false);
                     setIsAllNotificationsOpen(true);

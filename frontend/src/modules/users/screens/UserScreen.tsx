@@ -1,3 +1,4 @@
+import { Label } from '@/components/keel/label';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -510,9 +511,9 @@ const UsersScreen = () => {
 
             {/* File picker */}
             <div className="space-y-2">
-              <label className="text-sm font-medium text-foreground">
+              <Label>
                 Seleccionar archivo
-              </label>
+              </Label>
               <div className="relative">
                 <Input
                   ref={fileInputRef}
@@ -520,7 +521,7 @@ const UsersScreen = () => {
                   accept=".xlsx,.xls,.csv"
                   onChange={handleFileSelect}
                   className="cursor-pointer file:mr-3 file:py-1 file:px-3 file:rounded-md file:border-0 file:text-xs file:font-medium file:bg-muted file:text-foreground hover:file:bg-muted/80"
-/>
+                />
               </div>
               {selectedFile ? (
                 <div className="flex items-center gap-2 text-sm text-green-700 dark:text-green-400 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800/40 rounded-md px-3 py-2">

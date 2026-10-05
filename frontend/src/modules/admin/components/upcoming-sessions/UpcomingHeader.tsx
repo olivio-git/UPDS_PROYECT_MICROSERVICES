@@ -1,5 +1,5 @@
+import { PageHeader } from '@/components/layout';
 import { Button } from '@/components/keel/button';
-import GradientWrapper from '@/components/background/GrandWrapperSection';
 import { cn } from '@/lib/utils';
 import type { UpcomingSessionsData } from '@/services/reportsService';
 import { AlertTriangle, CalendarDays, Download, List, Plus, RefreshCw, Users } from 'lucide-react';
@@ -26,37 +26,36 @@ export function UpcomingHeader({ data, viewMode, onToggleView, onExport, onRefre
   ];
 
   return (
-    <GradientWrapper intensity="medium" size="md" position="center" animate={false} variant="cosmic">
-      <div className="p-4 space-y-3">
-        <div className="flex items-center justify-between gap-2 flex-wrap">
-          <div>
-            <h1 className="text-xl font-bold text-foreground">Próximas Programaciones</h1>
-            <p className="text-sm text-muted-foreground">Calendario de sesiones de examen</p>
-          </div>
-          <div className="flex items-center gap-2 flex-wrap">
-            <Button variant="outline" size="sm" onClick={onToggleView} className="border-border bg-transparent text-foreground/80 gap-1.5">
+    <div className="flex shrink-0 flex-col gap-3">
+      <PageHeader
+        title="Próximas Programaciones"
+        description="Calendario de sesiones de examen"
+        actions={
+          <>
+            <Button variant="outline" size="sm" onClick={onToggleView}>
               {viewMode === 'calendar'
-                ? <><List className="h-3.5 w-3.5" /> Lista</>
-                : <><CalendarDays className="h-3.5 w-3.5" /> Calendario</>}
+                ? <><List /> Lista</>
+                : <><CalendarDays /> Calendario</>}
             </Button>
-            <Button size="sm" onClick={onExport} className="gap-1.5">
-              <Download className="h-3.5 w-3.5" /> Exportar
+            <Button variant="outline" size="sm" onClick={onExport}>
+              <Download /> Exportar
             </Button>
-            <Button size="sm" onClick={onRefresh} disabled={refreshing} className="bg-transparent hover:bg-muted/60 text-foreground/70 border border-border gap-1.5">
-              <RefreshCw className={cn('h-3.5 w-3.5', refreshing && 'animate-spin')} /> Actualizar
+            <Button variant="outline" size="sm" onClick={onRefresh} disabled={refreshing}>
+              <RefreshCw className={cn(refreshing && 'animate-spin')} /> Actualizar
             </Button>
             {onCreateSession && (
-              <Button size="sm" onClick={onCreateSession} className="gap-1.5">
-                <Plus className="h-3.5 w-3.5" /> Nueva Sesión
+              <Button size="sm" onClick={onCreateSession}>
+                <Plus /> Nueva Sesión
               </Button>
             )}
-          </div>
-        </div>
+          </>
+        }
+      />
 
         {stats && (
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-px bg-border/40 overflow-hidden border border-border/40">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-px overflow-hidden border border-border bg-border">
             {stats.map(({ label, value, icon: Icon, iconClass, valueClass }) => (
-              <div key={label} className="bg-card/60 px-3 py-2.5 flex items-center gap-2.5">
+              <div key={label} className="flex items-center gap-2.5 bg-card px-3 py-2.5">
                 <Icon className={cn('h-3.5 w-3.5', iconClass)} />
                 <div>
                   <p className="text-[10px] text-muted-foreground leading-none mb-0.5">{label}</p>
@@ -66,7 +65,6 @@ export function UpcomingHeader({ data, viewMode, onToggleView, onExport, onRefre
             ))}
           </div>
         )}
-      </div>
-    </GradientWrapper>
+    </div>
   );
 }

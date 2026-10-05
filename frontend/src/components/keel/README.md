@@ -108,6 +108,29 @@ Radix dependencies is the remaining cleanup:
 `modules/student/screens/ExamReview.tsx`, `modules/users/components/Pagination.tsx`,
 `navigation/components/NavigationBreadcrumb.tsx`.
 
+## Page layout conventions (2026-10-05)
+
+Components alone did not make the screens look alike: forms were centred `max-w-4xl` cards, the
+staff home was a centred hero, and each list rolled its own header and empty state. Every screen
+now uses the shared scaffolding in `src/components/layout/PageLayout.tsx` plus
+`src/components/common/EmptyState.tsx`:
+
+- `Page` — screen wrapper: full width and height, `p-3`, `gap-3`. Never a centred, max-width column.
+- `PageHeader` — title (`text-xl font-bold`), one-line description, actions on the right.
+- `FormPage` — create/edit/detail screens: "‹ Volver" + small uppercase title on top, full-width
+  content, actions in a bar at the bottom. Same frame as the session scheduler.
+- `FormSection` / `Card flat` — one flat region (hairline border, no radius) per form section.
+- `EmptyState` — the single empty/error state (keel `Empty`), used by `CustomizableTable` too.
+
+Also: buttons are keel `Button` variants (no raw `<button>` with colour classes), form controls are
+keel `Input` / `Textarea` / `NativeSelect` / `Label`, there is one font (no per-screen
+`epilogue-uniquifier` / `font-portfolio`), and `bg-box` / `border-line` / `bg-dark-light` were
+removed — those tokens were never defined, so they rendered as nothing.
+
+Left as is on purpose: the exam runner and preparation screens (already redesigned), the student
+simulator tab of the question detail (`max-w-3xl` mirrors the width students see), and
+`SessionMonitorScreen` beyond its buttons.
+
 ## Import path changes made on port
 
 - `@/components/ui/*` → `@/components/keel/*`

@@ -1,3 +1,5 @@
+import { Input } from '@/components/keel/input';
+import { Button } from '@/components/keel/button';
 import CustomizableTable from '@/components/common/CustomizableTable';
 import { MCER_LEVELS } from '@/lib/mcer';
 import { scoreBadgeClass } from '@/lib/scoreBands';
@@ -88,14 +90,15 @@ function buildColumns(onOpen: (exam: ExamEntry) => void) {
       size: 36,
       header: '',
       cell: ({ row }) => (
-        <button
+        <Button
+          variant="ghost"
+          size="icon-sm"
           type="button"
           aria-label={`Ver detalle de ${row.original.examTitle}`}
           onClick={() => onOpen(row.original)}
-          className="p-1 rounded hover:bg-muted transition-colors group"
         >
           <Eye className="h-3.5 w-3.5 text-muted-foreground/50 group-hover:text-blue-500" />
-        </button>
+        </Button>
       ),
     }),
   ];
@@ -161,13 +164,13 @@ export function ExamHistoryTable({ exams, onOpenExam }: ExamHistoryTableProps) {
         </span>
         <div className="relative flex-1 max-w-48 ml-auto">
           <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3 w-3 text-muted-foreground pointer-events-none" />
-          <input
+          <Input
             type="text"
             placeholder="Buscar..."
             aria-label="Buscar en el historial"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full pl-6 pr-2 h-6 text-xs bg-muted/50 border border-border rounded-md text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-blue-500 focus:ring-0"
+            className="w-full pl-6 pr-2 text-xs"
           />
         </div>
       </div>
@@ -200,7 +203,7 @@ export function ExamHistoryTable({ exams, onOpenExam }: ExamHistoryTableProps) {
             ★ Top
           </button>
           {topOnly && (
-            <input
+            <Input
               type="number"
               min={TOP_MIN}
               max={TOP_MAX}
@@ -208,7 +211,7 @@ export function ExamHistoryTable({ exams, onOpenExam }: ExamHistoryTableProps) {
               aria-label="Cantidad de mejores exámenes"
               onChange={(e) => setTopCount(Math.min(TOP_MAX, Math.max(TOP_MIN, Number(e.target.value) || TOP_MIN)))}
               title={`Mínimo ${TOP_MIN}, máximo ${TOP_MAX}`}
-              className="w-10 h-5 text-center text-[10px] font-semibold bg-amber-500/10 border border-amber-500/40 rounded text-amber-600 dark:text-amber-400 focus:outline-none focus:border-amber-500"
+              className="w-10 text-center"
             />
           )}
         </div>

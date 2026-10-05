@@ -1,9 +1,10 @@
+import { Textarea } from '@/components/keel/textarea';
 import { Badge } from "@/components/keel/badge";
 import { Button } from "@/components/keel/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/keel/card";
 import { Input } from "@/components/keel/input";
 import { UserAvatar } from "@/components/UserAvatar";
-import { MainLayout } from "@/components/layout";
+import { MainLayout, Page, PageHeader } from "@/components/layout";
 import { useNavigate } from "react-router-dom";
 import { useAuthStore } from "@/modules/auth/services/authStore";
 import { userManagementService } from "@/services/userManagementService";
@@ -117,12 +118,13 @@ const StudentProfile = () => {
   };
 
   return (
-    <MainLayout gradientVariant="primary">
-      <div className="space-y-3 p-3">
+    <MainLayout>
+      <Page className="h-auto">
+        <PageHeader title="Mi perfil" description="Tus datos personales, preferencias y seguridad" />
         <div className="flex flex-col md:flex-row gap-6 md:items-start">
           {/* ── Left: Profile card ── */}
           <div className="w-full md:w-64 shrink-0">
-            <Card className="shadow-none">
+            <Card flat>
               <CardContent className="pt-6 pb-5 px-5 space-y-4">
                 {/* Avatar */}
                 <div className="flex flex-col items-center text-center gap-3">
@@ -133,14 +135,16 @@ const StudentProfile = () => {
                       lastName={lastName}
                       size="lg"
                     />
-                    <button
-                      className="absolute -bottom-1 -right-1 w-6 h-6 rounded-full bg-muted border border-border flex items-center justify-center hover:bg-muted/80 transition-colors disabled:opacity-50"
+                    <Button
+                      variant="outline"
+                      size="icon-xs"
+                      className="absolute -right-1 -bottom-1 rounded-full"
                       onClick={() => avatarInputRef.current?.click()}
                       disabled={isUploadingAvatar}
                       title="Cambiar foto de perfil"
                     >
                       <Camera className="h-3 w-3 text-muted-foreground" />
-                    </button>
+                    </Button>
                     <input
                       ref={avatarInputRef}
                       type="file"
@@ -233,15 +237,15 @@ const StudentProfile = () => {
           {/* ── Right: Tabbed content ── */}
           <div className="flex-1 min-w-0 space-y-4">
             {/* Tab bar */}
-            <div className="flex gap-1 bg-muted/50 p-1 rounded-lg">
+            <div className="flex gap-1 rounded-lg bg-muted p-1">
               {tabs.map(({ id, label, icon: Icon }) => (
                 <button
                   key={id}
                   onClick={() => setActiveTab(id)}
                   className={`flex items-center gap-1.5 flex-1 py-1.5 px-3 rounded-md text-sm font-medium transition-all ${
                     activeTab === id
-                      ? "bg-blue-600 text-white shadow-sm"
-                      : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                      ? "bg-background text-foreground shadow-sm"
+                      : "text-muted-foreground hover:text-foreground"
                   }`}
                 >
                   <Icon className="h-3.5 w-3.5 shrink-0" />
@@ -252,7 +256,7 @@ const StudentProfile = () => {
 
             {/* ── Tab: Personal ── */}
             {activeTab === "personal" && (
-              <Card className="shadow-none">
+              <Card flat>
                 <CardHeader className="pb-3">
                   <CardTitle className="text-base flex items-center gap-2">
                     <span className="icon-wrap-blue p-1.5 rounded-md">
@@ -279,7 +283,7 @@ const StudentProfile = () => {
                           <div className="flex items-center px-2.5 bg-muted border-r border-input shrink-0">
                             <span className="text-xs font-semibold text-muted-foreground select-none">+591</span>
                           </div>
-                          <input
+                          <Input
                             type="tel"
                             value={editedInfo.phone}
                             onChange={(e) => {
@@ -288,7 +292,7 @@ const StudentProfile = () => {
                             }}
                             placeholder="7xxxxxxx"
                             maxLength={8}
-                            className="flex-1 px-2.5 text-sm bg-transparent outline-none text-foreground placeholder:text-muted-foreground"
+                            className="flex-1"
                           />
                         </div>
                       ) : (
@@ -358,7 +362,7 @@ const StudentProfile = () => {
                         Sobre mí
                       </p>
                       {isEditing ? (
-                        <textarea
+                        <Textarea
                           value={editedInfo.bio}
                           onChange={(e) =>
                             setEditedInfo((p) => ({ ...p, bio: e.target.value }))
@@ -366,7 +370,7 @@ const StudentProfile = () => {
                           placeholder="Cuéntanos un poco sobre ti..."
                           maxLength={300}
                           rows={3}
-                          className="w-full px-3 py-2 text-sm rounded-md border border-input bg-background text-foreground placeholder:text-muted-foreground outline-none focus:ring-2 focus:ring-ring focus:ring-offset-1 resize-none"
+                          className="w-full resize-none"
                         />
                       ) : (
                         <p className="text-sm text-foreground leading-relaxed">
@@ -394,7 +398,7 @@ const StudentProfile = () => {
 
             {/* ── Tab: Preferences ── */}
             {activeTab === "preferences" && (
-              <Card className="shadow-none">
+              <Card flat>
                 <CardHeader className="pb-3">
                   <CardTitle className="text-base flex items-center gap-2">
                     <span className="icon-wrap-purple p-1.5 rounded-md">
@@ -443,7 +447,7 @@ const StudentProfile = () => {
 
             {/* ── Tab: Security ── */}
             {activeTab === "security" && (
-              <Card className="shadow-none">
+              <Card flat>
                 <CardHeader className="pb-3">
                   <CardTitle className="text-base flex items-center gap-2">
                     <span className="icon-wrap-red p-1.5 rounded-md">
@@ -517,7 +521,7 @@ const StudentProfile = () => {
             )}
           </div>
         </div>
-      </div>
+      </Page>
 
       <ChangePasswordFlow
         isOpen={showChangePassword}

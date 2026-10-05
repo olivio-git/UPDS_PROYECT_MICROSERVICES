@@ -1,7 +1,9 @@
+import { FormPage, PageHeader } from '@/components/layout';
+import { Button } from '@/components/keel/button';
 import { AudioPlayer } from '@/components/audio';
 import QuestionRenderer from '@/modules/student/components/QuestionRenderer';
 import { examService } from '@/services/examService';
-import { ArrowLeft, BookOpen, Brain, CheckCircle, Clock, Edit, Eye, Hash, Image as ImageIcon, Lightbulb, Loader2, Mic, RefreshCw, Target, Users, Volume2, XCircle } from 'lucide-react';
+import { BookOpen, Brain, CheckCircle, Clock, Edit, Eye, Hash, Image as ImageIcon, Lightbulb, Loader2, Mic, RefreshCw, Target, Users, Volume2, XCircle } from 'lucide-react';
 import React, { useMemo, useState } from 'react';
 import { toast } from 'sonner';
 import type { Question } from '../types';
@@ -366,35 +368,24 @@ const QuestionDetailView: React.FC<QuestionDetailViewProps> = ({
   const result = showResult && !isAiType && !isAudioType ? checkAnswer() : null;
 
   return (
-    <div className="bg-card border border-border rounded-xl p-6">
-      {/* Header */}
-      <div className="flex items-center justify-between mb-6">
-        <div className="flex items-center gap-3">
-          <button
-            onClick={onBack}
-            className="flex items-center gap-1.5 h-8 px-3 text-xs rounded-lg border border-border text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors"
-          >
-            <ArrowLeft className="w-3.5 h-3.5" />
-            Volver
-          </button>
-          <h2 className="text-base font-semibold text-foreground">Detalles de la Pregunta</h2>
-        </div>
-        <button
-          onClick={onEdit}
-          className="flex items-center gap-1.5 h-8 px-3 text-xs rounded-lg bg-blue-600 hover:bg-blue-700 text-white transition-colors"
-        >
-          <Edit className="w-3.5 h-3.5" />
-          Editar
-        </button>
-      </div>
+    <FormPage title="Detalle de la pregunta" onBack={onBack}>
+      <PageHeader
+        title="Detalles de la Pregunta"
+        actions={
+          <Button size="sm" onClick={onEdit}>
+            <Edit />
+            Editar
+          </Button>
+        }
+      />
 
       {/* Tabs */}
-      <div className="flex gap-1 mb-6 bg-muted/60 border border-border rounded-lg p-1 w-fit">
+      <div className="flex w-fit gap-1 rounded-lg bg-muted p-1">
         <button
           onClick={() => setActiveTab('teacher')}
           className={`px-4 py-1.5 rounded-md text-sm font-medium transition-colors flex items-center gap-2 ${
             activeTab === 'teacher'
-              ? 'bg-blue-600 text-white shadow-sm'
+              ? 'bg-background text-foreground shadow-sm'
               : 'text-muted-foreground hover:text-foreground'
           }`}
         >
@@ -822,13 +813,13 @@ const QuestionDetailView: React.FC<QuestionDetailViewProps> = ({
                     : <><CheckCircle className="w-4 h-4" />Verificar Respuesta</>
               }
             </button>
-            <button
+            <Button
+              variant="outline"
               onClick={() => { setStudentAnswer(null); setShowResult(false); setAiResult(null); }}
-              className="px-4 py-2 rounded-lg text-sm text-muted-foreground hover:text-foreground border border-border hover:border-foreground/50 transition-colors flex items-center gap-2"
             >
               <XCircle className="w-4 h-4" />
               Limpiar
-            </button>
+            </Button>
             <button
               onClick={handleReShuffle}
               className="ml-auto flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
@@ -923,7 +914,7 @@ const QuestionDetailView: React.FC<QuestionDetailViewProps> = ({
           )}
         </div>
       )}
-    </div>
+    </FormPage>
   );
 };
 

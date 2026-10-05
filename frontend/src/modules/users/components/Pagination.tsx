@@ -101,7 +101,7 @@ const Pagination: React.FC<PaginationProps> = ({
           size="sm"
           onClick={() => onPageChange(1)}
           disabled={!canGoPrevious || isLoading}
-          className="w-8 p-0 border"
+          className="w-8 p-0"
           title="Primera página"
         >
           <ChevronsLeft className="h-4 w-4" />
@@ -113,7 +113,7 @@ const Pagination: React.FC<PaginationProps> = ({
           size="sm"
           onClick={() => onPageChange(currentPage - 1)}
           disabled={!canGoPrevious || isLoading}
-          className="w-8 p-0 border"
+          className="w-8 p-0"
           title="Página anterior"
         >
           <ChevronLeft className="h-4 w-4" />
@@ -161,7 +161,7 @@ const Pagination: React.FC<PaginationProps> = ({
           size="sm"
           onClick={() => onPageChange(currentPage + 1)}
           disabled={!canGoNext || isLoading}
-          className="w-8 p-0 border"
+          className="w-8 p-0"
           title="Página siguiente"
         >
           <ChevronRight className="h-4 w-4" />
@@ -173,7 +173,7 @@ const Pagination: React.FC<PaginationProps> = ({
           size="sm"
           onClick={() => onPageChange(totalPages)}
           disabled={!canGoNext || isLoading}
-          className="w-8 p-0 border"
+          className="w-8 p-0"
           title="Última página"
         >
           <ChevronsRight className="h-4 w-4" />

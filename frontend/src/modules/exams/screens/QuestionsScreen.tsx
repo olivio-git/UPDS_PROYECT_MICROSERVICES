@@ -1,3 +1,8 @@
+import { EmptyState } from '@/components/common/EmptyState';
+import { NativeSelect, NativeSelectOption } from '@/components/keel/native-select';
+import { Input } from '@/components/keel/input';
+import { Button } from '@/components/keel/button';
+import { FormPage } from '@/components/layout';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -344,44 +349,24 @@ const QuestionsScreen = () => {
 
     if (viewMode === 'create' || viewMode === 'edit') {
       return (
-        <div className="bg-card border border-border p-6">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-semibold text-foreground">
-              {viewMode === 'edit' ? 'Editar Pregunta' : 'Nueva Pregunta'}
-            </h2>
-            <button
-              onClick={handleBackToTable}
-              className="px-3 py-2 bg-muted/50 border border-border rounded-lg text-muted-foreground hover:bg-muted flex items-center gap-2 text-sm"
-            >
-              <X className="w-4 h-4" /> Volver
-            </button>
-          </div>
+        <FormPage title={viewMode === 'edit' ? 'Editar Pregunta' : 'Nueva Pregunta'} onBack={handleBackToTable}>
           <QuestionForm
             question={viewMode === 'edit' ? selectedQuestion : null}
             onCancel={handleBackToTable}
             onSaved={() => { handleBackToTable(); loadQuestions(); }}
           />
-        </div>
+        </FormPage>
       );
     }
 
     if (viewMode === 'import') {
       return (
-        <div className="bg-card border border-border p-6">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-semibold text-foreground">Importar preguntas</h2>
-            <button
-              onClick={handleBackToTable}
-              className="px-3 py-2 bg-muted/50 border border-border rounded-lg text-muted-foreground hover:bg-muted flex items-center gap-2 text-sm"
-            >
-              <X className="w-4 h-4" /> Volver
-            </button>
-          </div>
+        <FormPage title="Importar preguntas" onBack={handleBackToTable}>
           <ImportPanel
             onCancel={handleBackToTable}
             onImported={() => { handleBackToTable(); loadQuestions(); }}
           />
-        </div>
+        </FormPage>
       );
     }
 
@@ -398,18 +383,19 @@ const QuestionsScreen = () => {
             </p>
           </div>
           <div className="flex items-center gap-2">
-            <button
+            <Button
+              variant="outline"
+              size="sm"
               onClick={handleImport}
-              className="h-8 flex items-center gap-1.5 px-3 text-xs rounded-md border border-border bg-muted/60 hover:bg-muted text-foreground transition-colors"
             >
               <Upload className="w-3.5 h-3.5" /> Importar
-            </button>
-            <button
+            </Button>
+            <Button
+              size="sm"
               onClick={handleCreate}
-              className="h-8 flex items-center gap-1.5 px-3 text-xs rounded-md bg-blue-600 hover:bg-blue-700 text-white transition-colors"
             >
               <Plus className="w-3.5 h-3.5" /> Nueva Pregunta
-            </button>
+            </Button>
           </div>
         </div>
 
@@ -419,92 +405,89 @@ const QuestionsScreen = () => {
           {/* Search */}
           <div className="relative">
             <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3 w-3 text-muted-foreground pointer-events-none" />
-            <input
+            <Input
               type="text"
               placeholder="Buscar pregunta..."
               value={searchTerm}
               onChange={e => setSearchTerm(e.target.value)}
               onKeyDown={e => e.key === 'Enter' && handleApplyFilters()}
-              className="h-7 pl-6 pr-2 text-xs bg-muted/60 border border-border rounded text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring w-44"
+              className="w-44 h-7 pl-6 pr-2 text-xs"
             />
           </div>
 
           <div className="w-px h-5 bg-border shrink-0" />
 
           {/* Tipo */}
-          <select
+          <NativeSelect size="sm" className="text-xs w-auto"
             value={localFilters.type}
             onChange={e => setLocalFilters(p => ({ ...p, type: e.target.value }))}
-            className="h-7 text-xs bg-muted/60 border border-border rounded px-2 text-foreground focus:outline-none focus:ring-1 focus:ring-ring"
           >
-            <option value="all">Todos los tipos</option>
-            <option value="multiple_choice">Opción Múltiple</option>
-            <option value="true_false">Verdadero/Falso</option>
-            <option value="open_text">Texto Abierto</option>
-            <option value="essay">Ensayo</option>
-            <option value="fill_blanks">Completar Espacios</option>
-            <option value="drag_drop">Arrastrar y Soltar</option>
-            <option value="matching">Emparejar</option>
-            <option value="ordering">Ordenar</option>
-            <option value="audio_response">Respuesta de Audio</option>
-            <option value="speaking">Expresión Oral</option>
-            <option value="writing">Expresión Escrita</option>
-          </select>
+            <NativeSelectOption value="all">Todos los tipos</NativeSelectOption>
+            <NativeSelectOption value="multiple_choice">Opción Múltiple</NativeSelectOption>
+            <NativeSelectOption value="true_false">Verdadero/Falso</NativeSelectOption>
+            <NativeSelectOption value="open_text">Texto Abierto</NativeSelectOption>
+            <NativeSelectOption value="essay">Ensayo</NativeSelectOption>
+            <NativeSelectOption value="fill_blanks">Completar Espacios</NativeSelectOption>
+            <NativeSelectOption value="drag_drop">Arrastrar y Soltar</NativeSelectOption>
+            <NativeSelectOption value="matching">Emparejar</NativeSelectOption>
+            <NativeSelectOption value="ordering">Ordenar</NativeSelectOption>
+            <NativeSelectOption value="audio_response">Respuesta de Audio</NativeSelectOption>
+            <NativeSelectOption value="speaking">Expresión Oral</NativeSelectOption>
+            <NativeSelectOption value="writing">Expresión Escrita</NativeSelectOption>
+          </NativeSelect>
 
           {/* Competencia */}
-          <select
+          <NativeSelect size="sm" className="text-xs w-auto"
             value={localFilters.competency}
             onChange={e => setLocalFilters(p => ({ ...p, competency: e.target.value }))}
-            className="h-7 text-xs bg-muted/60 border border-border rounded px-2 text-foreground focus:outline-none focus:ring-1 focus:ring-ring"
           >
-            <option value="all">Todas las competencias</option>
-            <option value="reading">Comprensión Lectora</option>
-            <option value="writing">Expresión Escrita</option>
-            <option value="listening">Comprensión Auditiva</option>
-            <option value="speaking">Expresión Oral</option>
-          </select>
+            <NativeSelectOption value="all">Todas las competencias</NativeSelectOption>
+            <NativeSelectOption value="reading">Comprensión Lectora</NativeSelectOption>
+            <NativeSelectOption value="writing">Expresión Escrita</NativeSelectOption>
+            <NativeSelectOption value="listening">Comprensión Auditiva</NativeSelectOption>
+            <NativeSelectOption value="speaking">Expresión Oral</NativeSelectOption>
+          </NativeSelect>
 
           {/* Nivel */}
-          <select
+          <NativeSelect size="sm" className="text-xs w-auto"
             value={localFilters.level}
             onChange={e => setLocalFilters(p => ({ ...p, level: e.target.value }))}
-            className="h-7 text-xs bg-muted/60 border border-border rounded px-2 text-foreground focus:outline-none focus:ring-1 focus:ring-ring"
           >
-            <option value="all">Todos los niveles</option>
-            <option value="A1">A1</option>
-            <option value="A2">A2</option>
-            <option value="B1">B1</option>
-            <option value="B2">B2</option>
-            <option value="C1">C1</option>
-            <option value="C2">C2</option>
-          </select>
+            <NativeSelectOption value="all">Todos los niveles</NativeSelectOption>
+            <NativeSelectOption value="A1">A1</NativeSelectOption>
+            <NativeSelectOption value="A2">A2</NativeSelectOption>
+            <NativeSelectOption value="B1">B1</NativeSelectOption>
+            <NativeSelectOption value="B2">B2</NativeSelectOption>
+            <NativeSelectOption value="C1">C1</NativeSelectOption>
+            <NativeSelectOption value="C2">C2</NativeSelectOption>
+          </NativeSelect>
 
           {/* Dificultad */}
-          <select
+          <NativeSelect size="sm" className="text-xs w-auto"
             value={localFilters.difficulty.toString()}
             onChange={e => setLocalFilters(p => ({ ...p, difficulty: Number(e.target.value) }))}
-            className="h-7 text-xs bg-muted/60 border border-border rounded px-2 text-foreground focus:outline-none focus:ring-1 focus:ring-ring"
           >
-            <option value="0">Toda dificultad</option>
-            <option value="1">Muy Fácil</option>
-            <option value="2">Fácil</option>
-            <option value="3">Medio</option>
-            <option value="4">Difícil</option>
-            <option value="5">Muy Difícil</option>
-          </select>
+            <NativeSelectOption value="0">Toda dificultad</NativeSelectOption>
+            <NativeSelectOption value="1">Muy Fácil</NativeSelectOption>
+            <NativeSelectOption value="2">Fácil</NativeSelectOption>
+            <NativeSelectOption value="3">Medio</NativeSelectOption>
+            <NativeSelectOption value="4">Difícil</NativeSelectOption>
+            <NativeSelectOption value="5">Muy Difícil</NativeSelectOption>
+          </NativeSelect>
 
-          <button
+          <Button
+            size="sm"
             onClick={handleApplyFilters}
-            className="h-7 px-2.5 text-xs rounded bg-blue-600 hover:bg-blue-700 text-white transition-colors"
           >
             Aplicar
-          </button>
-          <button
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
             onClick={handleClearFilters}
-            className="h-7 px-2 text-xs rounded text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
           >
             Limpiar
-          </button>
+          </Button>
         </div>
 
         {/* Table */}
@@ -517,18 +500,16 @@ const QuestionsScreen = () => {
           ) : error ? (
             <div className="flex flex-1 min-h-0 flex-col items-center justify-center text-center">
               <p className="text-sm text-red-400 mb-4">{error}</p>
-              <button onClick={loadQuestions} className="px-3 py-1.5 text-xs bg-blue-600 text-white rounded-lg hover:bg-blue-700">
+              <Button size="sm" onClick={loadQuestions}>
                 Reintentar
-              </button>
+              </Button>
             </div>
           ) : questions.length === 0 ? (
-            <div className="flex flex-1 min-h-0 flex-col items-center justify-center text-center">
-              <ClipboardList className="w-10 h-10 text-muted-foreground/40 mx-auto mb-3" />
-              <p className="text-sm text-muted-foreground mb-4">No se encontraron preguntas</p>
-              <button onClick={handleCreate} className="px-3 py-1.5 text-xs bg-blue-600 text-white rounded-lg hover:bg-blue-700">
-                Crear primera pregunta
-              </button>
-            </div>
+            <EmptyState
+              icon={ClipboardList}
+              title="No se encontraron preguntas"
+              action={<Button size="sm" onClick={handleCreate}>Crear primera pregunta</Button>}
+            />
           ) : (
             <>
               <div className="flex-1 min-h-0">
@@ -550,13 +531,14 @@ const QuestionsScreen = () => {
                     {(currentPage - 1) * 10 + 1}–{Math.min(currentPage * 10, totalItems)} de {totalItems} preguntas
                   </span>
                   <div className="flex items-center gap-1">
-                    <button
+                    <Button
+                      variant="outline"
+                      size="icon-sm"
                       onClick={() => changePage(currentPage - 1)}
                       disabled={currentPage === 1}
-                      className="p-1.5 bg-muted/50 border border-border rounded hover:bg-muted disabled:opacity-40 disabled:cursor-not-allowed transition-all"
                     >
                       <ChevronLeft className="w-3.5 h-3.5 text-muted-foreground" />
-                    </button>
+                    </Button>
                     {(() => {
                       const maxVisible = 5;
                       const half = Math.floor(maxVisible / 2);
@@ -577,13 +559,14 @@ const QuestionsScreen = () => {
                         </button>
                       ));
                     })()}
-                    <button
+                    <Button
+                      variant="outline"
+                      size="icon-sm"
                       onClick={() => changePage(currentPage + 1)}
                       disabled={currentPage === totalPages}
-                      className="p-1.5 bg-muted/50 border border-border rounded hover:bg-muted disabled:opacity-40 disabled:cursor-not-allowed transition-all"
                     >
                       <ChevronRight className="w-3.5 h-3.5 text-muted-foreground" />
-                    </button>
+                    </Button>
                   </div>
                 </div>
               )}
@@ -601,26 +584,27 @@ const QuestionsScreen = () => {
             <div className="w-full max-w-2xl bg-card border border-border rounded-lg shadow-xl">
               <div className="flex items-center justify-between px-4 py-3 border-b border-border">
                 <h3 className="text-sm font-semibold text-foreground">Pregunta completa</h3>
-                <button onClick={() => setPreviewOpen(false)} className="p-1.5 rounded hover:bg-muted" aria-label="Cerrar">
+                <Button variant="ghost" size="icon-sm" onClick={() => setPreviewOpen(false)} aria-label="Cerrar">
                   <X className="w-4 h-4 text-muted-foreground" />
-                </button>
+                </Button>
               </div>
               <div className="p-4 max-h-[70vh] overflow-y-auto">
                 <p className="whitespace-pre-wrap text-sm text-foreground">{previewContent}</p>
               </div>
               <div className="flex items-center justify-end gap-2 px-4 py-3 border-t border-border">
-                <button
+                <Button
+                  variant="outline"
+                  size="sm"
                   onClick={() => { navigator.clipboard?.writeText(previewContent).catch(() => {}); toast.success('Copiado al portapapeles'); }}
-                  className="px-3 py-1.5 text-xs bg-muted/50 border border-border rounded-lg text-muted-foreground hover:bg-muted"
                 >
                   Copiar
-                </button>
-                <button
+                </Button>
+                <Button
+                  size="sm"
                   onClick={() => setPreviewOpen(false)}
-                  className="px-3 py-1.5 text-xs bg-blue-600 text-white rounded-lg hover:bg-blue-700"
                 >
                   Cerrar
-                </button>
+                </Button>
               </div>
             </div>
           </div>

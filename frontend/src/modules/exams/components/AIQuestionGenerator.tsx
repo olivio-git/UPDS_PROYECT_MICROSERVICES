@@ -1,3 +1,6 @@
+import { Textarea } from '@/components/keel/textarea';
+import { Label } from '@/components/keel/label';
+import { Button } from '@/components/keel/button';
 import {
   Check,
   ChevronDown,
@@ -636,13 +639,14 @@ const AIQuestionGenerator: React.FC<AIQuestionGeneratorProps> = ({
             <p className="text-xs text-muted-foreground mt-0.5">Basado en los parámetros actuales</p>
           </div>
         </div>
-        <button
+        <Button
+          variant="ghost"
+          size="icon-sm"
           type="button"
           onClick={handleClose}
-          className="p-1.5 rounded-md hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
         >
           <X className="w-4 h-4" />
-        </button>
+        </Button>
       </div>
 
       {/* Scrollable body */}
@@ -678,9 +682,9 @@ const AIQuestionGenerator: React.FC<AIQuestionGeneratorProps> = ({
             {/* Quantity selector */}
             <div className="space-y-2">
               <div className="flex items-center justify-between">
-                <label className="text-sm font-medium text-foreground/80">
+                <Label>
                   Cantidad
-                </label>
+                </Label>
                 <div className="flex items-baseline gap-1">
                   <span className="text-lg font-bold text-foreground leading-none">{quantity}</span>
                   <span className="text-xs text-muted-foreground">
@@ -705,7 +709,7 @@ const AIQuestionGenerator: React.FC<AIQuestionGeneratorProps> = ({
             {/* ── Listening: audio upload zone ── */}
             {isListening ? (
               <div>
-                <label className="text-sm font-medium text-foreground/80 mb-2 block">
+                <label className={`flex flex-col items-center justify-center w-full h-24 border-2 border-dashed rounded-lg cursor-pointer transition-colors ${isGenerating ? 'border-border opacity-50 cursor-not-allowed' : 'border-border hover:border-purple-500/60 hover:bg-purple-50 dark:hover:bg-purple-900/10'}`}>
                   Audio de referencia{' '}
                   <span className="text-muted-foreground font-normal">(la IA generará la pregunta desde la transcripción)</span>
                 </label>
@@ -767,9 +771,11 @@ const AIQuestionGenerator: React.FC<AIQuestionGeneratorProps> = ({
                     {/* Transcript block */}
                     {audioTranscript && !isTranscribing && !isFormatting && (
                       <div className="bg-popover border border-border rounded-lg overflow-hidden">
-                        <button
+                        <Button
+                          variant="ghost"
+                          size="sm"
                           onClick={() => setShowTranscript(!showTranscript)}
-                          className="w-full flex items-center justify-between px-3 py-2 text-xs text-muted-foreground hover:bg-muted/50 transition-colors"
+                          className="w-full justify-between"
                         >
                           <span className="flex items-center gap-1.5">
                             <Check className="w-3 h-3 text-green-600 dark:text-green-400" />
@@ -790,14 +796,14 @@ const AIQuestionGenerator: React.FC<AIQuestionGeneratorProps> = ({
                             ? <ChevronUp className="w-3 h-3" />
                             : <ChevronDown className="w-3 h-3" />
                           }
-                        </button>
+                        </Button>
                         {showTranscript && (
                           <div className="px-3 pb-3 space-y-1.5">
-                            <textarea
+                            <Textarea
                               ref={transcriptRef}
                               value={audioTranscript}
                               onChange={(e) => setAudioTranscript(e.target.value)}
-                              className="w-full px-3 py-2 text-sm bg-muted/50 border border-border rounded-lg text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring resize-y overflow-y-auto transition-[height] duration-150 font-mono"
+                              className="w-full resize-y font-mono"
                               style={{ minHeight: '72px' }}
                               disabled={isGenerating}
                             />
@@ -812,15 +818,16 @@ const AIQuestionGenerator: React.FC<AIQuestionGeneratorProps> = ({
 
                     {/* Re-transcribe / Transcribe button */}
                     {!isTranscribing && (
-                      <button
+                      <Button
+                        variant="outline"
+                        size="sm"
                         type="button"
                         onClick={() => handleTranscribe(audioFile)}
                         disabled={isGenerating}
-                        className="flex items-center gap-1.5 h-8 px-3 text-xs rounded-lg border border-border text-foreground hover:bg-muted/60 transition-colors disabled:opacity-50"
                       >
                         <RefreshCw className="w-3 h-3" />
                         {audioTranscript ? 'Re-transcribir' : 'Transcribir'}
-                      </button>
+                      </Button>
                     )}
                   </div>
                 )}
@@ -834,14 +841,14 @@ const AIQuestionGenerator: React.FC<AIQuestionGeneratorProps> = ({
             ) : (
               /* ── Non-listening: thematic context textarea ── */
               <div>
-                <label className="text-sm font-medium text-foreground/80 mb-2 block">
+                <Label className="mb-2">
                   Contexto Temático <span className="text-muted-foreground font-normal">(Opcional)</span>
-                </label>
-                <textarea
+                </Label>
+                <Textarea
                   value={thematicContext}
                   onChange={(e) => setThematicContext(e.target.value)}
                   placeholder="Ej: 'Una familia planeando sus vacaciones de verano', 'El cambio climático', 'La vida universitaria'..."
-                  className="w-full px-3 py-2 text-sm bg-muted/50 border border-border rounded-lg text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring resize-y"
+                  className="w-full resize-y"
                   style={{ minHeight: '70px' }}
                   disabled={isGenerating}
                 />
@@ -957,43 +964,45 @@ const AIQuestionGenerator: React.FC<AIQuestionGeneratorProps> = ({
             </div>
 
             <div className="flex flex-col sm:flex-row justify-between gap-3 pt-2 border-t border-border">
-              <button
+              <Button
+                variant="outline"
+                size="sm"
                 type="button"
                 onClick={() => { setGeneratedQuestion(null); setStep('config'); }}
                 disabled={isGenerating || isSaving}
-                className="flex items-center gap-1.5 h-8 px-3 text-xs rounded-lg border border-border text-foreground hover:bg-muted/60 transition-colors disabled:opacity-50"
               >
                 <RefreshCw className="w-4 h-4" />
                 Regenerar
-              </button>
+              </Button>
               <div className="flex flex-col sm:flex-row gap-2">
-                <button
+                <Button
+                  variant="outline"
+                  size="sm"
                   type="button"
                   onClick={handleClose}
-                  className="flex items-center gap-1.5 h-8 px-3 text-xs rounded-lg border border-border text-foreground hover:bg-muted/60 transition-colors disabled:opacity-50"
                 >
                   <X className="w-4 h-4" />
                   Cancelar
-                </button>
+                </Button>
                 {!savedId && (
-                  <button
+                  <Button
+                    size="sm"
                     type="button"
                     onClick={handleSaveSingle}
                     disabled={isSaving}
-                    className="flex items-center gap-1.5 h-8 px-3 text-xs rounded-lg bg-blue-600 hover:bg-blue-700 text-white transition-colors disabled:opacity-50"
                   >
                     {isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
                     Guardar en BD
-                  </button>
+                  </Button>
                 )}
-                <button
+                <Button
+                  size="sm"
                   type="button"
                   onClick={handleAcceptSingle}
-                  className="flex items-center gap-1.5 h-8 px-3 text-xs rounded-lg bg-green-600 hover:bg-green-700 text-white transition-colors"
                 >
                   <Check className="w-4 h-4" />
                   Aplicar al Formulario
-                </button>
+                </Button>
               </div>
             </div>
           </div>
@@ -1023,14 +1032,15 @@ const AIQuestionGenerator: React.FC<AIQuestionGeneratorProps> = ({
                   · {acceptedCount} aceptadas
                 </span>
               </h3>
-              <button
+              <Button
+                variant="outline"
+                size="sm"
                 type="button"
                 onClick={() => { setBulkResults([]); setStep('config'); }}
-                className="flex items-center gap-1.5 h-8 px-3 text-xs rounded-lg border border-border text-foreground hover:bg-muted/60 transition-colors disabled:opacity-50"
               >
                 <RefreshCw className="w-3 h-3" />
                 Regenerar lote
-              </button>
+              </Button>
             </div>
 
             <div className="space-y-2 max-h-64 overflow-y-auto pr-1">
@@ -1098,9 +1108,10 @@ const AIQuestionGenerator: React.FC<AIQuestionGeneratorProps> = ({
                       <QuestionPreviewCard question={result.question} compact />
                       {!result.savedId && (
                         <div className="mt-3 flex justify-end">
-                          <button
+                          <Button
+                            variant="outline"
+                            size="sm"
                             type="button"
-                            className="flex items-center gap-1.5 h-8 px-3 text-xs rounded-lg border border-purple-300 dark:border-purple-600/50 text-purple-700 dark:text-purple-300 hover:bg-purple-50 dark:hover:bg-purple-900/30 transition-colors"
                             onClick={() => {
                               onQuestionGenerated(
                                 toFormQuestion(result.question, isListening ? audioBlobUrl : undefined),
@@ -1111,7 +1122,7 @@ const AIQuestionGenerator: React.FC<AIQuestionGeneratorProps> = ({
                             }}
                           >
                             Aplicar al formulario
-                          </button>
+                          </Button>
                         </div>
                       )}
                     </div>
@@ -1143,11 +1154,12 @@ const AIQuestionGenerator: React.FC<AIQuestionGeneratorProps> = ({
                 </button>
               </div>
               <div className="flex flex-col gap-2">
-                <button
+                <Button
+                  size="sm"
                   type="button"
                   onClick={handleBulkSave}
                   disabled={isBulkSaving || unsavedAccepted === 0}
-                  className="w-full flex items-center justify-center gap-1.5 h-8 px-3 text-xs rounded-lg bg-blue-600 hover:bg-blue-700 text-white transition-colors disabled:opacity-50"
+                  className="w-full"
                 >
                   {isBulkSaving ? (
                     <Loader2 className="w-4 h-4 animate-spin" />
@@ -1155,15 +1167,17 @@ const AIQuestionGenerator: React.FC<AIQuestionGeneratorProps> = ({
                     <Save className="w-4 h-4" />
                   )}
                   Guardar {unsavedAccepted > 0 ? `${unsavedAccepted} seleccionadas` : 'seleccionadas'}
-                </button>
-                <button
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
                   type="button"
                   onClick={handleClose}
-                  className="w-full flex items-center justify-center gap-1.5 h-8 px-3 text-xs rounded-lg border border-border text-foreground hover:bg-muted/60 transition-colors"
+                  className="w-full"
                 >
                   <X className="w-4 h-4" />
                   Cerrar
-                </button>
+                </Button>
               </div>
             </div>
           </div>
