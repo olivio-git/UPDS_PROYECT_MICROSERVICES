@@ -3,13 +3,17 @@ import { Textarea } from '@/components/keel/textarea';
 import { NativeSelect, NativeSelectOption } from '@/components/keel/native-select';
 import { Label } from '@/components/keel/label';
 import { Input } from '@/components/keel/input';
-import { ChevronLeft, ChevronRight, Image as ImageIcon, Mic, Plus, Save, Sparkles, Trash2, Volume2, X } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Check, Eye, Image as ImageIcon, Mic, RotateCcw, Save, Sparkles, Volume2, X } from 'lucide-react';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { toast } from 'sonner';
 
 // Importar los nuevos componentes de audio elegantes
 import { AudioPlayer, AudioRecorder } from '@/components/audio';
 import AIQuestionGenerator from './AIQuestionGenerator';
+import { ChoiceEditor, TrueFalseEditor } from '@/components/questions/editors/ChoiceEditor';
+import { FillBlanksEditor } from '@/components/questions/editors/FillBlanksEditor';
+import { PairsEditor, SequenceEditor } from '@/components/questions/editors/ItemsEditor';
+import QuestionRenderer from '@/modules/student/components/QuestionRenderer';
 
 import { useLevels } from '../hooks/useLevels';
 import { useQuestions } from '../hooks/useQuestions';
@@ -18,7 +22,6 @@ import type {
   Competency,
   Level,
   Question,
-  QuestionOption,
   QuestionType,
 } from '../types';
 import type { Rubric } from '../types/rubrics.types';
@@ -51,6 +54,23 @@ const TYPE_LABELS: Record<QuestionType, string> = {
   file_upload:     'Subir Archivo',
   speaking:        'Expresión Oral',
   writing:         'Expresión Escrita',
+};
+
+const ANSWER_HINT: Record<string, string> = {
+  multiple_choice: 'Marca la correcta',
+  true_false: 'Marca la correcta',
+  fill_blanks: 'Selecciona una palabra y pulsa Espacio',
+  matching: 'Cada fila, con su pareja',
+  ordering: 'En el orden correcto',
+  drag_drop: 'En el orden correcto',
+};
+
+/** Older questions stored fill-blank answers as "in, outside"; turn that into per-blank answers. */
+const legacyBlanks = (content?: Question['content']) => {
+  if (content?.blanks?.length) return content.blanks;
+  const raw = content?.correctAnswer;
+  const list = Array.isArray(raw) ? raw : typeof raw === 'string' && raw.trim() ? raw.split(',') : [];
+  return list.map((answer, position) => ({ position, correctAnswers: [String(answer).trim()].filter(Boolean), caseSensitive: false }));
 };
 
 interface Props {
@@ -90,7 +110,7 @@ const QuestionForm: React.FC<Props> = ({ question, onCancel, onSaved }) => {
           mediaUrl: question.content?.mediaUrl || undefined,
           mediaType: question.content?.mediaType || 'audio',
           template: question.content?.template || '',
-          blanks: question.content?.blanks || [],
+          blanks: legacyBlanks(question.content),
           items: question.content?.items || [],
           promptAudioUrl: question.content?.promptAudioUrl || '',
           expectedResponseType:
@@ -152,7 +172,7 @@ const QuestionForm: React.FC<Props> = ({ question, onCancel, onSaved }) => {
   );
   const [audioFile, setAudioFile] = useState<File | null>(null);
   const [imageFile, setImageFile] = useState<File | null>(null);
-  const [newOption, setNewOption] = useState('');
+  const [previewAnswer, setPreviewAnswer] = useState<unknown>(undefined);
   const [tagInput, setTagInput] = useState('');
   // Estado para archivos multimedia de elementos individuales
   const [itemMediaFiles, setItemMediaFiles] = useState<{
@@ -225,16 +245,22 @@ const QuestionForm: React.FC<Props> = ({ question, onCancel, onSaved }) => {
   }, [rubrics, formData.competency, formData.level]);
 
   // Determinar qué componentes mostrar basado en el tipo de pregunta
-  const needsOptions =
-    formData.type &&
-    ['multiple_choice', 'true_false'].includes(formData.type as string);
+  const hasAnswerEditor = Boolean(formData.type && formData.type in ANSWER_HINT);
+
+  const patchContent = (patch: Partial<Question['content']>) =>
+    setFormData((p: Partial<Question>) => ({ ...p, content: { ...p.content!, ...patch } }));
+
+  // The live preview never shows local blob: media (the renderer flags those as unsaved).
+  const previewQuestion = useMemo(() => {
+    const content = { ...formData.content } as Question['content'];
+    if (content?.mediaUrl?.startsWith('blob:')) delete content.mediaUrl;
+    return { ...formData, _id: 'preview', content };
+  }, [formData]);
+
   const canHaveMedia = true; // Cualquier pregunta puede tener multimedia
   const needsAudioInput = formData.type === 'audio_response';
   const isListeningQuestion = formData.competency === 'listening';
   const needsFillBlanks = formData.type === 'fill_blanks';
-  const needsItems =
-    formData.type &&
-    ['drag_drop', 'matching', 'ordering'].includes(formData.type as string);
   const showMultimedia =
     canHaveMedia &&
     (isListeningQuestion || needsAudioInput || formData.content?.mediaUrl);
@@ -255,50 +281,6 @@ const QuestionForm: React.FC<Props> = ({ question, onCancel, onSaved }) => {
       }
     }
     return false;
-  };
-
-  const addOption = () => {
-    if (!newOption.trim()) return;
-    const option: QuestionOption = {
-      id: Date.now().toString(),
-      text: newOption,
-      isCorrect: false,
-    };
-    setFormData((prev: Partial<Question>) => ({
-      ...prev,
-      content: {
-        ...prev.content!,
-        options: [...(prev.content?.options || []), option],
-      },
-    }));
-    setNewOption('');
-  };
-
-  const removeOption = (id: string) => {
-    setFormData((prev: Partial<Question>) => ({
-      ...prev,
-      content: {
-        ...prev.content!,
-        options:
-          prev.content?.options?.filter((o: QuestionOption) => o.id !== id) ||
-          [],
-      },
-    }));
-  };
-
-  const setCorrectOption = (id: string) => {
-    setFormData((prev: Partial<Question>) => ({
-      ...prev,
-      content: {
-        ...prev.content!,
-        options:
-          prev.content?.options?.map((o: QuestionOption) => ({
-            ...o,
-            isCorrect: o.id === id,
-          })) || [],
-        correctAnswer: id,
-      },
-    }));
   };
 
   const addTag = () => {
@@ -341,22 +323,16 @@ const QuestionForm: React.FC<Props> = ({ question, onCancel, onSaved }) => {
       throw new Error('La pregunta es requerida');
     }
 
-    if (
-      data.type === 'multiple_choice' &&
-      (!data.content?.options || data.content.options.length < 2)
-    ) {
-      throw new Error(
-        'Las preguntas de opción múltiple necesitan al menos 2 opciones'
-      );
+    const options = data.content?.options || [];
+    if (data.type === 'multiple_choice') {
+      if (options.filter((o) => o.text?.trim()).length < 2) throw new Error('Agrega al menos 2 opciones');
+      if (options.some((o) => !o.text?.trim())) throw new Error('Hay opciones vacías');
+      if (!options.some((o) => o.isCorrect)) throw new Error('Marca la opción correcta');
     }
 
-    if (
-      data.type === 'true_false' &&
-      (!data.content?.options || data.content.options.length !== 2)
-    ) {
-      throw new Error(
-        'Las preguntas verdadero/falso necesitan exactamente 2 opciones'
-      );
+    if (data.type === 'true_false') {
+      const isTF = options.length === 2 && options.every((o) => ['true', 'false'].includes(String(o.id).toLowerCase()) || ['verdadero', 'falso', 'true', 'false'].includes(o.text?.toLowerCase()));
+      if (!isTF || !options.some((o) => o.isCorrect)) throw new Error('Marca si la afirmación es verdadera o falsa');
     }
 
     if (data.competency === 'listening') {
@@ -376,40 +352,26 @@ const QuestionForm: React.FC<Props> = ({ question, onCancel, onSaved }) => {
       }
     }
 
-    if (
-      data.type === 'fill_blanks' &&
-      !data.content?.template?.includes('___')
-    ) {
-      throw new Error(
-        'Las preguntas de completar espacios necesitan al menos un espacio marcado con ___'
-      );
+    const items = data.content?.items || [];
+    if (data.type === 'fill_blanks') {
+      const count = (data.content?.template || '').split('___').length - 1;
+      if (count === 0) throw new Error('Agrega al menos un espacio a la oración');
+      const blanks = data.content?.blanks || [];
+      const missing = Array.from({ length: count }, (_, i) => i).filter((i) => !blanks[i]?.correctAnswers?.length);
+      if (missing.length) throw new Error(`Falta la respuesta del espacio ${missing.map((i) => i + 1).join(', ')}`);
     }
 
-    if (
-      data.type === 'matching' &&
-      (!data.content?.items || data.content.items.length < 2)
-    ) {
-      throw new Error(
-        'Las preguntas de emparejar necesitan al menos 2 elementos'
-      );
+    if (data.type === 'matching') {
+      if (items.length < 2) throw new Error('Agrega al menos 2 parejas');
+      if (items.some((it) => !it.content?.trim() || !it.matchingPair?.trim())) throw new Error('Completa ambos lados de cada pareja');
+      const rights = items.map((it) => it.matchingPair!.trim().toLowerCase());
+      if (new Set(rights).size !== rights.length) throw new Error('Dos filas tienen la misma pareja');
     }
 
-    if (
-      data.type === 'ordering' &&
-      (!data.content?.items || data.content.items.length < 3)
-    ) {
-      throw new Error(
-        'Las preguntas de ordenar necesitan al menos 3 elementos'
-      );
-    }
-
-    if (
-      data.type === 'drag_drop' &&
-      (!data.content?.items || data.content.items.length < 2)
-    ) {
-      throw new Error(
-        'Las preguntas de arrastrar y soltar necesitan al menos 2 elementos'
-      );
+    if (data.type === 'ordering' || data.type === 'drag_drop') {
+      const min = data.type === 'ordering' ? 3 : 2;
+      if (items.length < min) throw new Error(`Agrega al menos ${min} elementos`);
+      if (items.some((it) => !it.content?.trim())) throw new Error('Hay elementos vacíos');
     }
 
     if (data.type === 'audio_response' && !data.content?.expectedResponseType) {
@@ -551,7 +513,16 @@ const QuestionForm: React.FC<Props> = ({ question, onCancel, onSaved }) => {
             ) : (
               <NativeSelect
                 value={formData.type as string}
-                onChange={e => setFormData((p: Partial<Question>) => ({ ...p, type: e.target.value as QuestionType }))}
+                onChange={e => {
+                  const type = e.target.value as QuestionType;
+                  // Answer keys don't carry over between types (matching pairs are not ordering steps).
+                  setFormData((p: Partial<Question>) => ({
+                    ...p,
+                    type,
+                    content: { ...p.content!, options: [], items: [], blanks: [], correctAnswer: '' },
+                  }));
+                  setPreviewAnswer(undefined);
+                }}
                 className="w-full"
               >
                 {availableTypes.map(type => (
@@ -787,264 +758,45 @@ const QuestionForm: React.FC<Props> = ({ question, onCancel, onSaved }) => {
           )}
         </div>
 
-        {/* Opciones */}
-        {needsOptions && (
-          <div className="space-y-2">
-            <Label>Opciones</Label>
-            <div className="flex gap-2">
-              <Input
-                value={newOption}
-                onChange={e => setNewOption(e.target.value)}
-                onKeyDown={e => {
-                  if (e.key === 'Enter') {
-                    e.preventDefault();
-                    addOption();
-                  }
-                }}
-                placeholder="Escribe una opción..."
-                className="w-full flex-1"
-              />
-              <Button
-                variant="outline"
-                type="button"
-                onClick={addOption}
-              >
-                <Plus className="w-4 h-4" />
-                Agregar
-              </Button>
-            </div>
-
-            <div className="space-y-2">
-              {formData.content?.options?.map((opt: QuestionOption) => (
-                <div
-                  key={opt.id}
-                  className="flex items-center gap-2 p-2 bg-muted/40 border border-border rounded-lg"
-                >
-                  <input
-                    type="radio"
-                    name="correctOption"
-                    checked={!!opt.isCorrect}
-                    onChange={() => setCorrectOption(opt.id)}
-                    className="w-4 h-4"
-                  />
-                  <span className="flex-1 text-foreground/90">{opt.text}</span>
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    type="button"
-                    onClick={() => removeOption(opt.id)}
-                    title="Eliminar opción"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </Button>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Fill Blanks */}
-        {needsFillBlanks && (
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <Label>Plantilla con espacios en blanco</Label>
-              <p className="text-sm text-muted-foreground">
-                Usa <code className="bg-muted px-1 rounded">___</code> para
-                marcar los espacios en blanco
-              </p>
-              <Textarea
-                rows={3}
-                value={formData.content?.template || ''}
-                onChange={e =>
-                  setFormData((p: Partial<Question>) => ({
-                    ...p,
-                    content: { ...p.content!, template: e.target.value },
-                  }))
-                }
-                placeholder="Ejemplo: The cat is ___ the house and the dog is ___ the garden."
-                className="w-full resize-y"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label>Respuestas correctas (opcional)</Label>
-              <p className="text-sm text-muted-foreground">
-                Define respuestas específicas para cada espacio. Si no se
-                definen, se evaluará como texto libre.
-              </p>
-              <Input
-                value={
-                  typeof formData.content?.correctAnswer === 'string'
-                    ? formData.content.correctAnswer
-                    : (formData.content?.correctAnswer || []).join(', ')
-                }
-                onChange={e =>
-                  setFormData((p: Partial<Question>) => ({
-                    ...p,
-                    content: {
-                      ...p.content!,
-                      correctAnswer: e.target.value,
-                    },
-                  }))
-                }
-                placeholder="in, outside (separadas por comas)"
-                className="w-full"
-              />
-            </div>
-          </div>
-        )}
-
-        {/* Items para drag_drop, matching, ordering */}
-        {needsItems && (
-          <div className="space-y-4">
-            <Label>
-              {formData.type === 'drag_drop' &&
-                'Elementos para arrastrar y soltar'}
-              {formData.type === 'matching' && 'Elementos para emparejar'}
-              {formData.type === 'ordering' && 'Elementos para ordenar'}
-            </Label>
-
-            <div className="space-y-3">
-              {formData.content?.items?.map((item, index) => (
-                <div
-                  key={item.id}
-                  className="flex flex-col gap-3 p-4 bg-muted/40 border border-border rounded-lg"
-                >
-                  {/* Encabezado del elemento */}
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm text-foreground/80 font-medium">
-                      Elemento {index + 1}
-                    </span>
-                    <Button
-                      variant="outline"
-                      size="icon"
-                      type="button"
-                      onClick={() => {
-                        const newItems =
-                          formData.content?.items?.filter(
-                            (_, i) => i !== index
-                          ) || [];
-                        setFormData((p: Partial<Question>) => ({
-                          ...p,
-                          content: { ...p.content!, items: newItems },
-                        }));
-                      }}
-                      title="Eliminar elemento"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
-                  </div>
-
-                  {/* Contenido principal */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                    <div className="space-y-2">
-                      <Label>
-                        {formData.type === 'matching' ? 'Elemento A' : 'Contenido'}
-                      </Label>
-                      <Input
-                        value={item.content}
-                        onChange={e => {
-                          const newItems = [...(formData.content?.items || [])];
-                          newItems[index] = { ...item, content: e.target.value };
-                          setFormData((p: Partial<Question>) => ({
-                            ...p,
-                            content: { ...p.content!, items: newItems },
-                          }));
-                        }}
-                        placeholder="Contenido del elemento"
-                        className="w-full"
-                      />
-                    </div>
-
-                    {formData.type === 'matching' && (
-                      <div className="space-y-2">
-                        <Label>Elemento B (pareja)</Label>
-                        <Input
-                          value={item.matchingPair || ''}
-                          onChange={e => {
-                            const newItems = [...(formData.content?.items || [])];
-                            newItems[index] = {
-                              ...item,
-                              matchingPair: e.target.value,
-                            };
-                            setFormData((p: Partial<Question>) => ({
-                              ...p,
-                              content: { ...p.content!, items: newItems },
-                            }));
-                          }}
-                          placeholder="Pareja correspondiente"
-                          className="w-full"
-                        />
-                      </div>
-                    )}
-
-                    {formData.type === 'ordering' && (
-                      <div className="space-y-2">
-                        <Label>Posición correcta</Label>
-                        <Input
-                          type="number"
-                          value={item.correctPosition || ''}
-                          onChange={e => {
-                            const newItems = [...(formData.content?.items || [])];
-                            newItems[index] = {
-                              ...item,
-                              correctPosition: Number(e.target.value),
-                            };
-                            setFormData((p: Partial<Question>) => ({
-                              ...p,
-                              content: { ...p.content!, items: newItems },
-                            }));
-                          }}
-                          placeholder="Posición correcta"
-                          className="w-full"
-                          min={1}
-                        />
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Multimedia para el elemento — próximamente */}
-                  <div className="pt-3 border-t border-border opacity-50 pointer-events-none select-none">
-                    <div className="flex items-center gap-2">
-                      <Volume2 className="w-3.5 h-3.5 text-muted-foreground" />
-                      <span className="text-xs text-muted-foreground">Multimedia por elemento — próximamente</span>
-                    </div>
-                  </div>
-                </div>
-              ))}
-
-              <Button
-                variant="outline"
-                type="button"
-                onClick={() => {
-                  const newItem = {
-                    id: Date.now().toString(),
-                    content: '',
-                    correctPosition:
-                      formData.type === 'ordering'
-                        ? (formData.content?.items?.length || 0) + 1
-                        : undefined,
-                    matchingPair:
-                      formData.type === 'matching' ? '' : undefined,
-                    mediaUrl: undefined,
-                  };
-                  setFormData((p: Partial<Question>) => ({
-                    ...p,
-                    content: {
-                      ...p.content!,
-                      items: [...(p.content?.items || []), newItem],
-                    },
-                  }));
-                }}
-                className="w-full"
-              >
-                <Plus className="w-4 h-4" />
-                Agregar elemento
-              </Button>
-            </div>
-          </div>
-        )}
       </div>
+
+      {/* Respuesta: editor específico por tipo */}
+      {hasAnswerEditor && (
+        <div className="flex flex-col gap-4 rounded-xl border border-border bg-card p-4">
+          <div className="flex items-baseline justify-between gap-3">
+            <h3 className="text-base font-medium text-foreground">Respuesta</h3>
+            <span className="text-xs text-muted-foreground">{ANSWER_HINT[formData.type as string]}</span>
+          </div>
+
+          {formData.type === 'multiple_choice' && (
+            <ChoiceEditor options={formData.content?.options || []} onChange={(options) => patchContent({ options })} />
+          )}
+
+          {formData.type === 'true_false' && (
+            <TrueFalseEditor options={formData.content?.options || []} onChange={(options) => patchContent({ options })} />
+          )}
+
+          {needsFillBlanks && (
+            <FillBlanksEditor
+              template={formData.content?.template || ''}
+              blanks={formData.content?.blanks || []}
+              onChange={(next) => patchContent(next)}
+            />
+          )}
+
+          {formData.type === 'matching' && (
+            <PairsEditor items={formData.content?.items || []} onChange={(items) => patchContent({ items })} />
+          )}
+
+          {(formData.type === 'ordering' || formData.type === 'drag_drop') && (
+            <SequenceEditor
+              items={formData.content?.items || []}
+              onChange={(items) => patchContent({ items })}
+              splitSentence={formData.type === 'drag_drop'}
+            />
+          )}
+        </div>
+      )}
 
       {/* Multimedia mejorado */}
       {showMultimedia && (
@@ -1083,7 +835,7 @@ const QuestionForm: React.FC<Props> = ({ question, onCancel, onSaved }) => {
                         <div className="text-sm text-muted-foreground mb-3">Audio actual:</div>
                         {formData.content.mediaUrl.startsWith('blob:') ? (
                           <div className="text-sm text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700/50 rounded-lg p-3 flex items-start gap-2">
-                            <span className="text-lg leading-none">🎵</span>
+                            <Volume2 className="mt-0.5 size-4 shrink-0" />
                             <div>
                               <p className="font-medium">Archivo de audio listo para guardar</p>
                               <p className="text-xs text-amber-700 dark:text-amber-300 mt-0.5">
@@ -1122,7 +874,8 @@ const QuestionForm: React.FC<Props> = ({ question, onCancel, onSaved }) => {
                     </label>
                     {audioFile && (
                       <span className="text-sm text-green-600 dark:text-green-400 flex items-center gap-1">
-                        ✓ {audioFile.name}
+                        <Check className="size-3.5" />
+                        {audioFile.name}
                       </span>
                     )}
                   </div>
@@ -1280,7 +1033,8 @@ const QuestionForm: React.FC<Props> = ({ question, onCancel, onSaved }) => {
               </label>
               {imageFile && (
                 <span className="text-sm text-green-600 dark:text-green-400 flex items-center gap-1">
-                  ✓ {imageFile.name}
+                  <Check className="size-3.5" />
+                  {imageFile.name}
                 </span>
               )}
             </div>
@@ -1373,6 +1127,28 @@ const QuestionForm: React.FC<Props> = ({ question, onCancel, onSaved }) => {
               ))}
             </div>
           )}
+        </div>
+      </div>
+
+      {/* Vista del estudiante, en vivo */}
+      <div className="flex flex-col gap-4 rounded-xl border border-border bg-card p-4">
+        <div className="flex items-center justify-between gap-3">
+          <h3 className="flex items-center gap-2 text-base font-medium text-foreground">
+            <Eye className="size-4 text-muted-foreground" />
+            Vista del estudiante
+          </h3>
+          <Button type="button" variant="ghost" size="sm" onClick={() => setPreviewAnswer(undefined)} disabled={previewAnswer === undefined}>
+            <RotateCcw />
+            Reiniciar
+          </Button>
+        </div>
+        <div className="rounded-xl border border-dashed border-border bg-background/60 p-4 md:p-6">
+          <QuestionRenderer
+            key={formData.type}
+            question={previewQuestion}
+            answer={previewAnswer}
+            onChange={(_, value) => setPreviewAnswer(value)}
+          />
         </div>
       </div>
 

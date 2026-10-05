@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@plugin "tailwindcss-animate";
 
 /* Tailwind v4: habilita el prefijo dark: cuando <html> tiene la clase .dark */
 @variant dark (&:is(.dark, .dark *));
@@ -1129,4 +1130,21 @@ nav {
 .trend-chart-wrapper .recharts-brush-traveller rect {
   fill: hsl(var(--card)) !important;
   stroke: hsl(var(--border)) !important;
+}
+/* ── Question UI motion ──────────────────────────────────────────────────
+   Short and small on purpose: things settle into place, nothing bounces.
+   Disabled entirely for people who ask the OS for reduced motion. */
+@keyframes q-enter {
+  from { opacity: 0; transform: translateY(4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes q-pop {
+  0%   { transform: scale(0.96); }
+  60%  { transform: scale(1.02); }
+  100% { transform: scale(1); }
+}
+.q-enter { animation: q-enter 180ms cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+.q-pop   { animation: q-pop 200ms cubic-bezier(0.2, 0.8, 0.2, 1); }
+@media (prefers-reduced-motion: reduce) {
+  .q-enter, .q-pop { animation: none; }
 }

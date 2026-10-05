@@ -3,6 +3,7 @@ import { Button } from '@/components/keel/button';
 import { AudioPlayer } from '@/components/audio';
 import QuestionRenderer from '@/modules/student/components/QuestionRenderer';
 import { examService } from '@/services/examService';
+import { AnswerKey } from '@/components/questions/AnswerKey';
 import { BookOpen, Brain, CheckCircle, Clock, Edit, Eye, Hash, Image as ImageIcon, Lightbulb, Loader2, Mic, RefreshCw, Target, Users, Volume2, XCircle } from 'lucide-react';
 import React, { useMemo, useState } from 'react';
 import { toast } from 'sonner';
@@ -75,74 +76,6 @@ const QuestionDetailView: React.FC<QuestionDetailViewProps> = ({
     return labels[type] || type;
   };
 
-  const ItemMediaPreview: React.FC<{ url?: string; explicitType?: 'audio' | 'image' | 'video' | null }> = ({ url, explicitType }) => {
-    const [imgFailed, setImgFailed] = React.useState(false);
-
-    if (!url) return null;
-
-    const type = explicitType ?? detectMediaType(url);
-
-    if (url.startsWith('blob:')) {
-      return (
-        <div className="text-xs text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-700 rounded p-2">
-          ⚠️ Error: Archivo multimedia no guardado correctamente
-        </div>
-      );
-    }
-
-    if (type === 'audio') {
-      return (
-        <AudioPlayer
-          src={url}
-          variant="compact"
-          title="Audio de la pregunta"
-          showControls={{ time: true }}
-          className="max-w-md"
-        />
-      );
-    }
-
-    if (type === 'image') {
-      return (
-        <img
-          src={url}
-          alt="media"
-          className="w-24 h-16 object-cover rounded cursor-pointer"
-          onClick={() => window.open(url, '_blank')}
-          onError={() => setImgFailed(true)}
-        />
-      );
-    }
-
-    if (type === 'video') {
-      return (
-        <video controls className="w-full h-16 rounded">
-          <source src={url} />
-          Tu navegador no soporta video.
-        </video>
-      );
-    }
-
-    if (!imgFailed) {
-      return (
-        <img
-          src={url}
-          alt="media"
-          className="w-24 h-16 object-cover rounded cursor-pointer"
-          onClick={() => window.open(url, '_blank')}
-          onError={() => setImgFailed(true)}
-        />
-      );
-    }
-
-    return (
-      <audio controls className="w-full">
-        <source src={url} />
-        Tu navegador no soporta audio.
-      </audio>
-    );
-  };
-
   const getDifficultyLabel = (difficulty: number) => {
     const labels = ['', 'Muy Fácil', 'Fácil', 'Medio', 'Difícil', 'Muy Difícil'];
     return labels[difficulty] || '';
@@ -154,23 +87,6 @@ const QuestionDetailView: React.FC<QuestionDetailViewProps> = ({
     if (difficulty <= 4) return 'text-orange-700 dark:text-orange-400 bg-orange-100 dark:bg-orange-900/20 border-orange-300 dark:border-orange-800/30';
     return 'text-red-700 dark:text-red-400 bg-red-100 dark:bg-red-900/20 border-red-300 dark:border-red-800/30';
   };
-
-  const detectMediaType = (url?: string): 'audio' | 'image' | null => {
-    if (!url) return null;
-    const u = url.toLowerCase();
-    if (u.startsWith('data:')) {
-      if (u.includes('audio/')) return 'audio';
-      if (u.includes('image/')) return 'image';
-    }
-    if (u.startsWith('blob:') || !u.includes('.')) {
-      if (u.includes('audio')) return 'audio';
-      if (u.includes('image') || u.includes('img')) return 'image';
-    }
-    if (u.match(/\.(mp3|wav|ogg|m4a|aac)$/)) return 'audio';
-    if (u.match(/\.(jpe?g|png|gif|webp|svg)$/)) return 'image';
-    return null;
-  };
-
   const checkAnswer = (): { correct: boolean; explanation: string } => {
     const type = question.type;
 
@@ -525,14 +441,14 @@ const QuestionDetailView: React.FC<QuestionDetailViewProps> = ({
             )}
 
             {question.content.mediaUrl && question.content.mediaType === 'audio' && (
-              <div className="bg-muted/30 border border-green-300 dark:border-green-700/30 rounded-lg p-4">
+              <div className="bg-muted/30 border border-border rounded-lg p-4">
                 <h3 className="text-sm font-semibold text-foreground mb-3 flex items-center gap-2">
-                  <Volume2 className="w-4 h-4 text-green-600 dark:text-green-400" />
+                  <Volume2 className="w-4 h-4 text-muted-foreground" />
                   {question.competency === 'listening' ? 'Audio de Comprensión Auditiva' : 'Audio Principal'}
                 </h3>
                 {question.content.mediaUrl.startsWith('blob:') ? (
                   <div className="text-sm text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700 rounded p-3">
-                    ⚠️ Archivo temporal — guarda la pregunta con el audio para verlo aquí
+                    Archivo temporal: guarda la pregunta con el audio para verlo aquí
                   </div>
                 ) : (
                   <AudioPlayer
@@ -568,7 +484,7 @@ const QuestionDetailView: React.FC<QuestionDetailViewProps> = ({
                   <div className="space-y-3">
                     {question.content.mediaUrl.startsWith('blob:') ? (
                       <div className="text-sm text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-700 rounded p-3">
-                        ⚠️ Error: Imagen no guardada correctamente en el servidor
+                        Imagen no guardada correctamente en el servidor
                       </div>
                     ) : (
                       <img
@@ -586,138 +502,11 @@ const QuestionDetailView: React.FC<QuestionDetailViewProps> = ({
               </div>
             )}
 
-            {/* Opciones (con clave de respuesta) */}
-            {question.content.options && question.content.options.length > 0 && (
+            {/* Clave de respuestas */}
+            {['multiple_choice', 'true_false', 'fill_blanks', 'matching', 'ordering', 'drag_drop'].includes(question.type) && (
               <div className="bg-muted/30 border border-border rounded-lg p-4">
-                <h3 className="text-sm font-semibold text-foreground mb-3">
-                  Opciones de Respuesta{' '}
-                  <span className="text-xs text-green-600 dark:text-green-400 font-normal">(clave visible)</span>
-                </h3>
-                <div className="space-y-2">
-                  {question.content.options.map((option, index) => (
-                    <div
-                      key={option.id}
-                      className={`flex items-center gap-3 p-3 rounded-lg border ${
-                        option.isCorrect
-                          ? 'bg-green-50 dark:bg-green-900/20 border-green-300 dark:border-green-800/30 text-green-800 dark:text-green-300'
-                          : 'bg-muted/50 border-border text-foreground/80'
-                      }`}
-                    >
-                      <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center text-xs font-bold ${
-                        option.isCorrect
-                          ? 'border-green-500 dark:border-green-400 bg-green-100 dark:bg-green-400/20 text-green-700 dark:text-green-400'
-                          : 'border-muted-foreground text-muted-foreground'
-                      }`}>
-                        {String.fromCharCode(65 + index)}
-                      </div>
-                      <span className="flex-1 text-sm">{option.text}</span>
-                      {option.isCorrect && (
-                        <span className="px-2 py-1 bg-green-600 text-white text-xs rounded">
-                          Correcta
-                        </span>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Items: matching, ordering, drag_drop */}
-            {question.content.items && question.content.items.length > 0 && (
-              <div className="bg-muted/30 border border-border rounded-lg p-4">
-                <h3 className="text-sm font-semibold text-foreground mb-3 flex items-center gap-2">
-                  {question.type === 'matching' && 'Pares a Emparejar'}
-                  {question.type === 'ordering' && 'Elementos en Orden Correcto'}
-                  {question.type === 'drag_drop' && 'Elementos con Posición Correcta'}
-                  {!['matching', 'ordering', 'drag_drop'].includes(question.type) && 'Elementos'}
-                  <span className="text-xs text-green-600 dark:text-green-400 font-normal">(clave visible)</span>
-                </h3>
-
-                {question.type === 'matching' && (
-                  <div className="space-y-2">
-                    <div className="grid grid-cols-2 gap-2 mb-2">
-                      <div className="text-xs text-muted-foreground font-medium px-1">Concepto</div>
-                      <div className="text-xs text-muted-foreground font-medium px-1">Pareja correcta</div>
-                    </div>
-                    {question.content.items.map((item, idx) => (
-                      <div key={item.id ?? String(idx)} className="grid grid-cols-2 gap-2">
-                        <div className="flex items-center gap-2 p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-700/40 rounded-lg">
-                          {item.mediaUrl && (
-                            <ItemMediaPreview url={item.mediaUrl} explicitType={detectMediaType(item.mediaUrl)} />
-                          )}
-                          <span className="text-sm text-blue-800 dark:text-blue-200 font-medium">{item.content}</span>
-                        </div>
-                        <div className="flex items-center gap-2 p-3 bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-700/40 rounded-lg">
-                          <span className="text-sm text-emerald-800 dark:text-emerald-200 font-medium">
-                            {item.matchingPair || <span className="text-muted-foreground italic">Sin pareja</span>}
-                          </span>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-
-                {(question.type === 'ordering' || question.type === 'drag_drop') && (
-                  <div className="space-y-2">
-                    {[...question.content.items]
-                      .sort((a: any, b: any) => (a.correctPosition ?? 0) - (b.correctPosition ?? 0))
-                      .map((item: any, idx) => (
-                        <div key={item.id ?? String(idx)} className="flex items-center gap-3 p-3 bg-muted/50 border border-border rounded-lg">
-                          <div className="w-7 h-7 rounded-full bg-blue-600/80 text-white text-xs font-bold flex items-center justify-center flex-shrink-0">
-                            {item.correctPosition ?? idx + 1}
-                          </div>
-                          {item.mediaUrl && (
-                            <ItemMediaPreview url={item.mediaUrl} explicitType={detectMediaType(item.mediaUrl)} />
-                          )}
-                          <span className="text-sm text-foreground/80">{item.content}</span>
-                        </div>
-                      ))}
-                  </div>
-                )}
-
-                {!['matching', 'ordering', 'drag_drop'].includes(question.type) && (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                    {question.content.items.map((item, idx) => (
-                      <div key={item.id ?? String(idx)} className="flex items-start gap-3 p-3 bg-muted/50 border border-border rounded-lg">
-                        <div className="flex-1">
-                          <div className="text-sm text-foreground/80 font-medium">{item.content}</div>
-                        </div>
-                        {item.mediaUrl && (
-                          <div className="w-20 h-12 flex-shrink-0">
-                            <ItemMediaPreview url={item.mediaUrl} explicitType={detectMediaType(item.mediaUrl)} />
-                          </div>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            )}
-
-            {/* fill_blanks answer key */}
-            {question.content.blanks && question.content.blanks.length > 0 && (
-              <div className="bg-muted/30 border border-border rounded-lg p-4">
-                <h3 className="text-sm font-semibold text-foreground mb-3">
-                  Clave de Espacios{' '}
-                  <span className="text-xs text-green-600 dark:text-green-400 font-normal">(clave visible)</span>
-                </h3>
-                <div className="font-mono text-sm text-foreground/80 mb-3 bg-muted/50 p-3 rounded-lg">
-                  {question.content.template}
-                </div>
-                <div className="space-y-2">
-                  {question.content.blanks.map((blank: any, idx: number) => (
-                    <div key={idx} className="flex items-center gap-3 text-sm">
-                      <span className="text-muted-foreground">Espacio {blank.position}:</span>
-                      <div className="flex flex-wrap gap-1">
-                        {blank.correctAnswers?.map((ans: string, i: number) => (
-                          <span key={i} className="px-2 py-0.5 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 border border-green-300 dark:border-green-700/40 rounded text-xs">
-                            {ans}
-                          </span>
-                        ))}
-                      </div>
-                    </div>
-                  ))}
-                </div>
+                <h3 className="text-sm font-semibold text-foreground mb-3">Clave de respuestas</h3>
+                <AnswerKey question={{ type: question.type, content: { ...question.content, question: undefined, context: undefined, sampleAnswer: undefined } }} />
               </div>
             )}
 

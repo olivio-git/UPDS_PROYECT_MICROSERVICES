@@ -14,7 +14,9 @@ import {
   Sparkles,
   Upload,
   X,
+  AlertTriangle,
 } from 'lucide-react';
+import { AnswerKey } from '@/components/questions/AnswerKey';
 import React, { useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
 import { examService } from '@/services/examService';
@@ -159,98 +161,7 @@ function getTypeLabel(type: string) {
 const QuestionPreviewCard: React.FC<{
   question: GeneratedQuestionData;
   compact?: boolean;
-}> = ({ question, compact }) => (
-  <div className={`space-y-3 ${compact ? 'text-sm' : ''}`}>
-    <div>
-      <p className="text-xs text-muted-foreground mb-1">Pregunta</p>
-      <p className="text-foreground leading-relaxed">{question.content.question}</p>
-    </div>
-
-    {question.content.context && (
-      <div>
-        <p className="text-xs text-muted-foreground mb-1">
-          {question.competency === 'listening' ? 'Transcripción / Contexto' : 'Contexto'}
-        </p>
-        <p className="text-foreground/80 italic">{question.content.context}</p>
-      </div>
-    )}
-
-    {question.content.options && question.content.options.length > 0 && (
-      <div className="space-y-1">
-        {question.content.options.map((opt, i) => (
-          <div
-            key={opt.id}
-            className={`flex items-center gap-2 px-3 py-1.5 rounded border ${
-              opt.isCorrect
-                ? 'border-green-300 dark:border-green-600/40 bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-300'
-                : 'border-border bg-muted/20 text-foreground/80'
-            }`}
-          >
-            <span className="text-muted-foreground text-xs w-4 flex-shrink-0">
-              {String.fromCharCode(65 + i)}
-            </span>
-            <span>{opt.text}</span>
-            {opt.isCorrect && <Check className="w-3 h-3 ml-auto text-green-600 dark:text-green-400 flex-shrink-0" />}
-          </div>
-        ))}
-      </div>
-    )}
-
-    {question.content.template && (
-      <div>
-        <p className="text-xs text-muted-foreground mb-1">Plantilla</p>
-        <p className="font-mono text-foreground bg-muted px-3 py-2 rounded">
-          {question.content.template}
-        </p>
-      </div>
-    )}
-
-    {question.content.items && question.content.items.length > 0 && !compact && (
-      <div className="space-y-1">
-        <p className="text-xs text-muted-foreground mb-1">Elementos</p>
-        {question.content.items.map((item) => (
-          <div
-            key={item.id}
-            className="flex justify-between items-center px-3 py-1.5 bg-muted/30 rounded border border-border text-sm"
-          >
-            <span className="text-foreground">{item.content}</span>
-            {item.matchingPair && (
-              <span className="text-blue-600 dark:text-blue-300 text-xs">↔ {item.matchingPair}</span>
-            )}
-            {item.correctPosition !== undefined && (
-              <span className="px-1.5 py-0.5 text-xs rounded border border-border text-muted-foreground">
-                #{item.correctPosition}
-              </span>
-            )}
-          </div>
-        ))}
-      </div>
-    )}
-
-    {question.content.sampleAnswer && (
-      <div>
-        <p className="text-xs text-muted-foreground mb-1">Respuesta de referencia</p>
-        <p className="text-foreground/80 italic bg-muted/50 px-3 py-2 rounded text-sm">
-          "{question.content.sampleAnswer}"
-        </p>
-      </div>
-    )}
-
-    <div className="flex flex-wrap gap-1.5 pt-1">
-      <span className="px-1.5 py-0.5 text-xs rounded border border-border text-muted-foreground">
-        📚 {question.metadata.topic}
-      </span>
-      <span className="px-1.5 py-0.5 text-xs rounded border border-border text-muted-foreground">
-        ⭐ {question.metadata.points ?? 1}pt
-      </span>
-      {question.metadata.estimatedTime && (
-        <span className="px-1.5 py-0.5 text-xs rounded border border-border text-muted-foreground">
-          ⏱ {question.metadata.estimatedTime}min
-        </span>
-      )}
-    </div>
-  </div>
-);
+}> = ({ question, compact }) => <AnswerKey question={question} compact={compact} />;
 
 // ── Main component ─────────────────────────────────────────────────────────────
 const AIQuestionGenerator: React.FC<AIQuestionGeneratorProps> = ({
@@ -938,7 +849,7 @@ const AIQuestionGenerator: React.FC<AIQuestionGeneratorProps> = ({
               </h3>
               <div className="flex items-center gap-2">
                 {savedId && (
-                  <span className="px-1.5 py-0.5 text-xs rounded bg-green-600 dark:bg-green-700 text-white">✓ Guardada ({savedId.slice(-6)})</span>
+                  <span className="inline-flex items-center gap-1 rounded-md bg-primary/10 px-1.5 py-0.5 text-xs font-medium text-primary"><Check className="size-3" />Guardada</span>
                 )}
                 <span className="px-1.5 py-0.5 text-xs rounded border border-border text-muted-foreground">
                   {modelUsed.split('-').slice(0, 3).join('-')}
@@ -1013,7 +924,7 @@ const AIQuestionGenerator: React.FC<AIQuestionGeneratorProps> = ({
           <div className="space-y-4">
             {bulkPartial && (
               <div className="flex items-start gap-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-300 dark:border-amber-600/40 rounded-lg px-4 py-3 text-sm">
-                <span className="text-amber-600 dark:text-amber-400 text-lg leading-none">⚠</span>
+                <AlertTriangle className="mt-0.5 size-4 shrink-0 text-amber-600 dark:text-amber-400" />
                 <div className="text-amber-700 dark:text-amber-200">
                   <p className="font-medium">Límite diario de GROQ alcanzado</p>
                   <p className="text-amber-700 dark:text-amber-300 text-xs mt-0.5">
@@ -1082,8 +993,9 @@ const AIQuestionGenerator: React.FC<AIQuestionGeneratorProps> = ({
                         </span>
                       )}
                       {result.savedId && (
-                        <span className="px-1.5 py-0.5 text-xs rounded bg-blue-600 dark:bg-blue-700 text-white">
-                          ✓ {result.savedId.slice(-5)}
+                        <span className="inline-flex items-center gap-1 rounded-md bg-primary/10 px-1.5 py-0.5 text-xs font-medium text-primary">
+                          <Check className="size-3" />
+                          Guardada
                         </span>
                       )}
                     </div>
