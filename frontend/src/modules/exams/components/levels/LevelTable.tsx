@@ -78,7 +78,7 @@ const LevelTable = ({
 
   if (isLoading) {
     return (
-      <div className="flex flex-1 min-h-0 flex-col items-center justify-center border-t border-border bg-card">
+      <div className="flex flex-1 min-h-0 flex-col items-center justify-center border-border bg-card rounded-xl border overflow-hidden">
         <div className="flex items-center justify-center space-x-2">
           <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-500"></div>
           <span className="text-muted-foreground">Cargando niveles...</span>
@@ -89,7 +89,7 @@ const LevelTable = ({
 
   if (isError) {
     return (
-      <div className="flex flex-1 min-h-0 flex-col items-center justify-center border-t border-border bg-card text-center">
+      <div className="flex flex-1 min-h-0 flex-col items-center justify-center border-border bg-card text-center rounded-xl border overflow-hidden">
         <div className="space-y-3">
           <div className="text-red-400">Error al cargar los niveles</div>
           <p className="text-muted-foreground text-sm">{errorMessage}</p>
@@ -100,7 +100,7 @@ const LevelTable = ({
 
   if (levels.length === 0) {
     return (
-      <div className="flex flex-1 min-h-0 flex-col border-t border-border bg-card">
+      <div className="flex flex-1 min-h-0 flex-col border-border bg-card rounded-xl border overflow-hidden">
         <EmptyState
           icon={BookOpen}
           title="No hay niveles configurados"
@@ -111,7 +111,7 @@ const LevelTable = ({
   }
 
   return (
-    <div className="flex flex-1 min-h-0 flex-col border-t border-border bg-card">
+    <div className="flex flex-1 min-h-0 flex-col border-border bg-card rounded-xl border overflow-hidden">
       <Table>
         <TableHeader className="sticky top-0 z-10 bg-background">
           <TableRow className="border-border hover:bg-muted/30">
@@ -132,8 +132,8 @@ const LevelTable = ({
             >
               <TableCell>
                 <div className="flex items-center space-x-2">
-                  <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500/20 to-purple-600/20 border border-blue-500/30 flex items-center justify-center">
-                    <span className="text-blue-700 dark:text-blue-300 font-bold text-sm">{level.code}</span>
+                  <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center">
+                    <span className="text-foreground font-semibold text-sm">{level.code}</span>
                   </div>
                 </div>
               </TableCell>

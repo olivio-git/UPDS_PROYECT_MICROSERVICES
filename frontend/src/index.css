@@ -8,6 +8,10 @@
    tienen un color asociado → caen a currentColor → borde negro/blanco sólido.
    Con @theme inline, Tailwind genera las utilidades usando hsl(var(--X))
    y los modificadores de opacidad (/40, /50…) funcionan correctamente. */
+@theme {
+  --font-sans: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+
 @theme inline {
   --color-background:         hsl(var(--background));
   --color-foreground:         hsl(var(--foreground));
@@ -62,34 +66,32 @@
     --gradient-success: linear-gradient(135deg, #43cea2 0%, #185a9d 100%);
     --gradient-primary: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
 
-    /* === TEMA LIGHT === */
-    /* Página y superficies comparten el mismo plano: las zonas se separan
-       con el borde de 1px, no levantándolas del fondo. La paleta anterior
-       usaba un gris azulado detrás de cards blancos, así que cualquier
-       hueco entre contenedores se leía como una franja gris. */
-    --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
+    /* === TEMA LIGHT ===
+       Lienzo gris neutro detrás, contenido en tarjetas blancas con borde fino.
+       Un solo acento (azul CBA, sobrio); el resto de la interfaz es neutra. */
+    --background: 240 5% 96%;
+    --foreground: 240 10% 4%;
 
     --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
+    --card-foreground: 240 10% 4%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
+    --popover-foreground: 240 10% 4%;
 
-    --primary: 221.2 83.2% 53.3%;
-    --primary-foreground: 210 40% 98%;
+    --primary: 221 68% 42%;
+    --primary-foreground: 0 0% 100%;
 
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
+    --secondary: 240 5% 94%;
+    --secondary-foreground: 240 6% 10%;
 
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
+    --muted: 240 5% 94%;
+    --muted-foreground: 240 4% 46%;
 
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
+    --accent: 240 5% 94%;
+    --accent-foreground: 240 6% 10%;
 
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 0 0% 100%;
 
     --success: 142 71% 45%;
     --success-foreground: 144 61% 20%;
@@ -97,9 +99,9 @@
     --warning: 38 92% 50%;
     --warning-foreground: 38 92% 15%;
 
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 221.2 83.2% 53.3%;
+    --border: 240 6% 90%;
+    --input: 240 6% 88%;
+    --ring: 221 68% 42%;
 
     /* Niveles MCER — modo light (saturación moderada) */
     --level-a1: 196 65% 42%;
@@ -115,52 +117,54 @@
     --writing: 142 60% 40%;
     --speaking: 25 90% 50%;
 
-    /* keel (Base UI) sidebar tokens — mirror card/foreground/primary/muted/border/ring above */
+    /* keel (Base UI) sidebar tokens — the sidebar is a white panel beside the grey canvas */
     --sidebar: 0 0% 100%;
-    --sidebar-foreground: 222.2 84% 4.9%;
-    --sidebar-primary: 221.2 83.2% 53.3%;
-    --sidebar-primary-foreground: 210 40% 98%;
-    --sidebar-accent: 210 40% 96.1%;
-    --sidebar-accent-foreground: 222.2 47.4% 11.2%;
-    --sidebar-border: 214.3 31.8% 91.4%;
-    --sidebar-ring: 221.2 83.2% 53.3%;
+    --sidebar-foreground: 240 10% 4%;
+    --sidebar-primary: 221 68% 42%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 240 5% 94%;
+    --sidebar-accent-foreground: 240 6% 10%;
+    --sidebar-border: 240 6% 90%;
+    --sidebar-ring: 221 68% 42%;
   }
 
   .dark {
-    /* === TEMA DARK === */
-    --background: 222.2 84% 4.9%;
-    --foreground: 210 40% 98%;
+    /* === TEMA DARK ===
+       Grafito neutro. La "luz metálica" vive en .app-canvas (abajo): un brillo
+       radial muy tenue detrás de tarjetas apenas translúcidas. */
+    --background: 240 6% 6%;
+    --foreground: 0 0% 96%;
 
-    --card: 222.2 84% 4.9%;      /* mismo plano que --background */
-    --card-foreground: 210 40% 98%;
+    --card: 240 5% 9%;
+    --card-foreground: 0 0% 96%;
 
-    --popover: 222.2 84% 4.9%;
-    --popover-foreground: 210 40% 98%;
+    --popover: 240 5% 10%;
+    --popover-foreground: 0 0% 96%;
 
-    --primary: 217.2 91.2% 59.8%;
-    --primary-foreground: 222.2 47.4% 11.2%;
+    --primary: 217 75% 62%;
+    --primary-foreground: 240 10% 6%;
 
-    --secondary: 217.2 32.6% 17.5%;
-    --secondary-foreground: 210 40% 98%;
+    --secondary: 240 4% 15%;
+    --secondary-foreground: 0 0% 96%;
 
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
+    --muted: 240 4% 15%;
+    --muted-foreground: 240 5% 64%;
 
-    --accent: 217.2 32.6% 17.5%;
-    --accent-foreground: 210 40% 98%;
+    --accent: 240 4% 15%;
+    --accent-foreground: 0 0% 96%;
 
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 210 40% 98%;
+    --destructive: 0 62% 50%;
+    --destructive-foreground: 0 0% 100%;
 
     --success: 142 76% 36%;
-    --success-foreground: 210 40% 98%;
+    --success-foreground: 0 0% 96%;
 
     --warning: 45 93% 47%;
-    --warning-foreground: 210 40% 98%;
+    --warning-foreground: 0 0% 96%;
 
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 212.7 26.8% 83.9%;
+    --border: 240 4% 16%;
+    --input: 240 4% 20%;
+    --ring: 217 75% 62%;
 
     /* Niveles MCER — modo dark (más vibrantes) */
     --level-a1: 196 75% 68%;
@@ -176,16 +180,32 @@
     --writing: 142 69% 58%;
     --speaking: 25 95% 58%;
 
-    /* keel (Base UI) sidebar tokens — mirror card/foreground/primary/muted/border/ring above */
-    --sidebar: 222.2 84% 6.5%;
-    --sidebar-foreground: 210 40% 98%;
-    --sidebar-primary: 217.2 91.2% 59.8%;
-    --sidebar-primary-foreground: 222.2 47.4% 11.2%;
-    --sidebar-accent: 217.2 32.6% 17.5%;
-    --sidebar-accent-foreground: 210 40% 98%;
-    --sidebar-border: 217.2 32.6% 17.5%;
-    --sidebar-ring: 212.7 26.8% 83.9%;
+    /* keel (Base UI) sidebar tokens */
+    --sidebar: 240 5% 8%;
+    --sidebar-foreground: 0 0% 96%;
+    --sidebar-primary: 217 75% 62%;
+    --sidebar-primary-foreground: 240 10% 6%;
+    --sidebar-accent: 240 4% 15%;
+    --sidebar-accent-foreground: 0 0% 96%;
+    --sidebar-border: 240 4% 16%;
+    --sidebar-ring: 217 75% 62%;
   }
+}
+
+/* Lienzo de la app (AppShell). En oscuro: luz tenue tipo metal cepillado
+   detrás del contenido — dos brillos radiales grises casi imperceptibles, y
+   tarjetas apenas translúcidas para que la luz se insinúe a través. */
+.dark .app-canvas {
+  background-color: hsl(var(--background));
+  background-image:
+    radial-gradient(ellipse 70% 45% at 75% -5%, hsl(220 14% 72% / 0.14), transparent 70%),
+    radial-gradient(ellipse 55% 40% at 10% 105%, hsl(220 10% 75% / 0.07), transparent 70%),
+    linear-gradient(180deg, hsl(240 6% 7%), hsl(240 6% 5%));
+  background-attachment: fixed;
+}
+.dark .app-canvas [data-slot="card"] {
+  background-color: hsl(var(--card) / 0.78);
+  backdrop-filter: blur(10px);
 }
 
 /* Fondo y color de texto globales aplicados al body */

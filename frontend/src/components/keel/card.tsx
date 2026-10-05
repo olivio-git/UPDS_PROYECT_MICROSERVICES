@@ -3,19 +3,18 @@ import * as React from "react"
 import { cn } from "@/lib/utils"
 
 /**
- * `flat` renders the card as a flush region — square corners, a hairline
- * border instead of the ring — for layout surfaces that meet the frame
- * edge to edge. The default (raised, rounded) stays for cards that really
- * do float above something.
+ * Cards are white panels on the grey canvas: rounded, hairline border, no
+ * shadow. `flat` is kept for call-site compatibility and renders the same
+ * surface — it used to mean "square, flush to the frame", which the
+ * canvas-and-cards layout no longer uses.
  *
- * DEVIATION from keel: upstream has no flat variant, so screens were
- * sprinkling `className="rounded-none shadow-none"` at every call site and
- * still kept the ring and the `rounded-t-xl` image corners. Port this
- * variant back to keel and drop the deviation.
+ * DEVIATION from keel: upstream uses `ring-1 ring-foreground/10` and has no
+ * `flat` prop. Port back to keel together with the theme.
  */
 function Card({
   className,
   size = "default",
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars -- accepted and dropped, see above
   flat = false,
   ...props
 }: React.ComponentProps<"div"> & { size?: "default" | "sm"; flat?: boolean }) {
@@ -25,9 +24,7 @@ function Card({
       data-size={size}
       className={cn(
         "group/card flex flex-col gap-4 overflow-hidden bg-card py-4 text-sm text-card-foreground has-data-[slot=card-footer]:pb-0 has-[>img:first-child]:pt-0 data-[size=sm]:gap-3 data-[size=sm]:py-3 data-[size=sm]:has-data-[slot=card-footer]:pb-0",
-        flat
-          ? "border border-border"
-          : "rounded-xl ring-1 ring-foreground/10 *:[img:first-child]:rounded-t-xl *:[img:last-child]:rounded-b-xl",
+        "rounded-xl border border-border *:[img:first-child]:rounded-t-xl *:[img:last-child]:rounded-b-xl",
         className
       )}
       {...props}

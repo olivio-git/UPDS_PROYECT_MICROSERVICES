@@ -239,7 +239,7 @@ const AudioRecorder: React.FC<AudioRecorderProps> = ({
   if (variant === 'minimal') {
     return (
       <div className={cn(
-        "flex items-center gap-3 p-2 bg-gray-800/50 rounded-lg border border-gray-700/50",
+        "flex items-center gap-3 p-2 bg-muted/50 rounded-lg border border-border",
         className
       )}>
         {audioUrl && <audio ref={audioRef} src={audioUrl} onEnded={() => setIsPlaying(false)} />}
@@ -251,7 +251,7 @@ const AudioRecorder: React.FC<AudioRecorderProps> = ({
               "flex items-center justify-center w-8 h-8 rounded-full transition-all duration-200",
               isRecording 
                 ? "bg-red-600 hover:bg-red-700 animate-pulse" 
-                : "bg-blue-600 hover:bg-blue-700"
+                : "bg-primary hover:bg-primary/90"
             )}
           >
             {isRecording ? (
@@ -264,7 +264,7 @@ const AudioRecorder: React.FC<AudioRecorderProps> = ({
           <button
             type="button"
             onClick={playRecording}
-            className="flex items-center justify-center w-8 h-8 bg-green-600 hover:bg-green-700 rounded-full transition-all duration-200"
+            className="flex items-center justify-center w-8 h-8 bg-primary hover:bg-primary/90 rounded-full transition-all duration-200"
           >
             {isPlaying ? (
               <Pause className="w-4 h-4 text-white" />
@@ -273,14 +273,14 @@ const AudioRecorder: React.FC<AudioRecorderProps> = ({
             )}
           </button>
         )}
-        <span className="text-xs text-gray-400 tabular-nums">
+        <span className="text-xs text-muted-foreground tabular-nums">
           {formatTime(duration)}
         </span>
         {audioUrl && (
           <button
             type="button"
             onClick={resetRecording}
-            className="p-1 text-gray-400 hover:text-red-400 transition-colors"
+            className="p-1 text-muted-foreground hover:text-destructive transition-colors"
           >
             <Trash2 className="w-3 h-3" />
           </button>
@@ -327,7 +327,7 @@ const AudioRecorder: React.FC<AudioRecorderProps> = ({
           onClick={isRecording ? stopRecording : startRecording}
           className={cn(
             "flex items-center justify-center w-10 h-10 rounded-full transition-all duration-200 flex-shrink-0",
-            isRecording ? "bg-red-600 hover:bg-red-700 animate-pulse" : "bg-blue-600 hover:bg-blue-700"
+            isRecording ? "bg-red-600 hover:bg-red-700 animate-pulse" : "bg-primary hover:bg-primary/90"
           )}
         >
           {isRecording ? <Square className="w-5 h-5 text-white" /> : <Mic className="w-5 h-5 text-white" />}
@@ -367,7 +367,7 @@ const AudioRecorder: React.FC<AudioRecorderProps> = ({
 
   return (
     <div className={cn(
-      "bg-gradient-to-br from-gray-900/90 to-gray-800/90 border border-gray-700/50 rounded-xl p-6 backdrop-blur-sm",
+      "rounded-xl border border-border bg-card p-6",
       className
     )}>
       {audioUrl && <audio ref={audioRef} src={audioUrl} onEnded={() => setIsPlaying(false)} />}
@@ -378,7 +378,7 @@ const AudioRecorder: React.FC<AudioRecorderProps> = ({
               <div
                 key={i}
                 className={cn(
-                  "w-1 bg-gradient-to-t from-blue-500 to-blue-300 rounded-full transition-all duration-100",
+                  "w-1 rounded-full bg-primary transition-all duration-100",
                   audioLevel > (i * 0.05) ? "opacity-100" : "opacity-20"
                 )}
                 style={{ height: `${Math.max(4, audioLevel * 60 + Math.random() * 10)}px` }}
@@ -388,16 +388,16 @@ const AudioRecorder: React.FC<AudioRecorderProps> = ({
         </div>
       )}
       <div className="text-center mb-6">
-        <div className="text-3xl font-mono text-white mb-2">
+        <div className="text-3xl font-mono text-foreground mb-2">
           {formatTime(duration)}
         </div>
         {maxDuration && (
-          <div className="text-sm text-gray-400">
+          <div className="text-sm text-muted-foreground">
             Máximo: {formatTime(maxDuration)}
           </div>
         )}
         {maxDuration && (
-          <div className="w-full bg-gray-700 rounded-full h-1 mt-2">
+          <div className="w-full bg-muted rounded-full h-1 mt-2">
             <div
               className="bg-blue-500 h-1 rounded-full transition-all duration-300"
               style={{ width: `${(duration / maxDuration) * 100}%` }}
@@ -415,7 +415,7 @@ const AudioRecorder: React.FC<AudioRecorderProps> = ({
                 "flex items-center justify-center w-16 h-16 rounded-full transition-all duration-200 shadow-lg",
                 isRecording 
                   ? "bg-red-600 hover:bg-red-700 animate-pulse" 
-                  : "bg-blue-600 hover:bg-blue-700"
+                  : "bg-primary hover:bg-primary/90"
               )}
             >
               {isRecording ? (
@@ -428,7 +428,7 @@ const AudioRecorder: React.FC<AudioRecorderProps> = ({
               <button
                 type="button"
                 onClick={pauseRecording}
-                className="flex items-center justify-center w-12 h-12 bg-gray-600 hover:bg-gray-700 rounded-full transition-all duration-200"
+                className="flex items-center justify-center w-12 h-12 bg-muted-foreground hover:bg-muted-foreground/90 rounded-full transition-all duration-200"
               >
                 {isPaused ? (
                   <Play className="w-6 h-6 text-white ml-1" />
@@ -442,7 +442,7 @@ const AudioRecorder: React.FC<AudioRecorderProps> = ({
           <button
             type="button"
             onClick={playRecording}
-            className="flex items-center justify-center w-16 h-16 bg-green-600 hover:bg-green-700 rounded-full transition-all duration-200 shadow-lg"
+            className="flex items-center justify-center w-16 h-16 bg-primary hover:bg-primary/90 rounded-full transition-all duration-200 shadow-lg"
           >
             {isPlaying ? (
               <Pause className="w-8 h-8 text-white" />
@@ -483,7 +483,7 @@ const AudioRecorder: React.FC<AudioRecorderProps> = ({
           <button
             type="button"
             onClick={resetRecording}
-            className="flex items-center gap-2 px-4 py-2 bg-gray-600 hover:bg-gray-700 rounded-lg transition-all duration-200"
+            className="flex items-center gap-2 px-3 py-1.5 bg-secondary text-secondary-foreground hover:bg-secondary/80 rounded-lg transition-all duration-200"
           >
             <RotateCcw className="w-4 h-4" />
             <span className="text-sm">Nueva grabación</span>

@@ -170,7 +170,7 @@ const AuditLogsScreen: React.FC = () => {
 
   return (
     <MainLayout>
-      <div className="flex h-full min-h-0 flex-col gap-3 p-3">
+      <div className="flex h-full min-h-0 flex-col gap-4 px-4 pb-4">
 
         {/* Header */}
         <div className="flex items-center justify-between shrink-0">
@@ -194,7 +194,7 @@ const AuditLogsScreen: React.FC = () => {
         </div>
 
         {/* Filtros */}
-        <div className="bg-card border border-border rounded-lg px-3 py-2 flex flex-wrap items-center gap-2 shrink-0">
+        <div className="bg-card border border-border rounded-xl px-3 py-2 flex flex-wrap items-center gap-2 shrink-0">
           <Popover>
             <PopoverTrigger
               render={
@@ -279,7 +279,7 @@ const AuditLogsScreen: React.FC = () => {
         </div>
 
         {/* Tabla virtualizada */}
-        <div className="bg-card border border-border rounded-lg overflow-hidden flex flex-col flex-1 min-h-0">
+        <div className="bg-card border border-border rounded-xl overflow-hidden flex flex-col flex-1 min-h-0">
           {/* Cabecera fija */}
           <div className="shrink-0 border-b border-border bg-muted/30">
             <table className="w-full text-xs table-fixed">

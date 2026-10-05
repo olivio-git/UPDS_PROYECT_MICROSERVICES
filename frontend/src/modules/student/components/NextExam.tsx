@@ -295,8 +295,8 @@ const NextExam: React.FC<PropsNextExam> = ({
               <EmptyContent>
                 <Button
                   onClick={() => loadNextExam()}
-                  variant="default"
-                  className="w-full"
+                  variant="outline"
+                  size="sm"
                 >
                   Actualizar
                 </Button>
@@ -399,10 +399,10 @@ const NextExam: React.FC<PropsNextExam> = ({
               <HoverCardContent
                 side="top"
                 align="start"
-                className="w-80 p-0 overflow-hidden border border-border bg-card shadow-xl"
+                className="w-80 p-0 overflow-hidden border border-border bg-card shadow-xl rounded-xl"
               >
                 {/* Header con avatar y nombre */}
-                <div className="relative bg-gradient-to-br from-indigo-500/10 via-purple-500/5 to-transparent p-4 border-b border-border">
+                <div className="relative p-4 border-b border-border">
                   <div className="flex items-center gap-3">
                     <UserAvatar
                       avatarUrl={nextExam.createdBy.avatarUrl}

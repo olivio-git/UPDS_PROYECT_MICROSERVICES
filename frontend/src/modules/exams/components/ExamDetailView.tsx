@@ -65,7 +65,7 @@ const ExamDetailView: React.FC<ExamDetailViewProps> = ({ exam, onBack, onEdit })
       />
 
       {/* Información general */}
-      <div className="border border-border bg-card p-4">
+      <div className="border border-border bg-card p-4 rounded-xl">
         <h2 className="mb-4 flex items-center gap-2 text-base font-medium text-foreground">
           <BookOpen className="w-5 h-5 text-blue-400" />
           Información General
@@ -124,7 +124,7 @@ const ExamDetailView: React.FC<ExamDetailViewProps> = ({ exam, onBack, onEdit })
 
       {/* Estadísticas rápidas */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <div className="border border-border bg-card p-4 text-center">
+        <div className="border border-border bg-card p-4 text-center rounded-xl">
           <div className="w-12 h-12 bg-blue-900/20 rounded-full flex items-center justify-center mx-auto mb-3">
             <BookOpen className="w-6 h-6 text-blue-400" />
           </div>
@@ -134,7 +134,7 @@ const ExamDetailView: React.FC<ExamDetailViewProps> = ({ exam, onBack, onEdit })
           <div className="text-sm text-muted-foreground">Secciones</div>
         </div>
 
-        <div className="border border-border bg-card p-4 text-center">
+        <div className="border border-border bg-card p-4 text-center rounded-xl">
           <div className="w-12 h-12 bg-green-900/20 rounded-full flex items-center justify-center mx-auto mb-3">
             <Target className="w-6 h-6 text-green-400" />
           </div>
@@ -144,7 +144,7 @@ const ExamDetailView: React.FC<ExamDetailViewProps> = ({ exam, onBack, onEdit })
           <div className="text-sm text-muted-foreground">Preguntas</div>
         </div>
 
-        <div className="border border-border bg-card p-4 text-center">
+        <div className="border border-border bg-card p-4 text-center rounded-xl">
           <div className="w-12 h-12 bg-yellow-900/20 rounded-full flex items-center justify-center mx-auto mb-3">
             <Clock className="w-6 h-6 text-yellow-400" />
           </div>
@@ -156,7 +156,7 @@ const ExamDetailView: React.FC<ExamDetailViewProps> = ({ exam, onBack, onEdit })
       </div>
 
       {/* Secciones del examen */}
-      <div className="border border-border bg-card p-4">
+      <div className="border border-border bg-card p-4 rounded-xl">
         <h2 className="mb-4 flex items-center gap-2 text-base font-medium text-foreground">
           <Target className="w-5 h-5 text-green-400" />
           Secciones del Examen
@@ -210,7 +210,7 @@ const ExamDetailView: React.FC<ExamDetailViewProps> = ({ exam, onBack, onEdit })
       </div>
 
       {/* Configuración */}
-      <div className="border border-border bg-card p-4">
+      <div className="border border-border bg-card p-4 rounded-xl">
         <h2 className="mb-4 flex items-center gap-2 text-base font-medium text-foreground">
           <Settings className="w-5 h-5 text-muted-foreground" />
           Configuración
@@ -276,7 +276,7 @@ const ExamDetailView: React.FC<ExamDetailViewProps> = ({ exam, onBack, onEdit })
 
       {/* Metadatos */}
       {(exam.createdAt || exam.updatedAt) && (
-        <div className="border border-border bg-card p-4">
+        <div className="border border-border bg-card p-4 rounded-xl">
           <h2 className="text-lg font-semibold text-foreground mb-4">Metadatos</h2>
           
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">

@@ -46,7 +46,7 @@ const StudentDashboard = () => {
   return (
     <>
       <MainLayout>
-        <div className="flex h-full flex-col gap-3 p-3">
+        <div className="flex h-full flex-col gap-4 px-4 pb-4">
           <PageHeader
             title={`Hola, ${user?.firstName ?? ""}`.trim()}
             description="Tus próximos exámenes y resultados"

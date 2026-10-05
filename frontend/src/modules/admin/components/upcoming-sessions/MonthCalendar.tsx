@@ -62,7 +62,7 @@ export function MonthCalendar({ viewDate, onViewDateChange, sessionsByDay, selec
   const todayKey = localDayKey(new Date());
 
   return (
-    <div className="bg-card border border-border overflow-hidden">
+    <div className="bg-card border border-border overflow-hidden rounded-xl">
       <div className="px-4 py-3 border-b border-border flex items-center justify-between">
         <div className="flex items-center gap-1">
           <Button variant="ghost" size="icon-sm" type="button" aria-label="Mes anterior" onClick={() => onViewDateChange(new Date(year, month - 1, 1))}>
@@ -116,7 +116,7 @@ export function MonthCalendar({ viewDate, onViewDateChange, sessionsByDay, selec
                 >
                   {content}
                 </HoverCardTrigger>
-                <HoverCardContent side="right" align="start" className="w-72 p-0 overflow-hidden border border-border bg-card shadow-xl">
+                <HoverCardContent side="right" align="start" className="w-72 p-0 overflow-hidden border border-border bg-card shadow-xl rounded-xl">
                   <DaySessionsPopover date={new Date(year, month, day)} sessions={sessions} currentUserEmail={currentUserEmail} />
                 </HoverCardContent>
               </HoverCard>

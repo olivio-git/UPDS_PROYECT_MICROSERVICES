@@ -669,7 +669,7 @@ const StudentResults = () => {
     if (currentResult.resultsHidden) {
       return (
         <MainLayout gradientVariant="primary">
-          <div className="h-full space-y-3 overflow-auto p-3">
+          <div className="h-full space-y-4 overflow-auto px-4 pb-4">
             <Button variant="outline" size="sm" onClick={handleBackToResults} className="h-8 px-3 text-xs">
               <ArrowLeft className="h-3.5 w-3.5 mr-1" />
               Volver
@@ -693,7 +693,7 @@ const StudentResults = () => {
     if (currentResult.pending) {
       return (
         <MainLayout gradientVariant="primary">
-          <div className="h-full space-y-3 overflow-auto p-3">
+          <div className="h-full space-y-4 overflow-auto px-4 pb-4">
             <Button variant="outline" size="sm" onClick={handleBackToResults} className="h-8 px-3 text-xs">
               <ArrowLeft className="h-3.5 w-3.5 mr-1" />
               Volver
@@ -743,7 +743,7 @@ const StudentResults = () => {
 
     return (
       <MainLayout>
-        <div id="exam-result-content" className="h-full space-y-3 overflow-auto p-3">
+        <div id="exam-result-content" className="h-full space-y-4 overflow-auto px-4 pb-4">
           {/* Hero: the score ring is the first thing the eye lands on. */}
           <Card flat>
             <CardContent className="p-6">
@@ -1025,7 +1025,7 @@ const StudentResults = () => {
 
   return (
     <MainLayout>
-      <div className="h-full space-y-3 overflow-auto p-3">
+      <div className="h-full space-y-4 overflow-auto px-4 pb-4">
         <PageHeader title="Mis resultados" description="Historial de tus evaluaciones" />
 
         {/* Estado: cargando */}

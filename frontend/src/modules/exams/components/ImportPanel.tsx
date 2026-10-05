@@ -25,7 +25,7 @@ const ImportPanel: React.FC<Props> = ({ onCancel, onImported }) => {
 
   return (
     <div className="space-y-6">
-      <div className="border border-border bg-card p-4">
+      <div className="border border-border bg-card p-4 rounded-xl">
         <div className="flex items-center gap-3">
           <Upload className="w-5 h-5 text-muted-foreground" />
           <div>

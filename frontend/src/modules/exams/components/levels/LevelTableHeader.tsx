@@ -52,7 +52,7 @@ const LevelTableHeader = ({
       </div>
 
       {/* Filter bar */}
-      <div className="bg-card border border-border px-3 py-2 flex flex-wrap items-center gap-2">
+      <div className="bg-card border border-border px-3 py-2 flex flex-wrap items-center gap-2 rounded-xl">
 
         {/* Search */}
         <div className="relative">

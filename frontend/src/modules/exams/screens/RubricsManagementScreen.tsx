@@ -210,7 +210,7 @@ const RubricsManagementScreen = () => {
 
   return (
     <MainLayout gradientVariant="aurora">
-      <div className="flex h-full min-h-0 flex-col gap-3 p-3">
+      <div className="flex h-full min-h-0 flex-col gap-4 px-4 pb-4">
         {renderContent()}
       </div>
 

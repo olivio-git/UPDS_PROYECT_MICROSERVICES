@@ -633,7 +633,7 @@ const AIQuestionGenerator: React.FC<AIQuestionGeneratorProps> = ({
       {/* Panel header */}
       <div className="flex items-center justify-between px-4 py-3 border-b border-border shrink-0 bg-muted/30">
         <div className="flex items-center gap-2">
-          <Sparkles className="w-4 h-4 text-purple-500 dark:text-purple-400" />
+          <Sparkles className="w-4 h-4 text-muted-foreground" />
           <div>
             <h3 className="text-sm font-semibold text-foreground leading-none">Generar con IA</h3>
             <p className="text-xs text-muted-foreground mt-0.5">Basado en los parámetros actuales</p>
@@ -659,16 +659,16 @@ const AIQuestionGenerator: React.FC<AIQuestionGeneratorProps> = ({
             <div>
               <h3 className="text-sm font-medium text-muted-foreground mb-3">Parámetros</h3>
               <div className="flex flex-wrap gap-1.5">
-                <span className="px-1.5 py-0.5 text-xs rounded border border-blue-300 dark:border-blue-500/30 text-blue-600 dark:text-blue-300">
+                <span className="px-1.5 py-0.5 text-xs rounded-md border border-border bg-muted/50 text-foreground">
                   {getCompetencyLabel(formData.competency || '')}
                 </span>
-                <span className="px-1.5 py-0.5 text-xs rounded border border-green-300 dark:border-green-500/30 text-green-700 dark:text-green-300">
+                <span className="px-1.5 py-0.5 text-xs rounded-md border border-border bg-muted/50 text-foreground">
                   Nivel {formData.level}
                 </span>
-                <span className="px-1.5 py-0.5 text-xs rounded border border-purple-300 dark:border-purple-500/30 text-purple-700 dark:text-purple-300">
+                <span className="px-1.5 py-0.5 text-xs rounded-md border border-border bg-muted/50 text-foreground">
                   {getTypeLabel(formData.type || '')}
                 </span>
-                <span className="px-1.5 py-0.5 text-xs rounded border border-orange-300 dark:border-orange-500/30 text-orange-600 dark:text-orange-300">
+                <span className="px-1.5 py-0.5 text-xs rounded-md border border-border bg-muted/50 text-foreground">
                   Dificultad {formData.difficulty || 3}/5
                 </span>
                 {formData.metadata?.topic && (
@@ -699,7 +699,7 @@ const AIQuestionGenerator: React.FC<AIQuestionGeneratorProps> = ({
                 value={quantity}
                 onChange={(e) => setQuantity(Number(e.target.value))}
                 disabled={isGenerating}
-                className="w-full accent-purple-500 disabled:opacity-50"
+                className="w-full accent-primary disabled:opacity-50"
               />
               <div className="flex justify-between text-xs text-muted-foreground/50 -mt-1">
                 <span>1</span><span>5</span><span>10</span>
@@ -709,14 +709,14 @@ const AIQuestionGenerator: React.FC<AIQuestionGeneratorProps> = ({
             {/* ── Listening: audio upload zone ── */}
             {isListening ? (
               <div>
-                <label className={`flex flex-col items-center justify-center w-full h-24 border-2 border-dashed rounded-lg cursor-pointer transition-colors ${isGenerating ? 'border-border opacity-50 cursor-not-allowed' : 'border-border hover:border-purple-500/60 hover:bg-purple-50 dark:hover:bg-purple-900/10'}`}>
+                <label className={`flex flex-col items-center justify-center w-full h-24 border-2 border-dashed rounded-lg cursor-pointer transition-colors ${isGenerating ? 'border-border opacity-50 cursor-not-allowed' : 'border-border hover:border-primary/50 hover:bg-muted/50'}`}>
                   Audio de referencia{' '}
                   <span className="text-muted-foreground font-normal">(la IA generará la pregunta desde la transcripción)</span>
                 </label>
 
                 {!audioFile ? (
                   /* Drop zone */
-                  <label className={`flex flex-col items-center justify-center w-full h-24 border-2 border-dashed rounded-lg cursor-pointer transition-colors ${isGenerating ? 'border-border opacity-50 cursor-not-allowed' : 'border-border hover:border-purple-500/60 hover:bg-purple-50 dark:hover:bg-purple-900/10'}`}>
+                  <label className={`flex flex-col items-center justify-center w-full h-24 border-2 border-dashed rounded-lg cursor-pointer transition-colors ${isGenerating ? 'border-border opacity-50 cursor-not-allowed' : 'border-border hover:border-primary/50 hover:bg-muted/50'}`}>
                     <Upload className="w-6 h-6 text-muted-foreground/70 mb-1.5" />
                     <span className="text-sm text-muted-foreground">Sube un archivo de audio</span>
                     <span className="text-xs text-muted-foreground/60 mt-0.5">MP3, WAV, WebM, M4A — hasta ~10MB</span>
@@ -735,7 +735,7 @@ const AIQuestionGenerator: React.FC<AIQuestionGeneratorProps> = ({
                   <div className="space-y-2">
                     {/* File info row */}
                     <div className="flex items-center gap-2 bg-muted/50 border border-border rounded-lg px-3 py-2">
-                      <Headphones className="w-4 h-4 text-purple-500 dark:text-purple-400 flex-shrink-0" />
+                      <Headphones className="w-4 h-4 text-muted-foreground flex-shrink-0" />
                       <span className="text-sm text-foreground/90 flex-1 truncate min-w-0">{audioFile.name}</span>
                       <label className={`text-xs flex-shrink-0 cursor-pointer underline-offset-2 hover:underline ${isGenerating || isTranscribing ? 'text-muted-foreground pointer-events-none' : 'text-muted-foreground/70 hover:text-foreground'}`}>
                         Cambiar
@@ -762,7 +762,7 @@ const AIQuestionGenerator: React.FC<AIQuestionGeneratorProps> = ({
 
                     {/* Transcription status */}
                     {(isTranscribing || isFormatting) && (
-                      <div className="flex items-center gap-2 text-sm text-purple-700 dark:text-purple-300 py-1">
+                      <div className="flex items-center gap-2 text-sm text-muted-foreground py-1">
                         <Loader2 className="w-4 h-4 animate-spin flex-shrink-0" />
                         {isTranscribing ? 'Transcribiendo con Whisper...' : 'Interpretando formato...'}
                       </div>
@@ -866,15 +866,15 @@ const AIQuestionGenerator: React.FC<AIQuestionGeneratorProps> = ({
                 Transcribe el audio primero para obtener mejores resultados.
               </p>
             )}
-            <button
+            <Button
               type="button"
               onClick={quantity === 1 ? handleGenerate : handleBulkGenerate}
               disabled={!canGenerate || isTranscribing}
-              className="w-full flex items-center justify-center gap-2 h-9 px-4 text-sm rounded-lg bg-gradient-to-r from-purple-500 to-blue-600 hover:from-purple-600 hover:to-blue-700 text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full"
             >
-              <Sparkles className="w-4 h-4" />
+              <Sparkles />
               {generateButtonLabel()}
-            </button>
+            </Button>
             {!canGenerate && (
               <p className="text-amber-600 dark:text-amber-400 text-sm mt-3">
                 Completa competencia, nivel y tipo antes de generar
@@ -886,7 +886,7 @@ const AIQuestionGenerator: React.FC<AIQuestionGeneratorProps> = ({
         {/* ── Generating step: spinner / progress ── */}
         {step === 'generating' && (
           <div className="text-center py-8 space-y-4">
-            <Loader2 className="w-12 h-12 animate-spin text-purple-500 dark:text-purple-400 mx-auto" />
+            <Loader2 className="w-12 h-12 animate-spin text-muted-foreground mx-auto" />
             {quantity === 1 ? (
               <p className="text-muted-foreground">Generando pregunta...</p>
             ) : (
@@ -897,7 +897,7 @@ const AIQuestionGenerator: React.FC<AIQuestionGeneratorProps> = ({
                 <div className="max-w-xs mx-auto">
                   <div className="w-full bg-muted rounded-full h-2">
                     <div
-                      className="bg-purple-500 h-2 rounded-full transition-all duration-500"
+                      className="bg-primary h-2 rounded-full transition-all duration-500"
                       style={{ width: `${(bulkProgress / quantity) * 100}%` }}
                     />
                   </div>
@@ -948,8 +948,8 @@ const AIQuestionGenerator: React.FC<AIQuestionGeneratorProps> = ({
 
             {/* Audio preview in single-question step */}
             {isListening && audioBlobUrl && (
-              <div className="flex items-center gap-2 bg-muted/60 border border-purple-300 dark:border-purple-600/30 rounded-lg px-3 py-2">
-                <Headphones className="w-4 h-4 text-purple-500 dark:text-purple-400 flex-shrink-0" />
+              <div className="flex items-center gap-2 bg-muted/60 border border-border rounded-lg px-3 py-2">
+                <Headphones className="w-4 h-4 text-muted-foreground flex-shrink-0" />
                 <audio
                   src={audioBlobUrl}
                   controls

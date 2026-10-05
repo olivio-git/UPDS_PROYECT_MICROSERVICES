@@ -54,17 +54,15 @@ function buildKpis(summary: DashboardSummary, stats: StudentStats | undefined): 
 
 export function KpiCards({ summary, stats }: { summary: DashboardSummary; stats?: StudentStats }) {
   return (
-    <div className="grid grid-cols-2 md:grid-cols-5 gap-2">
+    <div className="grid grid-cols-2 gap-3 md:grid-cols-5">
       {buildKpis(summary, stats).map(({ label, value, sub, icon: Icon, color, tooltip }) => (
-        <Card flat key={label} title={tooltip} className="cursor-default">
-          <div className="p-3 flex items-center justify-between">
-            <div>
-              <p className="text-xs text-muted-foreground">{label}</p>
-              <p className="text-xl font-bold text-foreground leading-tight">{value}</p>
-              <p className={`text-xs ${color}`}>{sub}</p>
-            </div>
-            <Icon className={`h-6 w-6 ${color} opacity-60`} />
+        <Card key={label} title={tooltip} className="cursor-default gap-3 px-4">
+          <div className="flex items-center justify-between">
+            <p className="text-sm font-medium text-foreground">{label}</p>
+            <Icon className={`size-4 ${color}`} />
           </div>
+          <p className="text-3xl font-semibold tracking-tight text-foreground">{value}</p>
+          <p className="text-xs text-muted-foreground">{sub}</p>
         </Card>
       ))}
     </div>

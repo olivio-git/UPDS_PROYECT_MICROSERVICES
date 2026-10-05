@@ -87,7 +87,7 @@ const StudentHistoryScreen: React.FC = () => {
 
   return (
     <MainLayout>
-      <div className="flex h-full min-h-0 flex-col gap-3 overflow-auto p-3">
+      <div className="flex h-full min-h-0 flex-col gap-4 overflow-auto px-4 pb-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Button
@@ -111,7 +111,7 @@ const StudentHistoryScreen: React.FC = () => {
           )}
         </div>
 
-        <div className="bg-card border border-border p-3">
+        <div className="bg-card border border-border p-3 rounded-xl">
           {student
             ? <SelectedStudent student={student} onClear={clearStudent} />
             : <CandidateSearch onSelect={selectCandidate} />}

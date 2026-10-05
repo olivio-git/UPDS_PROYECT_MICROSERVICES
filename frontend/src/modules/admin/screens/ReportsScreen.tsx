@@ -102,7 +102,7 @@ const ReportsScreen: React.FC = () => {
 
   return (
     <MainLayout>
-      <div className="flex h-full min-h-0 flex-col gap-3 p-3">
+      <div className="flex h-full min-h-0 flex-col gap-4 px-4 pb-4">
         <div className="flex shrink-0 items-center justify-between">
           <div>
             <h1 className="text-xl font-bold text-foreground">Reportes y Análisis</h1>

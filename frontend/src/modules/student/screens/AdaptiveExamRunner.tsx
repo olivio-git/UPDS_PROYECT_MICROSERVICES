@@ -543,7 +543,7 @@ const AdaptiveExamRunner: React.FC = () => {
                 <Button
                   onClick={handleSubmitAnswer}
                   disabled={submitting || !currentAnswer}
-                  className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white min-w-32"
+                  className="min-w-32"
                 >
                   {submitting ? (
                     <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Evaluando...</>

@@ -400,7 +400,7 @@ const QuestionsScreen = () => {
         </div>
 
         {/* Filter bar */}
-        <div className="bg-card border border-border px-3 py-2 flex shrink-0 flex-wrap items-center gap-2">
+        <div className="bg-card border border-border px-3 py-2 flex shrink-0 flex-wrap items-center gap-2 rounded-xl">
 
           {/* Search */}
           <div className="relative">
@@ -491,7 +491,7 @@ const QuestionsScreen = () => {
         </div>
 
         {/* Table */}
-        <div className="flex flex-1 min-h-0 flex-col border-t border-border bg-card">
+        <div className="flex flex-1 min-h-0 flex-col border-border bg-card rounded-xl border overflow-hidden">
           {loading ? (
             <div className="flex flex-1 min-h-0 flex-col items-center justify-center text-center">
               <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500" />
@@ -615,7 +615,7 @@ const QuestionsScreen = () => {
 
   return (
     <MainLayout>
-      <div className="flex h-full min-h-0 flex-col gap-3 p-3">
+      <div className="flex h-full min-h-0 flex-col gap-4 px-4 pb-4">
         {renderView()}
       </div>
 

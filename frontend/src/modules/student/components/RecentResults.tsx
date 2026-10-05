@@ -191,10 +191,10 @@ const RecentResults = ({
             </ItemGroup>
           )}
 
-          <div className="pt-2">
+          <div className="flex justify-end pt-2">
             <Button
-              variant="default"
-              className="w-full"
+              variant="outline"
+              size="sm"
               onClick={() => navigate("/student/results")}
             >
               Ver Todos los Resultados

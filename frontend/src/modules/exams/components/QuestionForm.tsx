@@ -517,7 +517,7 @@ const QuestionForm: React.FC<Props> = ({ question, onCancel, onSaved }) => {
     <div className="flex gap-4 items-start">
     <form onSubmit={handleSubmit} className="flex flex-1 min-w-0 flex-col gap-3">
       {/* Meta */}
-      <div className="flex flex-col gap-4 border border-border bg-card p-4">
+      <div className="flex flex-col gap-4 border border-border bg-card p-4 rounded-xl">
         <div className="flex items-start justify-between">
           <div>
             <h3 className="text-base font-medium text-foreground">Metadatos</h3>
@@ -703,7 +703,7 @@ const QuestionForm: React.FC<Props> = ({ question, onCancel, onSaved }) => {
       </div>
 
       {/* Contenido */}
-      <div className="flex flex-col gap-4 border border-border bg-card p-4">
+      <div className="flex flex-col gap-4 border border-border bg-card p-4 rounded-xl">
         <div>
           <h3 className="text-base font-medium text-foreground">Contenido</h3>
           <p className="text-xs text-muted-foreground mt-0.5">Enunciado e instrucciones</p>
@@ -775,7 +775,7 @@ const QuestionForm: React.FC<Props> = ({ question, onCancel, onSaved }) => {
                     : "Describe el contexto o contenido del audio que los estudiantes escucharán..."
                 }
                 className={`w-full px-3 py-2 text-sm bg-muted/50 border border-border rounded-lg text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring resize-y min-h-[96px] max-h-[320px] overflow-auto transition-colors duration-150 placeholder:italic ${
-                  formData.content?.context ? 'border-purple-500/30 bg-green-100/5' : ''
+                  formData.content?.context ? 'border-primary/30' : ''
                 } shadow-none focus:shadow-none`}
               />
               {formData.content?.context && (
@@ -1048,7 +1048,7 @@ const QuestionForm: React.FC<Props> = ({ question, onCancel, onSaved }) => {
 
       {/* Multimedia mejorado */}
       {showMultimedia && (
-        <div className="flex flex-col gap-4 border border-border bg-card p-4">
+        <div className="flex flex-col gap-4 border border-border bg-card p-4 rounded-xl">
           <div className="mb-4">
             <h3 className="text-base font-semibold text-foreground flex items-center gap-2">
               <Volume2 className="w-5 h-5 text-blue-500 dark:text-blue-400" />
@@ -1289,7 +1289,7 @@ const QuestionForm: React.FC<Props> = ({ question, onCancel, onSaved }) => {
       )}
 
       {/* Metadatos adicionales y Etiquetas combinados */}
-      <div className="flex flex-col gap-4 border border-border bg-card p-4">
+      <div className="flex flex-col gap-4 border border-border bg-card p-4 rounded-xl">
         <div>
           <h3 className="text-base font-medium text-foreground">Información adicional</h3>
           <p className="text-xs text-muted-foreground mt-0.5">
@@ -1377,7 +1377,7 @@ const QuestionForm: React.FC<Props> = ({ question, onCancel, onSaved }) => {
       </div>
 
       {/* Acciones */}
-      <div className="-mx-3 flex items-center justify-end gap-2 border-t border-border px-3 pt-3">
+      <div className="flex items-center justify-end gap-2 border-t border-border pt-4">
         <Button variant="outline" type="button" onClick={onCancel}>
           <X />
           Cancelar
@@ -1405,7 +1405,7 @@ const QuestionForm: React.FC<Props> = ({ question, onCancel, onSaved }) => {
         className="absolute left-0 top-0 bottom-0 w-2 cursor-col-resize z-10 flex items-center justify-center group"
         onMouseDown={handleResizeStart}
       >
-        <div className="w-0.5 h-10 rounded-full bg-border group-hover:bg-purple-400 dark:group-hover:bg-purple-500 transition-colors" />
+        <div className="w-0.5 h-10 rounded-full bg-border group-hover:bg-primary/60 transition-colors" />
       </div>
       <AIQuestionGenerator
         formData={formData}

@@ -468,7 +468,7 @@ const RubricForm = ({
         </Card>
 
         {/* Botones de acción */}
-        <div className="-mx-3 flex items-center justify-end gap-2 border-t border-border px-3 pt-3">
+        <div className="flex items-center justify-end gap-2 border-t border-border pt-4">
           <Button type="button" variant="outline" onClick={onCancel} disabled={isLoading}>
             <X />
             Cancelar

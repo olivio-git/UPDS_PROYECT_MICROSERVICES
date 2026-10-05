@@ -666,7 +666,7 @@ const SessionsList: React.FC = () => {
 
     if (viewMode === 'people' && selectedSession) {
       return (
-        <div className="bg-card border border-border p-4">
+        <div className="bg-card border border-border p-4 rounded-xl">
           <div className="mb-4 flex items-center justify-between gap-3">
             <div>
               <h2 className="text-sm font-semibold text-foreground">Sesión creada — agrega candidatos y proctor</h2>
@@ -723,7 +723,7 @@ const SessionsList: React.FC = () => {
 
     if (viewMode === 'candidates' && selectedSession) {
       return (
-        <div className="border border-border bg-card p-4">
+        <div className="border border-border bg-card p-4 rounded-xl">
           <CandidateAssignmentView
             session={selectedSession}
             onClose={goTable}
@@ -738,7 +738,7 @@ const SessionsList: React.FC = () => {
     }
     if (viewMode === 'proctors' && selectedSession) {
       return (
-        <div className="border border-border bg-card p-4">
+        <div className="border border-border bg-card p-4 rounded-xl">
           <ProctorAssignmentModal
             session={selectedSession}
             onClose={goTable}
@@ -816,7 +816,7 @@ const SessionsList: React.FC = () => {
         </div>
 
         {/* Filter bar */}
-        <div className="bg-card border border-border px-3 py-2 flex shrink-0 flex-wrap items-center gap-2">
+        <div className="bg-card border border-border px-3 py-2 flex shrink-0 flex-wrap items-center gap-2 rounded-xl">
 
           {/* Search */}
           <div className="relative">
@@ -928,7 +928,7 @@ const SessionsList: React.FC = () => {
         </div>
 
         {/* Tabla */}
-        <div className="flex flex-1 min-h-0 flex-col border-t border-border bg-card">
+        <div className="flex flex-1 min-h-0 flex-col border-border bg-card rounded-xl border overflow-hidden">
           <div className="flex-1 min-h-0">
             <CustomizableTable
               table={table}
@@ -987,7 +987,7 @@ const SessionsList: React.FC = () => {
 
   return (
     <MainLayout>
-      <div className="flex h-full min-h-0 flex-col gap-3 p-3">
+      <div className="flex h-full min-h-0 flex-col gap-4 px-4 pb-4">
         {renderView()}
       </div>
     </MainLayout>

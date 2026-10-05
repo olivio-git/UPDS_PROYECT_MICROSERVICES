@@ -70,7 +70,7 @@ export function QuestionResultCard({ index, result, showEvaluationMethod = false
 
       <div className="px-4 py-3 space-y-3">
         {data?.context && (
-          <div className="bg-card border border-border rounded-lg px-3 py-2">
+          <div className="bg-card border border-border rounded-xl px-3 py-2">
             <p className="text-xs text-muted-foreground italic leading-relaxed">{data.context}</p>
           </div>
         )}

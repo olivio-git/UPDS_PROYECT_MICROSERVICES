@@ -378,7 +378,7 @@ const UsersScreen = () => {
           totalCount={totalUsers}
           isLoading={isLoading}
         />
-        <div className="flex flex-1 min-h-0 flex-col border-t border-border bg-card">
+        <div className="flex flex-1 min-h-0 flex-col border-border bg-card rounded-xl border overflow-hidden">
           <UserTable
             users={users}
             selectedUsers={selectedUsers}
@@ -411,7 +411,7 @@ const UsersScreen = () => {
 
   return (
     <MainLayout>
-      <div className="flex h-full min-h-0 flex-col gap-3 p-3">
+      <div className="flex h-full min-h-0 flex-col gap-4 px-4 pb-4">
         {renderContent()}
       </div>
 

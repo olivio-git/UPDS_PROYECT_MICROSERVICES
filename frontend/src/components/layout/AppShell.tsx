@@ -113,18 +113,18 @@ export function AppShell({ children }: { children: ReactNode }) {
         </SidebarFooter>
       </Sidebar>
 
-      <SidebarInset className="flex h-dvh min-w-0 flex-col">
-        <header className="flex h-12 shrink-0 items-center gap-2 border-b border-border bg-card px-3">
+      <SidebarInset className="app-canvas flex h-dvh min-w-0 flex-col">
+        <header className="flex h-14 shrink-0 items-center gap-2 px-4">
           <SidebarTrigger />
 
           <button
             type="button"
             onClick={() => setPaletteOpen(true)}
-            className="flex h-8 items-center gap-2 rounded-lg border border-border bg-muted/40 px-3 text-xs text-muted-foreground transition-colors hover:bg-muted"
+            className="flex h-8 w-56 items-center gap-2 rounded-lg border border-border bg-card px-2.5 text-xs text-muted-foreground shadow-xs transition-colors hover:bg-muted"
           >
             <Search className="h-3.5 w-3.5" />
             <span className="hidden sm:inline">Buscar</span>
-            <kbd className="hidden rounded border border-border bg-background px-1 py-0.5 font-mono text-[10px] sm:inline">Ctrl+K</kbd>
+            <kbd className="ml-auto hidden rounded border border-border bg-muted px-1 py-0.5 font-mono text-[10px] sm:inline">Ctrl+K</kbd>
           </button>
 
           <div className="ml-auto flex items-center gap-1">
@@ -145,7 +145,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           </div>
         </header>
 
-        <main className="min-h-0 flex-1 overflow-auto bg-background">{children}</main>
+        <main className="min-h-0 flex-1 overflow-auto">{children}</main>
       </SidebarInset>
 
       <CommandPalette isOpen={paletteOpen} onClose={() => setPaletteOpen(false)} />

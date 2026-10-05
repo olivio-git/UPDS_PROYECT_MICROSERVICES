@@ -67,7 +67,7 @@ export function CandidateSearch({ onSelect }: { onSelect: (candidate: Candidate)
           // focus buttons on click, so without this the input's blur would
           // close the list before the click reached the button.
           onMouseDown={(e) => e.preventDefault()}
-          className="absolute top-full left-0 right-0 mt-1 bg-card border border-border rounded-lg shadow-lg z-20 overflow-hidden"
+          className="absolute top-full left-0 right-0 mt-1 bg-card border border-border rounded-xl shadow-lg z-20 overflow-hidden"
         >
           {results.length === 0 ? (
             <p className="text-xs text-muted-foreground text-center px-4 py-2.5">Sin resultados</p>

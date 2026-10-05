@@ -184,7 +184,7 @@ const ExamCalendar = () => {
   };
 
   return (
-    <div className="flex flex-col bg-card border border-border overflow-hidden">
+    <div className="flex flex-col bg-card border border-border overflow-hidden rounded-xl">
       {/* Header */}
       <div className="px-4 pt-4 pb-3 border-b border-border flex items-center justify-between">
         <div className="flex items-center gap-2">
@@ -284,7 +284,7 @@ const ExamCalendar = () => {
                   <HoverCardContent
                     side="right"
                     align="start"
-                    className="w-64 p-0 overflow-hidden border border-border bg-card shadow-xl"
+                    className="w-64 p-0 overflow-hidden border border-border bg-card shadow-xl rounded-xl"
                   >
                     <DayHoverContent year={year} month={month} day={day} exams={examsByDay[day]} />
                   </HoverCardContent>

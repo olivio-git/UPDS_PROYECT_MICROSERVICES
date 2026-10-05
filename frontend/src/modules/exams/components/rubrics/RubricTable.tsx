@@ -127,7 +127,7 @@ const RubricTable = ({
 
   if (isLoading) {
     return (
-      <div className="flex flex-1 min-h-0 flex-col items-center justify-center border-t border-border bg-card">
+      <div className="flex flex-1 min-h-0 flex-col items-center justify-center border-border bg-card rounded-xl border overflow-hidden">
         <div className="flex items-center justify-center space-x-2">
           <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-green-500"></div>
           <span className="text-muted-foreground">Cargando rúbricas...</span>
@@ -138,7 +138,7 @@ const RubricTable = ({
 
   if (isError) {
     return (
-      <div className="flex flex-1 min-h-0 flex-col items-center justify-center border-t border-border bg-card text-center">
+      <div className="flex flex-1 min-h-0 flex-col items-center justify-center border-border bg-card text-center rounded-xl border overflow-hidden">
         <div className="space-y-3">
           <div className="text-red-400">Error al cargar las rúbricas</div>
           <p className="text-muted-foreground text-sm">{errorMessage}</p>
@@ -149,7 +149,7 @@ const RubricTable = ({
 
   if (rubrics.length === 0) {
     return (
-      <div className="flex flex-1 min-h-0 flex-col border-t border-border bg-card">
+      <div className="flex flex-1 min-h-0 flex-col border-border bg-card rounded-xl border overflow-hidden">
         <EmptyState
           icon={Award}
           title="No hay rúbricas disponibles"
@@ -159,7 +159,7 @@ const RubricTable = ({
     );
   }
   return (
-    <div className="flex flex-1 min-h-0 flex-col border-t border-border bg-card">
+    <div className="flex flex-1 min-h-0 flex-col border-border bg-card rounded-xl border overflow-hidden">
       <Table>
         <TableHeader className="sticky top-0 z-10 bg-background">
           <TableRow className="border-border hover:bg-muted/30">
@@ -209,8 +209,8 @@ const RubricTable = ({
               
               <TableCell>
                 <div className="flex items-center space-x-2">
-                  <div className="w-6 h-6 rounded-full bg-gradient-to-br from-blue-500/20 to-purple-600/20 border border-blue-500/30 flex items-center justify-center">
-                    <span className="text-blue-700 dark:text-blue-300 font-bold text-xs">{rubric.level}</span>
+                  <div className="w-6 h-6 rounded-full bg-muted flex items-center justify-center">
+                    <span className="text-foreground font-semibold text-xs">{rubric.level}</span>
                   </div>
                 </div>
               </TableCell>

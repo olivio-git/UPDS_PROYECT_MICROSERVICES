@@ -21,23 +21,21 @@ interface BrandLogoProps {
  * like an empty gap there.
  */
 export function BrandLogo({ className, markOnly = false }: BrandLogoProps) {
-  const img = (src: string, hidden: string, alt: string) => (
+  // The colour file stacks the name under the mark (crop the bottom); the
+  // white file puts it to the right of the mark (crop the right side).
+  const img = (src: string, hidden: string, alt: string, markCrop: string) => (
     <img
       src={src}
       alt={alt}
       aria-hidden={alt ? undefined : 'true'}
-      className={cn(
-        'w-auto',
-        hidden,
-        markOnly ? 'h-[145%] object-cover object-top' : 'h-full',
-      )}
+      className={cn('w-auto', hidden, markOnly ? markCrop : 'h-full')}
     />
   );
 
   return (
     <span className={cn('inline-flex items-center overflow-hidden', className)}>
-      {img(logoColor, 'dark:hidden', 'CBA Tarija')}
-      {img(logoWhite, 'hidden dark:block', '')}
+      {img(logoColor, 'dark:hidden', 'CBA Tarija', 'h-[145%] object-cover object-top')}
+      {img(logoWhite, 'hidden dark:block', '', 'h-full aspect-[1.75] object-cover object-left')}
     </span>
   );
 }

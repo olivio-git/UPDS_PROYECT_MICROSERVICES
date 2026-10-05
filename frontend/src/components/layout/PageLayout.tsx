@@ -14,7 +14,7 @@ import type { ReactNode } from 'react';
 
 /** Outer wrapper of a screen: full width and height, one padding. */
 export function Page({ className, children }: { className?: string; children: ReactNode }) {
-  return <div className={cn('flex h-full min-h-0 flex-col gap-3 p-3', className)}>{children}</div>;
+  return <div className={cn('flex h-full min-h-0 flex-col gap-4 px-4 pb-4', className)}>{children}</div>;
 }
 
 interface PageHeaderProps {
@@ -90,10 +90,10 @@ export function FormPage({
         <h2 className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">{title}</h2>
       </div>
 
-      <div className="flex flex-col gap-3">{children}</div>
+      <div className="flex flex-col gap-4">{children}</div>
 
       {(footer || footerStart) && (
-        <div className="-mx-3 mt-auto flex shrink-0 items-center justify-between gap-3 border-t border-border px-3 pt-3">
+        <div className="mt-auto flex shrink-0 items-center justify-between gap-3 border-t border-border pt-4">
           <div className="flex items-center gap-2">{footerStart}</div>
           <div className="flex items-center gap-2">{footer}</div>
         </div>

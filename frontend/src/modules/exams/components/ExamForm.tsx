@@ -1121,7 +1121,7 @@ const ExamForm: React.FC<ExamFormProps> = ({ exam, onCancel, onSaved }) => {
       </FormSection>
 
       {/* Botones de acción */}
-      <div className="-mx-3 flex items-center justify-end gap-2 border-t border-border px-3 pt-3">
+      <div className="flex items-center justify-end gap-2 border-t border-border pt-4">
         <Button type="button" onClick={onCancel} variant="outline">
           <X />
           Cancelar
