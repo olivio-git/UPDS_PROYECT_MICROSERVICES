@@ -7,10 +7,10 @@ copied at keel commit `79a7958`, on 2026-09-23.
 keel's primitives are built on **@base-ui/react** (Base UI) instead of Radix, which is why
 this frontend now has two coexisting primitive systems on purpose:
 
-- `src/components/atoms/*` — shadcn-over-**Radix**. Legacy: no live screen imports it any more
-  (see "Full-app migration" below); only unreachable files still reference it.
-- `src/components/keel/*` — shadcn-over-**Base UI**. Every screen reachable from `main.tsx` uses
-  these.
+- `src/components/atoms/*` — the old shadcn-over-**Radix** set. **Deleted** (2026-10-05), together
+  with every `@radix-ui/*` dependency. Only `radix-ui` (the unified package) remains, for the
+  `Slot` that `button.tsx` and `badge.tsx` use.
+- `src/components/keel/*` — shadcn-over-**Base UI**. The only component set in the app.
 
 New screens must import from `@/components/keel/*`, never from `atoms/`.
 
@@ -94,19 +94,12 @@ cards, `bg-popover border-border` on menus): buttons use keel variants (`default
 `destructive`, `secondary`, `outline`), and `Card`s that were flattened with `rounded-none` use
 `flat`.
 
-### Still on `atoms/`
+### Dead code removed
 
-Nothing reachable. The files below are not imported from `main.tsx` (directly, through a lazy
-route, or transitively) and were left untouched; deleting them together with `atoms/` and the
-Radix dependencies is the remaining cleanup:
-`components/background/*` (except `GrandWrapperSection`), `components/technical-verification/*`,
-`components/ui/*`, `hooks/use-toast.ts`, `modules/dashboard/components/Header.tsx`,
-`modules/dashboard/screens/{content,dashboard,layout,list-01,list-02,list-03,profile-01,sidebar,top-nav}.tsx`,
-`modules/exams/components/{ImportModal,QuestionModal,QuestionsList}.tsx`,
-`modules/exams/components/question-form/*`, `modules/exams/pages/ExamsModule.tsx`,
-`modules/student/components/{DashboardCards,Performance,SectionedExamRenderer,SectionedQuestionRenderer,StudentHeader}.tsx`,
-`modules/student/screens/ExamReview.tsx`, `modules/users/components/Pagination.tsx`,
-`navigation/components/NavigationBreadcrumb.tsx`.
+`atoms/` and the files no screen imported (old dashboard templates, the unused `question-form/`
+split, `ExamReview`, `SectionedExamRenderer`, `technical-verification/`, etc.) were deleted on
+2026-10-05. `modules/student/services/technicalVerificationTypes.ts` was kept: nothing imports it,
+but it declares the global `window.webkitAudioContext` type the technical check relies on.
 
 ## Page layout conventions (2026-10-05)
 
