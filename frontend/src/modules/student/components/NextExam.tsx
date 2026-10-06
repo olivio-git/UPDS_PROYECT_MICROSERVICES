@@ -341,13 +341,11 @@ const NextExam: React.FC<PropsNextExam> = ({
           <div className="flex items-center gap-2 mb-4 flex-wrap">
             <Badge
               variant="secondary"
-              className="border border-fuchsia-400/30 bg-fuchsia-500/10 text-fuchsia-600"
             >
               Nivel {nextExam.level}
             </Badge>
             <Badge
               variant="secondary"
-              className="border border-sky-400/30 bg-sky-500/10 text-sky-600"
             >
               {nextExam.duration}
             </Badge>

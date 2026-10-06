@@ -881,27 +881,10 @@ const ExamRunnerHTTP: React.FC = () => {
             <div className="flex min-h-0 flex-1 flex-col overflow-auto p-3">
               {/* The card owns the whole pane: a short question used to leave
                   a third of the screen as empty tint below it. */}
-              <Card flat className="flex flex-col">
+              <Card flat className="flex flex-col py-0">
                 <CardContent className="flex flex-col gap-4 p-5 lg:p-6">
                   {currentQuestion ? (
                     <div key={currentQuestion._id as string} className="question-enter">
-                      {/* Flag button */}
-                      <div className="flex justify-end mb-3">
-                        <button
-                          onClick={() => toggleFlag(currentQuestion._id as string)}
-                          className={[
-                            'flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all border',
-                            flaggedQuestions.has(currentQuestion._id as string)
-                              ? 'border-amber-400 dark:border-amber-500 text-amber-600 dark:text-amber-400 hover:bg-muted'
-                              : 'border-border text-muted-foreground hover:bg-muted hover:text-foreground',
-                          ].join(' ')}
-                        >
-                          {flaggedQuestions.has(currentQuestion._id as string)
-                            ? <><BookmarkCheck className="h-3.5 w-3.5 text-amber-500 fill-amber-500/20" /><span>Marcada para revisar</span></>
-                            : <><Bookmark className="h-3.5 w-3.5" /><span>Marcar para revisar</span></>
-                          }
-                        </button>
-                      </div>
                       <QuestionRenderer
                         key={currentQuestion._id as string}
                         question={currentQuestion}
@@ -924,6 +907,7 @@ const ExamRunnerHTTP: React.FC = () => {
             {/* Navigation controls — pinned below the scroll area */}
             <div className="shrink-0 border-t border-border bg-card px-4 py-3 lg:px-6">
               <div className="flex items-center justify-between gap-3">
+                <div className="flex items-center gap-1">
                 <Button
                   onClick={goToPreviousQuestion}
                   disabled={isFirstQuestionOverall}
@@ -933,6 +917,24 @@ const ExamRunnerHTTP: React.FC = () => {
                   <ChevronLeft className="h-4 w-4 mr-1" />
                   Anterior
                 </Button>
+
+                {currentQuestion && (() => {
+                  const flagged = flaggedQuestions.has(currentQuestion._id as string);
+                  return (
+                    <Button
+                      variant="ghost"
+                      onClick={() => toggleFlag(currentQuestion._id as string)}
+                      aria-pressed={flagged}
+                      className={flagged ? 'text-amber-600 hover:text-amber-700 dark:text-amber-400 dark:hover:text-amber-300' : 'text-muted-foreground'}
+                    >
+                      {flagged
+                        ? <BookmarkCheck className="h-4 w-4 fill-amber-500/20" />
+                        : <Bookmark className="h-4 w-4" />}
+                      <span className="hidden sm:inline">{flagged ? 'Marcada' : 'Marcar para revisar'}</span>
+                    </Button>
+                  );
+                })()}
+                </div>
 
                 {/* Discreet keyboard-shortcut hint — desktop only, out of
                     the way of the primary actions it sits between. */}

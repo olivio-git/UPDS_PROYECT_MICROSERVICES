@@ -44,12 +44,14 @@ const competencyIcons: { [key: string]: React.ComponentType<{ className?: string
   general: Play,
 };
 
+// One sober accent for every section; the icon already tells competencies apart.
+const SECTION_ACCENT = { activeBg: 'bg-primary/5 border-primary/40', activeIcon: 'text-primary' };
 const competencyAccent: Record<string, { activeBg: string; activeIcon: string }> = {
-  reading:    { activeBg: 'bg-blue-50 dark:bg-blue-500/10 border-blue-300 dark:border-blue-500/50',   activeIcon: 'text-blue-600 dark:text-blue-400' },
-  writing:    { activeBg: 'bg-purple-50 dark:bg-purple-500/10 border-purple-300 dark:border-purple-500/50', activeIcon: 'text-purple-600 dark:text-purple-400' },
-  listening:  { activeBg: 'bg-green-50 dark:bg-green-500/10 border-green-300 dark:border-green-500/50',  activeIcon: 'text-green-600 dark:text-green-400' },
-  speaking:   { activeBg: 'bg-orange-50 dark:bg-orange-500/10 border-orange-300 dark:border-orange-500/50', activeIcon: 'text-orange-600 dark:text-orange-400' },
-  general:    { activeBg: 'bg-slate-50 dark:bg-slate-500/10 border-slate-300 dark:border-slate-500/50', activeIcon: 'text-slate-600 dark:text-slate-400' },
+  reading: SECTION_ACCENT,
+  writing: SECTION_ACCENT,
+  listening: SECTION_ACCENT,
+  speaking: SECTION_ACCENT,
+  general: SECTION_ACCENT,
 };
 
 /** A single numbered chip in the question palette. Colour alone never carries
