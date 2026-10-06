@@ -38,6 +38,8 @@ const ExamDetailView: React.FC<ExamDetailViewProps> = ({ exam, onBack, onEdit })
       writing: "Expresión Escrita",
       listening: "Comprensión Auditiva",
       speaking: "Expresión Oral",
+      grammar: "Gramática",
+      vocabulary: "Vocabulario",
     };
     return labels[competency] || competency;
   };

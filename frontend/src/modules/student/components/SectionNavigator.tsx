@@ -8,6 +8,8 @@ import {
   Headphones,
   Mic,
   Play,
+  SpellCheck,
+  BookA,
 } from 'lucide-react';
 
 export interface QuestionState {
@@ -41,6 +43,8 @@ const competencyIcons: { [key: string]: React.ComponentType<{ className?: string
   writing: PenTool,
   listening: Headphones,
   speaking: Mic,
+  grammar: SpellCheck,
+  vocabulary: BookA,
   general: Play,
 };
 
@@ -51,6 +55,8 @@ const competencyAccent: Record<string, { activeBg: string; activeIcon: string }>
   writing: SECTION_ACCENT,
   listening: SECTION_ACCENT,
   speaking: SECTION_ACCENT,
+  grammar: SECTION_ACCENT,
+  vocabulary: SECTION_ACCENT,
   general: SECTION_ACCENT,
 };
 

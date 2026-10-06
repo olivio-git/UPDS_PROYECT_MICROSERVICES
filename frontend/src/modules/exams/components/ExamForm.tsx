@@ -8,18 +8,19 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Switch } from '@/components/keel/switch';
 import { Textarea } from '@/components/keel/textarea';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { BarChart3, Plus, RotateCcw, Save, Trash2, X } from 'lucide-react';
-import React, { useCallback, useEffect, useState } from 'react';
-import { Controller, useFieldArray, useForm, type FieldErrors } from 'react-hook-form';
+import { Save, X } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import { Controller, useForm, type FieldErrors } from 'react-hook-form';
 import { toast } from 'sonner';
 import { z } from 'zod';
 import { useExams } from '../hooks/useExams';
 import { useLevels } from '../hooks/useLevels';
 import { useQuestionAvailability } from '../hooks/useQuestionAvailability';
 import type { Competency, Exam, ExamSection, Level } from '../types';
-import { distributeEvenly, formatWeight, getWeightInputError, isWeightSumValid, remainingWeight, sumWeights } from '../utils/weights';
-import QuestionAvailabilityIndicator from './QuestionAvailabilityIndicator';
-import WeightInput from './shared/WeightInput';
+import { formatWeight, isWeightSumValid, sumWeights } from '../utils/weights';
+import { COMPETENCY_SHORT } from '../constants/academic.constants';
+import { SectionsBuilder } from './exam-sections/SectionsBuilder';
+import { DEFAULT_INSTRUCTIONS, newSection, sectionsFromTemplate, type SectionDraft } from './exam-sections/sectionDefaults';
 
 // Esquema de validación
 const examSectionSchema = z.object({
@@ -70,18 +71,6 @@ interface ExamFormProps {
   onSaved: () => void;
 }
 
-// ─── Instrucciones predeterminadas por competencia ────────────────────────────
-const DEFAULT_INSTRUCTIONS: Record<string, string> = {
-  reading:
-    'Lee atentamente cada texto antes de responder las preguntas. Puedes releer los pasajes cuantas veces necesites. Responde únicamente en base a la información proporcionada en los textos.',
-  writing:
-    'Responde cada pregunta de forma clara y organizada. Cuida la gramática, el vocabulario y la coherencia en tu escritura. Lee bien las instrucciones de cada ejercicio antes de comenzar.',
-  listening:
-    'Escucha con atención cada audio antes de responder. Usa auriculares para una mejor experiencia. Los audios se reproducen automáticamente; asegúrate de tener el volumen adecuado antes de iniciar.',
-  speaking:
-    'Habla con claridad y a un ritmo natural al responder. Asegúrate de que tu micrófono esté funcionando antes de comenzar. Responde de forma completa y fluida dentro del tiempo indicado.',
-};
-
 const DEFAULT_QUESTION_TYPES = ['multiple_choice'];
 
 /**
@@ -101,7 +90,7 @@ const normalizeLoadedSections = (sections: ExamSection[]): ExamSectionFormData[]
       competency,
       instructions: raw.instructions?.trim()
         ? raw.instructions
-        : DEFAULT_INSTRUCTIONS[competency] ?? DEFAULT_INSTRUCTIONS.reading,
+        : DEFAULT_INSTRUCTIONS[competency as keyof typeof DEFAULT_INSTRUCTIONS] ?? DEFAULT_INSTRUCTIONS.reading,
       questionCount: raw.questionCount ?? 0,
       questionTypes: raw.questionTypes?.length ? raw.questionTypes : [...DEFAULT_QUESTION_TYPES],
       weight: raw.weight ?? 0,
@@ -136,7 +125,7 @@ interface PlacementConfig {
 const ExamForm: React.FC<ExamFormProps> = ({ exam, onCancel, onSaved }) => {
   const { createExam, updateExam } = useExams();
   const { levels, isLoading: isLoadingLevels } = useLevels();
-  const { checkAvailability, availability, loading: availabilityLoading } = useQuestionAvailability();
+  const { checkAvailability, availability } = useQuestionAvailability();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
   const [placementConfig, setPlacementConfig] = useState<PlacementConfig>({
@@ -162,19 +151,8 @@ const ExamForm: React.FC<ExamFormProps> = ({ exam, onCancel, onSaved }) => {
       type: exam?.type || '',
       targetLevel: exam?.targetLevel || (levels.length > 0 ? levels[0].code : ''),
       structure: {
-        sections: exam?.structure?.sections ? normalizeLoadedSections(exam.structure.sections) : [
-          {
-            id: '1',
-            name: 'Sección 1',
-            competency: 'reading',
-            instructions: DEFAULT_INSTRUCTIONS.reading,
-            questionCount: 10,
-            questionTypes: ['multiple_choice'],
-            weight: 100,
-            duration: 30,
-            order: 1
-          }
-        ],
+        // New exams start from the full MCER template (six competencies, 20/20/20/20/10/10).
+        sections: exam?.structure?.sections ? normalizeLoadedSections(exam.structure.sections) : sectionsFromTemplate('mcer'),
         totalQuestions: exam?.structure?.totalQuestions || 0,
         totalDuration: exam?.structure?.totalDuration || 0,
         passingScore: exam?.structure?.passingScore || 70
@@ -189,11 +167,6 @@ const ExamForm: React.FC<ExamFormProps> = ({ exam, onCancel, onSaved }) => {
       isActive: exam?.isActive ?? true,
       isTemplate: exam?.isTemplate ?? false
     }
-  });
-
-  const { fields, append, remove } = useFieldArray({
-    control,
-    name: 'structure.sections'
   });
 
   const watchedSections = watch('structure.sections');
@@ -247,92 +220,34 @@ const ExamForm: React.FC<ExamFormProps> = ({ exam, onCancel, onSaved }) => {
     }
   }, [watchedType, placementConfig.mode, getValues, setValue]);
 
-  // Función debounce personalizada
-  const debounce = useCallback((func: Function, delay: number) => {
-    let timeoutId: any;
-    return (...args: any[]) => {
-      clearTimeout(timeoutId);
-      timeoutId = setTimeout(() => func.apply(null, args), delay);
-    };
-  }, []);
-
-  // Validación de disponibilidad con debounce
-  const validateSectionQuestions = useCallback(
-    debounce(async (sectionIndex: number, competency: string, questionCount: number, level: string) => {
-      if (!competency || !questionCount || !level || questionCount <= 0) {
-        setValidationErrors(prev => {
-          const newErrors = { ...prev };
-          delete newErrors[`section-${sectionIndex}`];
-          return newErrors;
-        });
-        return;
-      }
-
-      try {
-        const { isAvailable, maxAllowed } = await checkAvailability(competency, level, questionCount);
-
-        setValidationErrors(prev => ({
-          ...prev,
-          [`section-${sectionIndex}`]: !isAvailable
-            ? `Máximo ${maxAllowed} preguntas disponibles para ${competency} nivel ${level}`
-            : ''
-        }));
-
-        // Auto-ajustar el valor si excede el máximo
-        if (!isAvailable && maxAllowed > 0) {
-          setValue(`structure.sections.${sectionIndex}.questionCount`, maxAllowed);
-        }
-      } catch (error) {
-        console.error('Error validating section questions:', error);
-      }
-    }, 500),
-    [checkAvailability, setValue]
-  );
-
-  // Validar todas las secciones cuando cambia el nivel objetivo
+  // Question availability per section (cached per level by the hook). Checked
+  // for every section on change; previously a single shared debounce meant
+  // only the last section was ever validated.
   useEffect(() => {
-    if (watchedTargetLevel && watchedSections.length > 0) {
-      watchedSections.forEach((section, index) => {
-        if (section.competency && section.questionCount) {
-          validateSectionQuestions(index, section.competency, section.questionCount, watchedTargetLevel);
+    if (!watchedTargetLevel) return;
+    let cancelled = false;
+    const t = setTimeout(async () => {
+      const next: Record<string, string> = {};
+      for (const [index, section] of watchedSections.entries()) {
+        if (!section?.competency || !section.questionCount) continue;
+        const { isAvailable, maxAllowed } = await checkAvailability(section.competency, watchedTargetLevel, section.questionCount);
+        if (!isAvailable) {
+          const name = (COMPETENCY_SHORT[section.competency as keyof typeof COMPETENCY_SHORT] ?? section.competency).toLowerCase();
+          next[`section-${index}`] = maxAllowed === 0
+            ? `Todavía no hay preguntas de ${name} en ${watchedTargetLevel}`
+            : `Solo hay ${maxAllowed} preguntas de ${name} en ${watchedTargetLevel}`;
         }
-      });
-    }
-  }, [watchedTargetLevel, watchedSections, validateSectionQuestions]);
-
-  // Reinicio explícito: distribuye 100% de peso en partes iguales entre todas
-  // las secciones (el resto va a las primeras para que la suma sea exacta).
-  const distributeSectionWeightsEvenly = () => {
-    distributeEvenly(getValues('structure.sections').length).forEach((weight, i) => {
-      setValue(`structure.sections.${i}.weight`, weight, { shouldValidate: true });
-    });
-  };
-
-  const addSection = () => {
-    const newSection = {
-      id: Date.now().toString(),
-      name: `Sección ${fields.length + 1}`,
-      competency: 'reading',
-      instructions: DEFAULT_INSTRUCTIONS.reading,
-      questionCount: 10,
-      questionTypes: [...DEFAULT_QUESTION_TYPES],
-      // Conservar los pesos que el docente ya definió: la nueva sección recibe
-      // solo lo que falta para llegar a 100 (100 si es la primera).
-      weight: remainingWeight(sumWeights(getValues('structure.sections').map(s => s.weight))),
-      duration: 30,
-      order: fields.length + 1
+      }
+      if (!cancelled) setValidationErrors(next);
+    }, 400);
+    return () => {
+      cancelled = true;
+      clearTimeout(t);
     };
-    append(newSection);
-  };
+  }, [watchedTargetLevel, watchedSections, checkAvailability]);
 
-  const removeSection = (index: number) => {
-    if (fields.length > 1) {
-      // Los pesos restantes no se modifican; el total visible muestra la diferencia.
-      remove(index);
-    } else {
-      toast.error('Debe mantener al menos una sección');
-    }
-  };
+  const setSections = (next: SectionDraft[]) =>
+    setValue('structure.sections', next as ExamSectionFormData[], { shouldValidate: true, shouldDirty: true });
 
   const onSubmit = async (data: ExamFormData) => {
     try {
@@ -455,12 +370,6 @@ const ExamForm: React.FC<ExamFormProps> = ({ exam, onCancel, onSaved }) => {
         : 'No se pudo guardar el examen: revisa los campos del formulario'
     );
   };
-
-  // Suma de pesos de las secciones — solo relevante cuando hay secciones (se
-  // ignora en modo adaptativo, que las vacía por completo).
-  const rawSectionWeightTotal = sumWeights(watchedSections.map(section => section?.weight));
-  const sectionWeightTotal = formatWeight(rawSectionWeightTotal);
-  const sectionWeightIsValid = watchedSections.length === 0 || isWeightSumValid(rawSectionWeightTotal);
 
   return (
     <form onSubmit={handleSubmit(onSubmit, onInvalid)} className="flex flex-col gap-3">
@@ -617,17 +526,7 @@ const ExamForm: React.FC<ExamFormProps> = ({ exam, onCancel, onSaved }) => {
                     // Restore a default section when switching back to static
                     const currentSections = getValues('structure.sections');
                     if (currentSections.length === 0) {
-                      setValue('structure.sections', [{
-                        id: Date.now().toString(),
-                        name: 'Sección 1',
-                        competency: 'reading',
-                        instructions: DEFAULT_INSTRUCTIONS.reading,
-                        questionCount: 10,
-                        questionTypes: ['multiple_choice'],
-                        weight: 100,
-                        duration: 30,
-                        order: 1
-                      }]);
+                      setValue('structure.sections', [newSection('reading', 1, 100)]);
                     }
                   }
                 }}
@@ -729,257 +628,22 @@ const ExamForm: React.FC<ExamFormProps> = ({ exam, onCancel, onSaved }) => {
       <>
       <FormSection
         title="Secciones del examen"
-        description="El peso de cada sección determina cuánto aporta al puntaje final."
-        actions={
-          <>
-            <Button type="button" onClick={() => distributeSectionWeightsEvenly()} variant="outline" size="sm">
-              <BarChart3 />
-              Distribuir equitativamente
-            </Button>
-            <Button type="button" onClick={addSection} size="sm">
-              <Plus />
-              Agregar sección
-            </Button>
-          </>
-        }
+        description="Cada sección evalúa una competencia; su peso es cuánto aporta al puntaje final."
       >
-
-        <div className="flex items-center justify-end text-sm">
-          <span className={sectionWeightIsValid ? 'text-emerald-600 dark:text-emerald-400 font-medium' : 'text-orange-500 font-medium'}>
-            Peso total: {sectionWeightTotal}%
-          </span>
-        </div>
-        {!sectionWeightIsValid && (
-          <p className="text-xs text-destructive">
-            {`Las secciones deben sumar 100% de peso (suma actual: ${sectionWeightTotal}%). Usa 'Distribuir equitativamente' o ajusta a 100 (p. ej. 33.33 / 33.33 / 33.34).`}
-          </p>
-        )}
-
-        {fields.map((field, index) => (
-          <div key={field.id} className="rounded-lg border border-border p-4">
-            <div className="flex items-center justify-between mb-4">
-              <h4 className="font-medium text-foreground">Sección {index + 1}</h4>
-              {fields.length > 1 && (
-                <Button
-                  variant="destructive"
-                  type="button"
-                  onClick={() => removeSection(index)}
-                  size="sm"
-                  className="bg-muted hover:bg-muted"
-                >
-                  <Trash2 className="w-4 h-4" />
-                </Button>
-              )}
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              <div className="space-y-2">
-                <Label>
-                  Nombre de la Sección *
-                </Label>
-                <Controller
-                  name={`structure.sections.${index}.name`}
-                  control={control}
-                  render={({ field }) => (
-                    <Input
-                      {...field}
-                      placeholder="Ej: Comprensión Lectora"
-                    />
-                  )}
-                />
-                {errors.structure?.sections?.[index]?.name && (
-                  <p className="text-xs text-destructive">
-                    {errors.structure.sections[index]?.name?.message}
-                  </p>
-                )}
-              </div>
-
-              <div className="space-y-2">
-                <Label>
-                  Competencia *
-                </Label>
-                <Controller
-                  name={`structure.sections.${index}.competency`}
-                  control={control}
-                  render={({ field }) => (
-                    <Select
-                      value={field.value}
-                      items={{ reading: 'Comprensión Lectora', writing: 'Expresión Escrita', listening: 'Comprensión Auditiva', speaking: 'Expresión Oral' }}
-                      onValueChange={(value) => {
-                        if (!value) return;
-                        field.onChange(value);
-                        // Auto-rellenar instrucciones si están vacías
-                        const currentInstructions = getValues(`structure.sections.${index}.instructions`);
-                        if (!currentInstructions?.trim() && DEFAULT_INSTRUCTIONS[value]) {
-                          setValue(`structure.sections.${index}.instructions`, DEFAULT_INSTRUCTIONS[value]);
-                        }
-                        // Trigger validation when competency changes
-                        if (value && watchedTargetLevel && watchedSections[index]?.questionCount) {
-                          validateSectionQuestions(index, value, watchedSections[index].questionCount, watchedTargetLevel);
-                        }
-                      }}
-                    >
-                      <SelectTrigger className="w-full">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="reading">Comprensión Lectora</SelectItem>
-                        <SelectItem value="writing">Expresión Escrita</SelectItem>
-                        <SelectItem value="listening">Comprensión Auditiva</SelectItem>
-                        <SelectItem value="speaking">Expresión Oral</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  )}
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label>
-                  Número de Preguntas *
-                </Label>
-                <Controller
-                  name={`structure.sections.${index}.questionCount`}
-                  control={control}
-                  render={({ field }) => (
-                    <div>
-                      <Input
-                        {...field}
-                        type="number"
-                        min="1"
-                        max={availability[`${watchedSections[index]?.competency}-${watchedTargetLevel}`]?.maxAllowed || undefined}
-                        onChange={(e) => {
-                          const value = parseInt(e.target.value) || 0;
-                          const maxAllowed = availability[`${watchedSections[index]?.competency}-${watchedTargetLevel}`]?.maxAllowed || Infinity;
-
-                          // Limitar al máximo disponible
-                          const finalValue = value > maxAllowed ? maxAllowed : value;
-                          field.onChange(finalValue);
-
-                          // Trigger validation
-                          if (watchedSections[index]?.competency && watchedTargetLevel) {
-                            validateSectionQuestions(index, watchedSections[index].competency, finalValue, watchedTargetLevel);
-                          }
-                        }}
-                        aria-invalid={!!validationErrors[`section-${index}`]}
-                      />
-
-                      {/* Indicador de disponibilidad */}
-                      <QuestionAvailabilityIndicator
-                        competency={watchedSections[index]?.competency || ''}
-                        level={watchedTargetLevel || ''}
-                        neededCount={field.value || 0}
-                        availability={availability}
-                        loading={availabilityLoading}
-                      />
-
-                      {/* Error de validación */}
-                      {validationErrors[`section-${index}`] && (
-                        <p className="text-red-400 text-xs mt-1">
-                          {validationErrors[`section-${index}`]}
-                        </p>
-                      )}
-                    </div>
-                  )}
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label>
-                  Duración (min) *
-                </Label>
-                <Controller
-                  name={`structure.sections.${index}.duration`}
-                  control={control}
-                  render={({ field }) => (
-                    <Input
-                      {...field}
-                      type="number"
-                      min="1"
-                      onChange={(e) => field.onChange(parseInt(e.target.value) || 0)}
-                    />
-                  )}
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label>
-                  Peso (%) *
-                </Label>
-                <Controller
-                  name={`structure.sections.${index}.weight`}
-                  control={control}
-                  render={({ field }) => (
-                    <WeightInput
-                      name={field.name}
-                      ref={field.ref}
-                      onBlur={field.onBlur}
-                      min="0"
-                      max="100"
-                      value={field.value}
-                      onValueChange={field.onChange}
-                    />
-                  )}
-                />
-                {(getWeightInputError(watchedSections[index]?.weight) ?? errors.structure?.sections?.[index]?.weight?.message) && (
-                  <p className="text-xs text-destructive">
-                    {getWeightInputError(watchedSections[index]?.weight) ?? errors.structure?.sections?.[index]?.weight?.message}
-                  </p>
-                )}
-              </div>
-            </div>
-
-            <div className="mt-4 space-y-2">
-              <div className="flex items-center justify-between">
-                <Label>
-                  Instrucciones *
-                </Label>
-                {DEFAULT_INSTRUCTIONS[watchedSections[index]?.competency] && (
-                  <button
-                    type="button"
-                    onClick={() => setValue(
-                      `structure.sections.${index}.instructions`,
-                      DEFAULT_INSTRUCTIONS[watchedSections[index].competency]
-                    )}
-                    className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
-                  >
-                    <RotateCcw className="h-3 w-3" />
-                    Usar predeterminada
-                  </button>
-                )}
-              </div>
-              <Controller
-                name={`structure.sections.${index}.instructions`}
-                control={control}
-                render={({ field }) => (
-                  <Textarea
-                    {...field}
-                    placeholder="Instrucciones para esta sección..."
-                    rows={2}
-                  />
-                )}
-              />
-              {errors.structure?.sections?.[index]?.instructions && (
-                <p className="text-xs text-destructive">
-                  {errors.structure.sections[index]?.instructions?.message}
-                </p>
-              )}
-            </div>
-          </div>
-        ))}
-
-        {/* Resumen de totales */}
-        <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-          {[
-            { label: 'Total preguntas', value: String(watch('structure.totalQuestions') ?? '—') },
-            { label: 'Duración total', value: `${watch('structure.totalDuration')} min` },
-            { label: 'Puntaje mínimo', value: `${watch('structure.passingScore')}%` },
-          ].map((item) => (
-            <div key={item.label} className="rounded-lg bg-muted/40 px-3 py-2">
-              <p className="mb-0.5 text-[10px] leading-none tracking-wide text-muted-foreground uppercase">{item.label}</p>
-              <p className="text-sm font-medium text-foreground">{item.value}</p>
-            </div>
-          ))}
-        </div>
+        <SectionsBuilder
+          sections={watchedSections as SectionDraft[]}
+          onChange={setSections}
+          level={watchedTargetLevel || ''}
+          availability={availability}
+          errors={Object.fromEntries(
+            watchedSections.map((sec, i) => [sec.id, validationErrors[`section-${i}`] || undefined]),
+          )}
+          onApplyTemplate={(previous) =>
+            toast.success('Plantilla aplicada', {
+              action: { label: 'Deshacer', onClick: () => setSections(previous) },
+            })
+          }
+        />
       </FormSection>
       </>
       )}

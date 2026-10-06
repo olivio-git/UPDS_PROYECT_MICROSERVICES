@@ -66,6 +66,8 @@ const QuestionDetailView: React.FC<QuestionDetailViewProps> = ({
       file_upload: 'Subida de Archivo',
       listening: 'Comprensión Auditiva',
       speaking: 'Expresión Oral',
+      grammar: 'Gramática',
+      vocabulary: 'Vocabulario',
       reading: 'Comprensión Lectora',
       writing: 'Expresión Escrita',
       matching: 'Emparejar',

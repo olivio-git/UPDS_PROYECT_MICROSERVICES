@@ -18,6 +18,7 @@ import type { Competency } from "../../types";
 import type { Rubric, RubricCriterion, RubricLevel } from "../../types/rubrics.types";
 import { distributeEvenly, formatWeight, getWeightInputError, isWeightSumValid, sumWeights } from "../../utils/weights";
 import CompetencySelector from "../shared/CompetencySelector";
+import { RUBRIC_COMPETENCIES } from "../../constants/academic.constants";
 import MCERLevelSelector from "../shared/MCERLevelSelector";
 import WeightInput from "../shared/WeightInput";
 
@@ -261,6 +262,7 @@ const RubricForm = ({
                   Competencia *
                 </Label>
                 <CompetencySelector
+                  options={RUBRIC_COMPETENCIES}
                   value={formData.competency}
                   onValueChange={(value) => handleInputChange('competency', value)}
                   placeholder="Seleccionar competencia"

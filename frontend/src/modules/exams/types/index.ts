@@ -16,11 +16,7 @@ export type QuestionType =
   | 'writing';
 
 // Competencias
-export type Competency = 
-  | 'reading' 
-  | 'writing' 
-  | 'listening' 
-  | 'speaking';
+export type Competency = 'reading' | 'writing' | 'listening' | 'speaking' | 'grammar' | 'vocabulary';
 
 // Niveles MCER
 export type Level = 'A1' | 'A2' | 'B1' | 'B2' | 'C1' | 'C2';

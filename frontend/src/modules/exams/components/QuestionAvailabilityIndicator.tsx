@@ -46,6 +46,8 @@ const QuestionAvailabilityIndicator: React.FC<QuestionAvailabilityIndicatorProps
       writing: 'Expresión Escrita',
       listening: 'Comprensión Auditiva',
       speaking: 'Expresión Oral',
+      grammar: 'Gramática',
+      vocabulary: 'Vocabulario',
     };
     return names[comp] || comp;
   };

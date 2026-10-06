@@ -1,6 +1,6 @@
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/components/keel/dialog';
 import { CompetencyMasteryPanel, QuestionResultCard, useAdminResultDetail, type ReviewCompetencyScore } from '@/components/exam-review';
-import { competencyBarClass } from '@/lib/competency';
+import { COMPETENCY_BAR_CLASS } from '@/lib/competency';
 import { scoreTextClass } from '@/lib/scoreBands';
 import { cn } from '@/lib/utils';
 import type { SessionResultRow } from '@/services/examResultService';
@@ -27,7 +27,7 @@ function CompetencyScores({ scores }: { scores: ReviewCompetencyScore[] }) {
               aria-valuemax={100}
               aria-label={`${cs.competency} ${cs.percentage.toFixed(0)}%`}
             >
-              <div className={cn('h-full rounded-full transition-all duration-500', competencyBarClass(cs.competency))} style={{ width: `${Math.min(cs.percentage, 100)}%` }} />
+              <div className={cn('h-full rounded-full transition-all duration-500', COMPETENCY_BAR_CLASS)} style={{ width: `${Math.min(cs.percentage, 100)}%` }} />
             </div>
             <div className="flex items-center gap-2 text-xs text-muted-foreground">
               <span>{cs.totalScore}/{cs.maxScore} pts</span>

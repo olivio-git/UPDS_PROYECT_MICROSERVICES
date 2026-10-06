@@ -32,6 +32,9 @@ const TYPES_BY_COMPETENCY: Record<string, QuestionType[]> = {
   writing:   ['essay', 'open_text', 'fill_blanks', 'multiple_choice', 'true_false', 'matching', 'ordering', 'drag_drop'],
   listening: ['multiple_choice', 'true_false', 'fill_blanks', 'matching', 'ordering', 'open_text'],
   speaking:  ['audio_response'],
+  // Linguistic competences: closed formats that auto-grade reliably.
+  grammar:    ['multiple_choice', 'fill_blanks', 'drag_drop', 'true_false', 'matching'],
+  vocabulary: ['multiple_choice', 'matching', 'fill_blanks', 'true_false', 'drag_drop'],
 };
 
 const DEFAULT_TYPE_BY_COMPETENCY: Record<string, QuestionType> = {
@@ -39,6 +42,8 @@ const DEFAULT_TYPE_BY_COMPETENCY: Record<string, QuestionType> = {
   writing:   'essay',
   listening: 'multiple_choice',
   speaking:  'audio_response',
+  grammar:    'multiple_choice',
+  vocabulary: 'multiple_choice',
 };
 
 const TYPE_LABELS: Record<QuestionType, string> = {
@@ -552,6 +557,8 @@ const QuestionForm: React.FC<Props> = ({ question, onCancel, onSaved }) => {
               <NativeSelectOption value="writing">Expresión Escrita</NativeSelectOption>
               <NativeSelectOption value="listening">Comprensión Auditiva</NativeSelectOption>
               <NativeSelectOption value="speaking">Expresión Oral</NativeSelectOption>
+              <NativeSelectOption value="grammar">Gramática</NativeSelectOption>
+              <NativeSelectOption value="vocabulary">Vocabulario</NativeSelectOption>
             </NativeSelect>
           </div>
 

@@ -137,6 +137,8 @@ function getCompetencyLabel(comp: string) {
     writing: 'Expresión Escrita',
     listening: 'Comprensión Auditiva',
     speaking: 'Expresión Oral',
+    grammar: 'Gramática',
+    vocabulary: 'Vocabulario',
   };
   return labels[comp] || comp;
 }

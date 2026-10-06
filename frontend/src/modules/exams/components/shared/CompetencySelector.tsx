@@ -14,6 +14,8 @@ interface CompetencySelectorProps {
   placeholder?: string;
   disabled?: boolean;
   className?: string;
+  /** Competencies to offer (rubrics only cover the four skills). */
+  options?: readonly Competency[];
 }
 
 const CompetencySelector = ({
@@ -21,7 +23,8 @@ const CompetencySelector = ({
   onValueChange,
   placeholder = "Seleccionar competencia",
   disabled = false,
-  className = ""
+  className = "",
+  options = COMPETENCIES,
 }: CompetencySelectorProps) => {
   return (
     <Select
@@ -34,7 +37,7 @@ const CompetencySelector = ({
         <SelectValue placeholder={placeholder} />
       </SelectTrigger>
       <SelectContent>
-        {COMPETENCIES.map((competency) => (
+        {options.map((competency) => (
           <SelectItem
             key={competency}
             value={competency}

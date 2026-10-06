@@ -1,4 +1,4 @@
-import { competencyBadgeClass } from '@/lib/competency';
+import { COMPETENCY_BADGE_CLASS } from '@/lib/competency';
 import { scoreBadgeClass, scoreBarClass } from '@/lib/scoreBands';
 import { cn } from '@/lib/utils';
 import { CheckCircle, X } from 'lucide-react';
@@ -19,6 +19,8 @@ const TYPE_LABEL: Record<string, string> = {
   open_text: 'Texto',
   audio_response: 'Audio',
   speaking: 'Speaking',
+  grammar: 'Grammar',
+  vocabulary: 'Vocabulary',
   file_upload: 'Archivo',
 };
 
@@ -53,7 +55,7 @@ export function QuestionResultCard({ index, result, showEvaluationMethod = false
           <span className="bg-muted text-foreground px-2.5 py-0.5 rounded-full text-xs font-medium shrink-0">#{index + 1}</span>
           {type && <span className="text-xs text-foreground/80 font-medium">{TYPE_LABEL[type] ?? type.replace(/_/g, ' ')}</span>}
           {competency && (
-            <span className={cn('inline-flex items-center px-2 py-0.5 rounded border text-xs capitalize', competencyBadgeClass(competency))}>
+            <span className={cn('inline-flex items-center px-2 py-0.5 rounded border text-xs capitalize', COMPETENCY_BADGE_CLASS)}>
               {competency}
             </span>
           )}

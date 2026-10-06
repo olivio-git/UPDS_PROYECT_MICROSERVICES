@@ -34,6 +34,7 @@ import {
   Timer,
   UserX,
   X,
+  Info,
 } from 'lucide-react';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
@@ -885,6 +886,15 @@ const ExamRunnerHTTP: React.FC = () => {
                 <CardContent className="flex flex-col gap-4 p-5 lg:p-6">
                   {currentQuestion ? (
                     <div key={currentQuestion._id as string} className="question-enter">
+                      {currentQuestionIndex === 0 && currentSection?.instructions?.trim() && (
+                        <div className="mb-5 flex items-start gap-2.5 rounded-xl border border-primary/20 bg-primary/[0.04] px-4 py-3 text-sm leading-relaxed text-foreground/85">
+                          <Info className="mt-0.5 size-4 shrink-0 text-primary" />
+                          <p>
+                            <span className="font-medium text-foreground">{currentSection.name}. </span>
+                            {currentSection.instructions}
+                          </p>
+                        </div>
+                      )}
                       <QuestionRenderer
                         key={currentQuestion._id as string}
                         question={currentQuestion}

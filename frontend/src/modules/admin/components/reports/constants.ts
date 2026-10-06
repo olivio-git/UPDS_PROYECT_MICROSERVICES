@@ -7,6 +7,8 @@ export const COMPETENCY_LABELS: Record<string, string> = {
   reading: 'Reading',
   writing: 'Writing',
   speaking: 'Speaking',
+  grammar: 'Grammar',
+  vocabulary: 'Vocabulary',
 };
 
 /** Accent color per MCER level, index-aligned with MCER_LEVELS. */

@@ -433,6 +433,8 @@ const QuestionsScreen = () => {
             <NativeSelectOption value="ordering">Ordenar</NativeSelectOption>
             <NativeSelectOption value="audio_response">Respuesta de Audio</NativeSelectOption>
             <NativeSelectOption value="speaking">Expresión Oral</NativeSelectOption>
+            <NativeSelectOption value="grammar">Gramática</NativeSelectOption>
+            <NativeSelectOption value="vocabulary">Vocabulario</NativeSelectOption>
             <NativeSelectOption value="writing">Expresión Escrita</NativeSelectOption>
           </NativeSelect>
 
@@ -446,6 +448,8 @@ const QuestionsScreen = () => {
             <NativeSelectOption value="writing">Expresión Escrita</NativeSelectOption>
             <NativeSelectOption value="listening">Comprensión Auditiva</NativeSelectOption>
             <NativeSelectOption value="speaking">Expresión Oral</NativeSelectOption>
+            <NativeSelectOption value="grammar">Gramática</NativeSelectOption>
+            <NativeSelectOption value="vocabulary">Vocabulario</NativeSelectOption>
           </NativeSelect>
 
           {/* Nivel */}

@@ -8,6 +8,8 @@ export interface ExamSection {
   id: string;
   name: string;
   competency: string;
+  /** Teacher's instructions for the section, shown when it starts. */
+  instructions?: string;
   duration: number;
   weight: number;
   questionCount: number;

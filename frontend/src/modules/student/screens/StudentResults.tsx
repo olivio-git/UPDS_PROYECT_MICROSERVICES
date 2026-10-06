@@ -209,6 +209,8 @@ const StudentResults = () => {
       reading: 'Comprensión Lectora',
       writing: 'Expresión Escrita',
       speaking: 'Expresión Oral',
+      grammar: 'Gramática',
+      vocabulary: 'Vocabulario',
     };
     return names[key as keyof typeof names] || key;
   };

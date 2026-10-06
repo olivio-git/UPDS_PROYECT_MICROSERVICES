@@ -31,6 +31,8 @@ export interface ExamResultSummary {
     writing?: number;
     listening?: number;
     speaking?: number;
+    grammar?: number;
+    vocabulary?: number;
     [key: string]: number | undefined;
   };
   duration: number;
@@ -132,6 +134,8 @@ export interface EvaluationStats {
     writing?: number;
     listening?: number;
     speaking?: number;
+    grammar?: number;
+    vocabulary?: number;
     [key: string]: number | undefined;
   };
   lastEvaluationDate: string | null;
@@ -171,6 +175,8 @@ export interface StudentExamResult {
     reading?: { score: number; feedback: string };
     writing?: { score: number; feedback: string };
     speaking?: { score: number; feedback: string };
+    grammar?: { score: number; feedback: string };
+    vocabulary?: { score: number; feedback: string };
     [key: string]: { score: number; feedback: string } | undefined;
   };
   feedback: string;
@@ -560,7 +566,9 @@ class ExamResultService {
       reading: 'Comprensión Lectora',
       writing: 'Expresión Escrita',
       listening: 'Comprensión Auditiva',
-      speaking: 'Expresión Oral'
+      speaking: 'Expresión Oral',
+      grammar: 'Gramática',
+      vocabulary: 'Vocabulario'
     };
 
     const competencyName = competencyNames[competency] || competency;
@@ -736,6 +744,8 @@ class ExamResultService {
       writing: 'Expresión Escrita',
       listening: 'Comprensión Auditiva',
       speaking: 'Expresión Oral',
+      grammar: 'Gramática',
+      vocabulary: 'Vocabulario',
       general: 'General'
     };
 
