@@ -1,4 +1,4 @@
-import { sampleWithoutReplacement } from '../utils/questionSampling';
+import { sampleFavoringUnseen } from '../utils/questionSampling';
 import { Types } from 'mongoose';
 import axios from 'axios';
 import type { ExamAttemptFinishedReason } from '@cba/events';
@@ -240,6 +240,16 @@ export class ExamTakingService {
 
       if (!exam) throw new Error('Exam not found for session');
 
+    // Questions this candidate already got in earlier attempts (other
+    // sessions): a retake picks unseen questions first and only repeats when
+    // the bank runs out.
+    const previousAttempts = await Attempt.find({ candidateId: candidate._id, sessionId: { $ne: session._id } })
+      .select('questionIds')
+      .lean()
+      .exec();
+    const seenQuestionIds = new Set(previousAttempts.flatMap((a: any) => (a.questionIds ?? []).map(String)));
+    const isSeen = (q: any) => seenQuestionIds.has(String(q?._id ?? q));
+
     // Build question set by sections from exam.structure
     const sections = [];
     let allSelectedQuestions: any[] = [];
@@ -287,7 +297,7 @@ export class ExamTakingService {
           if (exam.configuration.randomizeQuestions) {
             // Sample from the WHOLE bank (ids only), then load the chosen ones.
             const ids = await Question.find(filter).select('_id').lean().exec();
-            const picked = sampleWithoutReplacement(ids.map((d: any) => d._id), wanted);
+            const picked = sampleFavoringUnseen(ids.map((d: any) => d._id), wanted, isSeen);
             competencyQuestions = await Question.find({ _id: { $in: picked } }).exec();
           } else {
             competencyQuestions = await Question.find(filter).limit(wanted).exec();
@@ -296,9 +306,10 @@ export class ExamTakingService {
 
         console.log(`✅ [Competency: ${competency}] Found ${competencyQuestions.length} available questions`);
 
-        // Randomize questions for this competency
+        // Randomize, keeping unseen questions ahead of ones this candidate already saw
+        // (sections take questions from the front of this list).
         if (exam.configuration.randomizeQuestions) {
-          competencyQuestions = this.shuffleArray(competencyQuestions);
+          competencyQuestions = sampleFavoringUnseen(competencyQuestions, competencyQuestions.length, isSeen);
         }
 
         // Check if we have enough questions
@@ -375,7 +386,7 @@ export class ExamTakingService {
       }
 
       // Uniform pick (sort(() => 0.5 - Math.random()) is a biased shuffle).
-      const selected = sampleWithoutReplacement(questionDocs, questionCount);
+      const selected = sampleFavoringUnseen(questionDocs, questionCount, isSeen);
 
       sections.push({
         id: 'general',

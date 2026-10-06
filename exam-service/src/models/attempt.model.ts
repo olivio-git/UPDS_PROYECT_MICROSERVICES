@@ -104,5 +104,7 @@ const attemptSchema = new Schema<IAttempt>({
 });
 
 attemptSchema.index({ sessionId: 1, candidateId: 1 });
+// Previous attempts of a candidate (to prefer questions they have not seen).
+attemptSchema.index({ candidateId: 1 });
 
 export const Attempt = model<IAttempt>('Attempt', attemptSchema);

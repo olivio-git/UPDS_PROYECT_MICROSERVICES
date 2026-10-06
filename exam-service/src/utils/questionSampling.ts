@@ -14,3 +14,23 @@ export function sampleWithoutReplacement<T>(items: readonly T[], size: number, r
   }
   return pool.slice(0, n);
 }
+
+/**
+ * Like sampleWithoutReplacement, but questions the candidate has NOT seen in
+ * earlier attempts come first: the result is the unseen ones (random order)
+ * followed by seen ones (random order), cut to `size`. Seen questions are only
+ * used when the unseen ones run out, so a retake repeats as little as the bank
+ * allows.
+ */
+export function sampleFavoringUnseen<T>(
+  items: readonly T[],
+  size: number,
+  isSeen: (item: T) => boolean,
+  random: () => number = Math.random,
+): T[] {
+  const unseen = items.filter((i) => !isSeen(i));
+  const seen = items.filter((i) => isSeen(i));
+  const n = Math.min(Math.max(0, Math.floor(size)), items.length);
+  const fromUnseen = sampleWithoutReplacement(unseen, n, random);
+  return [...fromUnseen, ...sampleWithoutReplacement(seen, n - fromUnseen.length, random)];
+}

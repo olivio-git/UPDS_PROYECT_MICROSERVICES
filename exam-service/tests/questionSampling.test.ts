@@ -1,4 +1,4 @@
-import { sampleWithoutReplacement } from '../src/utils/questionSampling';
+import { sampleFavoringUnseen, sampleWithoutReplacement } from '../src/utils/questionSampling';
 
 /** Deterministic random source (mulberry32) so the statistics below are stable. */
 function seeded(seed: number) {
@@ -59,5 +59,58 @@ describe('sampleWithoutReplacement', () => {
     }
     expect(seenOld.size).toBe(15);
     expect(seenNew.size).toBeGreaterThan(90);
+  });
+});
+
+describe('sampleFavoringUnseen', () => {
+  it('picks only unseen questions when there are enough', () => {
+    const seen = new Set(BANK.slice(0, 60));
+    const picked = sampleFavoringUnseen(BANK, 20, (q) => seen.has(q), seeded(5));
+    expect(picked).toHaveLength(20);
+    expect(new Set(picked).size).toBe(20);
+    picked.forEach((q) => expect(seen.has(q)).toBe(false));
+  });
+
+  it('uses every unseen question first and fills the rest with seen ones', () => {
+    const seen = new Set(BANK.slice(0, 95));
+    const picked = sampleFavoringUnseen(BANK, 10, (q) => seen.has(q), seeded(6));
+    expect(picked).toHaveLength(10);
+    expect(new Set(picked).size).toBe(10);
+    expect(picked.slice(0, 5).sort()).toEqual(BANK.slice(95).sort());
+    picked.slice(5).forEach((q) => expect(seen.has(q)).toBe(true));
+  });
+
+  it('behaves like plain sampling for a first attempt', () => {
+    const picked = sampleFavoringUnseen(BANK, 10, () => false, seeded(8));
+    expect(picked).toEqual(sampleWithoutReplacement(BANK, 10, seeded(8)));
+  });
+
+  it('a bank of 50 with 10 per attempt gives 5 attempts without any repetition', () => {
+    const bank = BANK.slice(0, 50);
+    const random = seeded(9);
+    const seen = new Set<string>();
+    for (let attempt = 0; attempt < 5; attempt++) {
+      const picked = sampleFavoringUnseen(bank, 10, (q) => seen.has(q), random);
+      picked.forEach((q) => {
+        expect(seen.has(q)).toBe(false);
+        seen.add(q);
+      });
+    }
+    expect(seen.size).toBe(50);
+  });
+
+  it('stays fair among the unseen questions', () => {
+    const random = seeded(10);
+    const seen = new Set(BANK.slice(0, 50));
+    const counts = new Map<string, number>();
+    for (let a = 0; a < 20000; a++) {
+      for (const q of sampleFavoringUnseen(BANK, 10, (x) => seen.has(x), random)) counts.set(q, (counts.get(q) ?? 0) + 1);
+    }
+    // 50 unseen, 10 per attempt: each should appear in ~20% of attempts (4000 times).
+    expect(counts.size).toBe(50);
+    for (const n of counts.values()) {
+      expect(n).toBeGreaterThan(3600);
+      expect(n).toBeLessThan(4400);
+    }
   });
 });
