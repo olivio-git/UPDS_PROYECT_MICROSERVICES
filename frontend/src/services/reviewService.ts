@@ -1,4 +1,5 @@
-import { api } from './api.service';
+import { GATEWAY_URL } from '@/lib/serviceUrls';
+import { authSDK } from './sdk-simple-auth';
 
 /**
  * Manual review of open answers (writing, speaking, picture tasks) that a
@@ -78,22 +79,32 @@ export interface SubmitReviewInput {
   feedback: string;
 }
 
-const BASE = '/api/v1/exam-results/review';
+// grading-service owns graded results; the gateway routes /api/v1/grading to it.
+const BASE = `${GATEWAY_URL}/api/v1/grading/review`;
+
+async function request<T>(path: string, init?: RequestInit): Promise<T> {
+  const token = authSDK.getAccessToken();
+  const res = await fetch(`${BASE}${path}`, {
+    ...init,
+    headers: {
+      'Content-Type': 'application/json',
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      ...init?.headers,
+    },
+  });
+  const body = await res.json().catch(() => ({}));
+  if (!res.ok || body.success === false) throw new Error(body.error || `Error ${res.status}`);
+  return body.data as T;
+}
 
 export const reviewService = {
-  async getQueue(status: ReviewStatus): Promise<ReviewQueueItem[]> {
-    const body = await api.get<{ success: boolean; data: ReviewQueueItem[] }>(`${BASE}/queue`, { params: { status } });
-    return body.data ?? [];
-  },
-
-  async getTask(resultId: string, questionId: string): Promise<ReviewTask> {
-    const body = await api.get<{ success: boolean; data: ReviewTask }>(`${BASE}/${resultId}/questions/${questionId}`);
-    return body.data;
-  },
-
-  async submit(resultId: string, questionId: string, input: SubmitReviewInput): Promise<void> {
-    await api.post(`${BASE}/${resultId}/questions/${questionId}`, input);
-  },
+  getQueue: (status: ReviewStatus) => request<ReviewQueueItem[]>(`/queue?status=${status}`),
+  getTask: (resultId: string, questionId: string) => request<ReviewTask>(`/${resultId}/questions/${questionId}`),
+  submit: (resultId: string, questionId: string, input: SubmitReviewInput) =>
+    request<{ score: number; status: string; percentage: number; pendingManual: number }>(`/${resultId}/questions/${questionId}`, {
+      method: 'POST',
+      body: JSON.stringify(input),
+    }),
 };
 
 export { scoreFromRubric } from '@/modules/review/scoring';

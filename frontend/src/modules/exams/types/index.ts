@@ -41,6 +41,8 @@ export interface QuestionContent {
   correctAnswer?: string | string[];
   mediaUrl?: string;
   mediaType?: 'audio' | 'image' | 'video';
+  /** Qué muestra la imagen (accesibilidad y contexto para quien corrige). */
+  mediaAlt?: string;
   context?: string;
   keywords?: string[];
   sampleAnswer?: string;
@@ -72,6 +74,8 @@ export interface Question {
   competency: Competency;           // Competencia evaluada
   level: Level;                      // Nivel CEFR u otro estándar
   difficulty: number;                // Escala 1-5
+  /** Respuestas abiertas: IA automática, docente, o IA sugiere y docente confirma. */
+  gradingMode?: 'auto' | 'manual' | 'assisted';
   content: QuestionContent;          // Texto, opciones, archivos multimedia
   points?: number;                   // Puntos totales asignados
   metadata?: {

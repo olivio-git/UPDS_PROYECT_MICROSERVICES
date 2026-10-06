@@ -99,7 +99,7 @@ export default function ReviewScreen() {
       setActiveKey(next ? itemKey(next) : null);
       queryClient.invalidateQueries({ queryKey: ['review'] });
     },
-    onError: () => toast.error('No se pudo guardar la calificación'),
+    onError: (err) => toast.error(`No se pudo guardar la calificación${err instanceof Error && err.message ? ` · ${err.message}` : ''}`),
   });
 
   useEffect(() => {

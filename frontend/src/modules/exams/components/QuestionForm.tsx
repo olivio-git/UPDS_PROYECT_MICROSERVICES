@@ -109,6 +109,7 @@ const QuestionForm: React.FC<Props> = ({ question, onCancel, onSaved }) => {
           keywords: question.content?.keywords || [],
           mediaUrl: question.content?.mediaUrl || undefined,
           mediaType: question.content?.mediaType || 'audio',
+          mediaAlt: question.content?.mediaAlt,
           template: question.content?.template || '',
           blanks: legacyBlanks(question.content),
           items: question.content?.items || [],
@@ -261,9 +262,8 @@ const QuestionForm: React.FC<Props> = ({ question, onCancel, onSaved }) => {
   const needsAudioInput = formData.type === 'audio_response';
   const isListeningQuestion = formData.competency === 'listening';
   const needsFillBlanks = formData.type === 'fill_blanks';
-  const showMultimedia =
-    canHaveMedia &&
-    (isListeningQuestion || needsAudioInput || formData.content?.mediaUrl);
+  // Any question can carry an image (picture description, signs, menus…).
+  const showMultimedia = canHaveMedia;
 
   // Helper: detect if any item has media (audio/image) either selected in state or present in data
   const anyItemHasMedia = () => {
@@ -577,6 +577,22 @@ const QuestionForm: React.FC<Props> = ({ question, onCancel, onSaved }) => {
               )}
             </NativeSelect>
           </div>
+
+          {/* Modo de corrección — solo respuestas abiertas */}
+          {['essay', 'open_text', 'audio_response'].includes(formData.type || '') && (
+            <div className="space-y-2">
+              <Label>Corrección</Label>
+              <NativeSelect
+                value={formData.gradingMode ?? 'auto'}
+                onChange={e => setFormData((p: Partial<Question>) => ({ ...p, gradingMode: e.target.value as Question['gradingMode'] }))}
+                className="w-full"
+              >
+                <NativeSelectOption value="auto">Automática con IA</NativeSelectOption>
+                <NativeSelectOption value="assisted">IA sugiere, docente confirma</NativeSelectOption>
+                <NativeSelectOption value="manual">Manual (docente)</NativeSelectOption>
+              </NativeSelect>
+            </div>
+          )}
 
           {/* Rúbrica - Para tipos subjetivos en competencias que la soportan */}
           {(['essay', 'open_text', 'audio_response'].includes(formData.type || '') &&
@@ -1038,6 +1054,17 @@ const QuestionForm: React.FC<Props> = ({ question, onCancel, onSaved }) => {
                 </span>
               )}
             </div>
+            {(imageFile || formData.content?.mediaType === 'image') && (
+              <div className="mt-3 space-y-2">
+                <Label>Descripción de la imagen</Label>
+                <Input
+                  value={formData.content?.mediaAlt ?? ''}
+                  onChange={e => patchContent({ mediaAlt: e.target.value })}
+                  placeholder="Ej.: una mujer lee en un banco y un hombre corre con su perro"
+                  maxLength={1000}
+                />
+              </div>
+            )}
           </div>
         </div>
       )}

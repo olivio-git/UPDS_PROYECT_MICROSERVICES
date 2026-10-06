@@ -1,5 +1,5 @@
 import {
-  Activity, Award, BarChart3, BookOpen, CalendarClock, ClipboardList, FileText, Home,
+  Activity, Award, BarChart3, BookOpen, CalendarClock, ClipboardCheck, ClipboardList, FileText, Home,
   HelpCircle, Layers, ListChecks, Shield, User, Users, type LucideIcon,
 } from 'lucide-react';
 
@@ -52,7 +52,7 @@ export const MENU: MenuGroup[] = [
   {
     label: 'Analizar',
     items: [
-      // { path: '/review', label: 'Corrección', icon: ClipboardCheck, ... } — shown once the review API exists.
+      { path: '/review', label: 'Corrección', icon: ClipboardCheck, roles: ['admin', 'teacher'], hint: 'Calificar respuestas abiertas' },
       { path: '/reports', label: 'Reportes', icon: BarChart3, roles: ['admin', 'teacher'] },
       { path: '/student-history', label: 'Historial de estudiante', icon: FileText, roles: ['admin', 'teacher'] },
       { path: '/audit-logs', label: 'Auditoría', icon: Shield, roles: ['admin'] },
