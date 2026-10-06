@@ -824,11 +824,8 @@ const QuestionForm: React.FC<Props> = ({ question, onCancel, onSaved }) => {
       {/* Multimedia mejorado */}
       {showMultimedia && (
         <div className="flex flex-col gap-4 border border-border bg-card p-4 rounded-xl">
-          <div className="mb-4">
-            <h3 className="text-base font-semibold text-foreground flex items-center gap-2">
-              <Volume2 className="w-5 h-5 text-blue-500 dark:text-blue-400" />
-              Multimedia
-            </h3>
+          <div>
+            <h3 className="text-base font-medium text-foreground">Multimedia</h3>
             <p className="text-xs text-muted-foreground mt-0.5">
               {isListeningQuestion &&
                 'Audio requerido para comprensión auditiva'}
@@ -843,7 +840,7 @@ const QuestionForm: React.FC<Props> = ({ question, onCancel, onSaved }) => {
           {formData.competency === 'listening' && (
             <div className="space-y-4">
               <div className="flex items-center gap-2 mb-3">
-                <Volume2 className="w-5 h-5 text-blue-500 dark:text-blue-400" />
+                <Volume2 className="size-4 text-muted-foreground" />
                 <Label>
                   Audio para Comprensión Auditiva
                 </Label>
@@ -1012,7 +1009,7 @@ const QuestionForm: React.FC<Props> = ({ question, onCancel, onSaved }) => {
           {/* Imagen opcional */}
           <div className="space-y-4">
             <div className="flex items-center gap-2">
-              <ImageIcon className="w-5 h-5 text-green-500 dark:text-green-400" />
+              <ImageIcon className="size-4 text-muted-foreground" />
               <Label>
                 Imagen (opcional)
               </Label>
