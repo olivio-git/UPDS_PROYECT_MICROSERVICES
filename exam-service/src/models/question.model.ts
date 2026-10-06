@@ -5,12 +5,15 @@ export interface IQuestion extends Document {
   competency: 'reading' | 'writing' | 'listening' | 'speaking' | 'grammar' | 'vocabulary';
   level: string; // A1, A2, B1, B2, C1, C2
   difficulty: number; // 1-5
+  /** Open answers: 'auto' (AI), 'manual' (teacher) or 'assisted' (AI proposes, teacher confirms). */
+  gradingMode?: 'auto' | 'manual' | 'assisted';
   content: {
     question: string;
     instructions?: string;
     context?: string; // Reading passage, audio transcript, etc.
     mediaUrl?: string; // Audio file, image, etc.
     mediaType?: 'audio' | 'image' | 'video'; // Tipo de archivo multimedia
+    mediaAlt?: string; // Descripción de la imagen (accesibilidad y contexto para quien corrige)
     options?: Array<{
       id: string;
       text: string;
@@ -82,6 +85,11 @@ const questionSchema = new Schema<IQuestion>({
     min: 1,
     max: 5
   },
+  gradingMode: {
+    type: String,
+    enum: ['auto', 'manual', 'assisted'],
+    default: undefined
+  },
   content: {
     question: { type: String, required: true },
     instructions: String,
@@ -91,6 +99,7 @@ const questionSchema = new Schema<IQuestion>({
       type: String,
       enum: ['audio', 'image', 'video']
     },
+    mediaAlt: String,
     options: [{
       _id: false,
       id: String,

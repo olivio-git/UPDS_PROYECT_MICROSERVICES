@@ -49,6 +49,12 @@ function verifyStaffToken(req: Request): StaffToken | null {
   }
 }
 
+/** Id of the teacher/admin making the request (for audit fields such as reviewedBy). */
+export function staffId(req: Request): string | null {
+  const payload = verifyStaffToken(req);
+  return payload?.userId ?? payload?.id ?? null;
+}
+
 /** Only another service may call this route. */
 export function requireService(req: Request, res: Response, next: NextFunction): void {
   if (isServiceCall(req)) return next();

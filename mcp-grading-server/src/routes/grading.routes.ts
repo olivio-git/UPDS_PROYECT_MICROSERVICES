@@ -24,10 +24,12 @@ import { config } from '../config.js';
 import { ObjectId } from 'mongodb';
 import { getQuestions, getExamResults, getAttempts, getExams, getLevels } from '../db/collections.js';
 import { buildUnsetForUndefined, computeExamScoring, computeMastery, UNSETTABLE_GRADED_FIELDS } from '../grading/scoring.js';
-import { AUTO_GRADABLE_TYPES } from '../types/index.js';
+import { AUTO_GRADABLE_TYPES, isPendingManual } from '../types/index.js';
+import { getReviewTask, listReviewQueue, ReviewError, submitReview } from '../tools/manual-review.js';
+import { z } from 'zod';
 import type { IQuestion } from '../types/index.js';
 
-import { requireService, requireStaffOrService } from '../middleware/auth.js';
+import { requireService, requireStaffOrService, staffId } from '../middleware/auth.js';
 
 export const gradingRouter = Router();
 
@@ -399,7 +401,7 @@ gradingRouter.post(
           c.count++;
           if (qr.evaluationMethod === 'automatic') c.auto++;
           else if (qr.evaluationMethod === 'ai_grading') c.ai++;
-          else c.pending++;
+          else if (isPendingManual(qr)) c.pending++;
           competencyMap.set(qr.competency, c);
         }
         const newCompetencyScores = Array.from(competencyMap.entries()).map(([comp, data]) => ({
@@ -510,4 +512,57 @@ gradingRouter.get(
       });
     }
   }
+);
+
+// ── Manual review (teacher grading desk) ──────────────────────────────────────
+
+const ReviewSubmitSchema = z.object({
+  score: z.number().finite().min(0).optional(),
+  criteria: z.record(z.string(), z.number().finite()).optional(),
+  feedback: z.string().max(4000).optional(),
+});
+
+function sendReviewError(res: Response, err: unknown): void {
+  if (err instanceof ReviewError) {
+    res.status(err.status).json({ success: false, error: err.message });
+    return;
+  }
+  console.error('[Review]', err);
+  res.status(500).json({ success: false, error: 'Error interno al procesar la corrección' });
+}
+
+/** GET /api/v1/grading/review/queue?status=pending|reviewed */
+gradingRouter.get('/review/queue', requireStaffOrService, async (req: Request, res: Response): Promise<void> => {
+  const status = req.query.status === 'reviewed' ? 'reviewed' : 'pending';
+  const limit = Math.min(Number(req.query.limit) || 500, 1000);
+  try {
+    res.json({ success: true, data: await listReviewQueue(status, limit) });
+  } catch (err) {
+    sendReviewError(res, err);
+  }
+});
+
+/** GET /api/v1/grading/review/:resultId/questions/:questionId */
+gradingRouter.get('/review/:resultId/questions/:questionId', requireStaffOrService, async (req: Request, res: Response): Promise<void> => {
+  try {
+    res.json({ success: true, data: await getReviewTask(String(req.params.resultId), String(req.params.questionId)) });
+  } catch (err) {
+    sendReviewError(res, err);
+  }
+});
+
+/** POST /api/v1/grading/review/:resultId/questions/:questionId — save a teacher grade. */
+gradingRouter.post(
+  '/review/:resultId/questions/:questionId',
+  requireStaffOrService,
+  validateBody(ReviewSubmitSchema),
+  async (req: Request, res: Response): Promise<void> => {
+    const reviewer = staffId(req) ?? 'service';
+    try {
+      const data = await submitReview(String(req.params.resultId), String(req.params.questionId), req.body, reviewer);
+      res.json({ success: true, data });
+    } catch (err) {
+      sendReviewError(res, err);
+    }
+  },
 );

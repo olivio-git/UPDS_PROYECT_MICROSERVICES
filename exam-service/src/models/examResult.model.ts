@@ -32,6 +32,8 @@ export interface IQuestionResult {
   };
   // Rubric-driven AI grading (lockstep with mcp-grading-server/src/types/index.ts IQuestionResult)
   rubric?: IRubricEvaluation;
+  review?: { score: number; criteria?: Record<string, number>; feedback: string; reviewedBy: string; reviewedAt: Date };
+  aiSuggestion?: { score: number; criteria: Array<{ name: string; score: number }>; rationale: string };
 }
 
 export interface ICompetencyScore {
@@ -178,7 +180,11 @@ const questionResultSchema = new Schema<IQuestionResult>({
   // Sub-schema with `default: undefined` so results without a rubric
   // breakdown (default 4-criteria AI path, auto-graded, manual) don't
   // hydrate to `{ criteria: [] }`.
-  rubric: { type: rubricEvaluationSchema, default: undefined }
+  rubric: { type: rubricEvaluationSchema, default: undefined },
+  // Manual review desk (grading-service): the teacher's grade and, for
+  // assisted questions, the AI proposal. Mixed so grading-service owns the shape.
+  review: { type: Schema.Types.Mixed, default: undefined },
+  aiSuggestion: { type: Schema.Types.Mixed, default: undefined }
 });
 
 const masteryCheckSchema = new Schema<IMasteryCheck>({

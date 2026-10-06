@@ -19,18 +19,30 @@ export const MANUAL_TYPES: QuestionType[] = ['file_upload'];
 
 // MongoDB document interfaces (match exam-service schemas exactly)
 
+/**
+ * How an open answer (essay, open_text, audio_response) is graded:
+ * - auto: the AI grades it (default, previous behaviour)
+ * - manual: a teacher grades it; nothing is computed until then
+ * - assisted: the AI proposes a grade and a teacher confirms or changes it
+ * Auto-gradable types ignore this and are always graded automatically.
+ */
+export type GradingMode = 'auto' | 'manual' | 'assisted';
+
 export interface IQuestion {
   _id: ObjectId;
   type: QuestionType;
   competency: Competency;
   level: string;
   difficulty: number;
+  gradingMode?: GradingMode;
   content: {
     question: string;
     instructions?: string;
     context?: string;
     mediaUrl?: string;
     mediaType?: 'audio' | 'image' | 'video';
+    /** Teacher's description of the image (accessibility, and context for AI/reviewers). */
+    mediaAlt?: string;
     options?: Array<{ id: string; text: string; isCorrect?: boolean }>;
     correctAnswer?: string | string[];
     sampleAnswer?: string;
@@ -196,6 +208,31 @@ export interface IQuestionResult {
   };
   // Rubric-driven AI grading (essay/open_text only — see rubric-ai-grading spec).
   rubric?: IRubricEvaluation;
+  /** Teacher's grade for a manual/assisted question. Once present it always wins, also on regrades. */
+  review?: IManualReview;
+  /** AI proposal for an assisted question, shown to the reviewer; never counted by itself. */
+  aiSuggestion?: IAiSuggestion;
+}
+
+export interface IManualReview {
+  score: number;
+  /** Rubric picks: criterion name → level score. */
+  criteria?: Record<string, number>;
+  feedback: string;
+  reviewedBy: string;
+  reviewedAt: Date;
+}
+
+export interface IAiSuggestion {
+  score: number;
+  /** Per criterion, on the 0–100 scale the AI grader uses. */
+  criteria: Array<{ name: string; score: number }>;
+  rationale: string;
+}
+
+/** A manual/assisted question that no teacher has graded yet. */
+export function isPendingManual(qr: Pick<IQuestionResult, 'evaluationMethod' | 'review'>): boolean {
+  return qr.evaluationMethod === 'manual' && !qr.review;
 }
 
 /** Per-criterion score as stored on a graded question result. */

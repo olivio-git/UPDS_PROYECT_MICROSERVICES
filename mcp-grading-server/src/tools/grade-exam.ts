@@ -4,7 +4,7 @@ import { autoGrade } from '../grading/auto-grader.js';
 import { evaluateWithGroq, evaluateWithRubric, generateExamFeedback, generatePerQuestionFeedback } from '../grading/groq-evaluator.js';
 import { evaluateAudio } from '../grading/audio-delegator.js';
 import { sendGradingNotification } from '../services/notification.service.js';
-import { AUTO_GRADABLE_TYPES, AI_GRADABLE_TYPES, AUDIO_TYPES } from '../types/index.js';
+import { AUTO_GRADABLE_TYPES, AI_GRADABLE_TYPES, AUDIO_TYPES, isPendingManual } from '../types/index.js';
 import type { IQuestionResult, ICompetencyScore, IExamResult, IGradingBreakdown, QuestionType, IRubric, IRubricEvaluation, AIGradeResult } from '../types/index.js';
 import type { GradeExamResponse } from '../schemas/grading.schemas.js';
 import { buildCriteriaScoreMap, buildUnsetForUndefined, computeExamScoring, computeMastery, hasScorableCriteria, scoreRubricCriteria, UNSETTABLE_GRADED_FIELDS } from '../grading/scoring.js';
@@ -88,7 +88,7 @@ function buildAlreadyGradedResponse(
     questionsGraded: existingResult.questionResults.length,
     autoGraded: existingResult.questionResults.filter(qr => qr.evaluationMethod === 'automatic').length,
     aiGraded: existingResult.questionResults.filter(qr => qr.evaluationMethod === 'ai_grading').length,
-    pendingManual: existingResult.questionResults.filter(qr => qr.evaluationMethod === 'manual').length,
+    pendingManual: existingResult.questionResults.filter(isPendingManual).length,
     competencyScores: existingResult.competencyScores.map(c => ({
       competency: c.competency,
       score: `${c.totalScore}/${c.maxScore}`,
@@ -124,7 +124,44 @@ export function isGradableAttemptStatus(status: string): boolean {
   return (GRADABLE_ATTEMPT_STATUSES as readonly string[]).includes(status);
 }
 
-export async function gradeExam(attemptId: string, options: { force?: boolean } = {}): Promise<GradeExamResponse> {
+/**
+ * Teacher grades always win: a reviewed question keeps the teacher's score and
+ * comment on every later (re)grade.
+ */
+function withReview(qr: IQuestionResult): IQuestionResult {
+  if (!qr.review) return qr;
+  return {
+    ...qr,
+    score: qr.review.score,
+    feedback: qr.review.feedback,
+    evaluationMethod: 'manual',
+    evaluatedAt: qr.review.reviewedAt,
+  };
+}
+
+/** Assisted mode: keep the AI's grade as a proposal and leave the question pending. */
+function toAssisted(result: IQuestionResult): IQuestionResult {
+  const criteria = result.rubric
+    ? result.rubric.criteria.map((c) => ({ name: c.name, score: c.score }))
+    : Object.entries(result.aiAnalysis?.criteria ?? {}).map(([name, score]) => ({ name, score }));
+  const { aiAnalysis: _ai, rubric: _rubric, ...rest } = result;
+  return {
+    ...rest,
+    score: 0,
+    feedback: 'Pendiente de revision manual',
+    evaluationMethod: 'manual',
+    aiSuggestion: { score: result.score, criteria, rationale: result.feedback ?? '' },
+  };
+}
+
+/**
+ * Grades an attempt.
+ * - `force`: regrade even if a completed result exists.
+ * - `reuseScored`: keep every question already scored on the existing result
+ *   (no AI calls) and only recompute the exam-level facts. Used after a
+ *   teacher reviews a question; implies `force`.
+ */
+export async function gradeExam(attemptId: string, options: { force?: boolean; reuseScored?: boolean } = {}): Promise<GradeExamResponse> {
   // 1. Fetch attempt
   const attempt = await getAttempts().findOne({ _id: new ObjectId(attemptId) });
   if (!attempt) throw new GradingError(`Attempt ${attemptId} no encontrado`, 404);
@@ -149,7 +186,7 @@ export async function gradeExam(attemptId: string, options: { force?: boolean } 
 
   // 2. Check if already graded (skip if force=true to allow recalculation)
   const existingResult = await getExamResults().findOne({ attemptId: new ObjectId(attemptId) });
-  if (!options.force && existingResult && existingResult.status === 'completed') {
+  if (!options.force && !options.reuseScored && existingResult && existingResult.status === 'completed') {
     // Re-send notification for already-graded exams (at-least-once delivery via Kafka)
     return buildAlreadyGradedResponse(attemptId, existingResult, attempt.candidateId.toString(), {
       candidateEmail,
@@ -210,12 +247,23 @@ export async function gradeExam(attemptId: string, options: { force?: boolean } 
   // Iterating over `questions` instead of `responses` ensures the denominator
   // (maxScoreTotal) reflects the full exam weight, not just answered questions.
   const questionResults: IQuestionResult[] = [];
+  const previous = new Map((existingResult?.questionResults ?? []).map((qr) => [qr.questionId.toString(), qr]));
+  // Results carried over untouched (no new per-question feedback for them).
+  const reused = new Set<IQuestionResult>();
 
   for (const question of questions) {
     const qIdStr = question._id.toString();
     const resp = responseMap.get(qIdStr);
     const maxScore = question.metadata?.points ?? 1;
     const qType = question.type as QuestionType;
+    const prev = previous.get(qIdStr);
+
+    if (prev && (prev.review || options.reuseScored)) {
+      const kept = withReview(prev);
+      reused.add(kept);
+      questionResults.push(kept);
+      continue;
+    }
 
     // No response recorded → score 0 for this question
     if (!resp) {
@@ -255,6 +303,18 @@ export async function gradeExam(attemptId: string, options: { force?: boolean } 
         feedback: gradeResult.feedback,
         evaluationMethod: 'automatic',
         evaluatedAt: new Date(),
+      };
+    } else if (question.gradingMode === 'manual' && (AI_GRADABLE_TYPES.includes(qType) || AUDIO_TYPES.includes(qType))) {
+      // A teacher grades it from the review desk; nothing to compute now.
+      result = {
+        questionId: resp.questionId,
+        questionType: question.type,
+        competency: question.competency,
+        response: answerData,
+        score: 0,
+        maxScore,
+        feedback: 'Pendiente de revision manual',
+        evaluationMethod: 'manual',
       };
     } else if (AI_GRADABLE_TYPES.includes(qType)) {
       const tAI = Date.now();
@@ -354,6 +414,10 @@ export async function gradeExam(attemptId: string, options: { force?: boolean } 
       };
     }
 
+    if (question.gradingMode === 'assisted' && result.evaluationMethod === 'ai_grading') {
+      result = toAssisted(result);
+    }
+
     questionResults.push(result);
   }
 
@@ -363,7 +427,7 @@ export async function gradeExam(attemptId: string, options: { force?: boolean } 
 
   for (let i = 0; i < questionResults.length; i++) {
     const qr = questionResults[i]!;
-    if (qr.evaluationMethod === 'automatic') {
+    if (qr.evaluationMethod === 'automatic' && !reused.has(qr)) {
       const q = questionMap.get(qr.questionId.toString());
       autoGradedIndices.push(i);
       autoGradedInputs.push({
@@ -410,7 +474,7 @@ export async function gradeExam(attemptId: string, options: { force?: boolean } 
     c.count++;
     if (qr.evaluationMethod === 'automatic') c.auto++;
     else if (qr.evaluationMethod === 'ai_grading') c.ai++;
-    else c.pending++;
+    else if (isPendingManual(qr)) c.pending++;
     competencyMap.set(qr.competency, c);
   }
 
@@ -426,7 +490,8 @@ export async function gradeExam(attemptId: string, options: { force?: boolean } 
   }));
 
   // 8. Determine status (needed by the pass/fail decision below)
-  const hasPending = questionResults.some(qr => qr.evaluationMethod === 'manual' && qr.score === 0);
+  // Pending = a manual question without a teacher review (a reviewed 0 is a real grade).
+  const hasPending = questionResults.some(isPendingManual);
   const status = hasPending ? 'pending_ai_review' : 'completed';
 
   // 9. Totals, section scores, scoring method (design D4), weighted
@@ -525,7 +590,16 @@ export async function gradeExam(attemptId: string, options: { force?: boolean } 
 
   // 11.5. Generate AI overall feedback (best-effort — never blocks completion)
   const tOverallFeedback = Date.now();
-  const aiFeedback = await generateExamFeedback({
+  // After a teacher review that still leaves questions pending, nobody reads
+  // the overall feedback yet: keep the previous one instead of an LLM call per save.
+  const keepFeedback = options.reuseScored && status !== 'completed' && existingResult;
+  const aiFeedback = keepFeedback
+    ? {
+        overallFeedback: existingResult.overallFeedback ?? '',
+        recommendations: existingResult.recommendations ?? [],
+        competencyFeedback: existingResult.competencyFeedback ?? {},
+      }
+    : await generateExamFeedback({
     examName: exam.name,
     examLevel: exam.targetLevel,
     competencyScores: competencyScores.map(c => ({
@@ -635,8 +709,10 @@ export async function gradeExam(attemptId: string, options: { force?: boolean } 
     }
   }
 
-  // 13. Send notification (best-effort)
-  sendGradingNotification({
+  // 13. Send notification (best-effort). After a teacher review, only the
+  // transition to completed is news for the student.
+  const notify = !options.reuseScored || (status === 'completed' && existingResult?.status !== 'completed');
+  if (notify) sendGradingNotification({
     attemptId,
     examId: attempt.examId?.toString(),
     candidateId: attempt.candidateId.toString(),
@@ -668,7 +744,7 @@ export async function gradeExam(attemptId: string, options: { force?: boolean } 
     questionsGraded: questionResults.length,
     autoGraded: questionResults.filter(qr => qr.evaluationMethod === 'automatic').length,
     aiGraded: questionResults.filter(qr => qr.evaluationMethod === 'ai_grading').length,
-    pendingManual: questionResults.filter(qr => qr.evaluationMethod === 'manual').length,
+    pendingManual: questionResults.filter(isPendingManual).length,
     competencyScores: competencyScores.map(c => ({
       competency: c.competency,
       score: `${c.totalScore}/${c.maxScore}`,

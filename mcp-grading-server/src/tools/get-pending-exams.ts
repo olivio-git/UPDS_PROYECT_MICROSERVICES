@@ -1,4 +1,5 @@
 import { getAttempts, getExamResults, getExams } from '../db/collections.js';
+import { isPendingManual } from '../types/index.js';
 import type { GetPendingExamsResponse } from '../schemas/grading.schemas.js';
 import { GRADABLE_ATTEMPT_STATUSES } from './grade-exam.js';
 
@@ -59,7 +60,7 @@ export async function getPendingExams(params: { limit?: number }): Promise<GetPe
       status: r.status,
       currentScore: `${r.totalScore}/${r.maxScore}`,
       percentage: r.percentage,
-      pendingQuestions: r.questionResults.filter((qr: any) => qr.evaluationMethod === 'manual' && qr.score === 0).length,
+      pendingQuestions: r.questionResults.filter(isPendingManual).length,
     })),
   ];
 
