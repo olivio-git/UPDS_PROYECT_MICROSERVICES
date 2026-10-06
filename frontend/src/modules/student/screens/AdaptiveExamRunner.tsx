@@ -38,13 +38,15 @@ interface FeedbackState {
   feedback: string;
 }
 
+// Every level shares the theme accent; the level code itself is the label.
+const LEVEL_BADGE = 'bg-primary/10 text-primary border-primary/30';
 const LEVEL_COLORS: Record<string, string> = {
-  A1: 'bg-muted/50 text-muted-foreground border-border',
-  A2: 'bg-green-500/20 text-green-300 border-green-500/30',
-  B1: 'bg-blue-500/20 text-blue-300 border-blue-500/30',
-  B2: 'bg-purple-500/20 text-purple-300 border-purple-500/30',
-  C1: 'bg-orange-500/20 text-orange-300 border-orange-500/30',
-  C2: 'bg-red-500/20 text-red-300 border-red-500/30',
+  A1: LEVEL_BADGE,
+  A2: LEVEL_BADGE,
+  B1: LEVEL_BADGE,
+  B2: LEVEL_BADGE,
+  C1: LEVEL_BADGE,
+  C2: LEVEL_BADGE,
 };
 
 const AdaptiveExamRunner: React.FC = () => {

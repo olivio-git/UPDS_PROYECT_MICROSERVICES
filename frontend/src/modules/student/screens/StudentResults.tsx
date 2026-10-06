@@ -173,7 +173,7 @@ const StudentResults = () => {
       return {
         Icon: GraduationCap,
         text: recommendedLevel ? `Nivel recomendado: ${recommendedLevel}` : 'Nivel recomendado: pendiente',
-        className: 'border-violet-200 text-violet-700 bg-violet-100 dark:border-violet-500/30 dark:text-violet-300 dark:bg-violet-500/10',
+        className: 'border-primary/30 text-primary bg-primary/10',
       };
     }
     if (passed === true) {
@@ -896,7 +896,7 @@ const StudentResults = () => {
                 <Card flat>
                   <CardHeader className="pb-3">
                     <CardTitle className="flex items-center gap-2 text-sm">
-                      <FileSearch className="h-4 w-4 text-purple-600 dark:text-purple-400" />
+                      <FileSearch className="h-4 w-4 text-primary" />
                       Preguntas del Examen
                     </CardTitle>
                     <CardDescription className="text-xs">
@@ -981,10 +981,10 @@ const StudentResults = () => {
 
                             {/* Análisis de IA — solo si tiene contenido distinto */}
                             {hasAiSection && (
-                              <div className="ml-9 border border-purple-200 dark:border-purple-700/40 rounded-lg overflow-hidden">
-                                <div className="flex items-center gap-1.5 px-3 py-1.5 bg-purple-50 dark:bg-purple-900/30 border-b border-purple-200 dark:border-purple-700/40">
-                                  <div className="w-1.5 h-1.5 rounded-full bg-purple-500 flex-shrink-0" />
-                                  <span className="text-xs font-semibold text-purple-700 dark:text-purple-300">Análisis</span>
+                              <div className="ml-9 border border-primary/25 rounded-lg overflow-hidden">
+                                <div className="flex items-center gap-1.5 px-3 py-1.5 bg-primary/5 border-b border-primary/20">
+                                  <div className="w-1.5 h-1.5 rounded-full bg-primary flex-shrink-0" />
+                                  <span className="text-xs font-semibold text-primary">Análisis</span>
                                 </div>
                                 <div className="px-4 py-3 bg-card space-y-2">
                                   {showAiFeedback && (
@@ -996,7 +996,7 @@ const StudentResults = () => {
                                       <ul className="space-y-1">
                                         {question.aiAnalysis.suggestions.map((s: string, idx: number) => (
                                           <li key={idx} className="flex items-start gap-2 text-foreground/70 text-xs">
-                                            <span className="text-purple-500 dark:text-purple-400 mt-0.5 flex-shrink-0 font-bold">›</span>
+                                            <ChevronRight className="mt-0.5 size-3 shrink-0 text-primary" />
                                             {s}
                                           </li>
                                         ))}

@@ -401,7 +401,7 @@ const StudentProfile = () => {
               <Card flat>
                 <CardHeader className="pb-3">
                   <CardTitle className="text-base flex items-center gap-2">
-                    <span className="icon-wrap-purple p-1.5 rounded-md">
+                    <span className="rounded-md bg-primary/10 p-1.5 text-primary">
                       <Bell className="h-3.5 w-3.5" />
                     </span>
                     Notificaciones

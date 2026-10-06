@@ -225,7 +225,6 @@ html, body, #root {
 @layer utilities {
   .icon-wrap-blue   { background-color: #dbeafe; color: #2563eb; }
   .icon-wrap-green  { background-color: #dcfce7; color: #16a34a; }
-  .icon-wrap-purple { background-color: #f3e8ff; color: #9333ea; }
   .icon-wrap-amber  { background-color: #fef3c7; color: #d97706; }
   .icon-wrap-red    { background-color: #fee2e2; color: #dc2626; }
   .icon-wrap-orange { background-color: #ffedd5; color: #ea580c; }
@@ -238,7 +237,6 @@ html, body, #root {
 @variant dark {
   .icon-wrap-blue   { background-color: rgb(30  58 138 / 0.2); color: #60a5fa; }
   .icon-wrap-green  { background-color: rgb(20  83  45 / 0.2); color: #4ade80; }
-  .icon-wrap-purple { background-color: rgb(88  28 135 / 0.2); color: #c084fc; }
   .icon-wrap-amber  { background-color: rgb(120  53  15 / 0.2); color: #fbbf24; }
   .icon-wrap-red    { background-color: rgb(127  29  29 / 0.2); color: #f87171; }
   .icon-wrap-orange { background-color: rgb(124  45   2 / 0.2); color: #fb923c; }
