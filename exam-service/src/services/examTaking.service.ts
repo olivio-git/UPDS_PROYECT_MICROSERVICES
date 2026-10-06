@@ -1,3 +1,4 @@
+import { sampleWithoutReplacement } from '../utils/questionSampling';
 import { Types } from 'mongoose';
 import axios from 'axios';
 import type { ExamAttemptFinishedReason } from '@cba/events';
@@ -278,13 +279,19 @@ export class ExamTakingService {
             isActive: true
           }).exec();
         } else {
-          // Find questions by competency and level with buffer for randomization
-          const bufferMultiplier = 1.5; // 50% buffer
-          competencyQuestions = await Question.find({
-            level: exam.targetLevel,
-            competency: competency,
-            isActive: true
-          }).limit(Math.ceil(totalQuestionsNeeded * bufferMultiplier)).exec();
+          // Buffer over what the sections need: listening/speaking skip
+          // questions that share an audio/context with one already picked.
+          const bufferMultiplier = 1.5;
+          const wanted = Math.ceil(totalQuestionsNeeded * bufferMultiplier);
+          const filter = { level: exam.targetLevel, competency, isActive: true };
+          if (exam.configuration.randomizeQuestions) {
+            // Sample from the WHOLE bank (ids only), then load the chosen ones.
+            const ids = await Question.find(filter).select('_id').lean().exec();
+            const picked = sampleWithoutReplacement(ids.map((d: any) => d._id), wanted);
+            competencyQuestions = await Question.find({ _id: { $in: picked } }).exec();
+          } else {
+            competencyQuestions = await Question.find(filter).limit(wanted).exec();
+          }
         }
 
         console.log(`✅ [Competency: ${competency}] Found ${competencyQuestions.length} available questions`);
@@ -367,8 +374,8 @@ export class ExamTakingService {
         questionDocs = await Question.find({ level: exam.targetLevel, isActive: true }).exec();
       }
 
-      const shuffled = questionDocs.sort(() => 0.5 - Math.random());
-      const selected = shuffled.slice(0, questionCount);
+      // Uniform pick (sort(() => 0.5 - Math.random()) is a biased shuffle).
+      const selected = sampleWithoutReplacement(questionDocs, questionCount);
 
       sections.push({
         id: 'general',
