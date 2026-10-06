@@ -104,11 +104,19 @@ const COMPETENCY_HINTS: Partial<Record<Competency, string>> = {
     'Provide a clear speaking prompt in the "instructions" field. Include a sampleAnswer showing ' +
     'what a good spoken response would include. Add keywords with key phrases.',
   grammar:
-    'Focus on exactly one grammar point relevant to the CEFR level. The question must test correct ' +
-    'understanding or application of that specific rule.',
+    'GRAMMATICAL COMPETENCE (MCER linguistic competence). Test exactly ONE grammar point typical of the CEFR level ' +
+    '(e.g. A1 to be/present simple, A2 past simple/comparatives/going to, B1 present perfect vs past simple/first and second ' +
+    'conditional/passive, B2 third conditional/reported speech/relative clauses). Put the target structure inside a short, ' +
+    'natural sentence whose context makes only one form correct. Distractors must be wrong forms of the SAME structure ' +
+    '(wrong tense, agreement or word order), never a different word with another meaning. ' +
+    'Do NOT add a reading passage. Set metadata.topic to the grammar point (e.g. "Present perfect").',
   vocabulary:
-    'Focus on word meaning or usage in context. When possible, embed the target word in a sentence ' +
-    'within the question text to give context for the answer.',
+    'LEXICAL COMPETENCE (MCER linguistic competence). Test word meaning, collocation or word choice from a topic ' +
+    'typical of the CEFR level (A1/A2: family, food, home, daily routine, shopping; B1: work, travel, health, ' +
+    'feelings; B2+: abstract and formal vocabulary). Embed the target word in a sentence that gives enough context. ' +
+    'Distractors must share the part of speech and semantic field of the answer (e.g. all kitchen nouns) and be ' +
+    'clearly wrong in that context; never test grammar here. For matching use word -> definition or word -> ' +
+    'synonym/opposite pairs. Do NOT add a reading passage. Set metadata.topic to the lexical field (e.g. "Food").',
 };
 
 /**

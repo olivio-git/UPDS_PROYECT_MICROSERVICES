@@ -97,21 +97,21 @@ export function QuestionResultCard({ index, result, showEvaluationMethod = false
         )}
 
         {ai && (ai.feedback || suggestions.length > 0) && (
-          <div className="bg-purple-50 border border-purple-200 dark:bg-purple-900/20 dark:border-purple-700/30 rounded-lg px-3 py-2.5 space-y-2">
-            <p className="text-xs text-purple-700 dark:text-purple-300 font-medium">Análisis IA</p>
-            {ai.feedback && <p className="text-xs text-purple-600 dark:text-purple-200 leading-relaxed">{ai.feedback}</p>}
+          <div className="bg-primary/[0.04] border border-primary/20 rounded-lg px-3 py-2.5 space-y-2">
+            <p className="text-xs text-primary font-medium">Retroalimentación</p>
+            {ai.feedback && <p className="text-xs text-foreground/80 leading-relaxed">{ai.feedback}</p>}
             {criteria.length > 0 && (
               <div className="flex flex-wrap gap-x-3 gap-y-1">
                 {criteria.map(([key, value]) => (
-                  <span key={key} className="text-xs text-purple-700 dark:text-purple-300">
-                    <span className="capitalize text-purple-500 dark:text-purple-400">{key}:</span>{' '}
+                  <span key={key} className="text-xs text-foreground/80">
+                    <span className="capitalize text-muted-foreground">{key}:</span>{' '}
                     <span className="font-medium">{typeof value === 'number' ? value.toFixed(1) : String(value)}</span>
                   </span>
                 ))}
               </div>
             )}
             {suggestions.length > 0 && (
-              <ul className="space-y-0.5 text-xs text-purple-600 dark:text-purple-200 list-disc list-inside">
+              <ul className="space-y-0.5 text-xs text-foreground/80 list-disc list-inside">
                 {suggestions.map((s, i) => <li key={i}>{s}</li>)}
               </ul>
             )}

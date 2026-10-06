@@ -40,7 +40,7 @@ import {
   FileText,
   FileSearch,
   GraduationCap,
-  Sparkles,
+  MessageSquareText,
   Target,
   TrendingDown,
   TrendingUp,
@@ -860,11 +860,11 @@ const StudentResults = () => {
               {/* AI feedback — the most valuable part of an AI-graded
                   platform, so it gets a distinct tinted surface instead of
                   a plain card identical to the competencies one next to it. */}
-              <Card flat className="border-blue-200 bg-blue-50/40 dark:border-blue-500/25 dark:bg-blue-500/[0.06]">
+              <Card flat className="border-primary/20 bg-primary/[0.03]">
                 <CardHeader className="pb-3">
-                  <CardTitle className="flex items-center gap-2 text-sm text-blue-800 dark:text-blue-200">
-                    <Sparkles className="h-4 w-4" />
-                    Retroalimentación de IA
+                  <CardTitle className="flex items-center gap-2 text-sm text-foreground">
+                    <MessageSquareText className="h-4 w-4 text-primary" />
+                    Retroalimentación
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="pt-0 space-y-3">
