@@ -14,6 +14,7 @@ export interface IAttempt extends Document {
     id: string;
     name: string;
     competency: string;
+    instructions?: string;
     duration: number;
     weight: number;
     questionCount: number;
@@ -62,6 +63,7 @@ const attemptSchema = new Schema<IAttempt>({
     id: String,
     name: String,
     competency: String,
+    instructions: String,
     duration: Number,
     weight: Number,
     questionCount: Number,

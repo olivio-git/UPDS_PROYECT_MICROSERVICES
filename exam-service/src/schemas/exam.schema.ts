@@ -5,6 +5,7 @@ import { getSectionWeightsSumError } from '../utils/sectionWeights';
 const examSectionSchema = z.object({
   name: z.string().min(1),
   competency: z.enum(Object.values(CONSTANTS.COMPETENCIES) as [string, ...string[]]),
+  instructions: z.string().max(2000).optional(),
   duration: z.number().min(1).max(240),
   questionCount: z.number().min(1).max(100),
   weight: z.number().min(0).max(100)

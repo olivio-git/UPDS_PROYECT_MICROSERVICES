@@ -343,6 +343,7 @@ export class ExamTakingService {
           id: sectionConfig.name.toLowerCase().replace(/\s+/g, '_').replace(/[^a-z0-9_]/g, ''),
           name: sectionConfig.name,
           competency: sectionConfig.competency,
+          instructions: sectionConfig.instructions,
           duration: sectionConfig.duration, // in minutes
           weight: sectionConfig.weight,
           questionCount: questionsForSection.length,
@@ -425,6 +426,7 @@ export class ExamTakingService {
             id: section.id,
             name: section.name,
             competency: section.competency,
+            instructions: (section as any).instructions,
             duration: section.duration,
             weight: section.weight,
             questionCount: section.questionCount,
@@ -772,6 +774,7 @@ export class ExamTakingService {
           id: sectionStructure.id,
           name: sectionStructure.name,
           competency: sectionStructure.competency,
+          instructions: sectionStructure.instructions,
           duration: sectionStructure.duration,
           weight: sectionStructure.weight,
           questionCount: sectionStructure.questionCount,

@@ -16,6 +16,8 @@ export interface IExam extends Document {
     sections: Array<{
       name: string;
       competency: 'reading' | 'writing' | 'listening' | 'speaking' | 'grammar' | 'vocabulary';
+      /** Shown to the student when the section starts. */
+      instructions?: string;
       duration: number; // in minutes
       questionCount: number;
       weight: number; // percentage
@@ -76,6 +78,7 @@ const examSchema = new Schema<IExam>({
         type: String,
   enum: ['reading', 'writing', 'listening', 'speaking', 'grammar', 'vocabulary']
       },
+      instructions: String,
       duration: Number,
       questionCount: Number,
       weight: Number
