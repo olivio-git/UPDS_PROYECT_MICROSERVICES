@@ -214,24 +214,21 @@ export function MatchingInput({ items, options, pairs, onChange }: MatchingInput
                     if (el) rowRefs.current.set(item.id, el);
                     else rowRefs.current.delete(item.id);
                   }}
-                  role="button"
-                  tabIndex={0}
-                  aria-pressed={isActive}
-                  onClick={() => clickRow(item.id)}
                   onMouseEnter={() => setHoverRow(item.id)}
                   onMouseLeave={() => setHoverRow(null)}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter' || e.key === ' ') {
-                      e.preventDefault();
-                      clickRow(item.id);
-                    }
-                  }}
                   className={cn(
-                    'group relative flex min-h-14 cursor-pointer items-center gap-3 rounded-xl border bg-card px-3 py-2 transition-all duration-150 outline-none',
-                    'focus-visible:ring-3 focus-visible:ring-ring/40',
+                    'group relative flex min-h-14 items-center gap-2 rounded-xl border bg-card pr-3 transition-all duration-150 select-none',
+                    'has-[button[data-row]:focus-visible]:ring-3 has-[button[data-row]:focus-visible]:ring-ring/40',
                     isActive ? 'border-primary ring-3 ring-primary/15' : 'border-border hover:border-primary/40',
                   )}
                 >
+                  <button
+                    type="button"
+                    data-row
+                    aria-pressed={isActive}
+                    onClick={() => clickRow(item.id)}
+                    className="flex min-h-14 min-w-0 flex-1 cursor-pointer items-center gap-3 py-2 pl-3 text-left outline-none"
+                  >
                   <span
                     className={cn(
                       'flex size-7 shrink-0 items-center justify-center rounded-full text-xs font-semibold transition-colors',
@@ -244,6 +241,7 @@ export function MatchingInput({ items, options, pairs, onChange }: MatchingInput
                     <p className="text-[15px] text-foreground">{item.content}</p>
                     {item.media}
                   </div>
+                  </button>
 
                   {/* Narrow screens: the pick as a chip. */}
                   {chosen && (
@@ -318,7 +316,7 @@ export function MatchingInput({ items, options, pairs, onChange }: MatchingInput
                 onMouseEnter={() => setHoverOption(value)}
                 onMouseLeave={() => setHoverOption(null)}
                 className={cn(
-                  'relative flex min-h-11 items-center gap-2.5 rounded-xl border px-3 py-2 text-left text-[15px] transition-all duration-150 outline-none',
+                  'relative flex min-h-11 items-center gap-2.5 rounded-xl border px-3 py-2 text-left text-[15px] transition-all duration-150 outline-none select-none',
                   'focus-visible:ring-3 focus-visible:ring-ring/40',
                   isTarget
                     ? 'border-primary bg-primary/5 text-foreground'
