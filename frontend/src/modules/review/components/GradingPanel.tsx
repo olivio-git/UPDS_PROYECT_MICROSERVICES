@@ -4,7 +4,7 @@ import { Textarea } from '@/components/keel/textarea';
 import { cn } from '@/lib/utils';
 import { scoreFromRubric, type ReviewTask, type SubmitReviewInput } from '@/services/reviewService';
 import { ChevronDown, Sparkles } from 'lucide-react';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 const QUICK_COMMENTS = [
   'Buena organización de ideas.',
@@ -32,6 +32,11 @@ export function GradingPanel({ task, submitting, onSubmit, onSkip }: GradingPane
   const [feedback, setFeedback] = useState(task.review?.feedback ?? '');
   const [hover, setHover] = useState<{ criterion: string; score: number } | null>(null);
   const [showRationale, setShowRationale] = useState(false);
+  const [activeCriterion, setActiveCriterion] = useState(() => {
+    const first = criteria.findIndex((c) => (task.review?.criteria ?? {})[c.name] === undefined);
+    return first === -1 ? 0 : first;
+  });
+  const commentRef = useRef<HTMLTextAreaElement | null>(null);
 
   const score = criteria.length ? scoreFromRubric(criteria, picks, task.maxScore) : plainScore;
   const missing = criteria.filter((c) => picks[c.name] === undefined).length;
@@ -48,16 +53,44 @@ export function GradingPanel({ task, submitting, onSubmit, onSkip }: GradingPane
     onSubmit({ score, criteria: criteria.length ? picks : undefined, feedback: feedback.trim() });
   }, [score, submitting, onSubmit, criteria.length, picks, feedback]);
 
+  // Keyboard grading (Gradescope-style): digits pick the active criterion's level
+  // and move on, ↑/↓ change criterion, A applies the AI suggestion, C jumps to
+  // the comment, Ctrl+Enter saves. Plain keys are ignored while typing.
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
         e.preventDefault();
         submit();
+        return;
+      }
+      const typing = (e.target as HTMLElement).closest('input, textarea, [contenteditable]');
+      if (typing || e.ctrlKey || e.metaKey || e.altKey) return;
+      if (/^[0-9]$/.test(e.key)) {
+        const value = Number(e.key);
+        if (criteria.length) {
+          const c = criteria[activeCriterion];
+          if (!c || !c.levels.some((l) => l.score === value)) return;
+          e.preventDefault();
+          setPicks((p) => ({ ...p, [c.name]: value }));
+          setActiveCriterion((i) => Math.min(i + 1, criteria.length - 1));
+        } else if (value <= task.maxScore) {
+          e.preventDefault();
+          setPlainScore(value);
+        }
+      } else if (criteria.length && (e.key === 'ArrowDown' || e.key === 'ArrowUp')) {
+        e.preventDefault();
+        setActiveCriterion((i) => Math.max(0, Math.min(criteria.length - 1, i + (e.key === 'ArrowDown' ? 1 : -1))));
+      } else if (e.key === 'a' && ai) {
+        e.preventDefault();
+        applyAi();
+      } else if (e.key === 'c') {
+        e.preventDefault();
+        commentRef.current?.focus();
       }
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [submit]);
+  });
 
   const fraction = score === null ? 0 : score / task.maxScore;
 
@@ -95,15 +128,26 @@ export function GradingPanel({ task, submitting, onSubmit, onSkip }: GradingPane
 
         {/* Rubric */}
         {criteria.length > 0 ? (
-          <div className="space-y-4">
+          <div className="space-y-2">
             <p className="text-[11px] font-medium tracking-wide text-muted-foreground uppercase">{task.rubric?.name ?? 'Rúbrica'}</p>
-            {criteria.map((c) => {
+            {criteria.map((c, ci) => {
               const levels = [...c.levels].sort((a, b) => a.score - b.score);
               const picked = picks[c.name];
               const shown = hover?.criterion === c.name ? hover.score : picked;
               const shownLevel = levels.find((l) => l.score === (shown ?? aiPicks[c.name]));
               return (
-                <div key={c.name}>
+                <div
+                  key={c.name}
+                  onPointerDown={() => setActiveCriterion(ci)}
+                  className={cn(
+                    'relative -mx-2 rounded-lg px-2 py-1.5 transition-colors duration-150',
+                    ci === activeCriterion ? 'bg-primary/[0.05]' : '',
+                  )}
+                >
+                  <span
+                    aria-hidden="true"
+                    className={cn('absolute top-2 bottom-2 -left-px w-0.5 rounded-full bg-primary transition-opacity', ci === activeCriterion ? 'opacity-100' : 'opacity-0')}
+                  />
                   <div className="mb-2 flex items-baseline justify-between gap-2">
                     <span className="text-sm font-medium text-foreground">{c.name}</span>
                     {c.weight ? <span className="text-xs text-muted-foreground tabular-nums">{c.weight}%</span> : null}
@@ -122,7 +166,10 @@ export function GradingPanel({ task, submitting, onSubmit, onSkip }: GradingPane
                           onMouseEnter={() => setHover({ criterion: c.name, score: l.score })}
                           onFocus={() => setHover({ criterion: c.name, score: l.score })}
                           onBlur={() => setHover(null)}
-                          onClick={() => setPicks((p) => ({ ...p, [c.name]: l.score }))}
+                          onClick={() => {
+                            setPicks((p) => ({ ...p, [c.name]: l.score }));
+                            setActiveCriterion(Math.min(ci + 1, criteria.length - 1));
+                          }}
                           className={cn(
                             'relative h-9 flex-1 rounded-lg border text-sm font-medium tabular-nums transition-all duration-150 outline-none',
                             'focus-visible:ring-3 focus-visible:ring-ring/40',
@@ -139,7 +186,7 @@ export function GradingPanel({ task, submitting, onSubmit, onSkip }: GradingPane
                       );
                     })}
                   </div>
-                  <p className={cn('mt-1.5 min-h-[2.5em] text-xs leading-relaxed', shown === undefined ? 'text-muted-foreground/70 italic' : 'text-muted-foreground')}>
+                  <p className={cn('mt-1.5 min-h-[2.5em] text-xs leading-relaxed', shown === undefined ? 'text-muted-foreground italic' : 'text-muted-foreground')}>
                     {shownLevel?.description ?? c.description ?? ''}
                   </p>
                 </div>
@@ -187,6 +234,7 @@ export function GradingPanel({ task, submitting, onSubmit, onSkip }: GradingPane
         <div>
           <p className="mb-2 text-[11px] font-medium tracking-wide text-muted-foreground uppercase">Comentario para el estudiante</p>
           <Textarea
+            ref={commentRef}
             value={feedback}
             onChange={(e) => setFeedback(e.target.value)}
             rows={4}

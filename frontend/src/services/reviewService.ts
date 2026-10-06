@@ -96,18 +96,4 @@ export const reviewService = {
   },
 };
 
-/** Score from rubric picks, scaled to the question's points (half-point steps). */
-export function scoreFromRubric(
-  criteria: ReviewRubricCriterion[],
-  picks: Record<string, number>,
-  maxScore: number,
-): number | null {
-  if (!criteria.length || criteria.some((c) => picks[c.name] === undefined)) return null;
-  const weights = criteria.map((c) => (c.weight && c.weight > 0 ? c.weight : 1));
-  const total = weights.reduce((a, b) => a + b, 0);
-  const fraction = criteria.reduce((acc, c, i) => {
-    const top = Math.max(...c.levels.map((l) => l.score), 1);
-    return acc + (picks[c.name] / top) * (weights[i] / total);
-  }, 0);
-  return Math.round(fraction * maxScore * 2) / 2;
-}
+export { scoreFromRubric } from '@/modules/review/scoring';

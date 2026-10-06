@@ -29,7 +29,7 @@ function WordMeter({ words, target }: { words: number; target?: { min: number; m
           style={{ width: `${Math.min(100, (words / scaleMax) * 100)}%` }}
         />
       </div>
-      <span className={cn('text-xs tabular-nums', inRange ? 'text-muted-foreground' : 'text-amber-600 dark:text-amber-400')}>
+      <span className={cn('text-xs tabular-nums', inRange ? 'text-muted-foreground' : 'text-amber-700 dark:text-amber-400')}>
         {words} palabras · meta {target.min}–{target.max}
       </span>
     </div>
@@ -37,7 +37,7 @@ function WordMeter({ words, target }: { words: number; target?: { min: number; m
 }
 
 /** The prompt the student saw, and what they answered. */
-export function ReviewWorkspace({ task }: { task: ReviewTask }) {
+export function ReviewWorkspace({ task, displayName }: { task: ReviewTask; displayName: string }) {
   const [zoom, setZoom] = useState(false);
   const { question, response } = task;
   const image = question.mediaType === 'image' && question.mediaUrl ? toBrowserMediaUrl(question.mediaUrl) : null;
@@ -91,7 +91,7 @@ export function ReviewWorkspace({ task }: { task: ReviewTask }) {
       {/* Answer */}
       <section>
         <div className="mb-2 flex flex-wrap items-end justify-between gap-2">
-          <Label>Respuesta de {task.studentName.split(' ')[0]}</Label>
+          <Label>{displayName.startsWith('Respuesta #') ? displayName : `Respuesta de ${displayName.split(' ')[0]}`}</Label>
           {response.text !== undefined && <WordMeter words={words} target={question.wordTarget} />}
         </div>
 

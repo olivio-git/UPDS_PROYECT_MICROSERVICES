@@ -86,7 +86,7 @@
     --secondary-foreground: 240 6% 10%;
 
     --muted: 240 5% 94%;
-    --muted-foreground: 240 4% 46%;
+    --muted-foreground: 240 4% 40%; /* AA (4.5:1) on muted and tinted surfaces */
 
     --accent: 240 5% 94%;
     --accent-foreground: 240 6% 10%;

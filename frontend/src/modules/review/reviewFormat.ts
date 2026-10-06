@@ -33,3 +33,6 @@ export function timeAgo(iso: string, now = Date.now()) {
 export const countWords = (text?: string) => (text?.trim() ? text.trim().split(/\s+/).length : 0);
 
 export const itemKey = (i: { resultId: string; questionId: string }) => `${i.resultId}:${i.questionId}`;
+
+/** Stable pseudonym for blind marking, derived from the result id. */
+export const anonymousLabel = (resultId: string) => `Respuesta #${resultId.slice(-4).toUpperCase()}`;
