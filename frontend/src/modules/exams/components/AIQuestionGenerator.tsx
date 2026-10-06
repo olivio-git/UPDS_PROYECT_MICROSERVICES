@@ -17,6 +17,7 @@ import {
   AlertTriangle,
 } from 'lucide-react';
 import { AnswerKey } from '@/components/questions/AnswerKey';
+import { QualityBadge, QualityPanel, type QualityReport } from './GenerationQuality';
 import React, { useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
 import { examService } from '@/services/examService';
@@ -60,7 +61,7 @@ interface GeneratedQuestionData {
 
 interface AIGenerationResponse {
   success: boolean;
-  data: { question: GeneratedQuestionData; savedId?: string; model: string };
+  data: { question: GeneratedQuestionData; savedId?: string; model: string; quality?: QualityReport; attempts?: number };
 }
 
 interface BulkResult {
@@ -70,6 +71,7 @@ interface BulkResult {
   accepted: boolean;
   savedId?: string;
   retried?: boolean;
+  quality?: QualityReport;
 }
 
 // ── Jaccard similarity on content words (length > 3) ──────────────────────────
@@ -177,6 +179,8 @@ const AIQuestionGenerator: React.FC<AIQuestionGeneratorProps> = ({
   // Single-question state
   const [generatedQuestion, setGeneratedQuestion] = useState<GeneratedQuestionData | null>(null);
   const [modelUsed, setModelUsed] = useState('');
+  const [quality, setQuality] = useState<{ report?: QualityReport; attempts?: number }>({});
+  const [bulkRejected, setBulkRejected] = useState(0);
   const [savedId, setSavedId] = useState<string | undefined>();
   const [step, setStep] = useState<'config' | 'generating' | 'preview' | 'bulk-results' | 'complete'>('config');
 
@@ -335,6 +339,7 @@ const AIQuestionGenerator: React.FC<AIQuestionGeneratorProps> = ({
       const data = await callGenerateEndpoint([]);
       setGeneratedQuestion(data.question);
       setModelUsed(data.model);
+      setQuality({ report: data.quality, attempts: data.attempts });
       setSavedId(undefined);
       setStep('preview');
       toast.success(`Pregunta generada con ${data.model.split('-').slice(0, 3).join('-')}`);
@@ -357,6 +362,8 @@ const AIQuestionGenerator: React.FC<AIQuestionGeneratorProps> = ({
     setBulkProgress(0);
     setBulkResults([]);
     setBulkPartial(false);
+    setBulkRejected(0);
+    let rejected = 0;
 
     const generatedTexts: string[] = [];
     const results: BulkResult[] = [];
@@ -377,14 +384,16 @@ const AIQuestionGenerator: React.FC<AIQuestionGeneratorProps> = ({
         }
 
         generatedTexts.push(data.question.content.question);
-        results.push({ index: i, question: data.question, model: data.model, accepted: true, retried });
+        results.push({ index: i, question: data.question, model: data.model, accepted: true, retried, quality: data.quality });
       } catch (err: any) {
         if ((err as any).isRateLimit) {
           toast.error(safeErr(err, 'Límite de generación alcanzado'), { duration: 10000 });
           rateLimitHit = true;
           break;
         }
-        // Errores individuales: se registran silenciosamente, no toast
+        // The AI could not produce a question that passed the quality check: count it, no toast per item.
+        rejected++;
+        setBulkRejected(rejected);
       }
 
       setBulkProgress(i + 1);
@@ -876,6 +885,8 @@ const AIQuestionGenerator: React.FC<AIQuestionGeneratorProps> = ({
               <QuestionPreviewCard question={generatedQuestion} />
             </div>
 
+            <QualityPanel quality={quality.report} attempts={quality.attempts} />
+
             <div className="flex flex-col sm:flex-row justify-between gap-3 pt-2 border-t border-border">
               <Button
                 variant="outline"
@@ -955,6 +966,11 @@ const AIQuestionGenerator: React.FC<AIQuestionGeneratorProps> = ({
                 Regenerar lote
               </Button>
             </div>
+            {bulkRejected > 0 && (
+              <p className="-mt-2 text-xs text-muted-foreground">
+                {bulkRejected} {bulkRejected === 1 ? 'pregunta no superó' : 'preguntas no superaron'} el control de calidad y no se incluyen.
+              </p>
+            )}
 
             <div className="space-y-2 max-h-64 overflow-y-auto pr-1">
               {bulkResults.map((result) => (
@@ -989,6 +1005,7 @@ const AIQuestionGenerator: React.FC<AIQuestionGeneratorProps> = ({
                     </p>
 
                     <div className="flex items-center gap-1.5 flex-shrink-0">
+                      <QualityBadge quality={result.quality} />
                       {result.retried && (
                         <span className="px-1.5 py-0.5 text-xs rounded border border-yellow-300 dark:border-yellow-600/40 text-yellow-600 dark:text-yellow-400">
                           variado
@@ -1016,6 +1033,12 @@ const AIQuestionGenerator: React.FC<AIQuestionGeneratorProps> = ({
                       )}
                     </button>
                   </div>
+
+                  {(result.quality?.issues.length ?? 0) > 0 && (
+                    <p className="-mt-1.5 pb-2.5 pl-[3.25rem] pr-4 text-xs text-amber-700 dark:text-amber-300">
+                      {result.quality!.issues.map((issue) => issue.label).join(' · ')}
+                    </p>
+                  )}
 
                   {expandedIndex === result.index && (
                     <div className="px-4 pb-4 border-t border-border/50 pt-3">

@@ -4,6 +4,12 @@ import { config } from '../config.js';
 import { getLevels, getQuestions } from '../db/collections.js';
 import type { IQuestion, QuestionType, Competency, Level } from '../types/index.js';
 import { normalizeGeneratedContent } from './question-validation.js';
+import {
+  LEVEL_PROFILE,
+  assessQuestionQuality,
+  questionSignature,
+  type QualityReport,
+} from '../grading/question-quality.js';
 
 export interface GenerateQuestionInput {
   competency: Competency;
@@ -23,7 +29,16 @@ export interface GenerateQuestionOutput {
   question: Omit<IQuestion, '_id' | 'statistics' | 'createdAt' | 'updatedAt' | 'createdBy'>;
   savedId?: string;
   model: string;
+  /** Automatic quality review of the returned question (warnings are shown to the teacher). */
+  quality: QualityReport;
+  /** Model calls it took (1 = accepted at once). */
+  attempts: number;
 }
+
+/** How many recent bank questions of the same level and type are compared against for duplicates. */
+const BANK_SAMPLE = 300;
+/** How many of them are quoted in the prompt as "do not repeat". */
+const BANK_IN_PROMPT = 8;
 
 const TYPE_HINTS: Partial<Record<QuestionType, string>> = {
   multiple_choice:
@@ -137,6 +152,23 @@ export async function generateQuestion(input: GenerateQuestionInput): Promise<Ge
     { projection: { description: 1, competencyRequirements: 1 } }
   );
 
+  // Questions of the same kind already in the bank: the new one must not repeat them.
+  const bankDocs = await getQuestions()
+    .find(
+      { level: input.level, type: input.type, isActive: { $ne: false } },
+      { projection: { 'content.question': 1, 'content.context': 1, 'content.template': 1, 'content.options': 1, 'content.items': 1 } },
+    )
+    .sort({ createdAt: -1 })
+    .limit(BANK_SAMPLE)
+    .toArray();
+  const existingSignatures = [
+    ...bankDocs.map((d) => questionSignature(d.content, { ignoreContext: Boolean(input.audioTranscript) })),
+    ...(input.avoidQuestions ?? []),
+  ].filter(Boolean);
+  const avoidList = [
+    ...new Set([...(input.avoidQuestions ?? []), ...bankDocs.slice(0, BANK_IN_PROMPT).map((d) => d.content?.question ?? '')]),
+  ].filter(Boolean);
+
   // Build a concise level+competency context block for the prompt
   const levelContextLines: string[] = [
     `- CEFR Level: ${input.level}${levelDoc?.description ? ` — ${levelDoc.description}` : ''}`,
@@ -151,6 +183,14 @@ export async function generateQuestion(input: GenerateQuestionInput): Promise<Ge
       ...(compReq.canDoStatements as string[]).map((s: string) => `  • ${s}`)
     );
   }
+  // Measurable targets — the same ones the quality check applies afterwards.
+  const profile = LEVEL_PROFILE[input.level];
+  levelContextLines.push(
+    `- Text targets for ${input.level}: sentences of about ${profile.maxAvgSentence} words or fewer on average` +
+      (['reading', 'listening'].includes(input.competency) ? `; passage of ${profile.passage[0]}-${profile.passage[1]} words` : '') +
+      (input.type === 'essay' ? `; model answer of ${profile.writing[0]}-${profile.writing[1]} words` : '') +
+      '.',
+  );
   const levelContext = levelContextLines.join('\n');
 
   // ── Rest of prompt parameters ────────────────────────────────────────────────
@@ -220,13 +260,13 @@ export async function generateQuestion(input: GenerateQuestionInput): Promise<Ge
 
   // Diversity block: injected when generating in bulk to prevent repetition
   const avoidBlock =
-    input.avoidQuestions && input.avoidQuestions.length > 0
+    avoidList.length > 0
       ? [
           '',
-          'DIVERSITY REQUIREMENT: The questions below have ALREADY been generated.',
+          'DIVERSITY REQUIREMENT: The questions below ALREADY exist in the question bank.',
           'Your question MUST be distinctly different — use a different topic, scenario, vocabulary set, and structure.',
           'Do NOT paraphrase, rephrase, or closely mirror any of these:',
-          ...input.avoidQuestions
+          ...avoidList
             .slice(0, 20)
             .map((q, i) => `  ${i + 1}. "${q.substring(0, 150)}"`),
           '',
@@ -352,17 +392,27 @@ export async function generateQuestion(input: GenerateQuestionInput): Promise<Ge
     },
   };
 
-  // ── Call the model, validate, and retry once with the problems spelled out ──
+  // ── Call the model, check it, and ask for fixes with the problems spelled out ──
+  // Blocking problems (ungradable, wrong language, duplicate…) are retried up to
+  // MAX_ATTEMPTS; warnings get one fix request. The best candidate seen is kept.
   const messages: Groq.Chat.Completions.ChatCompletionMessageParam[] = [
     { role: 'system', content: systemPrompt },
     { role: 'user', content: userPrompt },
   ];
-  const MAX_ATTEMPTS = 2;
-  let args: { content: IQuestion['content']; metadata: IQuestion['metadata'] } | undefined;
+  const MAX_ATTEMPTS = 3;
+  type Candidate = {
+    args: { content: IQuestion['content']; metadata: IQuestion['metadata'] };
+    blocking: string[];
+    quality: QualityReport;
+  };
+  let best: Candidate | undefined;
+  let lastFailure = '';
   let modelUsed = config.groq.model;
-  let problems: string[] = [];
+  let attempts = 0;
+  const rank = (c: Candidate) => c.blocking.length * 1000 - c.quality.score;
 
   for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+    attempts = attempt;
     const completion = await groq.chat.completions.create({
       model: config.groq.model,
       messages,
@@ -375,7 +425,7 @@ export async function generateQuestion(input: GenerateQuestionInput): Promise<Ge
 
     const toolCall = completion.choices[0]?.message?.tool_calls?.[0];
     if (!toolCall || toolCall.function.name !== 'register_question') {
-      problems = ['the model did not call register_question'];
+      lastFailure = 'the model did not call register_question';
       continue;
     }
 
@@ -383,14 +433,28 @@ export async function generateQuestion(input: GenerateQuestionInput): Promise<Ge
     try {
       parsed = JSON.parse(toolCall.function.arguments);
     } catch {
-      problems = ['register_question arguments were not valid JSON'];
+      lastFailure = 'register_question arguments were not valid JSON';
       continue;
     }
 
-    const result = normalizeGeneratedContent(input.type, parsed.content ?? ({} as IQuestion['content']));
-    problems = result.problems;
-    args = { content: result.content, metadata: parsed.metadata ?? {} };
-    if (!problems.length) break;
+    const rawContent = parsed.content ?? ({} as IQuestion['content']);
+    // The recording is the source of truth: never let the model rewrite it.
+    if (input.audioTranscript) rawContent.context = input.audioTranscript;
+    const result = normalizeGeneratedContent(input.type, rawContent);
+    const quality = assessQuestionQuality(input, result.content, {
+      existing: existingSignatures,
+      ignoreContext: Boolean(input.audioTranscript),
+    });
+    const candidate: Candidate = {
+      args: { content: result.content, metadata: parsed.metadata ?? {} },
+      blocking: [...result.problems, ...quality.issues.filter((i) => i.severity === 'block').map((i) => i.message)],
+      quality,
+    };
+    if (!best || rank(candidate) < rank(best)) best = candidate;
+
+    const warnings = quality.issues.filter((i) => i.severity === 'warn').map((i) => i.message);
+    const toFix = candidate.blocking.length ? candidate.blocking : attempt === 1 ? warnings : [];
+    if (!toFix.length) break;
 
     messages.push(
       { role: 'assistant', content: `register_question(${toolCall.function.arguments})` },
@@ -398,14 +462,21 @@ export async function generateQuestion(input: GenerateQuestionInput): Promise<Ge
         role: 'user',
         content:
           'That question cannot be used as is. Fix these problems and call register_question again with the complete question:\n' +
-          problems.map((p) => `- ${p}`).join('\n'),
+          toFix.map((p) => `- ${p}`).join('\n'),
       },
     );
   }
 
-  if (!args || problems.length) {
-    throw new Error(`La IA generó una pregunta inválida: ${problems.join('; ')}`);
+  if (!best || best.blocking.length) {
+    const reasons = best
+      ? [
+          ...best.quality.issues.filter((i) => i.severity === 'block').map((i) => i.label),
+          ...(best.blocking.length > best.quality.issues.filter((i) => i.severity === 'block').length ? ['la estructura no es válida'] : []),
+        ]
+      : [lastFailure];
+    throw new Error(`La IA no logró una pregunta válida: ${reasons.join('; ')}`);
   }
+  const args = best.args;
 
   const questionDoc: Omit<IQuestion, '_id'> = {
     type: input.type,
@@ -441,5 +512,7 @@ export async function generateQuestion(input: GenerateQuestionInput): Promise<Ge
     question: questionDoc,
     savedId,
     model: modelUsed,
+    quality: best.quality,
+    attempts,
   };
 }
