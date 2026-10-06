@@ -186,7 +186,7 @@ const QuestionForm: React.FC<Props> = ({ question, onCancel, onSaved }) => {
   }>({});
   // Estado para el generador AI
   const [showAIGenerator, setShowAIGenerator] = useState(true);
-  const [panelWidth, setPanelWidth] = useState(384);
+  const [panelWidth, setPanelWidth] = useState(440);
   const isResizingRef = useRef(false);
 
   const handleResizeStart = useCallback((e: React.MouseEvent) => {
@@ -198,7 +198,7 @@ const QuestionForm: React.FC<Props> = ({ question, onCancel, onSaved }) => {
     const onMove = (e: MouseEvent) => {
       if (!isResizingRef.current) return;
       const delta = startX - e.clientX;
-      setPanelWidth(Math.min(600, Math.max(280, startWidth + delta)));
+      setPanelWidth(Math.min(720, Math.max(280, startWidth + delta)));
     };
     const onUp = () => {
       isResizingRef.current = false;

@@ -551,7 +551,7 @@ const AIQuestionGenerator: React.FC<AIQuestionGeneratorProps> = ({
 
   // ── Render ─────────────────────────────────────────────────────────────────
   return (
-    <div className="bg-card border border-border rounded-xl flex flex-col overflow-hidden" style={{ maxHeight: 'calc(100vh - 8rem)' }}>
+    <div className="bg-card border border-border rounded-xl flex flex-col overflow-hidden" style={{ maxHeight: 'calc(100vh - 6rem)' }}>
       {/* Panel header */}
       <div className="flex items-center justify-between px-4 py-3 border-b border-border shrink-0 bg-muted/30">
         <div className="flex items-center gap-2">
@@ -887,45 +887,33 @@ const AIQuestionGenerator: React.FC<AIQuestionGeneratorProps> = ({
 
             <QualityPanel quality={quality.report} attempts={quality.attempts} />
 
-            <div className="flex flex-col sm:flex-row justify-between gap-3 pt-2 border-t border-border">
-              <Button
-                variant="outline"
-                size="sm"
-                type="button"
-                onClick={() => { setGeneratedQuestion(null); setStep('config'); }}
-                disabled={isGenerating || isSaving}
-              >
-                <RefreshCw className="w-4 h-4" />
-                Regenerar
-              </Button>
-              <div className="flex flex-col sm:flex-row gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  type="button"
-                  onClick={handleClose}
-                >
-                  <X className="w-4 h-4" />
-                  Cancelar
-                </Button>
+            <div className="sticky -bottom-4 -mx-4 -mb-4 space-y-2 border-t border-border bg-card px-4 pb-4 pt-3">
+              <div className={`grid gap-2 ${savedId ? 'grid-cols-1' : 'grid-cols-2'}`}>
                 {!savedId && (
-                  <Button
-                    size="sm"
-                    type="button"
-                    onClick={handleSaveSingle}
-                    disabled={isSaving}
-                  >
+                  <Button variant="outline" size="sm" type="button" onClick={handleSaveSingle} disabled={isSaving}>
                     {isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
                     Guardar en BD
                   </Button>
                 )}
+                <Button size="sm" type="button" onClick={handleAcceptSingle}>
+                  <Check className="w-4 h-4" />
+                  Aplicar al formulario
+                </Button>
+              </div>
+              <div className="flex items-center justify-between">
                 <Button
+                  variant="ghost"
                   size="sm"
                   type="button"
-                  onClick={handleAcceptSingle}
+                  onClick={() => { setGeneratedQuestion(null); setStep('config'); }}
+                  disabled={isGenerating || isSaving}
                 >
-                  <Check className="w-4 h-4" />
-                  Aplicar al Formulario
+                  <RefreshCw className="w-4 h-4" />
+                  Regenerar
+                </Button>
+                <Button variant="ghost" size="sm" type="button" onClick={handleClose}>
+                  <X className="w-4 h-4" />
+                  Cancelar
                 </Button>
               </div>
             </div>
@@ -972,7 +960,7 @@ const AIQuestionGenerator: React.FC<AIQuestionGeneratorProps> = ({
               </p>
             )}
 
-            <div className="space-y-2 max-h-64 overflow-y-auto pr-1">
+            <div className="space-y-2">
               {bulkResults.map((result) => (
                 <div
                   key={result.index}
@@ -999,7 +987,7 @@ const AIQuestionGenerator: React.FC<AIQuestionGeneratorProps> = ({
                       {result.accepted && <Check className="w-3 h-3" />}
                     </button>
 
-                    <p className="flex-1 text-sm text-foreground/90 line-clamp-1 min-w-0">
+                    <p className="flex-1 text-sm text-foreground/90 line-clamp-2 min-w-0">
                       <span className="text-muted-foreground/60 mr-1.5">#{result.index + 1}</span>
                       {result.question.content.question}
                     </p>
@@ -1068,7 +1056,8 @@ const AIQuestionGenerator: React.FC<AIQuestionGeneratorProps> = ({
               ))}
             </div>
 
-            <div className="flex flex-col gap-2 pt-3 border-t border-border">
+            {/* Actions stay visible while the list scrolls with the panel */}
+            <div className="sticky -bottom-4 -mx-4 -mb-4 flex flex-col gap-2 border-t border-border bg-card px-4 pb-4 pt-3">
               <div className="flex items-center gap-2">
                 <button
                   type="button"
