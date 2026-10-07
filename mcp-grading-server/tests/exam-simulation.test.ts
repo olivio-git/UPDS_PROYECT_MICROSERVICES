@@ -226,11 +226,29 @@ describe(`exam simulation: ${CANDIDATES} candidates, ${SECTIONS.reduce((n, s) =>
     assert.ok(rho > 0.8, `spearman ${rho.toFixed(3)}`);
   });
 
+  test('each question learns from the answers: usage counted once, harder items score lower', () => {
+    const questions = fakeCollection(DB, 'questions').docs as any[];
+    for (const q of questions) {
+      const answered = [...results.values()].filter((r) => r.questionResults.some((qr: any) => String(qr.questionId) === String(q._id))).length;
+      assert.equal(q.statistics?.timesUsed, answered, `question ${q._id}`);
+      assert.ok(q.statistics.averageScore >= 0 && q.statistics.averageScore <= 1);
+    }
+    const byDifficulty = (d: number) => questions.filter((q) => q.difficulty === d).map((q) => q.statistics.averageScore);
+    const mean = (xs: number[]) => xs.reduce((a, b) => a + b, 0) / Math.max(1, xs.length);
+    const easy = mean([...byDifficulty(1), ...byDifficulty(2)]);
+    const hard = mean([...byDifficulty(4), ...byDifficulty(5)]);
+    assert.ok(easy > hard, `easy ${easy.toFixed(2)} vs hard ${hard.toFixed(2)}`);
+    // With ${CANDIDATES} answers each, the observed difficulty (1–5) replaces the author's guess.
+    assert.ok(questions.every((q) => q.statistics.difficulty >= 1 && q.statistics.difficulty <= 5));
+  });
+
   test('regrading the same attempt gives the same result', async () => {
     const cand = cohort[5]!;
     const before = results.get(String(cand.attempt)).percentage;
     await gradeExam(cand.attempt.toString(), { force: true });
     const after = fakeCollection(DB, 'exam_results').docs.find((r: any) => String(r.attemptId) === String(cand.attempt))!;
     assert.equal(after.percentage, before);
+    const q = fakeCollection(DB, 'questions').docs[0] as any;
+    assert.equal(q.statistics.timesUsed, results.size - 0, 'a regrade does not count the answers twice');
   });
 });

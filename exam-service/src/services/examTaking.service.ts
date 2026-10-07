@@ -1,5 +1,6 @@
 import { sampleFavoringUnseen } from '../utils/questionSampling';
 import { toStudentQuestion } from '../utils/studentQuestionView';
+import { fallbackLevels, nextPlacementStep, shouldStopPlacement } from '../utils/adaptivePlacement';
 import { Types } from 'mongoose';
 import axios from 'axios';
 import type { ExamAttemptFinishedReason } from '@cba/events';
@@ -1058,7 +1059,6 @@ export class ExamTakingService {
 
   // ==================== ADAPTIVE EXAM (CAT) METHODS ====================
 
-  private readonly ADAPTIVE_LEVELS = ['A1', 'A2', 'B1', 'B2', 'C1', 'C2'];
   private readonly ADAPTIVE_AUTO_GRADABLE_TYPES = [
     'multiple_choice', 'true_false', 'fill_blanks', 'matching', 'ordering', 'drag_drop'
   ];
@@ -1218,6 +1218,7 @@ export class ExamTakingService {
     const adaptiveState = {
       currentLevel: startingLevel,
       consecutiveWrong: 0,
+      streak: 0,
       askedQuestionIds: [String(firstQuestion._id)],
       levelHistory: [],
       isFinished: false,
@@ -1310,14 +1311,16 @@ export class ExamTakingService {
     type AdaptiveState = {
       currentLevel: string;
       consecutiveWrong: number;
+      streak: number;
       askedQuestionIds: string[];
-      levelHistory: Array<{ questionId: string; level: string; isCorrect: boolean; score: number; maxScore: number }>;
+      levelHistory: Array<{ questionId: string; level: string; isCorrect: boolean; score: number; maxScore: number; type?: string; optionCount?: number }>;
       isFinished: boolean;
       stopReason?: 'max_questions' | 'consecutive_wrong' | 'manual';
     };
     const state: AdaptiveState = attempt.adaptiveState ? {
       currentLevel: attempt.adaptiveState.currentLevel,
       consecutiveWrong: attempt.adaptiveState.consecutiveWrong,
+      streak: attempt.adaptiveState.streak ?? 0,
       askedQuestionIds: [...(attempt.adaptiveState.askedQuestionIds || [])],
       levelHistory: [...(attempt.adaptiveState.levelHistory || [])],
       isFinished: attempt.adaptiveState.isFinished,
@@ -1325,6 +1328,7 @@ export class ExamTakingService {
     } : {
       currentLevel: (exam as any).placementConfig?.startingLevel || 'A2',
       consecutiveWrong: 0,
+      streak: 0,
       askedQuestionIds: [],
       levelHistory: [],
       isFinished: false,
@@ -1337,26 +1341,17 @@ export class ExamTakingService {
       isCorrect,
       score,
       maxScore,
+      type: question.type,
+      optionCount: question.content?.options?.length,
     });
 
     const questionsAnswered = state.levelHistory.length;
 
-    // Update level / consecutive wrong
-    if (isCorrect) {
-      state.consecutiveWrong = 0;
-      const currentIdx = this.ADAPTIVE_LEVELS.indexOf(state.currentLevel);
-      state.currentLevel = this.ADAPTIVE_LEVELS[Math.min(currentIdx + 1, this.ADAPTIVE_LEVELS.length - 1)]!;
-    } else {
-      state.consecutiveWrong = (state.consecutiveWrong || 0) + 1;
-    }
+    // Staircase: two right in a row → up one level, one wrong → down one level.
+    Object.assign(state, nextPlacementStep(state, isCorrect));
 
     // Check stop conditions
-    let stopReason: 'max_questions' | 'consecutive_wrong' | undefined;
-    if (questionsAnswered >= maxQuestions) {
-      stopReason = 'max_questions';
-    } else if (state.consecutiveWrong >= consecutiveWrongThreshold) {
-      stopReason = 'consecutive_wrong';
-    }
+    const stopReason = shouldStopPlacement(state, questionsAnswered, maxQuestions, consecutiveWrongThreshold);
 
     let nextQuestion: any = null;
     let finished = false;
@@ -1369,9 +1364,8 @@ export class ExamTakingService {
       // Pick next question
       nextQuestion = await this.pickAdaptiveQuestion(exam, state.currentLevel, state.askedQuestionIds);
       if (!nextQuestion) {
-        // Try adjacent levels if no questions available
-        const adjacentLevels = this.ADAPTIVE_LEVELS.filter(l => l !== state.currentLevel);
-        for (const lvl of adjacentLevels) {
+        // Nothing left at this level: try the nearest levels first.
+        for (const lvl of fallbackLevels(state.currentLevel)) {
           nextQuestion = await this.pickAdaptiveQuestion(exam, lvl, state.askedQuestionIds);
           if (nextQuestion) {
             state.currentLevel = lvl;

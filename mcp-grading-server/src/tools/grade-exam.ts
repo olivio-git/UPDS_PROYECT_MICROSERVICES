@@ -1,6 +1,8 @@
 import { ObjectId } from 'mongodb';
 import { getAttempts, getResponses, getQuestions, getExamResults, getExams, getCandidates, getRubrics, getLevels } from '../db/collections.js';
 import { autoGrade } from '../grading/auto-grader.js';
+import { estimatePlacementLevel } from '../grading/placement.js';
+import { recordQuestionStatistics } from './question-statistics.js';
 import { evaluateWithGroq, evaluateWithRubric, generateExamFeedback, generatePerQuestionFeedback } from '../grading/groq-evaluator.js';
 import { evaluateAudio } from '../grading/audio-delegator.js';
 import { sendGradingNotification } from '../services/notification.service.js';
@@ -577,10 +579,15 @@ export async function gradeExam(attemptId: string, options: { force?: boolean; r
       }));
     }
 
-    // Determine recommended level: highest level where candidate passed threshold
-    const passedLevels = levelScores.filter(ls => ls.percentage >= levelPassingThreshold);
-    passedLevels.sort((a, b) => PLACEMENT_LEVELS.indexOf(b.level) - PLACEMENT_LEVELS.indexOf(a.level));
-    recommendedLevel = passedLevels[0]?.level ?? 'A1';
+    if (placementMode === 'adaptive' && attempt.adaptiveState?.levelHistory?.length) {
+      // Adaptive: most likely level given every answer and its chance of guessing (see grading/placement.ts).
+      recommendedLevel = estimatePlacementLevel(attempt.adaptiveState.levelHistory).level;
+    } else {
+      // Static: highest level where the candidate reached the threshold.
+      const passedLevels = levelScores.filter(ls => ls.percentage >= levelPassingThreshold);
+      passedLevels.sort((a, b) => PLACEMENT_LEVELS.indexOf(b.level) - PLACEMENT_LEVELS.indexOf(a.level));
+      recommendedLevel = passedLevels[0]?.level ?? 'A1';
+    }
   }
 
   // 11. Calculate exam duration
@@ -707,6 +714,14 @@ export async function gradeExam(attemptId: string, options: { force?: boolean; r
       }
       throw error;
     }
+  }
+
+  // 12.5. Item statistics, once per exam: only answers with a final score count
+  // (a pending manual answer is added when the review completes the exam).
+  if (status === 'completed' && !(existingResult as any)?.statisticsRecorded) {
+    await recordQuestionStatistics(questionResults.filter((qr) => !isPendingManual(qr)))
+      .then(() => getExamResults().updateOne({ _id: new ObjectId(resultId) }, { $set: { statisticsRecorded: true } }))
+      .catch((err) => console.warn(`[grade-exam] question statistics not recorded for ${attemptId}:`, err?.message));
   }
 
   // 13. Send notification (best-effort). After a teacher review, only the

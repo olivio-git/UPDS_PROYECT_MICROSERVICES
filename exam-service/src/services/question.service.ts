@@ -1,5 +1,6 @@
 import { cache } from '../config/redis';
 import { IQuestion, Question } from '../models/question.model';
+import { Rubric } from '../models/rubric.model';
 import { CONSTANTS } from '../utils/constants';
 import { logger } from '../utils/logger';
 import { answerKeyProblems, formatMismatch, withDefaultPositions } from '../utils/questionFormats';
@@ -17,6 +18,7 @@ export class QuestionService {
       // Validaciones específicas por tipo de pregunta
       if (questionData.content) questionData.content = withDefaultPositions(questionData.type, questionData.content);
       this.validateQuestionData(questionData, hasAudioFile);
+      await this.assertRubricFits(questionData);
 
       const question = new Question(questionData);
       await question.save();
@@ -46,6 +48,23 @@ export class QuestionService {
     } catch (error) {
       logger.error('Error creating question with media:', error);
       throw error;
+    }
+  }
+
+  /**
+   * A rubric written for another level or skill would grade the answer against
+   * the wrong expectations (an A2 essay judged with B2 descriptors).
+   */
+  private async assertRubricFits(data: Partial<IQuestion>): Promise<void> {
+    const rubricId = data.metadata?.rubricId;
+    if (!rubricId) return;
+    const rubric = await Rubric.findById(rubricId).select('level competency name').lean().exec();
+    if (!rubric) throw new Error('La rúbrica seleccionada no existe');
+    if (rubric.level !== data.level || rubric.competency !== data.competency) {
+      throw new Error(
+        `La rúbrica "${rubric.name}" es de ${rubric.competency} ${rubric.level} y la pregunta es de ${data.competency} ${data.level}. ` +
+        'Usa una rúbrica del mismo nivel y competencia.'
+      );
     }
   }
 
@@ -177,6 +196,7 @@ export class QuestionService {
           (updateData.type !== undefined && updateData.type !== existing.type) ||
           (updateData.competency !== undefined && updateData.competency !== existing.competency);
         this.validateQuestionData(merged, Boolean(existing.content?.mediaUrl), reclassified);
+        if (updateData.metadata?.rubricId || reclassified || updateData.level) await this.assertRubricFits(merged);
       }
 
       const question = await Question.findByIdAndUpdate(

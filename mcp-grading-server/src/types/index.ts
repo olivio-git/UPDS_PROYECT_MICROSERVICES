@@ -144,6 +144,8 @@ export interface IAttempt {
       isCorrect: boolean;
       score: number;
       maxScore: number;
+      type?: string;
+      optionCount?: number;
     }>;
     isFinished: boolean;
     stopReason?: 'max_questions' | 'consecutive_wrong' | 'manual';
