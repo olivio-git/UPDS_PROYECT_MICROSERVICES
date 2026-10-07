@@ -40,6 +40,7 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { toast } from 'sonner';
 import QuestionRenderer from '../components/QuestionRenderer';
+import { isMultipleAnswer } from '../utils/questionView';
 import SectionNavigator from '../components/SectionNavigator';
 import { ProgressRing } from '../components/ProgressRing';
 import { ExamSubmittedScreen } from '../components/ExamSubmittedScreen';
@@ -452,8 +453,7 @@ const ExamRunnerHTTP: React.FC = () => {
       const opt = options[index];
       if (!opt) return;
       const optId = opt.id || opt._id;
-      const correctCount = options.filter((o: any) => o.isCorrect).length;
-      const isSingleSelect = correctCount <= 1 || Boolean(content.correctAnswer);
+      const isSingleSelect = !isMultipleAnswer(content, options);
 
       if (isSingleSelect) {
         handleAnswerChange(qId, { selectedOptions: [optId] });

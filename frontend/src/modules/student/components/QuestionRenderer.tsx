@@ -1,4 +1,5 @@
 import { AudioPlayer, AudioRecorder } from '@/components/audio';
+import { isMultipleAnswer } from '../utils/questionView';
 import { Badge } from '@/components/keel/badge';
 import { Spinner } from '@/components/keel/spinner';
 import { Textarea } from '@/components/keel/textarea';
@@ -178,14 +179,16 @@ const QuestionRenderer: React.FC<Props> = ({
   }, [question?.type, question?.competency]);
 
   // Single vs multi select for multiple choice (same rule ExamRunnerHTTP uses).
-  const correctCount = optionsList.filter((o: any) => o.isCorrect).length;
-  const isSingleSelect = correctCount <= 1 || Boolean(content.correctAnswer);
+  const isSingleSelect = !isMultipleAnswer(content, optionsList);
 
   // ── Shuffles: computed once per question, never saved until the student acts ──
   const matchingOptions = useMemo(() => {
-    const values = Array.from(new Set(items.map((i) => i.matchingPair).filter((v): v is string => typeof v === 'string' && v.length > 0)));
+    // The exam runner receives the right-hand column apart from the rows (no answer key);
+    // the editor preview still passes full items with matchingPair.
+    const source: unknown[] = Array.isArray(content.matchOptions) ? content.matchOptions : items.map((i) => i.matchingPair);
+    const values = Array.from(new Set(source.filter((v): v is string => typeof v === 'string' && v.length > 0)));
     return derange(values);
-  }, [items]);
+  }, [items, content.matchOptions]);
 
   const initialOrder = useMemo(() => derange(items.map((i) => String(i.id))), [items]);
   const builderPieces = useMemo(

@@ -355,6 +355,9 @@ async function main() {
     const startA = await api('POST', `/api/v1/exam-taking/${sid}/start`, studentA.token);
     check('student A can start the exam', startA.status === 200, `HTTP ${startA.status} ${JSON.stringify(startA.json?.message || '')}`);
     if (startA.status !== 200) throw new Error('student A start failed');
+    const leaked = ['isCorrect', 'correctPosition', 'matchingPair', 'correctAnswers', 'correctAnswer', 'sampleAnswer']
+      .filter((key) => JSON.stringify(startA.json).includes(`"${key}"`));
+    check('the questions sent to the student carry no answer key', leaked.length === 0, leaked.join(', '));
     const attemptA = await exams.collection('attempts').findOne({ sessionId: new ObjectId(sid), candidateId: studentA.id });
     check('student A attempt created and in_progress', attemptA?.status === 'in_progress');
     const questionsA = attemptA?.questionIds || [];

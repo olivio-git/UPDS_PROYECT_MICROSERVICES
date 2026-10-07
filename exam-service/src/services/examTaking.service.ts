@@ -1,4 +1,5 @@
 import { sampleFavoringUnseen } from '../utils/questionSampling';
+import { toStudentQuestion } from '../utils/studentQuestionView';
 import { Types } from 'mongoose';
 import axios from 'axios';
 import type { ExamAttemptFinishedReason } from '@cba/events';
@@ -465,29 +466,10 @@ export class ExamTakingService {
       await attempt.save();
     }
 
-    // Helper: Fisher-Yates shuffle (pure, no mutations to original)
-    const shuffleArray = <T>(arr: T[]): T[] => {
-      const shuffled = [...arr];
-      for (let i = shuffled.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        const temp = shuffled[i]!; shuffled[i] = shuffled[j]!; shuffled[j] = temp;
-      }
-      return shuffled;
-    };
-
-    // Return sections with questions (without correct answers) and timing info
-    // Options and items are shuffled so students don't see them in correct order
+    // Return sections with questions (answer key removed, options and items shuffled) and timing info
     const sectionsWithQuestions = sections.map(section => ({
       ...section,
-      questions: section.questions.map((q: any) => {
-        const obj = q.toObject();
-        if (obj.content) {
-          if (obj.content.options) obj.content.options = shuffleArray(obj.content.options);
-          if (obj.content.items) obj.content.items = shuffleArray(obj.content.items);
-          delete obj.content.correctAnswer;
-        }
-        return obj;
-      })
+      questions: section.questions.map((q: any) => toStudentQuestion(q))
     }));
 
     // Get existing answers (in case this is a restart of an existing attempt)
@@ -796,11 +778,7 @@ export class ExamTakingService {
           duration: sectionStructure.duration,
           weight: sectionStructure.weight,
           questionCount: sectionStructure.questionCount,
-          questions: sectionQuestions.map((q: any) => {
-            const obj = q.toObject();
-            if (obj.content) delete obj.content.correctAnswer;
-            return obj;
-          })
+          questions: sectionQuestions.map((q: any) => toStudentQuestion(q))
         };
 
         sections.push(section);
@@ -829,11 +807,7 @@ export class ExamTakingService {
         duration: exam.structure?.totalDuration || 60,
         weight: 100,
         questionCount: allQuestions.length,
-        questions: allQuestions.map((q: any) => {
-          const obj = q.toObject();
-          if (obj.content) delete obj.content.correctAnswer;
-          return obj;
-        })
+        questions: allQuestions.map((q: any) => toStudentQuestion(q))
       }];
     } else {
       throw new Error('No stored question structure found for this attempt');
@@ -1261,12 +1235,7 @@ export class ExamTakingService {
     });
     await attempt.save();
 
-    const questionObj = firstQuestion.toObject();
-    if (questionObj.content) {
-      if (questionObj.content.options) questionObj.content.options = this.shuffleArray(questionObj.content.options);
-      if (questionObj.content.items) questionObj.content.items = this.shuffleArray(questionObj.content.items);
-      delete questionObj.content.correctAnswer;
-    }
+    const questionObj = toStudentQuestion(firstQuestion);
 
     // result-visibility: with showResults=false the runner must not show a level.
     return toStudentAdaptiveView({
@@ -1416,12 +1385,7 @@ export class ExamTakingService {
         finished = true;
       } else {
         state.askedQuestionIds.push(String(nextQuestion._id));
-        const nextObj = nextQuestion.toObject();
-        if (nextObj.content) {
-          if (nextObj.content.options) nextObj.content.options = this.shuffleArray(nextObj.content.options);
-          if (nextObj.content.items) nextObj.content.items = this.shuffleArray(nextObj.content.items);
-          delete nextObj.content.correctAnswer;
-        }
+        const nextObj = toStudentQuestion(nextQuestion);
         nextQuestion = nextObj;
       }
     }
@@ -1506,12 +1470,7 @@ export class ExamTakingService {
       return toStudentAdaptiveView({ finished: true, adaptiveState: attempt.adaptiveState }, exam);
     }
 
-    const questionObj = nextQuestion.toObject();
-    if (questionObj.content) {
-      if (questionObj.content.options) questionObj.content.options = this.shuffleArray(questionObj.content.options);
-      if (questionObj.content.items) questionObj.content.items = this.shuffleArray(questionObj.content.items);
-      delete questionObj.content.correctAnswer;
-    }
+    const questionObj = toStudentQuestion(nextQuestion);
 
     const session = await Session.findById(attempt.sessionId).select('settings.browserLockdown').lean();
 
@@ -1531,19 +1490,4 @@ export class ExamTakingService {
     }, exam);
   }
 
-  /**
-   * Fisher-Yates shuffle algorithm to randomize array elements
-   * @param array Array to shuffle
-   * @returns Shuffled copy of the array
-   */
-  private shuffleArray<T>(array: T[]): T[] {
-    const shuffled = [...array];
-    for (let i = shuffled.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      const temp = shuffled[i]!;
-      shuffled[i] = shuffled[j]!;
-      shuffled[j] = temp;
-    }
-    return shuffled;
-  }
 }

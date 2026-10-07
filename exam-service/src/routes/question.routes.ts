@@ -42,19 +42,23 @@ router.post(
   questionController.createQuestionWithMultipleMedia.bind(questionController)
 );
 
+// The bank carries the answer keys: staff only (students get questions through exam-taking).
 router.get(
   '/',
+  requireRole('admin', 'teacher'),
   validateQuery(questionSchema.query),
   questionController.findAll.bind(questionController)
 );
 
 router.get(
   '/stats',
+  requireRole('admin', 'teacher'),
   questionController.getQuestionStats.bind(questionController)
 );
 
 router.get(
   '/:id',
+  requireRole('admin', 'teacher'),
   validateParams(questionSchema.params),
   questionController.findById.bind(questionController)
 );
