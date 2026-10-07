@@ -545,8 +545,9 @@ const QuestionDetailView: React.FC<QuestionDetailViewProps> = ({
                     <div className="text-xs text-muted-foreground">Usos</div>
                   </div>
                   <div className="text-center">
-                    <div className="text-lg font-bold text-green-600 dark:text-green-400">{question.statistics.averageScore || 0}%</div>
-                    <div className="text-xs text-muted-foreground">Promedio</div>
+                    {/* averageScore is the share of points students earned (0–1), recorded by grading-service. */}
+                    <div className="text-lg font-bold text-green-600 dark:text-green-400">{Math.round((question.statistics.averageScore || 0) * 100)}%</div>
+                    <div className="text-xs text-muted-foreground">Aciertos</div>
                   </div>
                   <div className="text-center">
                     <div className="text-lg font-bold text-yellow-600 dark:text-yellow-400">{question.statistics.averageTime || 0}s</div>
