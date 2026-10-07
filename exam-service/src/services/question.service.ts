@@ -2,6 +2,7 @@ import { cache } from '../config/redis';
 import { IQuestion, Question } from '../models/question.model';
 import { CONSTANTS } from '../utils/constants';
 import { logger } from '../utils/logger';
+import { answerKeyProblems, formatMismatch, withDefaultPositions } from '../utils/questionFormats';
 import { KafkaService } from './kafka.service';
 
 export class QuestionService {
@@ -14,6 +15,7 @@ export class QuestionService {
   async create(questionData: Partial<IQuestion>, hasAudioFile: boolean = false): Promise<IQuestion> {
     try {
       // Validaciones específicas por tipo de pregunta
+      if (questionData.content) questionData.content = withDefaultPositions(questionData.type, questionData.content);
       this.validateQuestionData(questionData, hasAudioFile);
 
       const question = new Question(questionData);
@@ -47,10 +49,18 @@ export class QuestionService {
     }
   }
 
-  private validateQuestionData(data: Partial<IQuestion>, hasAudioFile: boolean = false): void {
+  private validateQuestionData(data: Partial<IQuestion>, hasAudioFile: boolean = false, checkFormat = true): void {
     if (!data.content?.question?.trim()) {
       throw new Error('La pregunta es requerida');
     }
+
+    // The format has to measure the competency it is filed under (see utils/questionFormats).
+    const mismatch = checkFormat ? formatMismatch(data.type, data.competency) : null;
+    if (mismatch) throw new Error(mismatch);
+
+    // An answer key nobody can match (no correct option, positions with gaps…) would give every student 0.
+    const keyProblems = answerKeyProblems(data.type, data.content);
+    if (keyProblems.length) throw new Error(keyProblems.join('. '));
 
     // Validación de combinaciones lógicas
     if (data.type === 'audio_response' && data.competency === 'listening') {
@@ -156,6 +166,19 @@ export class QuestionService {
 
   async update(id: string, updateData: Partial<IQuestion>): Promise<IQuestion | null> {
     try {
+      // Validate the question as it will be after the update, like on create. The
+      // format rule only applies when type or competency change, so an older
+      // question can still be edited (and fixed) without being reclassified first.
+      const existing = await Question.findById(id).lean().exec();
+      if (existing) {
+        if (updateData.content) updateData.content = withDefaultPositions(updateData.type ?? existing.type, updateData.content);
+        const merged = { ...existing, ...updateData, content: updateData.content ?? existing.content } as unknown as Partial<IQuestion>;
+        const reclassified =
+          (updateData.type !== undefined && updateData.type !== existing.type) ||
+          (updateData.competency !== undefined && updateData.competency !== existing.competency);
+        this.validateQuestionData(merged, Boolean(existing.content?.mediaUrl), reclassified);
+      }
+
       const question = await Question.findByIdAndUpdate(
         id,
         { $set: updateData },

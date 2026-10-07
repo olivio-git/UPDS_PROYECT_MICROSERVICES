@@ -196,10 +196,7 @@ export async function generateQuestion(input: GenerateQuestionInput): Promise<Ge
   // ── Rest of prompt parameters ────────────────────────────────────────────────
   const typeHint = TYPE_HINTS[input.type] ?? `Type: ${input.type}`;
 
-  // Resolve type vs competency conflicts:
-  // essay is always a WRITING PRODUCTION task — competencies like reading/listening
-  // should only influence the TOPIC AREA, not impose comprehension-question patterns.
-  // audio_response is always a SPEAKING PRODUCTION task — same principle applies.
+  // Type/competency combinations are validated upstream (QUESTION_FORMATS_BY_COMPETENCY).
   let competencyHint = COMPETENCY_HINTS[input.competency] ?? '';
   if (input.competency === 'listening' && input.audioTranscript) {
     competencyHint =
@@ -213,21 +210,6 @@ export async function generateQuestion(input: GenerateQuestionInput): Promise<Ge
       '(2) use a descriptive reference based on their role or topic (e.g. "the person who dislikes cooking", "the interviewer"), ' +
       'or (3) refer generically to "the speaker" or "one of the speakers" if no name or role can be inferred. ' +
       'The student hears the audio but does not see speaker labels — questions must be answerable from listening alone.';
-  }
-  if (input.type === 'essay' && (input.competency === 'reading' || input.competency === 'listening')) {
-    competencyHint =
-      `The competency "${input.competency}" defines only the TOPIC AREA for this essay. ` +
-      `This is a WRITING PRODUCTION task — do NOT generate a comprehension question, ` +
-      `do NOT add a "context" passage, and do NOT ask the student to extract information. ` +
-      `The student must write their own original text inspired by the topic.`;
-  }
-  if (input.type === 'audio_response' && input.competency !== 'speaking') {
-    competencyHint =
-      `The competency "${input.competency}" defines only the TOPIC AREA for this speaking task. ` +
-      `This is a SPEAKING PRODUCTION task — do NOT generate a comprehension question, ` +
-      `do NOT add a reading/listening "context" passage, and do NOT ask the student to extract information. ` +
-      `The student must speak their own original response about a topic related to "${input.competency}". ` +
-      `Generate a speaking prompt appropriate for that topic area.`;
   }
   const topicLine = input.topic ? `- Topic: ${input.topic}` : '';
   // Audio transcript takes priority over thematicContext for listening questions.

@@ -132,3 +132,14 @@ describe('question generator with quality control', () => {
     assert.equal(out.attempts, 1);
   });
 });
+
+describe('generator request validation', async () => {
+  const { GenerateQuestionRequestSchema } = await import('../src/schemas/grading.schemas.js');
+  test('formats that do not measure the competency are refused before calling the model', () => {
+    for (const [competency, type] of [['grammar', 'essay'], ['reading', 'drag_drop'], ['writing', 'multiple_choice'], ['vocabulary', 'drag_drop']]) {
+      const r = GenerateQuestionRequestSchema.safeParse({ competency, type, level: 'A2' });
+      assert.equal(r.success, false, `${competency}/${type}`);
+    }
+    assert.equal(GenerateQuestionRequestSchema.safeParse({ competency: 'grammar', type: 'drag_drop', level: 'A2' }).success, true);
+  });
+});

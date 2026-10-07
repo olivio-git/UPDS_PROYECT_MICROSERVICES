@@ -15,6 +15,7 @@ import { FillBlanksEditor } from '@/components/questions/editors/FillBlanksEdito
 import { PairsEditor, SequenceEditor } from '@/components/questions/editors/ItemsEditor';
 import QuestionRenderer from '@/modules/student/components/QuestionRenderer';
 
+import { QUESTION_FORMATS_BY_COMPETENCY } from '../constants/academic.constants';
 import { useLevels } from '../hooks/useLevels';
 import { useQuestions } from '../hooks/useQuestions';
 import { useRubrics } from '../hooks/useRubrics';
@@ -26,16 +27,8 @@ import type {
 } from '../types';
 import type { Rubric } from '../types/rubrics.types';
 
-// Tipos válidos por competencia MCER
-const TYPES_BY_COMPETENCY: Record<string, QuestionType[]> = {
-  reading:   ['multiple_choice', 'true_false', 'fill_blanks', 'matching', 'ordering', 'drag_drop', 'open_text', 'essay'],
-  writing:   ['essay', 'open_text', 'fill_blanks', 'multiple_choice', 'true_false', 'matching', 'ordering', 'drag_drop'],
-  listening: ['multiple_choice', 'true_false', 'fill_blanks', 'matching', 'ordering', 'open_text'],
-  speaking:  ['audio_response'],
-  // Linguistic competences: closed formats that auto-grade reliably.
-  grammar:    ['multiple_choice', 'fill_blanks', 'drag_drop', 'true_false', 'matching'],
-  vocabulary: ['multiple_choice', 'matching', 'fill_blanks', 'true_false', 'drag_drop'],
-};
+// Tipos válidos por competencia MCER (el servidor aplica la misma regla)
+const TYPES_BY_COMPETENCY = QUESTION_FORMATS_BY_COMPETENCY as Record<string, QuestionType[]>;
 
 const DEFAULT_TYPE_BY_COMPETENCY: Record<string, QuestionType> = {
   reading:   'multiple_choice',
@@ -236,8 +229,14 @@ const QuestionForm: React.FC<Props> = ({ question, onCancel, onSaved }) => {
 
   // Tipos disponibles según la competencia seleccionada
   const availableTypes = useMemo<QuestionType[]>(() => {
-    return TYPES_BY_COMPETENCY[formData.competency as string] ?? (Object.keys(TYPE_LABELS) as QuestionType[]);
-  }, [formData.competency]);
+    const allowed = TYPES_BY_COMPETENCY[formData.competency as string] ?? (Object.keys(TYPE_LABELS) as QuestionType[]);
+    // An older question filed under a format that no longer fits can still be opened and fixed.
+    const current = formData.type as QuestionType | undefined;
+    return current && question?._id && !allowed.includes(current) ? [...allowed, current] : allowed;
+  }, [formData.competency, formData.type, question?._id]);
+  const formatDoesNotFit =
+    Boolean(formData.type && formData.competency) &&
+    !(TYPES_BY_COMPETENCY[formData.competency as string] ?? []).includes(formData.type as QuestionType);
 
   const typeIsFixed = availableTypes.length === 1;
 
@@ -534,6 +533,11 @@ const QuestionForm: React.FC<Props> = ({ question, onCancel, onSaved }) => {
                   <NativeSelectOption key={type} value={type}>{TYPE_LABELS[type]}</NativeSelectOption>
                 ))}
               </NativeSelect>
+            )}
+            {formatDoesNotFit && (
+              <p className="text-xs text-amber-700 dark:text-amber-300">
+                Este formato no evalúa esta competencia; conviene cambiarlo por uno de la lista.
+              </p>
             )}
           </div>
 

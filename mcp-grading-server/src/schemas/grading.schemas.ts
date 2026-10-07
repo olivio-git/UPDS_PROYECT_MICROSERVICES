@@ -34,6 +34,20 @@ export const RegradeAttemptSchema = z.object({
   attemptId: z.string().min(24).max(24).describe('MongoDB ObjectId del attempt a recalcular'),
 });
 
+/**
+ * Formats that measure each competency — same table exam-service enforces on save
+ * (exam-service/src/utils/questionFormats.ts); generating anything else would only
+ * produce a question the bank then refuses.
+ */
+export const QUESTION_FORMATS_BY_COMPETENCY: Record<string, readonly string[]> = {
+  reading: ['multiple_choice', 'true_false', 'matching', 'ordering', 'fill_blanks', 'open_text'],
+  listening: ['multiple_choice', 'true_false', 'matching', 'ordering', 'fill_blanks', 'open_text'],
+  writing: ['essay', 'open_text'],
+  speaking: ['audio_response'],
+  grammar: ['multiple_choice', 'fill_blanks', 'drag_drop', 'true_false', 'matching'],
+  vocabulary: ['multiple_choice', 'matching', 'fill_blanks', 'true_false'],
+};
+
 export const GenerateQuestionRequestSchema = z.object({
   competency: z.enum(['reading', 'writing', 'listening', 'speaking', 'grammar', 'vocabulary']),
   level: z.enum(['A1', 'A2', 'B1', 'B2', 'C1', 'C2']),
@@ -46,6 +60,15 @@ export const GenerateQuestionRequestSchema = z.object({
   createdBy: z.string().length(24).optional(),
   // Bulk generation: list of question texts already generated (to enforce diversity)
   avoidQuestions: z.array(z.string().max(500)).max(30).optional(),
+}).superRefine((data, ctx) => {
+  const allowed = QUESTION_FORMATS_BY_COMPETENCY[data.competency];
+  if (!allowed.includes(data.type)) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ['type'],
+      message: `El formato "${data.type}" no evalúa la competencia "${data.competency}". Formatos válidos: ${allowed.join(', ')}`,
+    });
+  }
 });
 
 export const FormatTranscriptRequestSchema = z.object({

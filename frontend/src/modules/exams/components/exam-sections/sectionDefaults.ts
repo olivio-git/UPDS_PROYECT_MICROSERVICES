@@ -11,6 +11,7 @@ import {
   COMPETENCIES,
   COMPETENCY_LABELS,
   DEFAULT_COMPETENCY_WEIGHT,
+  QUESTION_FORMATS_BY_COMPETENCY,
   type Competency,
 } from '../../constants/academic.constants';
 import { distributeByShares } from '../../utils/weights';
@@ -70,7 +71,7 @@ export function newSection(competency: Competency, order: number, weight = 0): S
     competency,
     instructions: DEFAULT_INSTRUCTIONS[competency],
     questionCount: DEFAULT_SIZE[competency].questions,
-    questionTypes: ['multiple_choice'],
+    questionTypes: [...QUESTION_FORMATS_BY_COMPETENCY[competency]],
     weight,
     duration: DEFAULT_SIZE[competency].minutes,
     order,

@@ -53,6 +53,21 @@ export const DEFAULT_COMPETENCY_WEIGHT: Record<Competency, number> = {
   vocabulary: 10,
 };
 
+/**
+ * Formats that measure each competency (mirror of exam-service utils/questionFormats.ts,
+ * which enforces it). Comprehension is shown by choosing, matching, ordering, completing
+ * or answering briefly; production (writing, speaking) requires producing language;
+ * grammar tests form in context; vocabulary tests meaning and word choice.
+ */
+export const QUESTION_FORMATS_BY_COMPETENCY: Record<Competency, readonly string[]> = {
+  reading: ['multiple_choice', 'true_false', 'matching', 'ordering', 'fill_blanks', 'open_text'],
+  listening: ['multiple_choice', 'true_false', 'matching', 'ordering', 'fill_blanks', 'open_text'],
+  writing: ['essay', 'open_text'],
+  speaking: ['audio_response'],
+  grammar: ['multiple_choice', 'fill_blanks', 'drag_drop', 'true_false', 'matching'],
+  vocabulary: ['multiple_choice', 'matching', 'fill_blanks', 'true_false'],
+};
+
 export const MCER_LEVEL_DESCRIPTIONS: Record<MCERLevel, string> = {
   A1: 'Acceso - Usuario básico',
   A2: 'Plataforma - Usuario básico', 
