@@ -1,4 +1,5 @@
 import type { Competency, IQuestion, Level, QuestionType } from '../types/index.js';
+import { COVERAGE_TARGET, LEVELS, estimateLevel, type CefrLevel } from './cefr/cefr-level.js';
 
 /**
  * Quality checks for AI-generated questions, beyond the structural ones in
@@ -28,6 +29,8 @@ export interface QualityReport {
   /** 0–100: 100 minus 25 per blocking issue and 8 per warning. */
   score: number;
   issues: QualityIssue[];
+  /** CEFR level the text of the question asks for (CEFR-J vocabulary + grammar), for the teacher. */
+  estimatedLevel?: CefrLevel;
 }
 
 export interface QualityInput {
@@ -44,14 +47,21 @@ export interface QualityOptions {
 }
 
 /** Text profile per CEFR level: sentence length, share of long words, passage and model-answer size. */
-export const LEVEL_PROFILE: Record<Level, { maxAvgSentence: number; maxLongWordRatio: number; passage: [number, number]; writing: [number, number] }> = {
-  A1: { maxAvgSentence: 10, maxLongWordRatio: 0.2, passage: [20, 80], writing: [25, 70] },
-  A2: { maxAvgSentence: 13, maxLongWordRatio: 0.24, passage: [35, 120], writing: [35, 100] },
-  B1: { maxAvgSentence: 17, maxLongWordRatio: 0.3, passage: [70, 200], writing: [70, 160] },
-  B2: { maxAvgSentence: 22, maxLongWordRatio: 1, passage: [110, 280], writing: [120, 220] },
-  C1: { maxAvgSentence: 28, maxLongWordRatio: 1, passage: [150, 380], writing: [160, 300] },
-  C2: { maxAvgSentence: 35, maxLongWordRatio: 1, passage: [150, 450], writing: [180, 400] },
+export const LEVEL_PROFILE: Record<Level, { maxAvgSentence: number; passage: [number, number]; writing: [number, number] }> = {
+  A1: { maxAvgSentence: 10, passage: [20, 80], writing: [25, 70] },
+  A2: { maxAvgSentence: 13, passage: [35, 120], writing: [35, 100] },
+  B1: { maxAvgSentence: 17, passage: [70, 200], writing: [70, 160] },
+  B2: { maxAvgSentence: 22, passage: [110, 280], writing: [120, 220] },
+  C1: { maxAvgSentence: 28, passage: [150, 380], writing: [160, 300] },
+  C2: { maxAvgSentence: 35, passage: [150, 450], writing: [180, 400] },
 };
+
+/** Index of a level in the A1..C1 scale used by the estimator (C2 counts as C1). */
+const levelIndex = (level: Level) => (level === 'C2' ? 4 : LEVELS.indexOf(level));
+/** The estimator's scale stops at C1; C2 targets are compared as C1. */
+const asCefr = (level: Level): CefrLevel => (level === 'C2' ? 'C1' : level);
+const listWords = (ws: Array<{ word: string; level: string }>, max = 8) =>
+  ws.slice(0, max).map((w) => `${w.word} (${w.level})`).join(', ');
 
 const STOPWORDS = new Set(
   ('a an the and or but if of to in on at by for with from as is are was were be been being am do does did have has had ' +
@@ -123,6 +133,10 @@ export function similarity(a: string, b: string): number {
 export const DUPLICATE_THRESHOLD = 0.7;
 export const SIMILAR_THRESHOLD = 0.5;
 
+/** Exam rubric language every level uses; not counted against the level of the item. */
+const RUBRIC_PHRASES =
+  /\b(according to the (text|passage|dialogue|conversation|recording|audio|email|message|notice)|choose the (correct|best|right) (answer|option|word|form)|complete the (sentence|text|dialogue)|the following|in the (text|passage|recording))\b/gi;
+
 const NEEDS_PASSAGE: QuestionType[] = ['multiple_choice', 'true_false', 'fill_blanks', 'open_text', 'matching', 'ordering'];
 const BANNED_OPTION = /\b(all|none) of the above\b|\bboth (a|b) and (a|b)\b|^(a|b) and (b|c)$/i;
 
@@ -172,10 +186,46 @@ export function assessQuestionQuality(input: QualityInput, content: Content, opt
         `Sentences average ${Math.round(p.avgSentence)} words; ${input.level} learners need about ${profile.maxAvgSentence} or fewer.`,
         `Oraciones largas para ${input.level}`);
     }
-    if (p.words >= 25 && p.longWordRatio > profile.maxLongWordRatio) {
-      add('vocabulary_too_hard', 'warn', `Too many long words for ${input.level}; use simpler, more frequent vocabulary.`,
-        `Vocabulario difícil para ${input.level}`);
+  }
+
+  // ── CEFR level of the language used (CEFR-J vocabulary profile + grammar) ───
+  const target = levelIndex(input.level);
+  // A quoted sentence in another language (a translation prompt) is not English to level.
+  const englishQuestion = question.replace(RUBRIC_PHRASES, ' ').replace(/["“][^"”]+["”]/g, (quoted) => {
+    const ws = words(quoted);
+    return ws.length && ws.filter((w) => SPANISH.has(w)).length / ws.length >= 0.2 ? ' ' : quoted;
+  });
+  const itemText = [englishQuestion, clean(content.template).replace(/___/g, ' '), ...options.map((o) => o.text),
+    ...(content.items ?? []).map((i) => `${clean(i.content)}. ${clean(i.matchingPair)}`)].join('. ');
+  const readerText = [context, itemText].filter(Boolean).join('\n');
+  const estimate = estimateLevel(readerText);
+  const wrongLanguage = issues.some((i) => i.code === 'language');
+  if (target < 4 && !wrongLanguage) {
+    if (context && words(context).length >= 25) {
+      const passage = estimateLevel(context);
+      if (passage.coverage[target]! < COVERAGE_TARGET) {
+        const hard = passage.wordsAbove(asCefr(input.level));
+        add('passage_above_level', 'warn',
+          `The passage uses vocabulary above ${input.level} (only ${Math.round(passage.coverage[target]! * 100)}% of its words are ${input.level} words). Replace: ${listWords(hard)}.`,
+          `El texto usa vocabulario de nivel superior a ${input.level}: ${listWords(hard, 5)}`);
+      }
     }
+    // Short item text: flag words two or more levels above the target (one level up is normal stretch).
+    const tooHard = estimateLevel(itemText).wordsAbove(asCefr(input.level)).filter((w) => LEVELS.indexOf(w.level as CefrLevel) >= target + 2);
+    if (tooHard.length) {
+      add('words_above_level', 'warn', `These words are well above ${input.level}: ${listWords(tooHard)}. Use words a ${input.level} learner knows.`,
+        `Palabras muy por encima de ${input.level}: ${listWords(tooHard, 5)}`);
+    }
+    const grammarAbove = estimate.grammar.filter((g) => g.level > target);
+    if (grammarAbove.length) {
+      add('grammar_above_level', 'warn',
+        `It uses grammar above ${input.level}: ${grammarAbove.map((g) => `${g.structure} ("${g.example}", ${LEVELS[g.level]})`).join('; ')}. Rewrite with ${input.level} structures.`,
+        `Usa gramática de nivel superior a ${input.level}: ${grammarAbove.map((g) => `${g.structure} (${LEVELS[g.level]})`).join(', ')}`);
+    }
+  }
+  if (target >= 3 && context && words(context).length >= 60 && estimateLevel(context).coverage[1]! >= 0.97 && !estimate.grammar.some((g) => g.level >= 2)) {
+    add('passage_below_level', 'warn', `The passage is too easy for ${input.level}; use richer vocabulary and structures.`,
+      `El texto es demasiado fácil para ${input.level}`);
   }
 
   // ── Multiple choice ─────────────────────────────────────────────────────────
@@ -300,5 +350,5 @@ export function assessQuestionQuality(input: QualityInput, content: Content, opt
 
   const blocks = issues.filter((i) => i.severity === 'block').length;
   const warns = issues.length - blocks;
-  return { score: Math.max(0, 100 - blocks * 25 - warns * 8), issues };
+  return { score: Math.max(0, 100 - blocks * 25 - warns * 8), issues, estimatedLevel: estimate.level };
 }

@@ -153,13 +153,27 @@ export const BAD: Sample[] = [
     content: { question: 'Complete the sentence.', template: 'They ___ (play) football every Sunday.', blanks: [{ position: 0, correctAnswers: ['play'] }] },
   },
   {
-    name: 'A1 passage far above level', type: 'multiple_choice', competency: 'reading', level: 'A1', expect: ['passage_too_long', 'sentences_too_long', 'vocabulary_too_hard'],
+    name: 'A1 passage far above level', type: 'multiple_choice', competency: 'reading', level: 'A1', expect: ['passage_too_long', 'sentences_too_long', 'passage_above_level', 'words_above_level', 'grammar_above_level'],
     content: {
       context:
         'Contemporary urban environments increasingly necessitate sophisticated infrastructural interventions, particularly regarding sustainable transportation alternatives, which municipal authorities frequently consider economically problematic despite considerable environmental advantages. '.repeat(5) +
         'Consequently, administrative institutions occasionally postpone implementation indefinitely, generating considerable dissatisfaction amongst environmentally conscious residents everywhere.',
       question: 'What do municipal authorities consider problematic?',
       options: mc(['Sustainable transportation', 'Private car parking', 'Residential housing', 'Public holidays']),
+    },
+  },
+  {
+    name: 'A1 grammar item testing a B2 structure', type: 'multiple_choice', competency: 'grammar', level: 'A1', expect: ['grammar_above_level'],
+    content: {
+      question: 'Choose the correct form: If I had known, I ___ you.',
+      options: mc(['would have helped', 'will help', 'help', 'helps']),
+    },
+  },
+  {
+    name: 'A2 vocabulary item with C1 words', type: 'multiple_choice', competency: 'vocabulary', level: 'A2', expect: ['words_above_level'],
+    content: {
+      question: 'Which word means a person who is extremely meticulous?',
+      options: mc(['perfectionist', 'pessimist', 'optimist', 'realist']),
     },
   },
   {
