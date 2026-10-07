@@ -128,6 +128,8 @@ export interface IExamResult extends Document {
   scoringMethod?: 'weighted_sections' | 'raw_points';
   // Level mastery indicator (see ICompetencyMastery) — informational only.
   competencyMastery?: ICompetencyMastery;
+  /** Competencies below the exam's per-competency minimum (why the exam was not passed). */
+  failedCompetencies?: string[];
 
   // Grading performance tracking
   gradingStartedAt?: Date;
@@ -278,6 +280,7 @@ const examResultSchema = new Schema<IExamResult>({
   // target level (placement, deleted level, no competencyRequirements)
   // don't hydrate to an empty mastery object.
   competencyMastery: { type: competencyMasterySchema, default: undefined },
+  failedCompetencies: { type: [String], default: undefined },
 
   // Grading performance tracking
   gradingStartedAt: Date,

@@ -49,7 +49,8 @@ const examSchema = z.object({
     sections: z.array(examSectionSchema).min(0),
     totalQuestions: z.number().min(0),
     totalDuration: z.number().min(0),
-    passingScore: z.number().min(1).max(100, 'El puntaje mínimo debe estar entre 1 y 100')
+    passingScore: z.number().min(1).max(100, 'El puntaje mínimo debe estar entre 1 y 100'),
+    minCompetencyScore: z.number().min(0).max(100, 'Debe estar entre 0 y 100')
   }),
   configuration: z.object({
     randomizeQuestions: z.boolean(),
@@ -156,7 +157,9 @@ const ExamForm: React.FC<ExamFormProps> = ({ exam, onCancel, onSaved }) => {
         sections: exam?.structure?.sections ? normalizeLoadedSections(exam.structure.sections) : sectionsFromTemplate('mcer'),
         totalQuestions: exam?.structure?.totalQuestions || 0,
         totalDuration: exam?.structure?.totalDuration || 0,
-        passingScore: exam?.structure?.passingScore || 70
+        passingScore: exam?.structure?.passingScore || 70,
+        // New exams require a floor per competency; existing ones keep theirs (0 = none).
+        minCompetencyScore: exam ? ((exam.structure as any)?.minCompetencyScore ?? 0) : 40
       },
       configuration: {
         randomizeQuestions: exam?.configuration?.randomizeQuestions ?? true,
@@ -486,6 +489,28 @@ const ExamForm: React.FC<ExamFormProps> = ({ exam, onCancel, onSaved }) => {
             <p className="text-xs text-destructive">{errors.structure.passingScore.message}</p>
           )}
         </div>
+
+        {watch('type') !== 'placement' && (
+          <div className="space-y-2">
+            <Label>Mínimo por competencia (%)</Label>
+            <Controller
+              name="structure.minCompetencyScore"
+              control={control}
+              render={({ field }) => (
+                <Input
+                  {...field}
+                  type="number"
+                  min="0"
+                  max="100"
+                  onChange={(e) => field.onChange(Math.max(0, parseInt(e.target.value) || 0))}
+                />
+              )}
+            />
+            <p className="text-xs text-muted-foreground">
+              Para aprobar, cada competencia debe llegar a este porcentaje (además del puntaje mínimo). 0 = sin mínimo.
+            </p>
+          </div>
+        )}
       </div>
 
       {/* Descripción */}

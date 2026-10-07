@@ -135,6 +135,7 @@ export interface QuestionScoreRef {
   questionId: { toString(): string };
   score: number;
   maxScore: number;
+  competency?: string;
 }
 
 /** Minimal shape of an attempt's `sectionsStructure` entry. */
@@ -151,6 +152,8 @@ export interface ExamScoringInput {
   examType: string;
   /** Raw `exam.structure.passingScore` (validated via `resolvePassingScore`). */
   examPassingScore: unknown;
+  /** Raw `exam.structure.minCompetencyScore`: every competency must reach it to pass (unset = no minimum). */
+  minCompetencyScore?: unknown;
   status: ExamResultStatus;
 }
 
@@ -167,6 +170,8 @@ export interface ExamScoringOutcome {
   /** `undefined` for placement exams — they have no pass/fail threshold. */
   passingScore: number | undefined;
   passed: boolean | undefined;
+  /** Competencies below the exam's minimum (only when one is configured and the verdict is set). */
+  failedCompetencies?: string[];
 }
 
 /**
@@ -258,7 +263,7 @@ export function computeMastery(
  * write exactly the same fields with the same math.
  */
 export function computeExamScoring(input: ExamScoringInput): ExamScoringOutcome {
-  const { questionResults, sectionsStructure, examType, examPassingScore, status } = input;
+  const { questionResults, sectionsStructure, examType, examPassingScore, minCompetencyScore, status } = input;
 
   const totalScore = Math.round(questionResults.reduce((sum, qr) => sum + qr.score, 0) * 100) / 100;
   const maxScore = questionResults.reduce((sum, qr) => sum + qr.maxScore, 0);
@@ -287,9 +292,35 @@ export function computeExamScoring(input: ExamScoringInput): ExamScoringOutcome 
   const percentage = weightedResult?.percentage ?? rawPercentage;
   const sections = weightedResult?.sections ?? rawSections;
   const passingScore = hasPassFailVerdict(examType) ? resolvePassingScore(examPassingScore) : undefined;
-  const passed = passingScore === undefined ? undefined : decidePassed(percentage, passingScore, status);
+  const overallPassed = passingScore === undefined ? undefined : decidePassed(percentage, passingScore, status);
+  const failedCompetencies = overallPassed === undefined ? undefined : competenciesBelow(questionResults, minCompetencyScore);
+  const passed = overallPassed === undefined ? undefined : overallPassed && !failedCompetencies?.length;
 
-  return { totalScore, maxScore, percentage, sections, scoringMethod, passingScore, passed };
+  return { totalScore, maxScore, percentage, sections, scoringMethod, passingScore, passed, failedCompetencies };
+}
+
+/**
+ * Competencies whose share of points is below the exam's minimum. A high score
+ * in some skills must not hide a skill the student cannot use at all (0% in
+ * speaking still passing an A2). Off when the exam sets no minimum.
+ */
+export function competenciesBelow(
+  questionResults: ReadonlyArray<QuestionScoreRef>,
+  minCompetencyScore: unknown,
+): string[] | undefined {
+  if (typeof minCompetencyScore !== 'number' || !Number.isFinite(minCompetencyScore) || minCompetencyScore <= 0) return undefined;
+  const by = new Map<string, { score: number; max: number }>();
+  for (const qr of questionResults) {
+    if (!qr.competency) continue;
+    const c = by.get(qr.competency) ?? { score: 0, max: 0 };
+    c.score += qr.score;
+    c.max += qr.maxScore;
+    by.set(qr.competency, c);
+  }
+  return [...by]
+    .filter(([, c]) => c.max > 0 && (c.score / c.max) * 100 < minCompetencyScore)
+    .map(([competency]) => competency)
+    .sort();
 }
 
 /**
@@ -301,7 +332,7 @@ export function computeExamScoring(input: ExamScoringInput): ExamScoringOutcome 
  * `computeMastery` returns `undefined` (placement, no/inactive level, or a
  * level without usable requirements).
  */
-export const UNSETTABLE_GRADED_FIELDS = ['passed', 'passingScore', 'sections', 'competencyMastery'] as const;
+export const UNSETTABLE_GRADED_FIELDS = ['passed', 'passingScore', 'sections', 'competencyMastery', 'failedCompetencies'] as const;
 
 /**
  * Builds a `$unset` stage for every listed key whose value is `undefined` in

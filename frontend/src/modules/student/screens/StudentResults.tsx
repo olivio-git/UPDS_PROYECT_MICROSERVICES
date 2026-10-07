@@ -21,6 +21,7 @@ import { MainLayout, PageHeader } from '@/components/layout';
 import { formatPercent, formatPoints } from '@/lib/scoreFormat';
 import { cn } from '@/lib/utils';
 import { api } from '@/services/api.service';
+import { COMPETENCY_LABELS, type Competency } from '@/modules/exams/constants/academic.constants';
 import {
   examResultService,
   type StudentExamResult,
@@ -821,6 +822,19 @@ const StudentResults = () => {
               own muted surface, separate from the Aprobado/No aprobado badge
               above: it never affects that verdict, only informs the student
               which competencies met the target level's thresholds. */}
+          {currentResult.passed === false && examDetailData?.failedCompetencies?.length > 0 && (
+            <div className="flex items-start gap-2.5 rounded-lg border border-red-200 bg-red-50 px-3.5 py-2.5 text-sm text-red-800 dark:border-red-500/30 dark:bg-red-500/10 dark:text-red-200">
+              <XCircle className="mt-0.5 size-4 shrink-0" />
+              <p>
+                No alcanzaste el mínimo exigido en{' '}
+                <span className="font-medium">
+                  {examDetailData.failedCompetencies.map((c: string) => COMPETENCY_LABELS[c as Competency] ?? c).join(', ')}
+                </span>
+                . Para aprobar, cada competencia debe llegar al mínimo, además del puntaje total.
+              </p>
+            </div>
+          )}
+
           <CompetencyMasteryPanel mastery={examDetailData?.competencyMastery} />
 
           <div className="grid gap-4 xl:grid-cols-2">

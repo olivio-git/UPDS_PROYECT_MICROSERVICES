@@ -388,6 +388,7 @@ gradingRouter.post(
           sectionsStructure: attempt.sectionsStructure,
           examType: exam.type,
           examPassingScore: exam.structure?.passingScore,
+          minCompetencyScore: exam.structure?.minCompetencyScore,
           status: result.status,
         });
         const newPercentage = scoring.percentage;
@@ -434,6 +435,7 @@ gradingRouter.post(
           scoringMethod: scoring.scoringMethod,
           passingScore: scoring.passingScore,
           passed: scoring.passed,
+          failedCompetencies: scoring.failedCompetencies,
           competencyScores: newCompetencyScores,
           competencyMastery,
           evaluatedAt: new Date(),

@@ -177,6 +177,8 @@ export interface IExam {
     }>;
     totalDuration: number;
     passingScore: number;
+    /** Every competency must reach this percentage to pass (unset = no minimum). */
+    minCompetencyScore?: number;
   };
   configuration: {
     randomizeQuestions: boolean;
@@ -374,6 +376,8 @@ export interface IExamResult {
   scoringMethod?: 'weighted_sections' | 'raw_points';
   // Level mastery indicator (see ICompetencyMastery) — informational only.
   competencyMastery?: ICompetencyMastery;
+  /** Competencies below the exam's per-competency minimum (why a high overall score did not pass). */
+  failedCompetencies?: string[];
   // Grading performance tracking
   gradingStartedAt?: Date;
   gradingCompletedAt?: Date;

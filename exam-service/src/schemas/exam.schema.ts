@@ -46,7 +46,8 @@ export const examSchema = {
     structure: z.object({
       sections: z.array(examSectionSchema).min(0),
       totalDuration: z.number().min(0).max(480),
-      passingScore: z.number().min(0).max(100)
+      passingScore: z.number().min(0).max(100),
+      minCompetencyScore: z.number().min(0).max(100).optional()
     }),
     placementConfig: placementConfigSchema,
     configuration: z.object({
@@ -70,7 +71,8 @@ export const examSchema = {
     structure: z.object({
       sections: z.array(examSectionSchema).min(0),
       totalDuration: z.number().min(0).max(480),
-      passingScore: z.number().min(0).max(100)
+      passingScore: z.number().min(0).max(100),
+      minCompetencyScore: z.number().min(0).max(100).optional()
     }).optional(),
     placementConfig: placementConfigSchema,
     configuration: z.object({

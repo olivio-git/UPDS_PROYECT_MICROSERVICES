@@ -24,6 +24,8 @@ export interface IExam extends Document {
     }>;
     totalDuration: number;
     passingScore: number;
+    /** Every competency must reach this percentage to pass; unset/0 = no minimum. */
+    minCompetencyScore?: number;
   };
   configuration: {
     randomizeQuestions: boolean;
@@ -86,7 +88,8 @@ const examSchema = new Schema<IExam>({
       weight: Number
     }],
     totalDuration: Number,
-    passingScore: Number
+    passingScore: Number,
+    minCompetencyScore: { type: Number, min: 0, max: 100 }
   },
   configuration: {
     randomizeQuestions: { type: Boolean, default: true },

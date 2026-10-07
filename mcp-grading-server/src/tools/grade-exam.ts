@@ -510,11 +510,13 @@ export async function gradeExam(attemptId: string, options: { force?: boolean; r
     scoringMethod,
     passingScore,
     passed,
+    failedCompetencies,
   } = computeExamScoring({
     questionResults,
     sectionsStructure: attempt.sectionsStructure,
     examType: exam.type,
     examPassingScore: exam.structure?.passingScore,
+    minCompetencyScore: exam.structure?.minCompetencyScore,
     status,
   });
 
@@ -672,6 +674,7 @@ export async function gradeExam(attemptId: string, options: { force?: boolean; r
     placementMode,
     levelScores,
     passed,
+    failedCompetencies,
     passingScore,
     scoringMethod,
     competencyMastery,
