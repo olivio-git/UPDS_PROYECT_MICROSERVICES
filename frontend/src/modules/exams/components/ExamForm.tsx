@@ -162,7 +162,8 @@ const ExamForm: React.FC<ExamFormProps> = ({ exam, onCancel, onSaved }) => {
         randomizeOptions: exam?.configuration?.randomizeOptions ?? true,
         showResults: exam?.configuration?.showResults ?? true,
         allowReview: exam?.configuration?.allowReview ?? false,
-        maxAttempts: exam?.configuration?.maxAttempts || 1
+        // Stored as attemptsAllowed; maxAttempts is only the form field name.
+        maxAttempts: (exam?.configuration as any)?.attemptsAllowed ?? exam?.configuration?.maxAttempts ?? 1
       },
       isActive: exam?.isActive ?? true,
       isTemplate: exam?.isTemplate ?? false
@@ -743,11 +744,13 @@ const ExamForm: React.FC<ExamFormProps> = ({ exam, onCancel, onSaved }) => {
                     type="number"
                     min="1"
                     max="10"
-                    disabled={true}
                     onChange={(e) => field.onChange(parseInt(e.target.value) || 1)}
                   />
                 )}
               />
+              <p className="text-xs text-muted-foreground">
+                Cuántas veces puede rendir este examen un mismo alumno, contando todas las sesiones.
+              </p>
             </div>
 
             <div className="flex items-center justify-between">

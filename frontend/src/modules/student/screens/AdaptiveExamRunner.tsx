@@ -265,6 +265,11 @@ const AdaptiveExamRunner: React.FC = () => {
         }
       }
     } catch (err: any) {
+      if (err?.response?.data?.code === 'ATTEMPTS_EXHAUSTED') {
+        toast.error(err.response.data.message || 'Ya usaste los intentos permitidos para este examen.', { duration: 8000 });
+        navigate('/student/dashboard');
+        return;
+      }
       if (err?.response?.data?.code === 'CANDIDATE_REMOVED') {
         setKicked(true);
         setKickReason(err?.response?.data?.message);

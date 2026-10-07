@@ -1,5 +1,6 @@
 import { sampleFavoringUnseen } from '../utils/questionSampling';
 import { toStudentQuestion } from '../utils/studentQuestionView';
+import { attemptLimitError, COUNTED_ATTEMPT_STATUSES } from '../utils/attemptLimit';
 import { fallbackLevels, nextPlacementStep, shouldStopPlacement } from '../utils/adaptivePlacement';
 import { Types } from 'mongoose';
 import axios from 'axios';
@@ -241,6 +242,7 @@ export class ExamTakingService {
       }
 
       if (!exam) throw new Error('Exam not found for session');
+      if (isNewAttempt) await this.assertAttemptsLeft(exam, candidate._id, session._id);
 
     // Questions this candidate already got in earlier attempts (other
     // sessions): a retake picks unseen questions first and only repeats when
@@ -1063,6 +1065,18 @@ export class ExamTakingService {
     'multiple_choice', 'true_false', 'fill_blanks', 'matching', 'ordering', 'drag_drop'
   ];
 
+  /** exam.configuration.attemptsAllowed, checked before a new attempt is created (see utils/attemptLimit). */
+  private async assertAttemptsLeft(exam: any, candidateId: any, currentSessionId: any): Promise<void> {
+    const used = await Attempt.countDocuments({
+      examId: exam._id,
+      candidateId,
+      sessionId: { $ne: currentSessionId },
+      status: { $in: [...COUNTED_ATTEMPT_STATUSES] },
+    });
+    const message = attemptLimitError(exam.configuration?.attemptsAllowed, used);
+    if (message) throw new AppError(message, 403, 'ATTEMPTS_EXHAUSTED');
+  }
+
   private async pickAdaptiveQuestion(
     exam: any,
     level: string,
@@ -1191,6 +1205,8 @@ export class ExamTakingService {
     // pickAdaptiveQuestion below), which excludes 'audio_response' — adaptive
     // branching needs an immediate right/wrong, which speaking/audio answers
     // can't give synchronously. So requireMicrophone is always false here.
+    await this.assertAttemptsLeft(exam, userCandidateId, session._id);
+
     {
       const gate = await checkCanProceed(String(userCandidateId), false);
       if (!gate.canProceed) {

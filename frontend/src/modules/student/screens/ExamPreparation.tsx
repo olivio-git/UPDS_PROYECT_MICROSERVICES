@@ -784,6 +784,11 @@ const ExamPreparation = () => {
       navigate(`/student/exam/${sessionId}`, { replace: true, state: { examName: examData.name } });
     } catch (err: any) {
       console.error("Error starting exam:", err);
+      if (err?.response?.data?.code === "ATTEMPTS_EXHAUSTED") {
+        toast.error(err.response.data.message || "Ya usaste los intentos permitidos para este examen.", { duration: 8000 });
+        navigate("/student/dashboard");
+        return;
+      }
       if (err?.response?.data?.code === "CANDIDATE_REMOVED") {
         toast.error("Has sido expulsado de esta sesión por el supervisor.", { duration: 6000 });
         navigate("/student/dashboard");

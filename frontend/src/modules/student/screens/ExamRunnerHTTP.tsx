@@ -294,6 +294,11 @@ const ExamRunnerHTTP: React.FC = () => {
 
         // A candidate kicked by a proctor/admin (including before ever
         // starting) is refused by startExam with 403 CANDIDATE_REMOVED.
+        if (error?.response?.data?.code === 'ATTEMPTS_EXHAUSTED') {
+          toast.error(error.response.data.message || 'Ya usaste los intentos permitidos para este examen.', { duration: 8000 });
+          navigate('/student/dashboard');
+          return;
+        }
         if (error?.response?.data?.code === 'CANDIDATE_REMOVED') {
           toast.error('Has sido expulsado de esta sesión por el supervisor.', { duration: 6000 });
           navigate('/student/dashboard');
