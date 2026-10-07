@@ -4,7 +4,16 @@ import { AlertTriangle, ShieldCheck } from 'lucide-react';
 export interface QualityReport {
   score: number;
   issues: { code: string; severity: 'block' | 'warn'; label: string }[];
+  /** CEFR level of the language used, estimated from the CEFR-J vocabulary and grammar profile. */
+  estimatedLevel?: string;
 }
+
+const LevelLine = ({ level }: { level?: string }) =>
+  level ? (
+    <p className="mt-1 text-xs text-muted-foreground">
+      Nivel estimado del lenguaje: <span className="font-medium text-foreground">{level}</span> (vocabulario CEFR-J y gramática)
+    </p>
+  ) : null;
 
 const tone = (score: number) =>
   score >= 90
@@ -42,6 +51,7 @@ export function QualityPanel({ quality, attempts }: { quality?: QualityReport; a
             Idioma, respuesta correcta, nivel MCER y repetición con el banco
             {fixed ? `. La IA la corrigió antes de mostrarla (${attempts} intentos).` : '.'}
           </p>
+          <LevelLine level={quality.estimatedLevel} />
         </div>
       </div>
     );
@@ -57,6 +67,7 @@ export function QualityPanel({ quality, attempts }: { quality?: QualityReport; a
           <li key={i.code}>{i.label}</li>
         ))}
       </ul>
+      <LevelLine level={quality.estimatedLevel} />
     </div>
   );
 }
