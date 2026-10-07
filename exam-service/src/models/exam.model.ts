@@ -31,6 +31,8 @@ export interface IExam extends Document {
     showResults: boolean;
     attemptsAllowed: number;
     timeBetweenAttempts: number; // in hours
+    /** Times each listening recording may be played; 0 = unlimited. */
+    listeningPlays?: number;
   };
   questionPool: Types.ObjectId[];
   isActive: boolean;
@@ -91,6 +93,7 @@ const examSchema = new Schema<IExam>({
     allowReview: { type: Boolean, default: false },
     showResults: { type: Boolean, default: true },
     attemptsAllowed: { type: Number, default: 1 },
+    listeningPlays: { type: Number, default: 2, min: 0, max: 10 },
     timeBetweenAttempts: { type: Number, default: 24 }
   },
   questionPool: [{

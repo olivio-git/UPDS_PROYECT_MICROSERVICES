@@ -547,13 +547,13 @@ export const useExamSessionHTTP = (options: UseExamSessionHTTPOptions = {}) => {
       const response = await examService.startExam(sessionId);
 
       if (response.success && response.data) {
-        const { sections, timeAllowedSeconds, examId, totalQuestions, answers, attemptId, browserLockdown } = response.data;
+        const { sections, timeAllowedSeconds, examId, totalQuestions, answers, attemptId, browserLockdown, listeningPlays } = response.data;
 
         // Keep examStore's browserLockdown in sync with the authoritative
         // server value — covers the deep-link/hard-refresh case where the
         // candidate lands directly on the runner without going through
         // ExamPreparation (which is the other place this gets set).
-        useExamStore.setState({ browserLockdown: !!browserLockdown });
+        useExamStore.setState({ browserLockdown: !!browserLockdown, listeningPlays: typeof listeningPlays === 'number' ? listeningPlays : 2 });
 
         // Check if exam time is already expired
         if (timeAllowedSeconds <= 0) {
@@ -628,10 +628,11 @@ export const useExamSessionHTTP = (options: UseExamSessionHTTPOptions = {}) => {
           examId,
           totalQuestions,
           attemptId,
-          browserLockdown
+          browserLockdown,
+          listeningPlays
         } = response.data;
 
-        useExamStore.setState({ browserLockdown: !!browserLockdown });
+        useExamStore.setState({ browserLockdown: !!browserLockdown, listeningPlays: typeof listeningPlays === 'number' ? listeningPlays : 2 });
 
         setState(prev => ({
           ...prev,

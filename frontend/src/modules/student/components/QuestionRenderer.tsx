@@ -1,5 +1,6 @@
 import { AudioPlayer, AudioRecorder } from '@/components/audio';
 import { isMultipleAnswer } from '../utils/questionView';
+import { ListeningAudio } from './ListeningAudio';
 import { Badge } from '@/components/keel/badge';
 import { Spinner } from '@/components/keel/spinner';
 import { Textarea } from '@/components/keel/textarea';
@@ -11,7 +12,7 @@ import { derange, shuffle } from '@/components/questions/shuffle';
 import type { Question } from '@/modules/exams/types';
 import { toBrowserMediaUrl } from '@/lib/mediaUrl';
 import { cn } from '@/lib/utils';
-import { AlertTriangle, Check, CheckCircle, Headphones } from 'lucide-react';
+import { AlertTriangle, Check, CheckCircle } from 'lucide-react';
 import React, { useCallback, useMemo, useState } from 'react';
 
 /** A, B, C... labels for answer options — keyboard shortcuts in ExamRunnerHTTP
@@ -27,6 +28,10 @@ interface Props {
   questionNumber?: number;
   totalQuestions?: number;
   isUploadingAudio?: boolean;
+  /** Plays allowed per listening recording (exam setting); undefined = unlimited. */
+  listeningPlays?: number;
+  /** Keep the play count inside the answer so it survives a reload (linear exams). */
+  persistListeningPlays?: boolean;
   sectionInfo?: {
     name: string;
     competency: string;
@@ -159,6 +164,8 @@ const QuestionRenderer: React.FC<Props> = ({
   questionNumber,
   totalQuestions,
   isUploadingAudio = false,
+  listeningPlays,
+  persistListeningPlays = false,
   sectionInfo,
 }) => {
   const id = question?._id || question?.id || 'unknown';
@@ -196,7 +203,12 @@ const QuestionRenderer: React.FC<Props> = ({
     [items],
   );
 
-  const emit = useCallback((value: any) => onChange(id, value), [id, onChange]);
+  // Answer inputs replace the whole answer; carry the listening play count along.
+  const playsSoFar = persistListeningPlays ? answer?.audioPlays : undefined;
+  const emit = useCallback(
+    (value: any) => onChange(id, playsSoFar ? { ...value, audioPlays: playsSoFar } : value),
+    [id, onChange, playsSoFar],
+  );
 
   const toggleOption = useCallback(
     (optionId: string) => {
@@ -237,13 +249,12 @@ const QuestionRenderer: React.FC<Props> = ({
         mediaUrl.startsWith('blob:') ? (
           <MediaError>Audio no guardado correctamente</MediaError>
         ) : (
-          <div className="flex flex-col gap-2 rounded-xl border border-border bg-muted/30 p-3">
-            <span className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
-              <Headphones className="size-3.5" />
-              Audio
-            </span>
-            <AudioPlayer src={mediaUrl} variant="compact" title="Audio de comprensión" showControls={{ volume: true, speed: true, seek: true, time: true }} />
-          </div>
+          <ListeningAudio
+            src={mediaUrl}
+            maxPlays={listeningPlays}
+            playsUsed={persistListeningPlays ? (answer?.audioPlays ?? 0) : undefined}
+            onPlaysChange={persistListeningPlays ? (audioPlays) => onChange(id, { ...(answer ?? {}), audioPlays }) : undefined}
+          />
         )
       )}
 

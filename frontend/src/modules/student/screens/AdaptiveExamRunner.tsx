@@ -16,6 +16,9 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { toast } from 'sonner';
 import QuestionRenderer from '../components/QuestionRenderer';
+
+/** Same default as linear exams; the adaptive start response carries no exam settings. */
+const DEFAULT_LISTENING_PLAYS = 2;
 import { ExamSubmittedScreen } from '../components/ExamSubmittedScreen';
 import { SessionCancelledScreen } from '../components/SessionCancelledScreen';
 
@@ -544,6 +547,7 @@ const AdaptiveExamRunner: React.FC = () => {
                 question={currentQuestion}
                 answer={currentAnswer}
                 onChange={(_questionId, value) => handleAnswerChange(value)}
+                listeningPlays={DEFAULT_LISTENING_PLAYS}
               />
 
               <div className="mt-6 flex justify-end">

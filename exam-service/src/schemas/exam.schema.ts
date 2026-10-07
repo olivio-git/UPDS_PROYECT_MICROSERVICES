@@ -54,6 +54,7 @@ export const examSchema = {
       allowReview: z.boolean().default(false),
       showResults: z.boolean().default(true),
       attemptsAllowed: z.number().min(1).max(10).default(1),
+      listeningPlays: z.number().int().min(0).max(10).default(2),
       timeBetweenAttempts: z.number().min(0).max(720).default(24)
     }).optional(),
     questionPool: z.array(z.string()).optional(),
@@ -77,6 +78,7 @@ export const examSchema = {
       allowReview: z.boolean().optional(),
       showResults: z.boolean().optional(),
       attemptsAllowed: z.number().min(1).max(10).optional(),
+      listeningPlays: z.number().int().min(0).max(10).optional(),
       timeBetweenAttempts: z.number().min(0).max(720).optional()
     }).optional(),
     questionPool: z.array(z.string()).optional(),

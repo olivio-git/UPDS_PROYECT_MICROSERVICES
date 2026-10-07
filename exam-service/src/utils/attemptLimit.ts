@@ -13,3 +13,19 @@ export function attemptLimitError(attemptsAllowed: unknown, used: number): strin
     ? 'Ya rendiste este examen. Solo se permite un intento.'
     : `Ya usaste los ${attemptsAllowed} intentos permitidos para este examen.`;
 }
+
+/**
+ * How many times each listening recording may be played (exam.configuration.listeningPlays).
+ * Two by default, as in Cambridge English listening papers; 0 means unlimited.
+ */
+export const DEFAULT_LISTENING_PLAYS = 2;
+export function listeningPlaysOf(exam: any): number {
+  const v = exam?.configuration?.listeningPlays;
+  return typeof v === 'number' && Number.isFinite(v) && v >= 0 ? Math.floor(v) : DEFAULT_LISTENING_PLAYS;
+}
+
+/** An answer counts as given when it holds more than the listening play counter. */
+export function hasAnswerContent(answer: unknown): boolean {
+  if (!answer || typeof answer !== 'object') return Boolean(answer);
+  return Object.keys(answer).some((k) => k !== 'audioPlays');
+}

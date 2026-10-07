@@ -56,7 +56,8 @@ const examSchema = z.object({
     randomizeOptions: z.boolean(),
     showResults: z.boolean(),
     allowReview: z.boolean(),
-    maxAttempts: z.number().min(1).max(10)
+    maxAttempts: z.number().min(1).max(10),
+    listeningPlays: z.number().int().min(0).max(10)
   }),
   isActive: z.boolean(),
   isTemplate: z.boolean()
@@ -163,7 +164,8 @@ const ExamForm: React.FC<ExamFormProps> = ({ exam, onCancel, onSaved }) => {
         showResults: exam?.configuration?.showResults ?? true,
         allowReview: exam?.configuration?.allowReview ?? false,
         // Stored as attemptsAllowed; maxAttempts is only the form field name.
-        maxAttempts: (exam?.configuration as any)?.attemptsAllowed ?? exam?.configuration?.maxAttempts ?? 1
+        maxAttempts: (exam?.configuration as any)?.attemptsAllowed ?? exam?.configuration?.maxAttempts ?? 1,
+        listeningPlays: (exam?.configuration as any)?.listeningPlays ?? 2
       },
       isActive: exam?.isActive ?? true,
       isTemplate: exam?.isTemplate ?? false
@@ -334,7 +336,8 @@ const ExamForm: React.FC<ExamFormProps> = ({ exam, onCancel, onSaved }) => {
           randomizeQuestions: configRest.randomizeQuestions,
           showResults: configRest.showResults,
           allowReview: configRest.allowReview,
-          attemptsAllowed: maxAttempts ?? 1
+          attemptsAllowed: maxAttempts ?? 1,
+          listeningPlays: configRest.listeningPlays ?? 2,
         },
         isActive: data.isActive,
         isTemplate: data.isTemplate
@@ -750,6 +753,26 @@ const ExamForm: React.FC<ExamFormProps> = ({ exam, onCancel, onSaved }) => {
               />
               <p className="text-xs text-muted-foreground">
                 Cuántas veces puede rendir este examen un mismo alumno, contando todas las sesiones.
+              </p>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Reproducciones por audio de escucha</Label>
+              <Controller
+                name="configuration.listeningPlays"
+                control={control}
+                render={({ field }) => (
+                  <Input
+                    {...field}
+                    type="number"
+                    min="0"
+                    max="10"
+                    onChange={(e) => field.onChange(Math.max(0, parseInt(e.target.value) || 0))}
+                  />
+                )}
+              />
+              <p className="text-xs text-muted-foreground">
+                Los exámenes estándar permiten escuchar cada audio dos veces. 0 = sin límite.
               </p>
             </div>
 

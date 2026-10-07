@@ -1,6 +1,6 @@
 import { sampleFavoringUnseen } from '../utils/questionSampling';
 import { toStudentQuestion } from '../utils/studentQuestionView';
-import { attemptLimitError, COUNTED_ATTEMPT_STATUSES } from '../utils/attemptLimit';
+import { attemptLimitError, COUNTED_ATTEMPT_STATUSES, hasAnswerContent, listeningPlaysOf } from '../utils/attemptLimit';
 import { fallbackLevels, nextPlacementStep, shouldStopPlacement } from '../utils/adaptivePlacement';
 import { Types } from 'mongoose';
 import axios from 'axios';
@@ -495,7 +495,8 @@ export class ExamTakingService {
       timeAllowedSeconds: attempt.timeAllowedSeconds,
       attemptId: attempt._id,
       totalQuestions: allSelectedQuestions.length,
-      browserLockdown: (session as any).settings?.browserLockdown ?? false
+      browserLockdown: (session as any).settings?.browserLockdown ?? false,
+      listeningPlays: listeningPlaysOf(exam),
     };
   }
 
@@ -858,16 +859,18 @@ export class ExamTakingService {
       attemptId: attempt._id,
       totalQuestions,
       progress: {
-        answered: Object.keys(answers).length,
+        // Having only listened to a recording (audioPlays) is not an answer.
+        answered: Object.values(answers).filter(hasAnswerContent).length,
         total: totalQuestions,
         sections: sections.map(section => ({
           id: section.id,
           name: section.name,
-          answered: section.questions.filter((q: any) => answers[q._id.toString()]).length,
+          answered: section.questions.filter((q: any) => hasAnswerContent(answers[q._id.toString()])).length,
           total: section.questions.length
         }))
       },
-      browserLockdown: (session as any).settings?.browserLockdown ?? false
+      browserLockdown: (session as any).settings?.browserLockdown ?? false,
+      listeningPlays: listeningPlaysOf(exam),
     };
   }
   async attempts(sessionId: string, candidateId: string, countPermitted: any) {

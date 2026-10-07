@@ -234,6 +234,7 @@ const ExamRunnerHTTP: React.FC = () => {
   // Browser lockdown — armed only while the session has it enabled AND the
   // attempt is actually in progress (not during load/completion/kicked).
   const browserLockdown = useExamStore((s) => s.browserLockdown);
+  const listeningPlays = useExamStore((s) => s.listeningPlays);
   const lockdownEnabled = isActive && sessionStatus === 'active' && browserLockdown;
   const {
     infractionCount: lockdownInfractionCount,
@@ -907,6 +908,8 @@ const ExamRunnerHTTP: React.FC = () => {
                         onChange={handleAnswerChange}
                         showQuestionNumber={false}
                         isUploadingAudio={uploadingAudio[currentQuestion._id as string] ?? false}
+                        listeningPlays={listeningPlays}
+                        persistListeningPlays
                       />
                     </div>
                   ) : (
