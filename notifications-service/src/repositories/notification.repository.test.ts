@@ -15,7 +15,9 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 
 // eslint-disable-next-line @typescript-eslint/no-var-requires
-const { buildEmailStatusUpdate } = require('./notification.repository');
+const { buildEmailStatusUpdate, toObjectId } = require('./notification.repository');
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const { ObjectId } = require('mongodb');
 
 const NOW = new Date('2026-09-28T12:00:00Z');
 const SECRETS = { 'templateData.temporaryPassword': '', 'templateData.otpCode': '' };
@@ -38,4 +40,18 @@ test('a pending email keeps its secrets so a retry can still send it', () => {
   const update = buildEmailStatusUpdate('pending', undefined, NOW);
   assert.equal(update.$unset, undefined);
   assert.equal(update.$set.status, 'pending');
+});
+
+test('a string id from insertedId.toString() is matched as an ObjectId', () => {
+  const id = new ObjectId();
+  const converted = toObjectId(id.toString());
+  assert.ok(converted instanceof ObjectId);
+  assert.ok(converted.equals(id));
+});
+
+test('ids that are not ObjectId hex strings are left untouched', () => {
+  const id = new ObjectId();
+  assert.equal(toObjectId(id), id);
+  assert.equal(toObjectId('not-an-id'), 'not-an-id');
+  assert.equal(toObjectId('abcdefghijkl'), 'abcdefghijkl');
 });

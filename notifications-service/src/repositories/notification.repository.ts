@@ -1,4 +1,4 @@
-import { Collection, Db } from 'mongodb';
+import { Collection, Db, ObjectId } from 'mongodb';
 import { EmailNotification, EmailTemplate, EmailQueue } from '../types';
 import { config } from '../config';
 
@@ -9,6 +9,19 @@ import { config } from '../config';
  * (sendOtpEmail marks an email failed on its first failure).
  */
 const SECRET_TEMPLATE_FIELDS = ['templateData.temporaryPassword', 'templateData.otpCode'];
+
+/**
+ * Documents are inserted with an ObjectId _id, but this repository hands ids
+ * back as strings (insertedId.toString()). A filter on the raw string matches
+ * nothing, so every update made with such an id was silently lost; an OTP email
+ * then stayed 'pending' and the 30s queue sent it a second time.
+ */
+export function toObjectId(id: unknown): unknown {
+  if (typeof id === 'string' && ObjectId.isValid(id) && new ObjectId(id).toHexString() === id.toLowerCase()) {
+    return new ObjectId(id);
+  }
+  return id;
+}
 
 export function buildEmailStatusUpdate(
   status: EmailNotification['status'],
@@ -77,7 +90,7 @@ export class NotificationRepository {
     additionalData?: Partial<EmailNotification>
   ): Promise<EmailNotification | null> {
     const result = await this.emailsCollection.findOneAndUpdate(
-      { _id: emailId as any },
+      { _id: toObjectId(emailId) as any },
       buildEmailStatusUpdate(status, additionalData),
       { returnDocument: 'after' }
     );
@@ -86,7 +99,7 @@ export class NotificationRepository {
   }
 
   async getEmailById(emailId: string): Promise<EmailNotification | null> {
-    return await this.emailsCollection.findOne({ _id: emailId as any });
+    return await this.emailsCollection.findOne({ _id: toObjectId(emailId) as any });
   }
 
   async getEmailsByStatus(status: EmailNotification['status']): Promise<EmailNotification[]> {
@@ -97,6 +110,9 @@ export class NotificationRepository {
     return await this.emailsCollection
       .find({ 
         status: { $in: ['pending', 'retrying'] },
+        // OTP emails are sent once, directly; a queued resend would carry an
+        // expired code (and older rows may still store it).
+        template: { $ne: 'otp_verification' },
         $expr: { $lt: ['$retryCount', '$maxRetries'] }
       })
       .sort({ priority: -1, createdAt: 1 })
@@ -114,7 +130,7 @@ export class NotificationRepository {
 
   async incrementRetryCount(emailId: string): Promise<void> {
     await this.emailsCollection.updateOne(
-      { _id: emailId as any },
+      { _id: toObjectId(emailId) as any },
       { 
         $inc: { retryCount: 1 },
         $set: { 
@@ -148,7 +164,7 @@ export class NotificationRepository {
 
   async updateTemplate(templateId: string, updateData: Partial<EmailTemplate>): Promise<EmailTemplate | null> {
     const result = await this.templatesCollection.findOneAndUpdate(
-      { _id: templateId as any },
+      { _id: toObjectId(templateId) as any },
       { 
         $set: { 
           ...updateData, 
@@ -193,13 +209,13 @@ export class NotificationRepository {
     }
 
     await this.queueCollection.updateOne(
-      { _id: queueId as any },
+      { _id: toObjectId(queueId) as any },
       { $set: updateData }
     );
   }
 
   async removeFromQueue(queueId: string): Promise<void> {
-    await this.queueCollection.deleteOne({ _id: queueId as any });
+    await this.queueCollection.deleteOne({ _id: toObjectId(queueId) as any });
   }
 
   // Analytics
