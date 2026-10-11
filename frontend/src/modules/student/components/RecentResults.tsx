@@ -108,9 +108,9 @@ const RecentResults = ({
       animate={false}
       variant="cosmic"
     >
-      <Card className="flex flex-col bg-card backdrop-blur-sm border border-line shadow-none">
+      <Card flat className="flex flex-col">
         <CardHeader className="pb-3">
-          <CardTitle className="text-foreground flex items-center gap-2">
+          <CardTitle className="flex items-center gap-2">
             <FileText className="h-5 w-5 text-muted-foreground" />
             Resultados Recientes
           </CardTitle>
@@ -191,10 +191,10 @@ const RecentResults = ({
             </ItemGroup>
           )}
 
-          <div className="pt-2">
+          <div className="flex justify-end pt-2">
             <Button
-              variant="default"
-              className="w-full"
+              variant="outline"
+              size="sm"
               onClick={() => navigate("/student/results")}
             >
               Ver Todos los Resultados

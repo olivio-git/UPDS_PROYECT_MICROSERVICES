@@ -1,8 +1,12 @@
+import { EmptyState } from '@/components/common/EmptyState';
+import { Input } from '@/components/keel/input';
+import { Button } from '@/components/keel/button';
+import { FormPage } from '@/components/layout';
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem,
   DropdownMenuSeparator, DropdownMenuTrigger,
-} from "@/components/atoms/dropdown-menu";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/atoms/select";
+} from "@/components/keel/dropdown-menu";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/keel/select";
 import CustomizableTable from "@/components/common/CustomizableTable";
 import { MainLayout } from "@/components/layout";
 import { getCoreRowModel, getSortedRowModel, useReactTable, type ColumnDef } from "@tanstack/react-table";
@@ -13,8 +17,7 @@ import {
   Eye,
   MoreVertical,
   Plus, Search,
-  Trash2,
-  X
+  Trash2
 } from "lucide-react";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
@@ -264,37 +267,33 @@ const ExamsScreen = () => {
         return (
           <div className="text-right">
             <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <button className="p-2 hover:bg-muted rounded-lg transition-colors">
-                  <MoreVertical className="w-4 h-4 text-muted-foreground" />
-                </button>
+              <DropdownMenuTrigger render={<button className="p-2 hover:bg-muted rounded-lg transition-colors" />}>
+                <MoreVertical className="w-4 h-4 text-muted-foreground" />
+              
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="bg-popover border-border">
+              <DropdownMenuContent align="end">
                 <DropdownMenuItem
                   onClick={() => handleViewDetails(exam)}
-                  className="text-foreground hover:bg-muted cursor-pointer"
                 >
                   <Eye className="w-4 h-4 mr-2" />
                   Ver detalles
                 </DropdownMenuItem>
                 <DropdownMenuItem
                   onClick={() => handleEdit(exam)}
-                  className="text-foreground hover:bg-muted cursor-pointer"
                 >
                   <Edit className="w-4 h-4 mr-2" />
                   Editar
                 </DropdownMenuItem>
                 <DropdownMenuItem
                   onClick={() => handleClone(exam)}
-                  className="text-foreground hover:bg-muted cursor-pointer"
                 >
                   <Copy className="w-4 h-4 mr-2" />
                   Clonar
                 </DropdownMenuItem>
-                <DropdownMenuSeparator className="bg-border" />
+                <DropdownMenuSeparator />
                 <DropdownMenuItem
                   onClick={() => askDelete(exam)}
-                  className="text-red-400 hover:bg-muted cursor-pointer"
+                  variant="destructive"
                 >
                   <Trash2 className="w-4 h-4 mr-2" />
                   Eliminar
@@ -331,19 +330,7 @@ const ExamsScreen = () => {
 
     if (viewMode === "create" || viewMode === "edit") {
       return (
-        <div className="bg-card border border-border p-6">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-semibold text-foreground">
-              {viewMode === "edit" ? "Editar Examen" : "Nuevo Examen"}
-            </h2>
-            <button
-              onClick={handleBackToTable}
-              className="px-3 py-2 bg-muted/50 border border-border rounded-lg text-muted-foreground hover:bg-muted flex items-center gap-2"
-            >
-              <X className="w-4 h-4" /> Volver
-            </button>
-          </div>
-
+        <FormPage title={viewMode === "edit" ? "Editar Examen" : "Nuevo Examen"} onBack={handleBackToTable}>
           <ExamForm
             exam={viewMode === "edit" ? selectedExam : null}
             onCancel={handleBackToTable}
@@ -352,7 +339,7 @@ const ExamsScreen = () => {
               loadExams(); 
             }}
           />
-        </div>
+        </FormPage>
       );
     }
 
@@ -369,28 +356,28 @@ const ExamsScreen = () => {
             </p>
           </div>
           <div className="flex items-center gap-2">
-            <button
+            <Button
+              size="sm"
               onClick={handleCreate}
-              className="h-8 flex items-center gap-1.5 px-3 text-xs rounded-md bg-blue-600 hover:bg-blue-700 text-white transition-colors"
             >
               <Plus className="w-3.5 h-3.5" /> Nuevo Examen
-            </button>
+            </Button>
           </div>
         </div>
 
         {/* Filter bar */}
-        <div className="bg-card border border-border px-3 py-2 flex shrink-0 flex-wrap items-center gap-2">
+        <div className="bg-card border border-border px-3 py-2 flex shrink-0 flex-wrap items-center gap-2 rounded-xl">
 
           {/* Search */}
           <div className="relative">
             <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3 w-3 text-muted-foreground pointer-events-none" />
-            <input
+            <Input
               type="text"
               placeholder="Buscar exámenes..."
               value={searchTerm}
               onChange={e => setSearchTerm(e.target.value)}
               onKeyDown={e => e.key === 'Enter' && handleApplyFilters()}
-              className="h-7 pl-6 pr-2 text-xs bg-muted/60 border border-border rounded text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring w-44"
+              className="w-44 h-7 pl-6 pr-2 text-xs"
             />
           </div>
 
@@ -399,36 +386,38 @@ const ExamsScreen = () => {
           {/* Tipo */}
           <Select
             value={localFilters.type}
-            onValueChange={(value) => setLocalFilters({ ...localFilters, type: value })}
+            onValueChange={(value) => value && setLocalFilters({ ...localFilters, type: value })}
+            items={{ all: "Todos los tipos", placement: "Nivelación", progress: "Progreso", final: "Final", practice: "Práctica" }}
           >
-            <SelectTrigger className="h-7 text-xs bg-muted/60 border border-border rounded px-2 text-foreground focus:outline-none w-auto min-w-0 gap-1">
+            <SelectTrigger size="sm" className="text-xs">
               <SelectValue placeholder="Tipo" />
             </SelectTrigger>
-            <SelectContent className="bg-background border border-border">
-              <SelectItem className="hover:bg-muted text-xs" value="all">Todos los tipos</SelectItem>
-              <SelectItem className="hover:bg-muted text-xs" value="placement">Nivelación</SelectItem>
-              <SelectItem className="hover:bg-muted text-xs" value="progress">Progreso</SelectItem>
-              <SelectItem className="hover:bg-muted text-xs" value="final">Final</SelectItem>
-              <SelectItem className="hover:bg-muted text-xs" value="practice">Práctica</SelectItem>
+            <SelectContent>
+              <SelectItem className="text-xs" value="all">Todos los tipos</SelectItem>
+              <SelectItem className="text-xs" value="placement">Nivelación</SelectItem>
+              <SelectItem className="text-xs" value="progress">Progreso</SelectItem>
+              <SelectItem className="text-xs" value="final">Final</SelectItem>
+              <SelectItem className="text-xs" value="practice">Práctica</SelectItem>
             </SelectContent>
           </Select>
 
           {/* Nivel */}
           <Select
             value={localFilters.targetLevel}
-            onValueChange={(value) => setLocalFilters({ ...localFilters, targetLevel: value })}
+            onValueChange={(value) => value && setLocalFilters({ ...localFilters, targetLevel: value })}
+            items={{ all: "Todos los niveles", A1: "A1", A2: "A2", B1: "B1", B2: "B2", C1: "C1", C2: "C2" }}
           >
-            <SelectTrigger className="h-7 text-xs bg-muted/60 border border-border rounded px-2 text-foreground focus:outline-none w-auto min-w-0 gap-1">
+            <SelectTrigger size="sm" className="text-xs">
               <SelectValue placeholder="Nivel" />
             </SelectTrigger>
-            <SelectContent className="bg-background border border-border">
-              <SelectItem className="hover:bg-muted text-xs" value="all">Todos los niveles</SelectItem>
-              <SelectItem className="hover:bg-muted text-xs" value="A1">A1</SelectItem>
-              <SelectItem className="hover:bg-muted text-xs" value="A2">A2</SelectItem>
-              <SelectItem className="hover:bg-muted text-xs" value="B1">B1</SelectItem>
-              <SelectItem className="hover:bg-muted text-xs" value="B2">B2</SelectItem>
-              <SelectItem className="hover:bg-muted text-xs" value="C1">C1</SelectItem>
-              <SelectItem className="hover:bg-muted text-xs" value="C2">C2</SelectItem>
+            <SelectContent>
+              <SelectItem className="text-xs" value="all">Todos los niveles</SelectItem>
+              <SelectItem className="text-xs" value="A1">A1</SelectItem>
+              <SelectItem className="text-xs" value="A2">A2</SelectItem>
+              <SelectItem className="text-xs" value="B1">B1</SelectItem>
+              <SelectItem className="text-xs" value="B2">B2</SelectItem>
+              <SelectItem className="text-xs" value="C1">C1</SelectItem>
+              <SelectItem className="text-xs" value="C2">C2</SelectItem>
             </SelectContent>
           </Select>
 
@@ -436,32 +425,34 @@ const ExamsScreen = () => {
           <Select
             value={localFilters.isActive.toString()}
             onValueChange={(value) => setLocalFilters({ ...localFilters, isActive: value === "true" })}
+            items={{ true: "Activos", false: "Inactivos" }}
           >
-            <SelectTrigger className="h-7 text-xs bg-muted/60 border border-border rounded px-2 text-foreground focus:outline-none w-auto min-w-0 gap-1">
+            <SelectTrigger size="sm" className="text-xs">
               <SelectValue />
             </SelectTrigger>
-            <SelectContent className="bg-background border border-border">
-              <SelectItem className="hover:bg-muted text-xs" value="true">Activos</SelectItem>
-              <SelectItem className="hover:bg-muted text-xs" value="false">Inactivos</SelectItem>
+            <SelectContent>
+              <SelectItem className="text-xs" value="true">Activos</SelectItem>
+              <SelectItem className="text-xs" value="false">Inactivos</SelectItem>
             </SelectContent>
           </Select>
 
-          <button
+          <Button
+            size="sm"
             onClick={handleApplyFilters}
-            className="h-7 px-2.5 text-xs rounded bg-blue-600 hover:bg-blue-700 text-white transition-colors"
           >
             Aplicar
-          </button>
-          <button
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
             onClick={handleClearFilters}
-            className="h-7 px-2 text-xs rounded text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
           >
             Limpiar
-          </button>
+          </Button>
         </div>
 
         {/* Table */}
-        <div className="flex flex-1 min-h-0 flex-col border-t border-border bg-card">
+        <div className="flex flex-1 min-h-0 flex-col border-border bg-card rounded-xl border overflow-hidden">
           {loading ? (
             <div className="flex flex-1 min-h-0 flex-col items-center justify-center text-center">
               <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500" />
@@ -470,24 +461,19 @@ const ExamsScreen = () => {
           ) : error ? (
             <div className="flex flex-1 min-h-0 flex-col items-center justify-center text-center">
               <p className="text-sm text-red-400 mb-4">{error}</p>
-              <button
+              <Button
+                size="sm"
                 onClick={() => loadExams()}
-                className="px-3 py-1.5 text-xs bg-blue-600 text-white rounded-lg hover:bg-blue-700"
               >
                 Reintentar
-              </button>
+              </Button>
             </div>
           ) : exams.length === 0 ? (
-            <div className="flex flex-1 min-h-0 flex-col items-center justify-center text-center">
-              <BookOpen className="w-10 h-10 text-muted-foreground/40 mx-auto mb-3" />
-              <p className="text-sm text-muted-foreground mb-4">No se encontraron exámenes</p>
-              <button
-                onClick={handleCreate}
-                className="px-3 py-1.5 text-xs bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-              >
-                Crear primer examen
-              </button>
-            </div>
+            <EmptyState
+              icon={BookOpen}
+              title="No se encontraron exámenes"
+              action={<Button size="sm" onClick={handleCreate}>Crear primer examen</Button>}
+            />
           ) : (
             <>
               <div className="flex-1 min-h-0">
@@ -509,13 +495,14 @@ const ExamsScreen = () => {
                     {(currentPage - 1) * 10 + 1}–{Math.min(currentPage * 10, totalItems)} de {totalItems} exámenes
                   </span>
                   <div className="flex items-center gap-1">
-                    <button
+                    <Button
+                      variant="outline"
+                      size="icon-sm"
                       onClick={() => changePage(currentPage - 1)}
                       disabled={currentPage === 1}
-                      className="p-1.5 bg-muted/50 border border-border rounded hover:bg-muted disabled:opacity-40 disabled:cursor-not-allowed transition-all"
                     >
                       <ChevronLeft className="w-3.5 h-3.5 text-muted-foreground" />
-                    </button>
+                    </Button>
                     {(() => {
                       const maxVisible = 5;
                       const half = Math.floor(maxVisible / 2);
@@ -536,13 +523,14 @@ const ExamsScreen = () => {
                         </button>
                       ));
                     })()}
-                    <button
+                    <Button
+                      variant="outline"
+                      size="icon-sm"
                       onClick={() => changePage(currentPage + 1)}
                       disabled={currentPage === totalPages}
-                      className="p-1.5 bg-muted/50 border border-border rounded hover:bg-muted disabled:opacity-40 disabled:cursor-not-allowed transition-all"
                     >
                       <ChevronRight className="w-3.5 h-3.5 text-muted-foreground" />
-                    </button>
+                    </Button>
                   </div>
                 </div>
               )}
@@ -555,7 +543,7 @@ const ExamsScreen = () => {
 
   return (
     <MainLayout gradientVariant="aurora">
-      <div className="flex h-full min-h-0 flex-col gap-3 p-3 epilogue-uniquifier">
+      <div className="flex h-full min-h-0 flex-col gap-4 px-4 pb-4">
         {renderView()}
       </div>
 

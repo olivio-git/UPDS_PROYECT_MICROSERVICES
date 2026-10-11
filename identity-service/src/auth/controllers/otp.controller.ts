@@ -50,7 +50,12 @@ export class OtpController {
       const result = await this.otpService.verifyOtp(email, code, purpose);
 
       if (!result.success) {
-        res.status(400).json({ success: false, message: result.message, error: 'OTP verification failed' });
+        res.status(400).json({
+          success: false,
+          message: result.message,
+          error: 'OTP verification failed',
+          data: { attemptsRemaining: result.attemptsRemaining },
+        });
         return;
       }
 

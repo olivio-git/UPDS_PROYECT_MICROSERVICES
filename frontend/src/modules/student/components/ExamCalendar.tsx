@@ -1,3 +1,4 @@
+import { Button } from '@/components/keel/button';
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia } from '@/components/keel/empty';
 import { HoverCard, HoverCardContent, HoverCardTrigger } from '@/components/keel/hover-card';
 import { Item, ItemContent, ItemDescription, ItemMedia, ItemTitle } from '@/components/keel/item';
@@ -183,7 +184,7 @@ const ExamCalendar = () => {
   };
 
   return (
-    <div className="flex flex-col bg-card border border-border overflow-hidden">
+    <div className="flex flex-col bg-card border border-border overflow-hidden rounded-xl">
       {/* Header */}
       <div className="px-4 pt-4 pb-3 border-b border-border flex items-center justify-between">
         <div className="flex items-center gap-2">
@@ -191,21 +192,23 @@ const ExamCalendar = () => {
           <span className="text-sm font-semibold text-foreground">Mis Exámenes</span>
         </div>
         <div className="flex items-center gap-1">
-          <button
+          <Button
+            variant="ghost"
+            size="icon-sm"
             onClick={prevMonth}
-            className="p-1 rounded hover:bg-muted transition-colors text-muted-foreground hover:text-foreground"
           >
             <ChevronLeft className="h-4 w-4" />
-          </button>
+          </Button>
           <span className="text-xs font-medium text-foreground px-1 min-w-[100px] text-center">
             {MONTHS[month]} {year}
           </span>
-          <button
+          <Button
+            variant="ghost"
+            size="icon-sm"
             onClick={nextMonth}
-            className="p-1 rounded hover:bg-muted transition-colors text-muted-foreground hover:text-foreground"
           >
             <ChevronRight className="h-4 w-4" />
-          </button>
+          </Button>
         </div>
       </div>
 
@@ -281,7 +284,7 @@ const ExamCalendar = () => {
                   <HoverCardContent
                     side="right"
                     align="start"
-                    className="w-64 p-0 overflow-hidden border border-border bg-card shadow-xl"
+                    className="w-64 p-0 overflow-hidden border border-border bg-card shadow-xl rounded-xl"
                   >
                     <DayHoverContent year={year} month={month} day={day} exams={examsByDay[day]} />
                   </HoverCardContent>

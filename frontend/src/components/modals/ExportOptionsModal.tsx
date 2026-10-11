@@ -1,7 +1,9 @@
-import { Button } from '@/components/atoms/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/atoms/card';
-import { Input } from '@/components/atoms/input';
-import { Switch } from '@/components/atoms/switch';
+import { NativeSelect, NativeSelectOption } from '@/components/keel/native-select';
+import { Label } from '@/components/keel/label';
+import { Button } from '@/components/keel/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/keel/card';
+import { Input } from '@/components/keel/input';
+import { Switch } from '@/components/keel/switch';
 import { type ExportOptions } from '@/services/reportsService';
 import { Download, FileText, Settings, X } from 'lucide-react';
 import React, { useState } from 'react';
@@ -66,10 +68,10 @@ const ExportOptionsModal: React.FC<ExportOptionsModalProps> = ({
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <Card className="bg-box border-line w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+      <Card className="w-full max-w-2xl max-h-[90vh] overflow-y-auto">
         <CardHeader className="pb-4">
           <div className="flex items-center justify-between">
-            <CardTitle className="flex items-center space-x-2 text-foreground">
+            <CardTitle className="flex items-center space-x-2">
               <Download className="h-5 w-5 text-blue-400" />
               <span>Opciones de Exportación</span>
             </CardTitle>
@@ -77,7 +79,6 @@ const ExportOptionsModal: React.FC<ExportOptionsModalProps> = ({
               variant="ghost"
               size="sm"
               onClick={onClose}
-              className="text-muted-foreground hover:text-foreground hover:bg-muted"
             >
               <X className="h-4 w-4" />
             </Button>
@@ -99,7 +100,7 @@ const ExportOptionsModal: React.FC<ExportOptionsModalProps> = ({
               <Button
                 onClick={() => handleExport('csv')}
                 disabled={isLoading}
-                className="h-20 flex flex-col items-center justify-center space-y-2 bg-emerald-600 hover:bg-emerald-700 text-white"
+                className="h-20 flex flex-col justify-center space-y-2"
               >
                 <FileText className="h-6 w-6" />
                 <div className="text-center">
@@ -111,7 +112,7 @@ const ExportOptionsModal: React.FC<ExportOptionsModalProps> = ({
               <Button
                 onClick={() => handleExport('pdf')}
                 disabled={isLoading}
-                className="h-20 flex flex-col items-center justify-center space-y-2 bg-blue-600 hover:bg-blue-700 text-white"
+                className="h-20 flex flex-col justify-center space-y-2"
               >
                 <Download className="h-6 w-6" />
                 <div className="text-center">
@@ -133,9 +134,9 @@ const ExportOptionsModal: React.FC<ExportOptionsModalProps> = ({
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-2">
                 <div>
-                  <label className="text-sm font-medium text-foreground">
+                  <Label>
                     Incluir Análisis con IA
-                  </label>
+                  </Label>
                   <p className="text-xs text-muted-foreground">
                     Agregar interpretación
                   </p>
@@ -153,79 +154,79 @@ const ExportOptionsModal: React.FC<ExportOptionsModalProps> = ({
               <div className="space-y-4 pl-6 border-l-2 border-purple-500/30">
                 {/* Idioma del Reporte */}
                 <div>
-                  <label className="text-xs font-medium text-muted-foreground mb-2 block">
+                  <Label className="mb-2">
                     Idioma del Reporte
-                  </label>
-                  <select
+                  </Label>
+                  <NativeSelect
                     value={exportOptions.language}
                     onChange={(e) => handleOptionChange('language', e.target.value)}
-                    className="w-full bg-muted border border-border text-foreground text-sm rounded px-3 py-2"
+                    className="w-full"
                   >
-                    <option value="spanish">Español</option>
-                    <option value="english">English</option>
-                  </select>
+                    <NativeSelectOption value="spanish">Español</NativeSelectOption>
+                    <NativeSelectOption value="english">English</NativeSelectOption>
+                  </NativeSelect>
                 </div>
 
                 {/* Idioma de Interpretación */}
                 <div>
-                  <label className="text-xs font-medium text-muted-foreground mb-2 block">
+                  <Label className="mb-2">
                     Idioma de Interpretación IA
-                  </label>
-                  <select
+                  </Label>
+                  <NativeSelect
                     value={exportOptions.interpretationLanguage}
                     onChange={(e) => handleOptionChange('interpretationLanguage', e.target.value)}
-                    className="w-full bg-muted border border-border text-foreground text-sm rounded px-3 py-2"
+                    className="w-full"
                   >
-                    <option value="spanish">Español</option>
-                    <option value="english">English</option>
-                  </select>
+                    <NativeSelectOption value="spanish">Español</NativeSelectOption>
+                    <NativeSelectOption value="english">English</NativeSelectOption>
+                  </NativeSelect>
                 </div>
 
                 {/* Profundidad de Análisis */}
                 <div>
-                  <label className="text-xs font-medium text-muted-foreground mb-2 block">
+                  <Label className="mb-2">
                     Profundidad de Análisis
-                  </label>
-                  <select
+                  </Label>
+                  <NativeSelect
                     value={exportOptions.interpretationDepth}
                     onChange={(e) => handleOptionChange('interpretationDepth', e.target.value)}
-                    className="w-full bg-muted border border-border text-foreground text-sm rounded px-3 py-2"
+                    className="w-full"
                   >
-                    <option value="brief">Breve</option>
-                    <option value="detailed">Detallado</option>
-                  </select>
+                    <NativeSelectOption value="brief">Breve</NativeSelectOption>
+                    <NativeSelectOption value="detailed">Detallado</NativeSelectOption>
+                  </NativeSelect>
                 </div>
 
                 {/* Enfoque de Análisis */}
                 <div>
-                  <label className="text-xs font-medium text-muted-foreground mb-2 block">
+                  <Label className="mb-2">
                     Enfoque de Análisis
-                  </label>
-                  <select
+                  </Label>
+                  <NativeSelect
                     value={exportOptions.interpretationFocus}
                     onChange={(e) => handleOptionChange('interpretationFocus', e.target.value)}
-                    className="w-full bg-muted border border-border text-foreground text-sm rounded px-3 py-2"
+                    className="w-full"
                   >
                     {getFocusOptions(reportType).map(option => (
-                      <option key={option.value} value={option.value}>
+                      <NativeSelectOption key={option.value} value={option.value}>
                         {option.label}
-                      </option>
+                      </NativeSelectOption>
                     ))}
-                  </select>
+                  </NativeSelect>
                 </div>
               </div>
             )}
 
             {/* Nombre de la Empresa */}
             <div>
-              <label className="text-xs font-medium text-muted-foreground mb-2 block">
+              <Label className="mb-2">
                 Nombre de la Empresa (Opcional)
-              </label>
+              </Label>
               <Input
                 value={exportOptions.companyName || ''}
                 onChange={(e) => handleOptionChange('companyName', e.target.value)}
                 placeholder="Sistema de Evaluación Académica"
-                className="bg-muted border-border text-foreground text-sm"
+                className="bg-muted text-sm"
               />
             </div>
           </div>

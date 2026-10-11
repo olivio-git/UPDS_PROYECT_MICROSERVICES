@@ -62,7 +62,7 @@ export function ExamSubmittedScreen({ examName, submittedAt }: ExamSubmittedScre
     <MainLayout hideHeader>
       <div className="min-h-screen flex items-center justify-center p-4">
         <GradientWrapper intensity="medium" size="lg">
-          <Card className="w-full max-w-md bg-box backdrop-blur-sm border border-line">
+          <Card className="w-full max-w-md">
             <CardContent className="p-8 text-center space-y-5">
               <div className="w-14 h-14 rounded-full bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-700/50 flex items-center justify-center mx-auto">
                 <CheckCircle className="h-8 w-8 text-emerald-600 dark:text-emerald-400" />
@@ -93,7 +93,7 @@ export function ExamSubmittedScreen({ examName, submittedAt }: ExamSubmittedScre
                 <Button
                   onClick={() => navigate('/student/dashboard')}
                   variant="outline"
-                  className="w-full gap-2 border-line bg-transparent text-foreground/80 hover:bg-muted hover:text-foreground"
+                  className="w-full gap-2"
                 >
                   <LayoutDashboard className="h-4 w-4" />
                   Ir a mi panel

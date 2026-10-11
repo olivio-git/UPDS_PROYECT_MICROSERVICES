@@ -7,12 +7,14 @@ export const questionSchema = {
     competency: z.enum(Object.values(CONSTANTS.COMPETENCIES) as [string, ...string[]]),
     level: z.enum(Object.values(CONSTANTS.LEVELS) as [string, ...string[]]),
     difficulty: z.number().min(1).max(5),
+    gradingMode: z.enum(['auto', 'manual', 'assisted']).optional(),
     content: z.object({
       question: z.string(),
       instructions: z.string().optional(),
       context: z.string().optional(),
       mediaUrl: z.string().url().optional(),
       mediaType: z.enum(['audio', 'image']).optional(),
+      mediaAlt: z.string().max(1000).optional(),
       options: z.array(z.object({
         id: z.string(),
         text: z.string(),
@@ -38,12 +40,14 @@ export const questionSchema = {
     competency: z.enum(Object.values(CONSTANTS.COMPETENCIES) as [string, ...string[]]).optional(),
     level: z.enum(Object.values(CONSTANTS.LEVELS) as [string, ...string[]]).optional(),
     difficulty: z.number().min(1).max(5).optional(),
+    gradingMode: z.enum(['auto', 'manual', 'assisted']).optional(),
     content: z.object({
       question: z.string().optional(),
       instructions: z.string().optional(),
       context: z.string().optional(),
       mediaUrl: z.string().url().optional(),
       mediaType: z.enum(['audio', 'image']).optional(),
+      mediaAlt: z.string().max(1000).optional(),
       options: z.array(z.object({
         id: z.string(),
         text: z.string(),

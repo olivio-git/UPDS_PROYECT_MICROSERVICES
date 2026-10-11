@@ -1,6 +1,6 @@
-import { UserAvatar } from '@/components/atoms/UserAvatar';
-import { Button } from '@/components/atoms/button';
-import { Input } from '@/components/atoms/input';
+import { UserAvatar } from '@/components/UserAvatar';
+import { Button } from '@/components/keel/button';
+import { Input } from '@/components/keel/input';
 import { useDebouncedValue } from '@/hooks/useDebouncedValue';
 import type { Candidate } from '@/services/candidateService';
 import { Loader2, Search } from 'lucide-react';
@@ -55,7 +55,7 @@ export function CandidateSearch({ onSelect }: { onSelect: (candidate: Candidate)
           disabled={isFetching || query.trim().length < MIN_SEARCH_LENGTH}
           size="sm"
           aria-label="Buscar"
-          className="h-8 px-3 bg-blue-600 hover:bg-blue-700 text-white shrink-0"
+          className="px-3 shrink-0"
         >
           {isFetching ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Search className="h-3.5 w-3.5" />}
         </Button>
@@ -67,7 +67,7 @@ export function CandidateSearch({ onSelect }: { onSelect: (candidate: Candidate)
           // focus buttons on click, so without this the input's blur would
           // close the list before the click reached the button.
           onMouseDown={(e) => e.preventDefault()}
-          className="absolute top-full left-0 right-0 mt-1 bg-card border border-border rounded-lg shadow-lg z-20 overflow-hidden"
+          className="absolute top-full left-0 right-0 mt-1 bg-card border border-border rounded-xl shadow-lg z-20 overflow-hidden"
         >
           {results.length === 0 ? (
             <p className="text-xs text-muted-foreground text-center px-4 py-2.5">Sin resultados</p>

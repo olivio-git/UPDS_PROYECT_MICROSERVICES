@@ -3,6 +3,13 @@ import { ObjectId } from 'mongodb';
 import { config } from '../config.js';
 import { getLevels, getQuestions } from '../db/collections.js';
 import type { IQuestion, QuestionType, Competency, Level } from '../types/index.js';
+import { normalizeGeneratedContent } from './question-validation.js';
+import {
+  LEVEL_PROFILE,
+  assessQuestionQuality,
+  questionSignature,
+  type QualityReport,
+} from '../grading/question-quality.js';
 
 export interface GenerateQuestionInput {
   competency: Competency;
@@ -22,10 +29,24 @@ export interface GenerateQuestionOutput {
   question: Omit<IQuestion, '_id' | 'statistics' | 'createdAt' | 'updatedAt' | 'createdBy'>;
   savedId?: string;
   model: string;
+  /** Automatic quality review of the returned question (warnings are shown to the teacher). */
+  quality: QualityReport;
+  /** Model calls it took (1 = accepted at once). */
+  attempts: number;
 }
 
+/** How many recent bank questions of the same level and type are compared against for duplicates. */
+const BANK_SAMPLE = 300;
+/** How many of them are quoted in the prompt as "do not repeat". */
+const BANK_IN_PROMPT = 8;
+
 const TYPE_HINTS: Partial<Record<QuestionType, string>> = {
-  multiple_choice: 'Provide options array with exactly 4 items, exactly one isCorrect=true. Set correctAnswer to the id of the correct option.',
+  multiple_choice:
+    'Provide options with exactly 4 items and exactly one isCorrect=true. ' +
+    'DISTRACTORS: each wrong option must be plausible for a learner at this level — same grammatical form, ' +
+    'similar length and register as the correct one, and clearly wrong given the text or rule being tested. ' +
+    'Never use "all of the above", "none of the above", jokes, or options that are wrong only by spelling. ' +
+    'Only one option may be defensible as correct.',
   true_false:
     'The "question" field MUST be a STATEMENT (NOT a question), e.g. "The cat is sitting on the mat." ' +
     '— the student decides whether that statement is True or False. ' +
@@ -34,10 +55,23 @@ const TYPE_HINTS: Partial<Record<QuestionType, string>> = {
     'OR { id: "true", text: "True", isCorrect: false } if the statement is wrong. ' +
     'second: { id: "false", text: "False", isCorrect: <opposite> }. ' +
     'NEVER use content-based option texts — always "True" and "False" literally.',
-  fill_blanks: 'Provide template string with ___ for each blank. Provide blanks array with position (1-based), correctAnswers array. Also set correctAnswer as array of answers.',
-  matching: 'Provide items array where each item has content and matchingPair (its correct match).',
-  ordering: 'Provide items array where each item has content and correctPosition (1-based integer).',
-  drag_drop: 'Provide items array where each item has content and correctPosition (1-based integer).',
+  fill_blanks:
+    'Provide "template": one or two sentences with 1 to 3 blanks, each written as exactly ___ (three underscores). ' +
+    'Provide "blanks" in the same order as the ___ marks: { position (1-based), correctAnswers }. ' +
+    'Each blank must have ONE answer that the context makes unambiguous (test one word: a verb form, preposition, article, etc.); ' +
+    'list accepted variants in correctAnswers (e.g. ["is not", "isn\'t"]). Do not put the answer in the question text.',
+  matching:
+    'Provide 4 or 5 items; each has "content" (left column) and "matchingPair" (its match). ' +
+    'All pairs share one relation (word → definition, question → reply, word → opposite…). ' +
+    'Every matchingPair must be distinct and fit only its own row — no row may plausibly match two pairs.',
+  ordering:
+    'Provide 4 to 6 items (steps of a process, events of a story, lines of a dialogue) with correctPosition 1..N. ' +
+    'There must be exactly one logical/chronological order; avoid items whose position is interchangeable.',
+  drag_drop:
+    'SENTENCE BUILDER: write ONE target sentence and split it into 4 to 8 chunks (words or short phrases) as items, ' +
+    'with correctPosition 1..N giving the order of the sentence. Exactly one word order must be grammatical — ' +
+    'avoid adverbs or phrases that can move. Keep the final punctuation attached to the last chunk. ' +
+    'The "question" asks the student to build the sentence (e.g. a translation or a description of the meaning).',
   essay:
     'ESSAY is a WRITING PRODUCTION task — NOT a comprehension question. ' +
     'The "question" field MUST be a writing prompt that asks the student to PRODUCE their own text, ' +
@@ -85,11 +119,19 @@ const COMPETENCY_HINTS: Partial<Record<Competency, string>> = {
     'Provide a clear speaking prompt in the "instructions" field. Include a sampleAnswer showing ' +
     'what a good spoken response would include. Add keywords with key phrases.',
   grammar:
-    'Focus on exactly one grammar point relevant to the CEFR level. The question must test correct ' +
-    'understanding or application of that specific rule.',
+    'GRAMMATICAL COMPETENCE (MCER linguistic competence). Test exactly ONE grammar point typical of the CEFR level ' +
+    '(e.g. A1 to be/present simple, A2 past simple/comparatives/going to, B1 present perfect vs past simple/first and second ' +
+    'conditional/passive, B2 third conditional/reported speech/relative clauses). Put the target structure inside a short, ' +
+    'natural sentence whose context makes only one form correct. Distractors must be wrong forms of the SAME structure ' +
+    '(wrong tense, agreement or word order), never a different word with another meaning. ' +
+    'Do NOT add a reading passage. Set metadata.topic to the grammar point (e.g. "Present perfect").',
   vocabulary:
-    'Focus on word meaning or usage in context. When possible, embed the target word in a sentence ' +
-    'within the question text to give context for the answer.',
+    'LEXICAL COMPETENCE (MCER linguistic competence). Test word meaning, collocation or word choice from a topic ' +
+    'typical of the CEFR level (A1/A2: family, food, home, daily routine, shopping; B1: work, travel, health, ' +
+    'feelings; B2+: abstract and formal vocabulary). Embed the target word in a sentence that gives enough context. ' +
+    'Distractors must share the part of speech and semantic field of the answer (e.g. all kitchen nouns) and be ' +
+    'clearly wrong in that context; never test grammar here. For matching use word -> definition or word -> ' +
+    'synonym/opposite pairs. Do NOT add a reading passage. Set metadata.topic to the lexical field (e.g. "Food").',
 };
 
 /**
@@ -110,6 +152,23 @@ export async function generateQuestion(input: GenerateQuestionInput): Promise<Ge
     { projection: { description: 1, competencyRequirements: 1 } }
   );
 
+  // Questions of the same kind already in the bank: the new one must not repeat them.
+  const bankDocs = await getQuestions()
+    .find(
+      { level: input.level, type: input.type, isActive: { $ne: false } },
+      { projection: { 'content.question': 1, 'content.context': 1, 'content.template': 1, 'content.options': 1, 'content.items': 1 } },
+    )
+    .sort({ createdAt: -1 })
+    .limit(BANK_SAMPLE)
+    .toArray();
+  const existingSignatures = [
+    ...bankDocs.map((d) => questionSignature(d.content, { ignoreContext: Boolean(input.audioTranscript) })),
+    ...(input.avoidQuestions ?? []),
+  ].filter(Boolean);
+  const avoidList = [
+    ...new Set([...(input.avoidQuestions ?? []), ...bankDocs.slice(0, BANK_IN_PROMPT).map((d) => d.content?.question ?? '')]),
+  ].filter(Boolean);
+
   // Build a concise level+competency context block for the prompt
   const levelContextLines: string[] = [
     `- CEFR Level: ${input.level}${levelDoc?.description ? ` — ${levelDoc.description}` : ''}`,
@@ -124,15 +183,20 @@ export async function generateQuestion(input: GenerateQuestionInput): Promise<Ge
       ...(compReq.canDoStatements as string[]).map((s: string) => `  • ${s}`)
     );
   }
+  // Measurable targets — the same ones the quality check applies afterwards.
+  const profile = LEVEL_PROFILE[input.level];
+  levelContextLines.push(
+    `- Text targets for ${input.level}: sentences of about ${profile.maxAvgSentence} words or fewer on average` +
+      (['reading', 'listening'].includes(input.competency) ? `; passage of ${profile.passage[0]}-${profile.passage[1]} words` : '') +
+      (input.type === 'essay' ? `; model answer of ${profile.writing[0]}-${profile.writing[1]} words` : '') +
+      '.',
+  );
   const levelContext = levelContextLines.join('\n');
 
   // ── Rest of prompt parameters ────────────────────────────────────────────────
   const typeHint = TYPE_HINTS[input.type] ?? `Type: ${input.type}`;
 
-  // Resolve type vs competency conflicts:
-  // essay is always a WRITING PRODUCTION task — competencies like reading/listening
-  // should only influence the TOPIC AREA, not impose comprehension-question patterns.
-  // audio_response is always a SPEAKING PRODUCTION task — same principle applies.
+  // Type/competency combinations are validated upstream (QUESTION_FORMATS_BY_COMPETENCY).
   let competencyHint = COMPETENCY_HINTS[input.competency] ?? '';
   if (input.competency === 'listening' && input.audioTranscript) {
     competencyHint =
@@ -146,21 +210,6 @@ export async function generateQuestion(input: GenerateQuestionInput): Promise<Ge
       '(2) use a descriptive reference based on their role or topic (e.g. "the person who dislikes cooking", "the interviewer"), ' +
       'or (3) refer generically to "the speaker" or "one of the speakers" if no name or role can be inferred. ' +
       'The student hears the audio but does not see speaker labels — questions must be answerable from listening alone.';
-  }
-  if (input.type === 'essay' && (input.competency === 'reading' || input.competency === 'listening')) {
-    competencyHint =
-      `The competency "${input.competency}" defines only the TOPIC AREA for this essay. ` +
-      `This is a WRITING PRODUCTION task — do NOT generate a comprehension question, ` +
-      `do NOT add a "context" passage, and do NOT ask the student to extract information. ` +
-      `The student must write their own original text inspired by the topic.`;
-  }
-  if (input.type === 'audio_response' && input.competency !== 'speaking') {
-    competencyHint =
-      `The competency "${input.competency}" defines only the TOPIC AREA for this speaking task. ` +
-      `This is a SPEAKING PRODUCTION task — do NOT generate a comprehension question, ` +
-      `do NOT add a reading/listening "context" passage, and do NOT ask the student to extract information. ` +
-      `The student must speak their own original response about a topic related to "${input.competency}". ` +
-      `Generate a speaking prompt appropriate for that topic area.`;
   }
   const topicLine = input.topic ? `- Topic: ${input.topic}` : '';
   // Audio transcript takes priority over thematicContext for listening questions.
@@ -193,13 +242,13 @@ export async function generateQuestion(input: GenerateQuestionInput): Promise<Ge
 
   // Diversity block: injected when generating in bulk to prevent repetition
   const avoidBlock =
-    input.avoidQuestions && input.avoidQuestions.length > 0
+    avoidList.length > 0
       ? [
           '',
-          'DIVERSITY REQUIREMENT: The questions below have ALREADY been generated.',
+          'DIVERSITY REQUIREMENT: The questions below ALREADY exist in the question bank.',
           'Your question MUST be distinctly different — use a different topic, scenario, vocabulary set, and structure.',
           'Do NOT paraphrase, rephrase, or closely mirror any of these:',
-          ...input.avoidQuestions
+          ...avoidList
             .slice(0, 20)
             .map((q, i) => `  ${i + 1}. "${q.substring(0, 150)}"`),
           '',
@@ -325,67 +374,91 @@ export async function generateQuestion(input: GenerateQuestionInput): Promise<Ge
     },
   };
 
-  const completion = await groq.chat.completions.create({
-    model: config.groq.model,
-    messages: [
-      { role: 'system', content: systemPrompt },
-      { role: 'user', content: userPrompt },
-    ],
-    tools: [tool],
-    tool_choice: { type: 'function', function: { name: 'register_question' } },
-    temperature: 0.8, // Higher creativity than grading (0.3)
-    max_tokens: 1500,
-  });
-
-  const toolCall = completion.choices[0]?.message?.tool_calls?.[0];
-  if (!toolCall || toolCall.function.name !== 'register_question') {
-    throw new Error('GROQ did not call register_question tool');
-  }
-
-  // Structured JSON — no text parsing, no regex, no fallbacks
-  const args = JSON.parse(toolCall.function.arguments) as {
-    content: IQuestion['content'];
-    metadata: IQuestion['metadata'];
+  // ── Call the model, check it, and ask for fixes with the problems spelled out ──
+  // Blocking problems (ungradable, wrong language, duplicate…) are retried up to
+  // MAX_ATTEMPTS; warnings get one fix request. The best candidate seen is kept.
+  const messages: Groq.Chat.Completions.ChatCompletionMessageParam[] = [
+    { role: 'system', content: systemPrompt },
+    { role: 'user', content: userPrompt },
+  ];
+  const MAX_ATTEMPTS = 3;
+  type Candidate = {
+    args: { content: IQuestion['content']; metadata: IQuestion['metadata'] };
+    blocking: string[];
+    quality: QualityReport;
   };
+  let best: Candidate | undefined;
+  let lastFailure = '';
+  let modelUsed = config.groq.model;
+  let attempts = 0;
+  const rank = (c: Candidate) => c.blocking.length * 1000 - c.quality.score;
 
-  // Normalize: generate IDs server-side if GROQ omitted them
-  if (args.content.options) {
-    // Special case: true_false MUST always use id="true"/"false" with literal text "True"/"False"
-    // GROQ sometimes generates content-based options (e.g. "The dog is brown.") — fix that here.
-    if (input.type === 'true_false') {
-      const opts = args.content.options;
-      // Try to identify which GROQ option represents "True" (correct fact / first option)
-      const trueOpt = opts.find(o => o.id === 'true' || (o.text ?? '').toLowerCase() === 'true');
-      const falseOpt = opts.find(o => o.id === 'false' || (o.text ?? '').toLowerCase() === 'false');
+  for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+    attempts = attempt;
+    const completion = await groq.chat.completions.create({
+      model: config.groq.model,
+      messages,
+      tools: [tool],
+      tool_choice: { type: 'function', function: { name: 'register_question' } },
+      temperature: attempt === 1 ? 0.8 : 0.4, // creative first, conservative when fixing
+      max_tokens: 1500,
+    });
+    modelUsed = completion.model;
 
-      if (trueOpt && falseOpt) {
-        // GROQ followed the hint correctly — just normalise ids and text
-        args.content.options = [
-          { id: 'true',  text: 'True',  isCorrect: trueOpt.isCorrect  ?? false },
-          { id: 'false', text: 'False', isCorrect: falseOpt.isCorrect ?? false },
-        ];
-      } else {
-        // GROQ generated content-based options — treat first as the "True" option
-        // (the statement in `question` represents a fact to verify)
-        const firstIsCorrect = opts[0]?.isCorrect ?? true;
-        args.content.options = [
-          { id: 'true',  text: 'True',  isCorrect:  firstIsCorrect },
-          { id: 'false', text: 'False', isCorrect: !firstIsCorrect },
-        ];
-      }
-    } else {
-      args.content.options = args.content.options.map((opt, i) => ({
-        ...opt,
-        id: opt.id ?? String.fromCharCode(65 + i), // A, B, C, D
-      }));
+    const toolCall = completion.choices[0]?.message?.tool_calls?.[0];
+    if (!toolCall || toolCall.function.name !== 'register_question') {
+      lastFailure = 'the model did not call register_question';
+      continue;
     }
+
+    let parsed: { content?: IQuestion['content']; metadata?: IQuestion['metadata'] };
+    try {
+      parsed = JSON.parse(toolCall.function.arguments);
+    } catch {
+      lastFailure = 'register_question arguments were not valid JSON';
+      continue;
+    }
+
+    const rawContent = parsed.content ?? ({} as IQuestion['content']);
+    // The recording is the source of truth: never let the model rewrite it.
+    if (input.audioTranscript) rawContent.context = input.audioTranscript;
+    const result = normalizeGeneratedContent(input.type, rawContent);
+    const quality = assessQuestionQuality(input, result.content, {
+      existing: existingSignatures,
+      ignoreContext: Boolean(input.audioTranscript),
+    });
+    const candidate: Candidate = {
+      args: { content: result.content, metadata: parsed.metadata ?? {} },
+      blocking: [...result.problems, ...quality.issues.filter((i) => i.severity === 'block').map((i) => i.message)],
+      quality,
+    };
+    if (!best || rank(candidate) < rank(best)) best = candidate;
+
+    const warnings = quality.issues.filter((i) => i.severity === 'warn').map((i) => i.message);
+    const toFix = candidate.blocking.length ? candidate.blocking : attempt === 1 ? warnings : [];
+    if (!toFix.length) break;
+
+    messages.push(
+      { role: 'assistant', content: `register_question(${toolCall.function.arguments})` },
+      {
+        role: 'user',
+        content:
+          'That question cannot be used as is. Fix these problems and call register_question again with the complete question:\n' +
+          toFix.map((p) => `- ${p}`).join('\n'),
+      },
+    );
   }
-  if (args.content.items) {
-    args.content.items = args.content.items.map((item, i) => ({
-      ...item,
-      id: item.id ?? String(i + 1),
-    }));
+
+  if (!best || best.blocking.length) {
+    const reasons = best
+      ? [
+          ...best.quality.issues.filter((i) => i.severity === 'block').map((i) => i.label),
+          ...(best.blocking.length > best.quality.issues.filter((i) => i.severity === 'block').length ? ['la estructura no es válida'] : []),
+        ]
+      : [lastFailure];
+    throw new Error(`La IA no logró una pregunta válida: ${reasons.join('; ')}`);
   }
+  const args = best.args;
 
   const questionDoc: Omit<IQuestion, '_id'> = {
     type: input.type,
@@ -420,6 +493,8 @@ export async function generateQuestion(input: GenerateQuestionInput): Promise<Ge
   return {
     question: questionDoc,
     savedId,
-    model: completion.model,
+    model: modelUsed,
+    quality: best.quality,
+    attempts,
   };
 }

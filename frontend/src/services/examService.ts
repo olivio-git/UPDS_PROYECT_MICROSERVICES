@@ -94,6 +94,16 @@ export function getTechnicalVerificationRequiredInfo(
   return null;
 }
 
+/** Per-row outcome of a spreadsheet import. `row` is the spreadsheet row (1 = header). */
+export interface QuestionImportResult {
+  total: number;
+  imported: number;
+  drafts: number;
+  draftRows: number[];
+  failed: number;
+  errors: Array<{ row: number; message: string }>;
+}
+
 class ExamService {
   private api: AxiosInstance;
   private baseURL: string;
@@ -371,7 +381,7 @@ class ExamService {
   }
 
   // Importar preguntas desde Excel/CSV
-  async importQuestions(file: File): Promise<ApiResponse<{ success: number; failed: number; errors: any[] }>> {
+  async importQuestions(file: File): Promise<ApiResponse<QuestionImportResult>> {
     try {
       const formData = new FormData();
       formData.append('file', file);
@@ -392,14 +402,19 @@ class ExamService {
     }
   }
 
-  // Descargar plantilla de importación
-  async downloadImportTemplate(format: 'xlsx' | 'csv' = 'xlsx'): Promise<Blob> {
+  // Descargar la plantilla de importación (.xlsx) y guardarla en el equipo
+  async downloadImportTemplate(): Promise<void> {
     try {
-      const response = await this.api.get('/questions/import/template', {
-        params: { format },
-        responseType: 'blob',
-      });
-      return response.data;
+      const response = await this.api.get<Blob>('/questions/template/download', { responseType: 'blob' });
+      const url = window.URL.createObjectURL(response.data);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = 'plantilla-preguntas.xlsx';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      // Revoking right after click() can cancel the download in some browsers.
+      setTimeout(() => window.URL.revokeObjectURL(url), 1000);
     } catch (error) {
       console.error('Error downloading template:', error);
       throw error;

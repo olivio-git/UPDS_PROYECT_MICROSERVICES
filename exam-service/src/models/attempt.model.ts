@@ -14,6 +14,7 @@ export interface IAttempt extends Document {
     id: string;
     name: string;
     competency: string;
+    instructions?: string;
     duration: number;
     weight: number;
     questionCount: number;
@@ -23,6 +24,8 @@ export interface IAttempt extends Document {
   adaptiveState?: {
     currentLevel: string;
     consecutiveWrong: number;
+    /** Correct answers in a row at the current level (two move the student up). */
+    streak?: number;
     askedQuestionIds: string[];
     levelHistory: Array<{
       questionId: string;
@@ -30,6 +33,9 @@ export interface IAttempt extends Document {
       isCorrect: boolean;
       score: number;
       maxScore: number;
+      /** Question type: the chance of guessing (true/false 50%, multiple choice 1/options) weighs the estimate. */
+      type?: string;
+      optionCount?: number;
     }>;
     isFinished: boolean;
     stopReason?: 'max_questions' | 'consecutive_wrong' | 'manual';
@@ -62,6 +68,7 @@ const attemptSchema = new Schema<IAttempt>({
     id: String,
     name: String,
     competency: String,
+    instructions: String,
     duration: Number,
     weight: Number,
     questionCount: Number,
@@ -74,13 +81,16 @@ const attemptSchema = new Schema<IAttempt>({
   adaptiveState: {
     currentLevel: String,
     consecutiveWrong: { type: Number, default: 0 },
+    streak: { type: Number, default: 0 },
     askedQuestionIds: [String],
     levelHistory: [{
       questionId: String,
       level: String,
       isCorrect: Boolean,
       score: Number,
-      maxScore: Number
+      maxScore: Number,
+      type: { type: String },
+      optionCount: Number
     }],
     isFinished: { type: Boolean, default: false },
     stopReason: { type: String, enum: ['max_questions', 'consecutive_wrong', 'manual'] }
@@ -102,5 +112,7 @@ const attemptSchema = new Schema<IAttempt>({
 });
 
 attemptSchema.index({ sessionId: 1, candidateId: 1 });
+// Previous attempts of a candidate (to prefer questions they have not seen).
+attemptSchema.index({ candidateId: 1 });
 
 export const Attempt = model<IAttempt>('Attempt', attemptSchema);

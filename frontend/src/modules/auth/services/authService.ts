@@ -150,12 +150,15 @@ class AuthService {
       };
     } catch (error: any) {
       console.error('❌ [AuthService] Error verificando OTP:', error);
+      // No toast here: both callers (the OTP screen and ChangePasswordFlow)
+      // already show this message, so a toast would repeat it.
       const errorMessage = error.response?.data?.message || 'Error verificando OTP';
-      toast.error(errorMessage);
       return {
         success: false,
         message: errorMessage,
-        error: 'Network error'
+        error: 'Network error',
+        // attemptsRemaining comes from the server; 0 means a new code is needed.
+        data: error.response?.data?.data
       };
     }
   }

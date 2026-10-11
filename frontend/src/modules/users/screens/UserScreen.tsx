@@ -1,3 +1,4 @@
+import { Label } from '@/components/keel/label';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -7,9 +8,9 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from "@/components/atoms/alert-dialog";
-import { Button } from "@/components/atoms/button";
-import { Input } from "@/components/atoms/input";
+} from "@/components/keel/alert-dialog";
+import { Button } from "@/components/keel/button";
+import { Input } from "@/components/keel/input";
 import {
   Dialog,
   DialogContent,
@@ -17,7 +18,7 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from "@/components/atoms/dialog";
+} from "@/components/keel/dialog";
 import { MainLayout } from "@/components/layout";
 import type { SortingState } from "@tanstack/react-table";
 import { Upload, Download, FileText } from "lucide-react";
@@ -377,7 +378,7 @@ const UsersScreen = () => {
           totalCount={totalUsers}
           isLoading={isLoading}
         />
-        <div className="flex flex-1 min-h-0 flex-col border-t border-border bg-card">
+        <div className="flex flex-1 min-h-0 flex-col border-border bg-card rounded-xl border overflow-hidden">
           <UserTable
             users={users}
             selectedUsers={selectedUsers}
@@ -410,7 +411,7 @@ const UsersScreen = () => {
 
   return (
     <MainLayout>
-      <div className="flex h-full min-h-0 flex-col gap-3 p-3">
+      <div className="flex h-full min-h-0 flex-col gap-4 px-4 pb-4">
         {renderContent()}
       </div>
 
@@ -420,10 +421,10 @@ const UsersScreen = () => {
         // isDeleteDialogOpen
         onOpenChange={setIsDeleteDialogOpen}
       >
-        <AlertDialogContent className="bg-card">
+        <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle className="text-foreground">Confirmar eliminación</AlertDialogTitle>
-            <AlertDialogDescription className="text-muted-foreground">
+            <AlertDialogTitle>Confirmar eliminación</AlertDialogTitle>
+            <AlertDialogDescription>
               ¿Estás seguro de que deseas eliminar al usuario{" "}
               <strong>
                 {userToDelete?.firstName} {userToDelete?.lastName}
@@ -432,10 +433,10 @@ const UsersScreen = () => {
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel className="bg-transparent text-foreground border border-border focus:outline-none">Cancelar</AlertDialogCancel>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
             <AlertDialogAction
               onClick={confirmDeleteUser}
-              className="bg-red-600 hover:bg-red-700 text-white"
+              variant="destructive"
             >
               Eliminar
             </AlertDialogAction>
@@ -448,19 +449,19 @@ const UsersScreen = () => {
         open={isDeleteMultipleDialogOpen}
         onOpenChange={setIsDeleteMultipleDialogOpen}
       >
-        <AlertDialogContent className="bg-card border border-border">
+        <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle className="text-foreground">Confirmar eliminación múltiple</AlertDialogTitle>
-            <AlertDialogDescription className="text-muted-foreground">
+            <AlertDialogTitle>Confirmar eliminación múltiple</AlertDialogTitle>
+            <AlertDialogDescription>
               ¿Estás seguro de que deseas eliminar {selectedUsers.length}{" "}
               usuario(s) seleccionado(s)? Esta acción no se puede deshacer.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel className="bg-transparent text-foreground border border-border">Cancelar</AlertDialogCancel>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
             <AlertDialogAction
               onClick={confirmDeleteSelectedUsers}
-              className="bg-red-600 hover:bg-red-700 text-white"
+              variant="destructive"
             >
               Eliminar {selectedUsers.length} usuario(s)
             </AlertDialogAction>
@@ -470,15 +471,15 @@ const UsersScreen = () => {
 
       {/* Dialog para importar usuarios */}
       <Dialog open={isImportDialogOpen} onOpenChange={setIsImportDialogOpen}>
-        <DialogContent className="bg-card border border-border text-foreground sm:max-w-md">
-          <DialogHeader className="pb-2">
-            <DialogTitle className="flex items-center gap-2.5 text-foreground">
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2.5">
               <div className="p-1.5 rounded-md bg-green-100 dark:bg-green-900/30">
                 <Upload className="w-4 h-4 text-green-600 dark:text-green-400" />
               </div>
               Importar Usuarios
             </DialogTitle>
-            <DialogDescription className="text-muted-foreground text-sm">
+            <DialogDescription>
               Sube un archivo Excel (.xlsx, .xls) o CSV con la lista de usuarios
             </DialogDescription>
           </DialogHeader>
@@ -501,7 +502,7 @@ const UsersScreen = () => {
                 variant="outline"
                 size="sm"
                 onClick={handleDownloadTemplate}
-                className="shrink-0 h-8 border-blue-300 bg-white text-blue-700 hover:bg-blue-50 dark:border-blue-700/50 dark:bg-blue-900/20 dark:text-blue-300 dark:hover:bg-blue-900/40"
+                className="shrink-0"
               >
                 <Download className="w-3.5 h-3.5 mr-1" />
                 Plantilla
@@ -510,20 +511,16 @@ const UsersScreen = () => {
 
             {/* File picker */}
             <div className="space-y-2">
-              <label className="text-sm font-medium text-foreground">
+              <Label>
                 Seleccionar archivo
-              </label>
+              </Label>
               <div className="relative">
                 <Input
                   ref={fileInputRef}
                   type="file"
                   accept=".xlsx,.xls,.csv"
                   onChange={handleFileSelect}
-                  className="bg-muted/50 border-border text-foreground cursor-pointer
-                    file:mr-3 file:py-1 file:px-3 file:rounded-md file:border-0
-                    file:text-xs file:font-medium
-                    file:bg-muted file:text-foreground
-                    hover:file:bg-muted/80"
+                  className="cursor-pointer file:mr-3 file:py-1 file:px-3 file:rounded-md file:border-0 file:text-xs file:font-medium file:bg-muted file:text-foreground hover:file:bg-muted/80"
                 />
               </div>
               {selectedFile ? (
@@ -561,19 +558,17 @@ const UsersScreen = () => {
             </div>
           </div>
 
-          <DialogFooter className="pt-2 gap-2">
+          <DialogFooter>
             <Button
               variant="outline"
               onClick={handleCancelImport}
               disabled={isImporting}
-              className="border-border text-foreground hover:bg-muted"
             >
               Cancelar
             </Button>
             <Button
               onClick={handleConfirmImport}
               disabled={!selectedFile || isImporting}
-              className="bg-green-600 hover:bg-green-700 text-white dark:bg-green-700 dark:hover:bg-green-600"
             >
               {isImporting ? (
                 <>
@@ -592,10 +587,10 @@ const UsersScreen = () => {
       </Dialog>
       {/* Modal: Asignar Rol */}
       <Dialog open={isAssignRoleOpen} onOpenChange={setIsAssignRoleOpen}>
-        <DialogContent className="sm:max-w-sm bg-card border-border">
+        <DialogContent>
           <DialogHeader>
-            <DialogTitle className="text-foreground">Asignar rol</DialogTitle>
-            <DialogDescription className="text-muted-foreground">
+            <DialogTitle>Asignar rol</DialogTitle>
+            <DialogDescription>
               {userToAssignRole && (
                 <>Cambia el rol de <span className="font-medium text-foreground">{userToAssignRole.firstName} {userToAssignRole.lastName}</span>.</>
               )}

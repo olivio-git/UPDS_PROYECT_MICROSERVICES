@@ -1,5 +1,5 @@
-import { Button } from '@/components/atoms/button';
-import { Input } from '@/components/atoms/input';
+import { Button } from '@/components/keel/button';
+import { Input } from '@/components/keel/input';
 import { AlertCircle, Check, Loader2, Search, UserMinus, UserPlus, Users } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
 import { toast } from 'sonner';
@@ -165,13 +165,12 @@ const ProctorAssignmentModal: React.FC<ProctorAssignmentModalProps> = ({
           <p className="text-sm text-muted-foreground">Sesión: {session.sessionName}</p>
         </div>
         <div className="flex gap-2">
-          <Button type="button" variant="outline" onClick={onClose} className="border-line text-muted-foreground bg-transparent">
+          <Button type="button" variant="outline" onClick={onClose}>
             Cancelar
           </Button>
           <Button
             onClick={handleAssignProctors}
             disabled={loading || selectedProctors.length === 0}
-            className="bg-blue-600 hover:bg-blue-700 text-white"
           >
             {loading ? (
               <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2" />
@@ -261,13 +260,13 @@ const ProctorAssignmentModal: React.FC<ProctorAssignmentModalProps> = ({
                           {proctor.proctorData.certificationLevel}
                         </span>
                       )}
-                      <button
+                      <Button
+                        variant="destructive"
                         onClick={() => handleRemoveProctor(proctor._id)}
-                        className="text-red-300 hover:text-red-200"
                         title="Remover proctor"
                       >
                         <UserMinus className="h-4 w-4" />
-                      </button>
+                      </Button>
                     </div>
                   </div>
                 ))}

@@ -48,21 +48,23 @@ export class NotificationService {
 
   async sendOtpEmail(otpData: OtpEmailData): Promise<{ success: boolean; emailId?: string }> {
     try {
-      // Crear notificación en la base de datos
+      // The stored record is an audit trail only. The code itself is never
+      // written to Mongo (it lives in identity-service's Redis for 10 min),
+      // and an OTP email is never retried: a retry would arrive after the
+      // code expired, so the user just requests a new one instead.
       const emailNotification = await this.notificationRepository.createEmailNotification({
         // from: 'no-reply@oliviodev.com',
         to: otpData.email,
         subject: `Código de verificación - CBA Platform`,
         template: 'otp_verification',
         templateData: {
-          otpCode: otpData.code,
           purpose: otpData.templateData.purpose,
           expiryMinutes: otpData.templateData.expiryMinutes
         },
         status: 'pending',
         priority: 'high',
         retryCount: 0,
-        maxRetries: config.email.retryAttempts
+        maxRetries: 0
       });
 
       // Enviar email inmediatamente para OTP (alta prioridad)
@@ -349,6 +351,13 @@ export class NotificationService {
 
       switch (email.template) {
         case 'otp_verification':
+          // OTP records no longer carry the code (see sendOtpEmail), and
+          // maxRetries: 0 keeps them out of every retry path. Guard anyway so
+          // a stray one is never sent with an empty code.
+          if (!email.templateData.otpCode) {
+            result = { success: false, error: 'OTP emails are not retried' };
+            break;
+          }
           result = await this.emailService.sendOtpEmail(
             email.to,
             email.templateData.otpCode,

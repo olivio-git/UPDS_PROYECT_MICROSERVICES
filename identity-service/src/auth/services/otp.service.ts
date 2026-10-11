@@ -9,6 +9,13 @@ import { AuthCacheRepository } from '../repositories/auth-cache.repository';
 import { legacyEventService } from './legacy-event.service';
 import { UserRepository } from '../../repositories/user.repository';
 
+/** attemptsRemaining is 0 when the code can no longer be used and a new one is needed. */
+export interface OtpVerifyResult {
+  success: boolean;
+  message: string;
+  attemptsRemaining?: number;
+}
+
 export interface OtpData {
   code: string;
   email: string;
@@ -161,20 +168,20 @@ export class OtpService {
     return successResponse;
   }
 
-  async verifyOtp(email: string, code: string, purpose: OtpData['purpose']): Promise<{ success: boolean; message: string }> {
+  async verifyOtp(email: string, code: string, purpose: OtpData['purpose']): Promise<OtpVerifyResult> {
     email = this.normalizeEmail(email);
     const otpKey = this.getOtpKey(email, purpose);
     const otpData = (await this.cacheRepository.get(otpKey)) as OtpData | null;
 
     if (!otpData) {
       await legacyEventService.publishSecurityEvent('otp.not_found', { email, purpose, timestamp: new Date() });
-      return { success: false, message: 'Código OTP no encontrado o expirado' };
+      return { success: false, message: 'Código OTP no encontrado o expirado', attemptsRemaining: 0 };
     }
 
     if (new Date() > new Date(otpData.expiresAt)) {
       await this.cacheRepository.delete(otpKey);
       await legacyEventService.publishOtpEvent('otp.expired', { email, purpose, timestamp: new Date() });
-      return { success: false, message: 'Código OTP expirado' };
+      return { success: false, message: 'Código OTP expirado', attemptsRemaining: 0 };
     }
 
     if (otpData.attempts >= otpData.maxAttempts) {
@@ -185,12 +192,17 @@ export class OtpService {
         attempts: otpData.attempts,
         timestamp: new Date(),
       });
-      return { success: false, message: 'Máximo número de intentos excedido' };
+      return { success: false, message: 'Máximo número de intentos excedido', attemptsRemaining: 0 };
     }
 
     if (otpData.code !== code) {
       otpData.attempts += 1;
-      await this.cacheRepository.set(otpKey, otpData, this.OTP_EXPIRY_MINUTES * 60);
+      const attemptsRemaining = otpData.maxAttempts - otpData.attempts;
+      if (attemptsRemaining <= 0) {
+        await this.cacheRepository.delete(otpKey);
+      } else {
+        await this.cacheRepository.replaceKeepingTtl(otpKey, otpData);
+      }
 
       await legacyEventService.publishSecurityEvent('otp.invalid_attempt', {
         email,
@@ -202,7 +214,11 @@ export class OtpService {
 
       return {
         success: false,
-        message: `Código incorrecto. Intentos restantes: ${otpData.maxAttempts - otpData.attempts}`,
+        message:
+          attemptsRemaining > 0
+            ? `Código incorrecto. Intentos restantes: ${attemptsRemaining}`
+            : 'Código incorrecto. Se agotaron los intentos',
+        attemptsRemaining,
       };
     }
 

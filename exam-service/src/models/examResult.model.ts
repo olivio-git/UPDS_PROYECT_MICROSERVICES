@@ -32,6 +32,8 @@ export interface IQuestionResult {
   };
   // Rubric-driven AI grading (lockstep with mcp-grading-server/src/types/index.ts IQuestionResult)
   rubric?: IRubricEvaluation;
+  review?: { score: number; criteria?: Record<string, number>; feedback: string; reviewedBy: string; reviewedAt: Date };
+  aiSuggestion?: { score: number; criteria: Array<{ name: string; score: number }>; rationale: string };
 }
 
 export interface ICompetencyScore {
@@ -126,6 +128,8 @@ export interface IExamResult extends Document {
   scoringMethod?: 'weighted_sections' | 'raw_points';
   // Level mastery indicator (see ICompetencyMastery) — informational only.
   competencyMastery?: ICompetencyMastery;
+  /** Competencies below the exam's per-competency minimum (why the exam was not passed). */
+  failedCompetencies?: string[];
 
   // Grading performance tracking
   gradingStartedAt?: Date;
@@ -178,7 +182,11 @@ const questionResultSchema = new Schema<IQuestionResult>({
   // Sub-schema with `default: undefined` so results without a rubric
   // breakdown (default 4-criteria AI path, auto-graded, manual) don't
   // hydrate to `{ criteria: [] }`.
-  rubric: { type: rubricEvaluationSchema, default: undefined }
+  rubric: { type: rubricEvaluationSchema, default: undefined },
+  // Manual review desk (grading-service): the teacher's grade and, for
+  // assisted questions, the AI proposal. Mixed so grading-service owns the shape.
+  review: { type: Schema.Types.Mixed, default: undefined },
+  aiSuggestion: { type: Schema.Types.Mixed, default: undefined }
 });
 
 const masteryCheckSchema = new Schema<IMasteryCheck>({
@@ -272,6 +280,7 @@ const examResultSchema = new Schema<IExamResult>({
   // target level (placement, deleted level, no competencyRequirements)
   // don't hydrate to an empty mastery object.
   competencyMastery: { type: competencyMasterySchema, default: undefined },
+  failedCompetencies: { type: [String], default: undefined },
 
   // Grading performance tracking
   gradingStartedAt: Date,

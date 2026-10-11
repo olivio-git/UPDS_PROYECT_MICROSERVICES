@@ -58,7 +58,9 @@ const excelFileFilter = (req: Request, file: Express.Multer.File, cb: multer.Fil
     'application/csv'
   ];
   
-  if (allowedMimes.includes(file.mimetype) || file.originalname.endsWith('.csv')) {
+  // Browsers often send an empty, octet-stream or text/plain type for .csv/.xls(x); trust the extension then.
+  const hasSpreadsheetExtension = /\.(xlsx|xls|csv)$/i.test(file.originalname);
+  if (allowedMimes.includes(file.mimetype) || hasSpreadsheetExtension) {
     cb(null, true);
   } else {
     cb(new AppError('Invalid file type. Only Excel (XLS, XLSX) and CSV files are allowed.', 400));

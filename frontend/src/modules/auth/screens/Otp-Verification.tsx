@@ -128,8 +128,11 @@ const OtpVerificator = ({
     }
   }
 
+  // A used-up code (wrong too many times, or expired) can be replaced at once.
+  const codeUsedUp = otp.attemptsRemaining === 0
+
   const handleResend = async () => {
-    if (!canResend) return
+    if (!canResend && !codeUsedUp) return
 
     try {
       const success = await generateOTP(email, purpose)
@@ -194,7 +197,7 @@ const OtpVerificator = ({
     <>
       <GradientBackground grid={false} objs={false} lights={true} size="2xl" />
 
-      <div className="min-h-screen flex items-center justify-center p-4 epilogue-uniquifier">
+      <div className="min-h-screen flex items-center justify-center p-4">
         <Card className="w-full max-w-md bg-transparent shadow-none">
           <CardHeader className="space-y-1">
             <AuthHeader step={1} />
@@ -218,16 +221,6 @@ const OtpVerificator = ({
                 <AlertCircle className="h-4 w-4 text-destructive" />
                 <AlertDescription className="text-destructive">
                   {error}
-                </AlertDescription>
-              </Alert>
-            )}
-
-            {/* Alerta de intentos restantes */}
-            {otp.attemptsRemaining < 3 && (
-              <Alert className="border-yellow-500/50 bg-yellow-500/10">
-                <AlertCircle className="h-4 w-4 text-yellow-600 dark:text-yellow-400" />
-                <AlertDescription className="text-yellow-600 dark:text-yellow-400">
-                  Te quedan {otp.attemptsRemaining} intento(s)
                 </AlertDescription>
               </Alert>
             )}
@@ -283,7 +276,7 @@ const OtpVerificator = ({
             <div className="text-center space-y-4">
               <p className="text-sm text-muted-foreground">¿No recibiste el código?</p>
 
-              {timeLeft > 0 ? (
+              {timeLeft > 0 && !codeUsedUp ? (
                 <div className="flex items-center justify-center space-x-2 text-sm text-muted-foreground">
                   <Clock className="h-4 w-4" />
                   <span>Reenviar en {formatTime(timeLeft)}</span>

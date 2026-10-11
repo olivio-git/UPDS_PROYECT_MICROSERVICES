@@ -1,3 +1,4 @@
+import { Button } from '@/components/keel/button';
 import { useAuthPersistence } from "@/hooks/useAuthPersistence";
 import { Route, Routes, useNavigate } from "react-router-dom";
 import { protectedRoutes } from "./Protected.Route";
@@ -55,12 +56,12 @@ const Navigation = () => {
               <h1 className="text-4xl font-bold text-gray-800">404</h1>
               <p className="text-gray-600">Página no encontrada</p>
               <div className="flex items-center justify-center gap-2">
-                <button
+                <Button
+                  variant="outline"
                   onClick={() => navigate(-1)}
-                  className="px-4 py-2 rounded border border-gray-300 text-gray-700 hover:bg-gray-100 transition-colors text-sm"
                 >
                   ← Volver
-                </button>
+                </Button>
                 <a
                   href={isAuthenticated && user ?
                     ({ admin: "/dashboard", teacher: "/sessions", proctor: "/sessions", student: "/student/dashboard" }[user.role as 'admin' | 'teacher' | 'proctor' | 'student'] ?? "/dashboard")

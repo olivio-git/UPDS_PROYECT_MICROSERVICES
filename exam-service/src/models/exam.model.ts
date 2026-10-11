@@ -16,12 +16,16 @@ export interface IExam extends Document {
     sections: Array<{
       name: string;
       competency: 'reading' | 'writing' | 'listening' | 'speaking' | 'grammar' | 'vocabulary';
+      /** Shown to the student when the section starts. */
+      instructions?: string;
       duration: number; // in minutes
       questionCount: number;
       weight: number; // percentage
     }>;
     totalDuration: number;
     passingScore: number;
+    /** Every competency must reach this percentage to pass; unset/0 = no minimum. */
+    minCompetencyScore?: number;
   };
   configuration: {
     randomizeQuestions: boolean;
@@ -29,6 +33,8 @@ export interface IExam extends Document {
     showResults: boolean;
     attemptsAllowed: number;
     timeBetweenAttempts: number; // in hours
+    /** Times each listening recording may be played; 0 = unlimited. */
+    listeningPlays?: number;
   };
   questionPool: Types.ObjectId[];
   isActive: boolean;
@@ -76,18 +82,21 @@ const examSchema = new Schema<IExam>({
         type: String,
   enum: ['reading', 'writing', 'listening', 'speaking', 'grammar', 'vocabulary']
       },
+      instructions: String,
       duration: Number,
       questionCount: Number,
       weight: Number
     }],
     totalDuration: Number,
-    passingScore: Number
+    passingScore: Number,
+    minCompetencyScore: { type: Number, min: 0, max: 100 }
   },
   configuration: {
     randomizeQuestions: { type: Boolean, default: true },
     allowReview: { type: Boolean, default: false },
     showResults: { type: Boolean, default: true },
     attemptsAllowed: { type: Number, default: 1 },
+    listeningPlays: { type: Number, default: 2, min: 0, max: 10 },
     timeBetweenAttempts: { type: Number, default: 24 }
   },
   questionPool: [{

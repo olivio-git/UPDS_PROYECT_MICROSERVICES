@@ -58,3 +58,21 @@ export const getWeightInputError = (value: number | null | undefined): string | 
   if (value > 100) return 'El peso no puede superar 100';
   return null;
 };
+
+/**
+ * Splits 100 in proportion to `shares` (e.g. MCER defaults 20/20/10…),
+ * rounded to 2 decimals with the rounding remainder given to the largest
+ * share, so the result always sums to exactly 100.
+ */
+export const distributeByShares = (shares: ReadonlyArray<number>): number[] => {
+  const total = shares.reduce((a, b) => a + Math.max(0, b), 0);
+  if (shares.length === 0) return [];
+  if (total <= 0) return distributeEvenly(shares.length);
+  const raw = shares.map((s) => Math.round((Math.max(0, s) / total) * 100 * 100) / 100);
+  const diff = formatWeight(100 - raw.reduce((a, b) => a + b, 0));
+  if (diff !== 0) {
+    const i = raw.indexOf(Math.max(...raw));
+    raw[i] = formatWeight(raw[i]! + diff);
+  }
+  return raw;
+};

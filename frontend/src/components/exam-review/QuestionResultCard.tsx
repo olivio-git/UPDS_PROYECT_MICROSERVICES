@@ -1,4 +1,4 @@
-import { competencyBadgeClass } from '@/lib/competency';
+import { COMPETENCY_BADGE_CLASS } from '@/lib/competency';
 import { scoreBadgeClass, scoreBarClass } from '@/lib/scoreBands';
 import { cn } from '@/lib/utils';
 import { CheckCircle, X } from 'lucide-react';
@@ -19,6 +19,8 @@ const TYPE_LABEL: Record<string, string> = {
   open_text: 'Texto',
   audio_response: 'Audio',
   speaking: 'Speaking',
+  grammar: 'Grammar',
+  vocabulary: 'Vocabulary',
   file_upload: 'Archivo',
 };
 
@@ -53,7 +55,7 @@ export function QuestionResultCard({ index, result, showEvaluationMethod = false
           <span className="bg-muted text-foreground px-2.5 py-0.5 rounded-full text-xs font-medium shrink-0">#{index + 1}</span>
           {type && <span className="text-xs text-foreground/80 font-medium">{TYPE_LABEL[type] ?? type.replace(/_/g, ' ')}</span>}
           {competency && (
-            <span className={cn('inline-flex items-center px-2 py-0.5 rounded border text-xs capitalize', competencyBadgeClass(competency))}>
+            <span className={cn('inline-flex items-center px-2 py-0.5 rounded border text-xs capitalize', COMPETENCY_BADGE_CLASS)}>
               {competency}
             </span>
           )}
@@ -70,7 +72,7 @@ export function QuestionResultCard({ index, result, showEvaluationMethod = false
 
       <div className="px-4 py-3 space-y-3">
         {data?.context && (
-          <div className="bg-card border border-border rounded-lg px-3 py-2">
+          <div className="bg-card border border-border rounded-xl px-3 py-2">
             <p className="text-xs text-muted-foreground italic leading-relaxed">{data.context}</p>
           </div>
         )}
@@ -95,21 +97,21 @@ export function QuestionResultCard({ index, result, showEvaluationMethod = false
         )}
 
         {ai && (ai.feedback || suggestions.length > 0) && (
-          <div className="bg-purple-50 border border-purple-200 dark:bg-purple-900/20 dark:border-purple-700/30 rounded-lg px-3 py-2.5 space-y-2">
-            <p className="text-xs text-purple-700 dark:text-purple-300 font-medium">Análisis IA</p>
-            {ai.feedback && <p className="text-xs text-purple-600 dark:text-purple-200 leading-relaxed">{ai.feedback}</p>}
+          <div className="bg-primary/[0.04] border border-primary/20 rounded-lg px-3 py-2.5 space-y-2">
+            <p className="text-xs text-primary font-medium">Retroalimentación</p>
+            {ai.feedback && <p className="text-xs text-foreground/80 leading-relaxed">{ai.feedback}</p>}
             {criteria.length > 0 && (
               <div className="flex flex-wrap gap-x-3 gap-y-1">
                 {criteria.map(([key, value]) => (
-                  <span key={key} className="text-xs text-purple-700 dark:text-purple-300">
-                    <span className="capitalize text-purple-500 dark:text-purple-400">{key}:</span>{' '}
+                  <span key={key} className="text-xs text-foreground/80">
+                    <span className="capitalize text-muted-foreground">{key}:</span>{' '}
                     <span className="font-medium">{typeof value === 'number' ? value.toFixed(1) : String(value)}</span>
                   </span>
                 ))}
               </div>
             )}
             {suggestions.length > 0 && (
-              <ul className="space-y-0.5 text-xs text-purple-600 dark:text-purple-200 list-disc list-inside">
+              <ul className="space-y-0.5 text-xs text-foreground/80 list-disc list-inside">
                 {suggestions.map((s, i) => <li key={i}>{s}</li>)}
               </ul>
             )}

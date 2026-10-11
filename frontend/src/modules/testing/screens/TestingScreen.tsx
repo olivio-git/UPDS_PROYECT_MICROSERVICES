@@ -1,19 +1,20 @@
-import { Badge } from "@/components/atoms/badge";
-import { Button } from "@/components/atoms/button";
+import { NativeSelect, NativeSelectOption } from '@/components/keel/native-select';
+import { Badge } from "@/components/keel/badge";
+import { Button } from "@/components/keel/button";
 import {
   Card,
   CardContent,
   CardHeader,
   CardTitle,
-} from "@/components/atoms/card";
+} from "@/components/keel/card";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
-} from "@/components/atoms/dialog";
-import { Input } from "@/components/atoms/input";
-import { MainLayout } from "@/components/layout";
+} from "@/components/keel/dialog";
+import { Input } from "@/components/keel/input";
+import { MainLayout, Page, PageHeader } from "@/components/layout";
 import { api } from "@/services/api.service";
 import {
   notificationService,
@@ -359,7 +360,7 @@ const DiagnosticoScreen = () => {
   }) => {
     const colors = colorMap[color];
     return (
-      <Card className="bg-card border border-line">
+      <Card>
         <CardContent className="p-4">
           <div className="flex items-start justify-between gap-2">
             <div>
@@ -435,34 +436,24 @@ const DiagnosticoScreen = () => {
   const offlineCount = Object.values(serviceHealth).filter(h => h.status === "offline").length;
 
   return (
-    <MainLayout gradientVariant="primary">
-      <div className="max-w-6xl mx-auto px-4 pt-6 pb-12 space-y-6">
-
-        {/* Header */}
-        <div className="flex items-start justify-between gap-4">
-          <div>
-            <h1 className="text-2xl font-bold text-foreground">Diagnóstico del Sistema</h1>
-            <p className="text-sm text-muted-foreground mt-1">
-              Monitoreo de servicios, métricas e infraestructura
-            </p>
-          </div>
-          <Button
-            onClick={handleRefreshAll}
-            disabled={refreshing}
-            variant="outline"
-            size="sm"
-            className="gap-2 border-border"
-          >
-            <RefreshCw className={`h-3.5 w-3.5 ${refreshing ? "animate-spin" : ""}`} />
-            Actualizar
-          </Button>
-        </div>
+    <MainLayout>
+      <Page className="h-auto gap-4">
+        <PageHeader
+          title="Diagnóstico del Sistema"
+          description="Monitoreo de servicios, métricas e infraestructura"
+          actions={
+            <Button onClick={handleRefreshAll} disabled={refreshing} variant="outline" size="sm">
+              <RefreshCw className={refreshing ? "animate-spin" : ""} />
+              Actualizar
+            </Button>
+          }
+        />
 
         {/* ── Sección 1: Estado de Servicios ─────────────────────────────── */}
-        <Card className="bg-card border border-line">
-          <CardHeader className="border-b border-line pb-4">
+        <Card>
+          <CardHeader className="border-b border-border pb-4">
             <div className="flex items-center justify-between">
-              <CardTitle className="text-foreground flex items-center gap-2 text-base">
+              <CardTitle className="flex items-center gap-2 text-base">
                 <Server className="h-4 w-4 text-blue-600 dark:text-blue-400" />
                 Estado de Servicios
               </CardTitle>
@@ -537,9 +528,9 @@ const DiagnosticoScreen = () => {
 
         {/* ── Sección 3: Métricas del Sistema ────────────────────────────── */}
         {systemMetrics && (
-          <Card className="bg-card border border-line">
-            <CardHeader className="border-b border-line pb-4">
-              <CardTitle className="text-foreground flex items-center gap-2 text-base">
+          <Card>
+            <CardHeader className="border-b border-border pb-4">
+              <CardTitle className="flex items-center gap-2 text-base">
                 <Database className="h-4 w-4 text-purple-600 dark:text-purple-400" />
                 Métricas del Sistema
                 <Badge className="ml-1 bg-purple-100 text-purple-700 border-purple-200 dark:bg-purple-500/20 dark:text-purple-300 dark:border-purple-500/30 text-xs">
@@ -585,10 +576,10 @@ const DiagnosticoScreen = () => {
         )}
 
         {/* ── Sección 4: Auditoría de Emails ─────────────────────────────── */}
-        <Card className="bg-card border border-line">
-          <CardHeader className="border-b border-line pb-4">
+        <Card>
+          <CardHeader className="border-b border-border pb-4">
             <div className="flex items-center justify-between">
-              <CardTitle className="text-foreground flex items-center gap-2 text-base">
+              <CardTitle className="flex items-center gap-2 text-base">
                 <Mail className="h-4 w-4 text-yellow-600 dark:text-yellow-400" />
                 Auditoría de Emails
               </CardTitle>
@@ -629,7 +620,8 @@ const DiagnosticoScreen = () => {
                   const r = await notificationService.getEmailStats();
                   if (r?.success) setEmailStats(r.data ?? null);
                 } catch {}
-              }}>
+              }}
+              >
                 Cargar estadísticas
               </Button>
             )}
@@ -641,9 +633,9 @@ const DiagnosticoScreen = () => {
                 value={historyEmail}
                 onChange={e => setHistoryEmail(e.target.value)}
                 onKeyDown={e => e.key === "Enter" && fetchEmailHistory()}
-                className="h-8 text-sm border-border bg-muted/50"
+                className="h-8 text-sm"
               />
-              <Button variant="outline" size="sm" className="h-8 border-border gap-1.5" onClick={fetchEmailHistory}>
+              <Button variant="outline" size="sm" className="h-8 gap-1.5" onClick={fetchEmailHistory}>
                 <Search className="h-3.5 w-3.5" />
                 Buscar
               </Button>
@@ -679,10 +671,10 @@ const DiagnosticoScreen = () => {
         </Card>
 
         {/* ── Sección 5: Auditoría de Acciones ───────────────────────────── */}
-        <Card className="bg-card border border-line">
-          <CardHeader className="border-b border-line pb-4">
+        <Card>
+          <CardHeader className="border-b border-border pb-4">
             <div className="flex items-center justify-between flex-wrap gap-2">
-              <CardTitle className="text-foreground flex items-center gap-2 text-base">
+              <CardTitle className="flex items-center gap-2 text-base">
                 <ClipboardList className="h-4 w-4 text-blue-600 dark:text-blue-400" />
                 Auditoría de Acciones
                 {auditTotal > 0 && (
@@ -694,7 +686,7 @@ const DiagnosticoScreen = () => {
               <Button
                 variant="outline"
                 size="sm"
-                className="h-7 border-border gap-1.5 text-xs"
+                className="h-7 gap-1.5 text-xs"
                 onClick={() => fetchAuditLogs(auditPage, auditFilters)}
                 disabled={auditLoading}
               >
@@ -712,28 +704,27 @@ const DiagnosticoScreen = () => {
                 value={auditActionFilter}
                 onChange={e => setAuditActionFilter(e.target.value)}
                 onKeyDown={e => e.key === "Enter" && applyAuditFilters()}
-                className="h-8 text-sm border-border bg-muted/50 w-44"
+                className="h-8 text-sm w-44"
               />
               <Input
                 placeholder="Filtrar por email..."
                 value={auditEmailFilter}
                 onChange={e => setAuditEmailFilter(e.target.value)}
                 onKeyDown={e => e.key === "Enter" && applyAuditFilters()}
-                className="h-8 text-sm border-border bg-muted/50 w-44"
+                className="h-8 text-sm w-44"
               />
-              <select
+              <NativeSelect
                 value={auditServiceFilter}
                 onChange={e => setAuditServiceFilter(e.target.value)}
-                className="h-8 px-2 text-sm border border-border rounded-md bg-muted/50 text-foreground"
               >
-                <option value="">Todos los servicios</option>
-                <option value="user-management">User Management</option>
-                <option value="exam-service">Exam Service</option>
-              </select>
+                <NativeSelectOption value="">Todos los servicios</NativeSelectOption>
+                <NativeSelectOption value="user-management">User Management</NativeSelectOption>
+                <NativeSelectOption value="exam-service">Exam Service</NativeSelectOption>
+              </NativeSelect>
               <Button
                 variant="outline"
                 size="sm"
-                className="h-8 border-border gap-1.5"
+                className="h-8 gap-1.5"
                 onClick={applyAuditFilters}
               >
                 <Filter className="h-3.5 w-3.5" />
@@ -799,33 +790,35 @@ const DiagnosticoScreen = () => {
                   Página {auditPage} de {auditTotalPages} — {auditTotal} registros
                 </p>
                 <div className="flex items-center gap-1.5">
-                  <button
+                  <Button
+                    variant="outline"
+                    size="icon-sm"
                     onClick={() => { const p = auditPage - 1; setAuditPage(p); fetchAuditLogs(p, auditFilters); }}
                     disabled={auditPage === 1}
-                    className="p-1.5 rounded-md border border-border bg-muted/50 hover:bg-muted disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
                   >
                     <ChevronLeft className="h-3.5 w-3.5 text-muted-foreground" />
-                  </button>
-                  <button
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="icon-sm"
                     onClick={() => { const p = auditPage + 1; setAuditPage(p); fetchAuditLogs(p, auditFilters); }}
                     disabled={auditPage === auditTotalPages}
-                    className="p-1.5 rounded-md border border-border bg-muted/50 hover:bg-muted disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
                   >
                     <ChevronRight className="h-3.5 w-3.5 text-muted-foreground" />
-                  </button>
+                  </Button>
                 </div>
               </div>
             )}
           </CardContent>
         </Card>
 
-      </div>
+      </Page>
 
       {/* Email detail dialog */}
       <Dialog open={emailDetailOpen} onOpenChange={setEmailDetailOpen}>
-        <DialogContent className="max-w-lg bg-card border border-border">
+        <DialogContent className="sm:max-w-lg">
           <DialogHeader>
-            <DialogTitle className="text-foreground flex items-center gap-2">
+            <DialogTitle className="flex items-center gap-2">
               <Mail className="h-4 w-4 text-yellow-600 dark:text-yellow-400" />
               Detalle del Email
             </DialogTitle>

@@ -1,5 +1,6 @@
 import { toBrowserMediaUrl } from '@/lib/mediaUrl';
 import { cn } from '@/lib/utils';
+import { ArrowRight, Check, Paperclip, Volume2 } from 'lucide-react';
 import type { ReactNode } from 'react';
 import type { ReviewQuestionData } from './types';
 
@@ -82,7 +83,7 @@ const multipleChoice: Renderer = (response, data) => {
           <div key={opt.id} className={cn('flex items-center gap-2 px-3 py-2 rounded-lg text-xs', choiceClass(isSelected, isCorrect))}>
             <span aria-hidden>{isSelected ? '●' : '○'}</span>
             <span>{opt.text}</span>
-            {isCorrect && <span className={cn('ml-auto', HINT)}>✓ correcta</span>}
+            {isCorrect && <span className={cn('ml-auto', HINT)}><Check className="inline size-3" /> correcta</span>}
           </div>
         );
       })}
@@ -128,7 +129,7 @@ const fillBlanks: Renderer = (response, data) => {
           <span key={i} className={cn('inline-flex items-center gap-1 px-2.5 py-1 rounded text-xs', gradedClass(ok))}>
             <span className="text-muted-foreground">[{i + 1}]</span>
             <span className="font-medium">{value || '—'}</span>
-            {ok === false && answers.length > 0 && <span className={cn('ml-1', HINT)}>✓ {answers[0]}</span>}
+            {ok === false && answers.length > 0 && <span className={cn('ml-1', HINT)}><Check className="inline size-3" /> {answers[0]}</span>}
           </span>
         );
       })}
@@ -149,9 +150,9 @@ const matching: Renderer = (response, data) => {
         return (
           <div key={key} className={cn('flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs', gradedClass(ok))}>
             <span className="font-medium">{item?.content ?? key}</span>
-            <span className="text-muted-foreground">→</span>
+            <ArrowRight className="size-3.5 shrink-0 text-muted-foreground" />
             <span>{String(value)}</span>
-            {!ok && item?.matchingPair && <span className={cn('ml-auto', HINT)}>✓ {item.matchingPair}</span>}
+            {!ok && item?.matchingPair && <span className={cn('ml-auto', HINT)}><Check className="inline size-3" /> {item.matchingPair}</span>}
           </div>
         );
       })}
@@ -173,7 +174,7 @@ const ordering: Renderer = (response, data) => {
           <div key={id} className={cn('flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs', gradedClass(ok))}>
             <span className="text-muted-foreground font-mono">#{index + 1}</span>
             <span>{item?.content ?? id}</span>
-            {ok === false && expected !== undefined && <span className={cn('ml-auto', HINT)}>✓ pos {expected + 1}</span>}
+            {ok === false && expected !== undefined && <span className={cn('ml-auto', HINT)}><Check className="inline size-3" /> pos {expected + 1}</span>}
           </div>
         );
       })}
@@ -200,7 +201,7 @@ const dragDrop: Renderer = (response, data) => {
           <div key={itemId} className={cn('flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs', gradedClass(ok))}>
             <span className="text-muted-foreground font-mono shrink-0">Zona {zone + 1}</span>
             <span className="flex-1">{item?.content ?? `Item ${itemId}`}</span>
-            {ok === false && expected !== undefined && <span className={cn('ml-auto shrink-0', HINT)}>✓ Zona {expected + 1}</span>}
+            {ok === false && expected !== undefined && <span className={cn('ml-auto shrink-0', HINT)}><Check className="inline size-3" /> Zona {expected + 1}</span>}
           </div>
         );
       })}
@@ -217,9 +218,10 @@ const fileUpload: Renderer = (response) => {
       href={toBrowserMediaUrl(url)}
       target="_blank"
       rel="noopener noreferrer"
-      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs border border-blue-200 bg-blue-50 text-blue-700 hover:bg-blue-100 dark:border-blue-700/40 dark:bg-blue-900/20 dark:text-blue-300 dark:hover:bg-blue-900/40 transition-colors"
+      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs border border-border bg-card text-foreground hover:bg-muted transition-colors"
     >
-      📎 Ver archivo adjunto
+      <Paperclip className="size-3.5" />
+      Ver archivo adjunto
     </a>
   );
 };
@@ -240,7 +242,7 @@ const audio: Renderer = (response) => {
     <div className="space-y-2">
       {url && (
         <div className="bg-muted/40 border border-border rounded-lg p-2.5">
-          <p className="text-xs text-muted-foreground mb-1.5">🔊 Audio del candidato</p>
+          <p className="mb-1.5 flex items-center gap-1.5 text-xs text-muted-foreground"><Volume2 className="size-3.5" />Audio del candidato</p>
           <audio controls className="w-full dark:[color-scheme:dark]">
             <source src={url} type="audio/webm" />
             <source src={url} />

@@ -97,6 +97,15 @@ export class AuthCacheRepository {
     }
   }
 
+  /**
+   * Overwrites an existing key's value without touching its expiry, so
+   * rewriting a value (e.g. bumping a counter) never extends its lifetime.
+   * Does nothing if the key has already expired.
+   */
+  async replaceKeepingTtl(key: string, value: any): Promise<void> {
+    await this.redis.set(key, JSON.stringify(value), 'KEEPTTL', 'XX');
+  }
+
   async get(key: string): Promise<any | null> {
     const data = await this.redis.get(key);
     return data ? JSON.parse(data) : null;

@@ -1,6 +1,6 @@
-import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/components/atoms/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/components/keel/dialog';
 import { CompetencyMasteryPanel, QuestionResultCard, useAdminResultDetail, type ReviewCompetencyScore } from '@/components/exam-review';
-import { competencyBarClass } from '@/lib/competency';
+import { COMPETENCY_BAR_CLASS } from '@/lib/competency';
 import { scoreTextClass } from '@/lib/scoreBands';
 import { cn } from '@/lib/utils';
 import type { SessionResultRow } from '@/services/examResultService';
@@ -27,7 +27,7 @@ function CompetencyScores({ scores }: { scores: ReviewCompetencyScore[] }) {
               aria-valuemax={100}
               aria-label={`${cs.competency} ${cs.percentage.toFixed(0)}%`}
             >
-              <div className={cn('h-full rounded-full transition-all duration-500', competencyBarClass(cs.competency))} style={{ width: `${Math.min(cs.percentage, 100)}%` }} />
+              <div className={cn('h-full rounded-full transition-all duration-500', COMPETENCY_BAR_CLASS)} style={{ width: `${Math.min(cs.percentage, 100)}%` }} />
             </div>
             <div className="flex items-center gap-2 text-xs text-muted-foreground">
               <span>{cs.totalScore}/{cs.maxScore} pts</span>
@@ -101,11 +101,11 @@ export function ResultDetailDialog({ result, candidateName, onClose }: ResultDet
   const status = result ? resultStatusPill(result.status) : null;
   return (
     <Dialog open={result !== null} onOpenChange={(open) => { if (!open) onClose(); }}>
-      <DialogContent className="max-w-2xl max-h-[85vh] p-0 gap-0 flex flex-col overflow-hidden rounded-xl">
+      <DialogContent className="sm:max-w-2xl max-h-[85vh] p-0 gap-0 flex flex-col overflow-hidden">
         {result && status && (
           <>
             <div className="flex items-center gap-2.5 flex-wrap min-w-0 px-4 py-3 pr-12 border-b border-border shrink-0">
-              <DialogTitle className="text-sm font-semibold text-foreground">Detalle del resultado</DialogTitle>
+              <DialogTitle>Detalle del resultado</DialogTitle>
               <span className="text-muted-foreground/40">·</span>
               <DialogDescription className="text-sm text-foreground/70 font-medium truncate max-w-[180px]">{candidateName}</DialogDescription>
               <span className={cn('inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold', scoreTextClass(result.percentage))}>

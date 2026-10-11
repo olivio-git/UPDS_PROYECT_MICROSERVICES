@@ -33,6 +33,7 @@ const SessionMonitorScreen = lazyRoute(() => import("@/modules/exams/screens/Ses
 const AcademicConfigScreen = lazyRoute(() => import("@/modules/exams/screens/AcademicConfigScreen"));
 const ExamsScreen = lazyRoute(() => import("@/modules/exams/screens/ExamsScreen"));
 const LevelsManagementScreen = lazyRoute(() => import("@/modules/exams/screens/LevelsManagementScreen"));
+const ReviewScreen = lazyRoute(() => import("@/modules/review/screens/ReviewScreen"));
 const QuestionsScreen = lazyRoute(() => import("@/modules/exams/screens/QuestionsScreen"));
 const RubricsManagementScreen = lazyRoute(() => import("@/modules/exams/screens/RubricsManagementScreen"));
 const ExamPreparation = lazyRoute(() => import("@/modules/student/screens/ExamPreparation"));
@@ -187,6 +188,16 @@ export const protectedRoutes: RouteType[] = [
     isAdmin: false,
     role: ["admin", "teacher"],
     icon: Trophy,
+    hidden: true
+  },
+  {
+    path: "/review", // Corrección manual de respuestas abiertas
+    name: "Corrección",
+    type: "protected",
+    element: ReviewScreen,
+    isAdmin: false,
+    role: ["admin", "teacher"],
+    icon: ClipboardList,
     hidden: true
   },
   {

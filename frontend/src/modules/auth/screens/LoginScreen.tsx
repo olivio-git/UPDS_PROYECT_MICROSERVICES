@@ -122,7 +122,7 @@ const LoginScreen = () => {
         <Card className="w-full max-w-md bg-transparent shadow-none">
           <CardHeader className="space-y-1">
             <AuthHeader step={2} />
-            <CardTitle className="text-3xl font-medium text-card-foreground epilogue-uniquifier text-center">
+            <CardTitle className="text-3xl font-medium text-card-foreground text-center">
               Iniciar Sesión
             </CardTitle>
           </CardHeader>

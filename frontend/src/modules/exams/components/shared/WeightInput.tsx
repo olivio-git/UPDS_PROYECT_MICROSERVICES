@@ -1,6 +1,6 @@
 import type { ComponentProps } from "react";
 import { useState } from "react";
-import { Input } from "@/components/atoms/input";
+import { Input } from "@/components/keel/input";
 import { parseWeightInput, weightToInputText } from "../../utils/weights";
 
 type NativeInputProps = Omit<ComponentProps<"input">, "type" | "value" | "defaultValue" | "onChange" | "step">;

@@ -1,4 +1,4 @@
-import { Card } from '@/components/atoms/card';
+import { StatCard } from '@/components/common/StatCard';
 import type { DashboardSummary, StudentStats } from '@/services/reportsService';
 import { Award, Clock, FileText, Target, Users, type LucideIcon } from 'lucide-react';
 import { PERFORMANCE_BANDS } from './scoring';
@@ -54,18 +54,9 @@ function buildKpis(summary: DashboardSummary, stats: StudentStats | undefined): 
 
 export function KpiCards({ summary, stats }: { summary: DashboardSummary; stats?: StudentStats }) {
   return (
-    <div className="grid grid-cols-2 md:grid-cols-5 gap-2">
-      {buildKpis(summary, stats).map(({ label, value, sub, icon: Icon, color, tooltip }) => (
-        <Card key={label} title={tooltip} className="rounded-none border border-border bg-card shadow-none cursor-default">
-          <div className="p-3 flex items-center justify-between">
-            <div>
-              <p className="text-xs text-muted-foreground">{label}</p>
-              <p className="text-xl font-bold text-foreground leading-tight">{value}</p>
-              <p className={`text-xs ${color}`}>{sub}</p>
-            </div>
-            <Icon className={`h-6 w-6 ${color} opacity-60`} />
-          </div>
-        </Card>
+    <div className="grid grid-cols-2 gap-3 md:grid-cols-5">
+      {buildKpis(summary, stats).map(({ label, value, sub, icon, color, tooltip }) => (
+        <StatCard key={label} title={tooltip} label={label} value={value} caption={sub} icon={icon} iconClassName={color} />
       ))}
     </div>
   );

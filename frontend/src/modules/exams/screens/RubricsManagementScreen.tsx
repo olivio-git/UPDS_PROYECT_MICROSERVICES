@@ -1,3 +1,4 @@
+import { FormPage } from '@/components/layout';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -7,9 +8,8 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from "@/components/atoms/alert-dialog";
+} from "@/components/keel/alert-dialog";
 import { MainLayout } from "@/components/layout";
-import { X } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import RubricForm from "../components/rubrics/RubricForm";
@@ -163,18 +163,7 @@ const RubricsManagementScreen = () => {
   const renderContent = () => {
     if (viewMode === "create" || (viewMode === "edit" && selectedRubric)) {
       return (
-        <div className="bg-card border border-border p-6">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-semibold text-foreground">
-              {viewMode === "edit" ? "Editar Rúbrica" : "Nueva Rúbrica"}
-            </h2>
-            <button
-              onClick={handleBackToTable}
-              className="px-3 py-2 bg-muted/50 border border-border rounded-lg text-muted-foreground hover:bg-muted flex items-center gap-2 text-sm"
-            >
-              <X className="w-4 h-4" /> Volver
-            </button>
-          </div>
+        <FormPage title={viewMode === "edit" ? "Editar Rúbrica" : "Nueva Rúbrica"} onBack={handleBackToTable}>
           <RubricForm
             rubric={viewMode === "edit" ? selectedRubric! : undefined}
             isEditing={viewMode === "edit"}
@@ -182,7 +171,7 @@ const RubricsManagementScreen = () => {
             onCancel={handleBackToTable}
             isLoading={isFormLoading}
           />
-        </div>
+        </FormPage>
       );
     }
 
@@ -221,7 +210,7 @@ const RubricsManagementScreen = () => {
 
   return (
     <MainLayout gradientVariant="aurora">
-      <div className="flex h-full min-h-0 flex-col gap-3 p-3 epilogue-uniquifier">
+      <div className="flex h-full min-h-0 flex-col gap-4 px-4 pb-4">
         {renderContent()}
       </div>
 
@@ -230,21 +219,21 @@ const RubricsManagementScreen = () => {
         open={isDeleteDialogOpen}
         onOpenChange={setIsDeleteDialogOpen}
       >
-        <AlertDialogContent className="bg-card">
+        <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle className="text-foreground">Confirmar eliminación</AlertDialogTitle>
-            <AlertDialogDescription className="text-muted-foreground">
+            <AlertDialogTitle>Confirmar eliminación</AlertDialogTitle>
+            <AlertDialogDescription>
               ¿Estás seguro de que deseas eliminar la rúbrica{" "}
               <strong>"{rubricToDelete?.name}"</strong>? Esta acción no se puede deshacer y puede afectar evaluaciones relacionadas.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel className="bg-transparent text-foreground border border-line focus:outline-none">
+            <AlertDialogCancel>
               Cancelar
             </AlertDialogCancel>
             <AlertDialogAction
               onClick={confirmDeleteRubric}
-              className="bg-red-600 hover:bg-red-700 text-white"
+              variant="destructive"
             >
               Eliminar
             </AlertDialogAction>
@@ -257,21 +246,21 @@ const RubricsManagementScreen = () => {
         open={isDeleteMultipleDialogOpen}
         onOpenChange={setIsDeleteMultipleDialogOpen}
       >
-        <AlertDialogContent className="bg-card">
+        <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle className="text-foreground">Confirmar eliminación múltiple</AlertDialogTitle>
-            <AlertDialogDescription className="text-muted-foreground">
+            <AlertDialogTitle>Confirmar eliminación múltiple</AlertDialogTitle>
+            <AlertDialogDescription>
               ¿Estás seguro de que deseas eliminar {selectedRubrics.length}{" "}
               rúbrica(s) seleccionada(s)? Esta acción no se puede deshacer.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel className="bg-transparent text-foreground border border-line focus:outline-none">
+            <AlertDialogCancel>
               Cancelar
             </AlertDialogCancel>
             <AlertDialogAction
               onClick={confirmDeleteSelectedRubrics}
-              className="bg-red-600 hover:bg-red-700 text-white"
+              variant="destructive"
             >
               Eliminar {selectedRubrics.length} rúbrica(s)
             </AlertDialogAction>

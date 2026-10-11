@@ -96,3 +96,15 @@ describe('parseRubricGroqResponse', () => {
     assert.deepEqual(mod.parseRubricGroqResponse('not json').criteria, []);
   });
 });
+
+describe('level expectations in AI grading prompts', async () => {
+  const { levelExpectationLines } = await import('../src/grading/cefr/descriptors.js');
+  test('writing and speaking quote the CEFR production descriptor of the level and the one below', () => {
+    const w = levelExpectationLines('A2', 'writing').join('\n');
+    assert.match(w, /nivel A2 \(MCER, produccion escrita global\): "Can write a series of simple phrases/);
+    assert.match(w, /Nivel inferior \(A1\)/);
+    assert.match(w, /80-100/);
+    assert.match(levelExpectationLines('B2', 'speaking').join('\n'), /produccion oral global\): "Can give clear, systematically developed/);
+    assert.doesNotMatch(levelExpectationLines('A1', 'writing').join('\n'), /Nivel inferior/);
+  });
+});

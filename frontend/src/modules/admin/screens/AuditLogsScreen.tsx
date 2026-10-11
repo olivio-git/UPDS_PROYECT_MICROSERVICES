@@ -1,6 +1,8 @@
-import { Button } from '@/components/atoms/button';
-import { Calendar } from '@/components/atoms/calendar';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/atoms/popover';
+import { NativeSelect, NativeSelectOption } from '@/components/keel/native-select';
+import { Input } from '@/components/keel/input';
+import { Button } from '@/components/keel/button';
+import { Calendar } from '@/components/keel/calendar';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/keel/popover';
 import { MainLayout } from '@/components/layout';
 import { auditLogService, type AuditFilters, type AuditLogEntry } from '@/services/auditLogService';
 import { cn } from '@/lib/utils';
@@ -168,7 +170,7 @@ const AuditLogsScreen: React.FC = () => {
 
   return (
     <MainLayout>
-      <div className="flex flex-col gap-3 p-4 h-[calc(100vh-4rem)]">
+      <div className="flex h-full min-h-0 flex-col gap-4 px-4 pb-4">
 
         {/* Header */}
         <div className="flex items-center justify-between shrink-0">
@@ -184,7 +186,7 @@ const AuditLogsScreen: React.FC = () => {
             <Button
               onClick={() => fetchPage(1, filtersRef.current, true)}
               size="sm" variant="ghost"
-              className="h-8 w-8 p-0 text-muted-foreground hover:text-foreground hover:bg-muted"
+              className="h-8 w-8 p-0"
             >
               <RefreshCw className={cn('h-3.5 w-3.5', loading && 'animate-spin')} />
             </Button>
@@ -192,37 +194,41 @@ const AuditLogsScreen: React.FC = () => {
         </div>
 
         {/* Filtros */}
-        <div className="bg-card border border-border rounded-lg px-3 py-2 flex flex-wrap items-center gap-2 shrink-0">
+        <div className="bg-card border border-border rounded-xl px-3 py-2 flex flex-wrap items-center gap-2 shrink-0">
           <Popover>
-            <PopoverTrigger asChild>
-              <button className={cn(
-                'h-7 flex items-center gap-1.5 px-2 text-xs rounded border border-border bg-muted/60 text-foreground hover:bg-muted transition-colors whitespace-nowrap',
-                !dateRange?.from && 'text-muted-foreground'
-              )}>
-                <CalendarIcon className="h-3 w-3 shrink-0 text-muted-foreground" />
-                {dateRange?.from ? (
-                  dateRange.to ? (
-                    <>
-                      {format(dateRange.from, 'd MMM', { locale: es })}
-                      {' — '}
-                      {format(dateRange.to, 'd MMM yyyy', { locale: es })}
-                    </>
-                  ) : (
-                    format(dateRange.from, 'd MMM yyyy', { locale: es })
-                  )
+            <PopoverTrigger
+              render={
+                <button
+                  className={cn(
+                    'h-7 flex items-center gap-1.5 px-2 text-xs rounded border border-border bg-muted/60 text-foreground hover:bg-muted transition-colors whitespace-nowrap',
+                    !dateRange?.from && 'text-muted-foreground'
+                  )}
+                />
+              }
+            >
+              <CalendarIcon className="h-3 w-3 shrink-0 text-muted-foreground" />
+              {dateRange?.from ? (
+                dateRange.to ? (
+                  <>
+                    {format(dateRange.from, 'd MMM', { locale: es })}
+                    {' — '}
+                    {format(dateRange.to, 'd MMM yyyy', { locale: es })}
+                  </>
                 ) : (
-                  'Rango de fechas'
-                )}
-                {dateRange?.from && (
-                  <span
-                    role="button"
-                    onClick={e => { e.stopPropagation(); handleDateRangeChange(undefined); }}
-                    className="ml-1 text-muted-foreground hover:text-foreground"
-                  >
-                    <X className="h-3 w-3" />
-                  </span>
-                )}
-              </button>
+                  format(dateRange.from, 'd MMM yyyy', { locale: es })
+                )
+              ) : (
+                'Rango de fechas'
+              )}
+              {dateRange?.from && (
+                <span
+                  role="button"
+                  onClick={e => { e.stopPropagation(); handleDateRangeChange(undefined); }}
+                  className="ml-1 text-muted-foreground hover:text-foreground"
+                >
+                  <X className="h-3 w-3" />
+                </span>
+              )}
             </PopoverTrigger>
             <PopoverContent className="w-auto p-0" align="start">
               <Calendar
@@ -237,44 +243,43 @@ const AuditLogsScreen: React.FC = () => {
 
           <div className="w-px h-5 bg-border shrink-0" />
 
-          <select
+          <NativeSelect size="sm" className="text-xs w-auto"
             value={filters.service || ''}
             onChange={e => handleFilterChange('service', e.target.value)}
-            className="h-7 text-xs bg-muted/60 border border-border rounded px-2 text-foreground focus:outline-none focus:ring-1 focus:ring-ring"
           >
-            <option value="">Todos los servicios</option>
-            <option value="identity-service">Identity Service</option>
-            <option value="exam-service">Exam Service</option>
-          </select>
+            <NativeSelectOption value="">Todos los servicios</NativeSelectOption>
+            <NativeSelectOption value="identity-service">Identity Service</NativeSelectOption>
+            <NativeSelectOption value="exam-service">Exam Service</NativeSelectOption>
+          </NativeSelect>
 
           <div className="relative">
             <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3 w-3 text-muted-foreground pointer-events-none" />
-            <input
+            <Input
               type="text" placeholder="Acción..." value={filters.action || ''}
               onChange={e => handleFilterChange('action', e.target.value)}
-              className="h-7 pl-6 pr-2 text-xs bg-muted/60 border border-border rounded text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring w-36"
+              className="w-36 h-7 pl-6 pr-2 text-xs"
             />
           </div>
 
           <div className="relative">
             <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3 w-3 text-muted-foreground pointer-events-none" />
-            <input
+            <Input
               type="text" placeholder="Email actor..." value={filters.actorEmail || ''}
               onChange={e => handleFilterChange('actorEmail', e.target.value)}
-              className="h-7 pl-6 pr-2 text-xs bg-muted/60 border border-border rounded text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring w-40"
+              className="w-40 h-7 pl-6 pr-2 text-xs"
             />
           </div>
 
           <Button
             onClick={handleClear} variant="ghost" size="sm"
-            className="h-7 text-xs text-muted-foreground hover:text-foreground hover:bg-muted px-2 ml-auto"
+            className="h-7 text-xs px-2 ml-auto"
           >
             Hoy
           </Button>
         </div>
 
         {/* Tabla virtualizada */}
-        <div className="bg-card border border-border rounded-lg overflow-hidden flex flex-col flex-1 min-h-0">
+        <div className="bg-card border border-border rounded-xl overflow-hidden flex flex-col flex-1 min-h-0">
           {/* Cabecera fija */}
           <div className="shrink-0 border-b border-border bg-muted/30">
             <table className="w-full text-xs table-fixed">

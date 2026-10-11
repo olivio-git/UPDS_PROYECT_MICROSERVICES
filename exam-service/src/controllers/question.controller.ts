@@ -419,12 +419,12 @@ export class QuestionController {
         action: 'question.imported',
         target: { type: 'question_bank', name: req.file.originalname },
         actor: { userId, email: (req as any).user?.email, role: (req as any).user?.role },
-        details: { imported: result.imported, errors: result.errors },
+        details: { total: result.total, imported: result.imported, drafts: result.drafts, failed: result.failed },
       });
 
       res.json({
         success: true,
-        message: `Preguntas importadas: ${result.imported} exitosas, ${result.errors} errores`,
+        message: `Preguntas importadas: ${result.imported} exitosas, ${result.drafts} borradores, ${result.failed} con errores`,
         data: result
       });
     } catch (error) {
@@ -459,19 +459,18 @@ export class QuestionController {
   //   }
   // }
 
-  // // Descargar plantilla
-  // async downloadTemplate(req: Request, res: Response, next: NextFunction) {
-  //   try {
-  //     const buffer = await this.importService.generateTemplate();
-      
-  //     res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-  //     res.setHeader('Content-Disposition', 'attachment; filename=plantilla_preguntas.xlsx');
-  //     res.send(buffer);
-  //   } catch (error) {
-  //     logger.error('Error generating template:', error);
-  //     next(error);
-  //   }
-  // }
+  // Descargar plantilla de importación (.xlsx)
+  async downloadTemplate(_req: Request, res: Response, next: NextFunction) {
+    try {
+      const buffer = this.importService.generateExcelTemplate();
+      res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+      res.setHeader('Content-Disposition', 'attachment; filename="plantilla-preguntas.xlsx"');
+      res.send(buffer);
+    } catch (error) {
+      logger.error('Error generating template:', error);
+      next(error);
+    }
+  }
 
   async uploadAudio(req: Request, res: Response, next: NextFunction) {
     try {

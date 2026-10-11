@@ -1,13 +1,14 @@
-import { Badge } from "@/components/atoms/badge";
-import { Button } from "@/components/atoms/button";
-import { Checkbox } from "@/components/atoms/checkbox";
+import { EmptyState } from '@/components/common/EmptyState';
+import { Badge } from "@/components/keel/badge";
+import { Button } from "@/components/keel/button";
+import { Checkbox } from "@/components/keel/checkbox";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from "@/components/atoms/dropdown-menu";
+} from "@/components/keel/dropdown-menu";
 import {
   Table,
   TableBody,
@@ -15,7 +16,7 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/atoms/table";
+} from "@/components/keel/table";
 import {
   Award,
   BarChart3,
@@ -126,7 +127,7 @@ const RubricTable = ({
 
   if (isLoading) {
     return (
-      <div className="flex flex-1 min-h-0 flex-col items-center justify-center border-t border-border bg-card">
+      <div className="flex flex-1 min-h-0 flex-col items-center justify-center border-border bg-card rounded-xl border overflow-hidden">
         <div className="flex items-center justify-center space-x-2">
           <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-green-500"></div>
           <span className="text-muted-foreground">Cargando rúbricas...</span>
@@ -137,7 +138,7 @@ const RubricTable = ({
 
   if (isError) {
     return (
-      <div className="flex flex-1 min-h-0 flex-col items-center justify-center border-t border-border bg-card text-center">
+      <div className="flex flex-1 min-h-0 flex-col items-center justify-center border-border bg-card text-center rounded-xl border overflow-hidden">
         <div className="space-y-3">
           <div className="text-red-400">Error al cargar las rúbricas</div>
           <p className="text-muted-foreground text-sm">{errorMessage}</p>
@@ -148,29 +149,25 @@ const RubricTable = ({
 
   if (rubrics.length === 0) {
     return (
-      <div className="flex flex-1 min-h-0 flex-col items-center justify-center border-t border-border bg-card text-center">
-        <div className="space-y-4">
-          <Award className="h-12 w-12 text-muted-foreground mx-auto" />
-          <div className="space-y-2">
-            <h3 className="text-lg font-medium text-foreground">No hay rúbricas disponibles</h3>
-            <p className="text-muted-foreground max-w-md mx-auto">
-              Comienza creando tu primera rúbrica de evaluación para estructurar el proceso de calificación.
-            </p>
-          </div>
-        </div>
+      <div className="flex flex-1 min-h-0 flex-col border-border bg-card rounded-xl border overflow-hidden">
+        <EmptyState
+          icon={Award}
+          title="No hay rúbricas disponibles"
+          description="Comienza creando tu primera rúbrica de evaluación para estructurar el proceso de calificación."
+        />
       </div>
     );
   }
   return (
-    <div className="flex flex-1 min-h-0 flex-col border-t border-border bg-card">
+    <div className="flex flex-1 min-h-0 flex-col border-border bg-card rounded-xl border overflow-hidden">
       <Table>
         <TableHeader className="sticky top-0 z-10 bg-background">
           <TableRow className="border-border hover:bg-muted/30">
             <TableHead className="w-12">
               <Checkbox
-                checked={isIndeterminate ? 'indeterminate' : isAllSelected}
-                onCheckedChange={onSelectAllRubrics}
-                className="border-border data-[state=checked]:bg-green-600 data-[state=checked]:border-green-600"
+                checked={isAllSelected}
+                indeterminate={isIndeterminate}
+                onCheckedChange={(checked) => onSelectAllRubrics(checked)}
               />
             </TableHead>
             <TableHead className="text-muted-foreground font-medium">Nombre</TableHead>
@@ -194,7 +191,6 @@ const RubricTable = ({
                 <Checkbox
                   checked={selectedRubrics.includes(rubric._id!)}
                   onCheckedChange={(checked) => onSelectRubric(rubric._id!, checked as boolean)}
-                  className="border-border data-[state=checked]:bg-green-600 data-[state=checked]:border-green-600"
                 />
               </TableCell>
               
@@ -213,8 +209,8 @@ const RubricTable = ({
               
               <TableCell>
                 <div className="flex items-center space-x-2">
-                  <div className="w-6 h-6 rounded-full bg-gradient-to-br from-blue-500/20 to-purple-600/20 border border-blue-500/30 flex items-center justify-center">
-                    <span className="text-blue-700 dark:text-blue-300 font-bold text-xs">{rubric.level}</span>
+                  <div className="w-6 h-6 rounded-full bg-muted flex items-center justify-center">
+                    <span className="text-foreground font-semibold text-xs">{rubric.level}</span>
                   </div>
                 </div>
               </TableCell>
@@ -250,22 +246,15 @@ const RubricTable = ({
               
               <TableCell className="text-right">
                 <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button 
-                      variant="ghost" 
-                      size="sm"
-                      className="h-8 w-8 p-0 hover:bg-muted"
-                    >
-                      <MoreHorizontal className="h-4 w-4 text-muted-foreground" />
-                    </Button>
+                  <DropdownMenuTrigger render={<Button variant="ghost" size="icon-sm" />}>
+                    <MoreHorizontal className="h-4 w-4 text-muted-foreground" />
+                  
                   </DropdownMenuTrigger>
                   <DropdownMenuContent
                     align="end"
-                    className="bg-popover border-border"
                   >
                     <DropdownMenuItem 
                       onClick={() => onViewRubric(rubric)}
-                      className="text-foreground hover:bg-muted focus:bg-muted"
                     >
                       <Eye className="h-4 w-4 mr-2" />
                       Ver detalles
@@ -273,7 +262,6 @@ const RubricTable = ({
                     
                     <DropdownMenuItem 
                       onClick={() => onEditRubric(rubric)}
-                      className="text-foreground hover:bg-muted focus:bg-muted"
                     >
                       <Edit className="h-4 w-4 mr-2" />
                       Editar
@@ -281,18 +269,16 @@ const RubricTable = ({
                     
                     <DropdownMenuItem 
                       onClick={() => onCloneRubric(rubric)}
-                      className="text-blue-400 hover:bg-blue-500/10 focus:bg-blue-500/10"
                     >
                       <Copy className="h-4 w-4 mr-2" />
                       Clonar
                     </DropdownMenuItem>
                     
-                    <DropdownMenuSeparator className="bg-border" />
+                    <DropdownMenuSeparator />
                     
                     {rubric.isActive ? (
                       <DropdownMenuItem 
                         onClick={() => onDeactivateRubric(rubric)}
-                        className="text-orange-400 hover:bg-orange-500/10 focus:bg-orange-500/10"
                       >
                         <ToggleLeft className="h-4 w-4 mr-2" />
                         Desactivar
@@ -300,18 +286,17 @@ const RubricTable = ({
                     ) : (
                       <DropdownMenuItem 
                         onClick={() => onActivateRubric(rubric)}
-                        className="text-green-400 hover:bg-green-500/10 focus:bg-green-500/10"
                       >
                         <ToggleRight className="h-4 w-4 mr-2" />
                         Activar
                       </DropdownMenuItem>
                     )}
                     
-                    <DropdownMenuSeparator className="bg-border" />
+                    <DropdownMenuSeparator />
                     
                     <DropdownMenuItem 
                       onClick={() => onDeleteRubric(rubric)}
-                      className="text-red-400 hover:bg-red-500/10 focus:bg-red-500/10"
+                      variant="destructive"
                     >
                       <Trash2 className="h-4 w-4 mr-2" />
                       Eliminar

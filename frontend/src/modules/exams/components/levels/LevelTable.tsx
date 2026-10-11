@@ -1,12 +1,13 @@
-import { Badge } from "@/components/atoms/badge";
-import { Button } from "@/components/atoms/button";
+import { EmptyState } from '@/components/common/EmptyState';
+import { Badge } from "@/components/keel/badge";
+import { Button } from "@/components/keel/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from "@/components/atoms/dropdown-menu";
+} from "@/components/keel/dropdown-menu";
 import {
   Table,
   TableBody,
@@ -14,7 +15,7 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/atoms/table";
+} from "@/components/keel/table";
 import {
   BookOpen,
   Clock,
@@ -77,7 +78,7 @@ const LevelTable = ({
 
   if (isLoading) {
     return (
-      <div className="flex flex-1 min-h-0 flex-col items-center justify-center border-t border-border bg-card">
+      <div className="flex flex-1 min-h-0 flex-col items-center justify-center border-border bg-card rounded-xl border overflow-hidden">
         <div className="flex items-center justify-center space-x-2">
           <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-500"></div>
           <span className="text-muted-foreground">Cargando niveles...</span>
@@ -88,7 +89,7 @@ const LevelTable = ({
 
   if (isError) {
     return (
-      <div className="flex flex-1 min-h-0 flex-col items-center justify-center border-t border-border bg-card text-center">
+      <div className="flex flex-1 min-h-0 flex-col items-center justify-center border-border bg-card text-center rounded-xl border overflow-hidden">
         <div className="space-y-3">
           <div className="text-red-400">Error al cargar los niveles</div>
           <p className="text-muted-foreground text-sm">{errorMessage}</p>
@@ -99,22 +100,18 @@ const LevelTable = ({
 
   if (levels.length === 0) {
     return (
-      <div className="flex flex-1 min-h-0 flex-col items-center justify-center border-t border-border bg-card text-center">
-        <div className="space-y-4">
-          <BookOpen className="h-12 w-12 text-muted-foreground mx-auto" />
-          <div className="space-y-2">
-            <h3 className="text-lg font-medium text-foreground">No hay niveles configurados</h3>
-            <p className="text-muted-foreground max-w-md mx-auto">
-              Comienza creando tu primer nivel MCER para estructurar el sistema de evaluación.
-            </p>
-          </div>
-        </div>
+      <div className="flex flex-1 min-h-0 flex-col border-border bg-card rounded-xl border overflow-hidden">
+        <EmptyState
+          icon={BookOpen}
+          title="No hay niveles configurados"
+          description="Comienza creando tu primer nivel MCER para estructurar el sistema de evaluación."
+        />
       </div>
     );
   }
 
   return (
-    <div className="flex flex-1 min-h-0 flex-col border-t border-border bg-card">
+    <div className="flex flex-1 min-h-0 flex-col border-border bg-card rounded-xl border overflow-hidden">
       <Table>
         <TableHeader className="sticky top-0 z-10 bg-background">
           <TableRow className="border-border hover:bg-muted/30">
@@ -135,8 +132,8 @@ const LevelTable = ({
             >
               <TableCell>
                 <div className="flex items-center space-x-2">
-                  <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500/20 to-purple-600/20 border border-blue-500/30 flex items-center justify-center">
-                    <span className="text-blue-700 dark:text-blue-300 font-bold text-sm">{level.code}</span>
+                  <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center">
+                    <span className="text-foreground font-semibold text-sm">{level.code}</span>
                   </div>
                 </div>
               </TableCell>
@@ -175,22 +172,15 @@ const LevelTable = ({
               
               <TableCell className="text-right">
                 <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button 
-                      variant="ghost" 
-                      size="sm"
-                      className="h-8 w-8 p-0 hover:bg-muted"
-                    >
-                      <MoreHorizontal className="h-4 w-4 text-muted-foreground" />
-                    </Button>
+                  <DropdownMenuTrigger render={<Button variant="ghost" size="icon-sm" />}>
+                    <MoreHorizontal className="h-4 w-4 text-muted-foreground" />
+                  
                   </DropdownMenuTrigger>
                   <DropdownMenuContent
                     align="end"
-                    className="bg-popover border-border"
                   >
                     <DropdownMenuItem 
                       onClick={() => onViewLevel(level)}
-                      className="text-foreground hover:bg-muted focus:bg-muted"
                     >
                       <Eye className="h-4 w-4 mr-2" />
                       Ver detalles
@@ -198,18 +188,16 @@ const LevelTable = ({
                     
                     <DropdownMenuItem 
                       onClick={() => onEditLevel(level)}
-                      className="text-foreground hover:bg-muted focus:bg-muted"
                     >
                       <Edit className="h-4 w-4 mr-2" />
                       Editar
                     </DropdownMenuItem>
                     
-                    <DropdownMenuSeparator className="bg-border" />
+                    <DropdownMenuSeparator />
                     
                     {level.isActive ? (
                       <DropdownMenuItem 
                         onClick={() => onDeactivateLevel(level)}
-                        className="text-orange-400 hover:bg-orange-500/10 focus:bg-orange-500/10"
                       >
                         <ToggleLeft className="h-4 w-4 mr-2" />
                         Desactivar
@@ -217,18 +205,17 @@ const LevelTable = ({
                     ) : (
                       <DropdownMenuItem 
                         onClick={() => onActivateLevel(level)}
-                        className="text-green-400 hover:bg-green-500/10 focus:bg-green-500/10"
                       >
                         <ToggleRight className="h-4 w-4 mr-2" />
                         Activar
                       </DropdownMenuItem>
                     )}
                     
-                    <DropdownMenuSeparator className="bg-border" />
+                    <DropdownMenuSeparator />
                     
                     <DropdownMenuItem 
                       onClick={() => onDeleteLevel(level)}
-                      className="text-red-400 hover:bg-red-500/10 focus:bg-red-500/10"
+                      variant="destructive"
                     >
                       <Trash2 className="h-4 w-4 mr-2" />
                       Eliminar

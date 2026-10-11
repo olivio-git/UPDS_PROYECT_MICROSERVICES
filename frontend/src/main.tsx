@@ -1,4 +1,4 @@
-import { Toaster } from "@/components/atoms/sonner";
+import { Toaster } from "@/components/keel/sonner";
 import { ThemeProvider } from "@/context/ThemeContext";
 import { queryClient } from "@/lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";

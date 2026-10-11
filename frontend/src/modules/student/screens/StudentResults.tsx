@@ -1,3 +1,4 @@
+import { NativeSelect, NativeSelectOption } from '@/components/keel/native-select';
 import { Badge } from '@/components/keel/badge';
 import { Button } from '@/components/keel/button';
 import { Calendar } from '@/components/keel/calendar';
@@ -16,10 +17,11 @@ import {
   PopoverTrigger,
 } from '@/components/keel/popover';
 import { Spinner } from '@/components/keel/spinner';
-import { MainLayout } from '@/components/layout';
+import { MainLayout, PageHeader } from '@/components/layout';
 import { formatPercent, formatPoints } from '@/lib/scoreFormat';
 import { cn } from '@/lib/utils';
 import { api } from '@/services/api.service';
+import { COMPETENCY_LABELS, type Competency } from '@/modules/exams/constants/academic.constants';
 import {
   examResultService,
   type StudentExamResult,
@@ -39,7 +41,7 @@ import {
   FileText,
   FileSearch,
   GraduationCap,
-  Sparkles,
+  MessageSquareText,
   Target,
   TrendingDown,
   TrendingUp,
@@ -172,7 +174,7 @@ const StudentResults = () => {
       return {
         Icon: GraduationCap,
         text: recommendedLevel ? `Nivel recomendado: ${recommendedLevel}` : 'Nivel recomendado: pendiente',
-        className: 'border-violet-200 text-violet-700 bg-violet-100 dark:border-violet-500/30 dark:text-violet-300 dark:bg-violet-500/10',
+        className: 'border-primary/30 text-primary bg-primary/10',
       };
     }
     if (passed === true) {
@@ -208,6 +210,8 @@ const StudentResults = () => {
       reading: 'Comprensión Lectora',
       writing: 'Expresión Escrita',
       speaking: 'Expresión Oral',
+      grammar: 'Gramática',
+      vocabulary: 'Vocabulario',
     };
     return names[key as keyof typeof names] || key;
   };
@@ -575,7 +579,7 @@ const StudentResults = () => {
       document.body.removeChild(link);
 
       // Clean up
-      window.URL.revokeObjectURL(url);
+      setTimeout(() => window.URL.revokeObjectURL(url), 1000);
 
       toast.success('PDF descargado exitosamente', { id: 'pdf-generation' });
     } catch (error) {
@@ -668,12 +672,12 @@ const StudentResults = () => {
     if (currentResult.resultsHidden) {
       return (
         <MainLayout gradientVariant="primary">
-          <div className="h-full space-y-4 overflow-auto p-4 pb-10 lg:p-6 xl:p-8">
+          <div className="h-full space-y-4 overflow-auto px-4 pb-4">
             <Button variant="outline" size="sm" onClick={handleBackToResults} className="h-8 px-3 text-xs">
               <ArrowLeft className="h-3.5 w-3.5 mr-1" />
               Volver
             </Button>
-            <Card className="bg-card">
+            <Card flat>
               <CardContent className="flex flex-col items-center gap-3 p-10 text-center">
                 <EyeOff className="h-10 w-10 text-muted-foreground" />
                 <h2 className="text-lg font-semibold text-foreground">{currentResult.examName}</h2>
@@ -692,12 +696,12 @@ const StudentResults = () => {
     if (currentResult.pending) {
       return (
         <MainLayout gradientVariant="primary">
-          <div className="h-full space-y-4 overflow-auto p-4 pb-10 lg:p-6 xl:p-8">
+          <div className="h-full space-y-4 overflow-auto px-4 pb-4">
             <Button variant="outline" size="sm" onClick={handleBackToResults} className="h-8 px-3 text-xs">
               <ArrowLeft className="h-3.5 w-3.5 mr-1" />
               Volver
             </Button>
-            <Card className="bg-card">
+            <Card flat>
               <CardContent className="flex flex-col items-center gap-3 p-10 text-center">
                 <Clock className="h-10 w-10 text-muted-foreground" />
                 <h2 className="text-lg font-semibold text-foreground">{currentResult.examName}</h2>
@@ -742,9 +746,9 @@ const StudentResults = () => {
 
     return (
       <MainLayout>
-        <div id="exam-result-content" className="h-full space-y-4 overflow-auto p-4 pb-10 lg:p-6 xl:p-8">
+        <div id="exam-result-content" className="h-full space-y-4 overflow-auto px-4 pb-4">
           {/* Hero: the score ring is the first thing the eye lands on. */}
-          <Card className="bg-card">
+          <Card flat>
             <CardContent className="p-6">
               <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
                 <div className="flex flex-col items-center gap-5 text-center sm:flex-row sm:text-left">
@@ -795,7 +799,7 @@ const StudentResults = () => {
                   <Button
                     variant="outline"
                     size="sm"
-                    className="h-8 px-3 text-xs border-border text-muted-foreground hover:bg-muted bg-transparent"
+                    className="h-8 px-3 text-xs"
                     onClick={handleBackToResults}
                   >
                     <ArrowLeft className="h-3.5 w-3.5 mr-1" />
@@ -804,7 +808,7 @@ const StudentResults = () => {
                   <Button
                     size="sm"
                     onClick={() => handleDownloadPDF(currentResult.id)}
-                    className="h-8 px-3 text-xs bg-blue-600 hover:bg-blue-500"
+                    className="px-3 text-xs"
                   >
                     <Download className="h-3.5 w-3.5 mr-1" />
                     PDF
@@ -818,12 +822,25 @@ const StudentResults = () => {
               own muted surface, separate from the Aprobado/No aprobado badge
               above: it never affects that verdict, only informs the student
               which competencies met the target level's thresholds. */}
+          {currentResult.passed === false && examDetailData?.failedCompetencies?.length > 0 && (
+            <div className="flex items-start gap-2.5 rounded-lg border border-red-200 bg-red-50 px-3.5 py-2.5 text-sm text-red-800 dark:border-red-500/30 dark:bg-red-500/10 dark:text-red-200">
+              <XCircle className="mt-0.5 size-4 shrink-0" />
+              <p>
+                No alcanzaste el mínimo exigido en{' '}
+                <span className="font-medium">
+                  {examDetailData.failedCompetencies.map((c: string) => COMPETENCY_LABELS[c as Competency] ?? c).join(', ')}
+                </span>
+                . Para aprobar, cada competencia debe llegar al mínimo, además del puntaje total.
+              </p>
+            </div>
+          )}
+
           <CompetencyMasteryPanel mastery={examDetailData?.competencyMastery} />
 
           <div className="grid gap-4 xl:grid-cols-2">
-              <Card className="bg-card">
+              <Card flat>
                 <CardHeader className="pb-3">
-                  <CardTitle className="text-foreground flex items-center gap-2 text-sm">
+                  <CardTitle className="flex items-center gap-2 text-sm">
                     <BarChart3 className="h-4 w-4 text-blue-600 dark:text-blue-400" />
                     Desglose por Competencias
                   </CardTitle>
@@ -857,11 +874,11 @@ const StudentResults = () => {
               {/* AI feedback — the most valuable part of an AI-graded
                   platform, so it gets a distinct tinted surface instead of
                   a plain card identical to the competencies one next to it. */}
-              <Card className="border-blue-200 bg-blue-50/40 dark:border-blue-500/25 dark:bg-blue-500/[0.06]">
+              <Card flat className="border-primary/20 bg-primary/[0.03]">
                 <CardHeader className="pb-3">
-                  <CardTitle className="flex items-center gap-2 text-sm text-blue-800 dark:text-blue-200">
-                    <Sparkles className="h-4 w-4" />
-                    Retroalimentación de IA
+                  <CardTitle className="flex items-center gap-2 text-sm text-foreground">
+                    <MessageSquareText className="h-4 w-4 text-primary" />
+                    Retroalimentación
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="pt-0 space-y-3">
@@ -892,10 +909,10 @@ const StudentResults = () => {
           {/* Detalle de preguntas del examen — full width, its own row below
               the two-column summary. */}
           {examDetailData?.questionResults && (
-                <Card className="bg-card">
+                <Card flat>
                   <CardHeader className="pb-3">
-                    <CardTitle className="text-foreground flex items-center gap-2 text-sm">
-                      <FileSearch className="h-4 w-4 text-purple-600 dark:text-purple-400" />
+                    <CardTitle className="flex items-center gap-2 text-sm">
+                      <FileSearch className="h-4 w-4 text-primary" />
                       Preguntas del Examen
                     </CardTitle>
                     <CardDescription className="text-xs">
@@ -980,10 +997,10 @@ const StudentResults = () => {
 
                             {/* Análisis de IA — solo si tiene contenido distinto */}
                             {hasAiSection && (
-                              <div className="ml-9 border border-purple-200 dark:border-purple-700/40 rounded-lg overflow-hidden">
-                                <div className="flex items-center gap-1.5 px-3 py-1.5 bg-purple-50 dark:bg-purple-900/30 border-b border-purple-200 dark:border-purple-700/40">
-                                  <div className="w-1.5 h-1.5 rounded-full bg-purple-500 flex-shrink-0" />
-                                  <span className="text-xs font-semibold text-purple-700 dark:text-purple-300">Análisis</span>
+                              <div className="ml-9 border border-primary/25 rounded-lg overflow-hidden">
+                                <div className="flex items-center gap-1.5 px-3 py-1.5 bg-primary/5 border-b border-primary/20">
+                                  <div className="w-1.5 h-1.5 rounded-full bg-primary flex-shrink-0" />
+                                  <span className="text-xs font-semibold text-primary">Análisis</span>
                                 </div>
                                 <div className="px-4 py-3 bg-card space-y-2">
                                   {showAiFeedback && (
@@ -995,7 +1012,7 @@ const StudentResults = () => {
                                       <ul className="space-y-1">
                                         {question.aiAnalysis.suggestions.map((s: string, idx: number) => (
                                           <li key={idx} className="flex items-start gap-2 text-foreground/70 text-xs">
-                                            <span className="text-purple-500 dark:text-purple-400 mt-0.5 flex-shrink-0 font-bold">›</span>
+                                            <ChevronRight className="mt-0.5 size-3 shrink-0 text-primary" />
                                             {s}
                                           </li>
                                         ))}
@@ -1024,7 +1041,8 @@ const StudentResults = () => {
 
   return (
     <MainLayout>
-      <div className="h-full space-y-3 overflow-auto p-3">
+      <div className="h-full space-y-4 overflow-auto px-4 pb-4">
+        <PageHeader title="Mis resultados" description="Historial de tus evaluaciones" />
 
         {/* Estado: cargando */}
         {loading && (
@@ -1036,7 +1054,7 @@ const StudentResults = () => {
 
         {/* Estado: error */}
         {error && !loading && (
-          <Card className="bg-card border-red-200 dark:border-red-500/30">
+          <Card flat className="border-red-200 dark:border-red-500/30">
             <CardContent className="p-8 text-center">
               <AlertCircle className="h-10 w-10 text-red-600 dark:text-red-400 mx-auto mb-3" />
               <h3 className="text-base font-semibold text-foreground mb-1">Error al cargar resultados</h3>
@@ -1047,7 +1065,7 @@ const StudentResults = () => {
         )}
 
         {!loading && !error && resultsData && (
-          <Card className="bg-card">
+          <Card flat>
             {/* Stats row */}
             <div className="grid grid-cols-2 lg:grid-cols-4 border-b border-border">
               <div className="p-4 border-r border-border">
@@ -1083,7 +1101,7 @@ const StudentResults = () => {
             <CardHeader className="border-b border-border pb-4">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                 <div>
-                  <CardTitle className="text-foreground text-base">Historial de Evaluaciones</CardTitle>
+                  <CardTitle className="text-base">Historial de Evaluaciones</CardTitle>
                   <CardDescription className="text-muted-foreground text-xs mt-0.5">
                     {filteredResults.length > 0
                       ? `${filteredResults.length} resultado${filteredResults.length !== 1 ? 's' : ''}`
@@ -1092,25 +1110,24 @@ const StudentResults = () => {
                 </div>
                 <div className="flex flex-wrap items-center gap-2">
                   {/* Filtro: Nivel */}
-                  <select
+                  <NativeSelect size="sm" className="text-xs w-auto"
                     value={selectedLevel}
                     onChange={e => { setSelectedLevel(e.target.value); setPageIndex(0); }}
-                    className="h-7 text-xs bg-muted/60 border border-border rounded px-2 text-foreground focus:outline-none focus:ring-1 focus:ring-ring"
                   >
-                    <option value="all">Todos los niveles</option>
-                    <option value="A1">A1</option>
-                    <option value="A2">A2</option>
-                    <option value="B1">B1</option>
-                    <option value="B2">B2</option>
-                    <option value="C1">C1</option>
-                    <option value="C2">C2</option>
-                  </select>
+                    <NativeSelectOption value="all">Todos los niveles</NativeSelectOption>
+                    <NativeSelectOption value="A1">A1</NativeSelectOption>
+                    <NativeSelectOption value="A2">A2</NativeSelectOption>
+                    <NativeSelectOption value="B1">B1</NativeSelectOption>
+                    <NativeSelectOption value="B2">B2</NativeSelectOption>
+                    <NativeSelectOption value="C1">C1</NativeSelectOption>
+                    <NativeSelectOption value="C2">C2</NativeSelectOption>
+                  </NativeSelect>
 
                   {/* Filtro: Rango de fechas */}
                   <Popover>
                     <PopoverTrigger
                       render={
-                      <button className="h-7 flex items-center gap-1.5 px-2 text-xs rounded border border-border bg-muted/60 text-foreground hover:bg-muted transition-colors whitespace-nowrap">
+                      <Button variant="outline" size="sm">
                         <CalendarIcon className="h-3 w-3 shrink-0 text-muted-foreground" />
                         {dateRange?.from ? (
                           dateRange.to ? (
@@ -1130,7 +1147,7 @@ const StudentResults = () => {
                             <X className="h-3 w-3" />
                           </span>
                         )}
-                      </button>
+                      </Button>
                       }
                     />
                     <PopoverContent className="w-auto p-0" align="end">
@@ -1220,7 +1237,7 @@ const StudentResults = () => {
                         <Button
                           size="sm"
                           variant="ghost"
-                          className="h-7 px-2 text-xs text-muted-foreground hover:text-foreground"
+                          className="h-7 px-2 text-xs"
                           onClick={(e) => { e.stopPropagation(); handleViewDetails(result); }}
                         >
                           <Eye className="h-3.5 w-3.5 mr-1" />
@@ -1240,7 +1257,7 @@ const StudentResults = () => {
                   {pageIndex * RESULTS_PAGE_SIZE + 1}–{Math.min((pageIndex + 1) * RESULTS_PAGE_SIZE, totalRows)} de {totalRows}
                 </p>
                 <div className="flex items-center gap-1">
-                  <Button variant="outline" size="sm" className="h-7 w-7 p-0 bg-transparent text-muted-foreground hover:bg-muted disabled:opacity-30" onClick={() => setPageIndex(i => Math.max(0, i - 1))} disabled={pageIndex === 0}>
+                  <Button variant="outline" size="sm" className="h-7 w-7 p-0 disabled:opacity-30" onClick={() => setPageIndex(i => Math.max(0, i - 1))} disabled={pageIndex === 0}>
                     <ChevronLeft className="h-4 w-4" />
                   </Button>
                   {Array.from({ length: pageCount }, (_, i) => i).map(i => (
@@ -1248,7 +1265,7 @@ const StudentResults = () => {
                       {i + 1}
                     </Button>
                   ))}
-                  <Button variant="outline" size="sm" className="h-7 w-7 p-0 bg-transparent text-muted-foreground hover:bg-muted disabled:opacity-30" onClick={() => setPageIndex(i => Math.min(pageCount - 1, i + 1))} disabled={pageIndex >= pageCount - 1}>
+                  <Button variant="outline" size="sm" className="h-7 w-7 p-0 disabled:opacity-30" onClick={() => setPageIndex(i => Math.min(pageCount - 1, i + 1))} disabled={pageIndex >= pageCount - 1}>
                     <ChevronRight className="h-4 w-4" />
                   </Button>
                 </div>

@@ -1,4 +1,4 @@
-import { Button } from '@/components/atoms/button';
+import { Button } from '@/components/keel/button';
 import { MainLayout } from '@/components/layout';
 import ExportOptionsModal from '@/components/modals/ExportOptionsModal';
 import { cn } from '@/lib/utils';
@@ -102,7 +102,7 @@ const ReportsScreen: React.FC = () => {
 
   return (
     <MainLayout>
-      <div className="flex h-full min-h-0 flex-col gap-3 p-3">
+      <div className="flex h-full min-h-0 flex-col gap-4 px-4 pb-4">
         <div className="flex shrink-0 items-center justify-between">
           <div>
             <h1 className="text-xl font-bold text-foreground">Reportes y Análisis</h1>
@@ -113,7 +113,7 @@ const ReportsScreen: React.FC = () => {
             size="sm"
             variant="ghost"
             aria-label="Actualizar reportes"
-            className="text-muted-foreground hover:text-foreground hover:bg-muted h-8 w-8 p-0"
+            className="h-8 w-8 p-0"
             disabled={refreshing}
           >
             <RefreshCw className={cn('h-3.5 w-3.5', refreshing && 'animate-spin')} />

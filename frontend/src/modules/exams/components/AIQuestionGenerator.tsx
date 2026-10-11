@@ -1,3 +1,6 @@
+import { Textarea } from '@/components/keel/textarea';
+import { Label } from '@/components/keel/label';
+import { Button } from '@/components/keel/button';
 import {
   Check,
   ChevronDown,
@@ -11,7 +14,10 @@ import {
   Sparkles,
   Upload,
   X,
+  AlertTriangle,
 } from 'lucide-react';
+import { AnswerKey } from '@/components/questions/AnswerKey';
+import { QualityBadge, QualityPanel, type QualityReport } from './GenerationQuality';
 import React, { useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
 import { examService } from '@/services/examService';
@@ -55,7 +61,7 @@ interface GeneratedQuestionData {
 
 interface AIGenerationResponse {
   success: boolean;
-  data: { question: GeneratedQuestionData; savedId?: string; model: string };
+  data: { question: GeneratedQuestionData; savedId?: string; model: string; quality?: QualityReport; attempts?: number };
 }
 
 interface BulkResult {
@@ -65,6 +71,7 @@ interface BulkResult {
   accepted: boolean;
   savedId?: string;
   retried?: boolean;
+  quality?: QualityReport;
 }
 
 // ── Jaccard similarity on content words (length > 3) ──────────────────────────
@@ -132,6 +139,8 @@ function getCompetencyLabel(comp: string) {
     writing: 'Expresión Escrita',
     listening: 'Comprensión Auditiva',
     speaking: 'Expresión Oral',
+    grammar: 'Gramática',
+    vocabulary: 'Vocabulario',
   };
   return labels[comp] || comp;
 }
@@ -156,98 +165,7 @@ function getTypeLabel(type: string) {
 const QuestionPreviewCard: React.FC<{
   question: GeneratedQuestionData;
   compact?: boolean;
-}> = ({ question, compact }) => (
-  <div className={`space-y-3 ${compact ? 'text-sm' : ''}`}>
-    <div>
-      <p className="text-xs text-muted-foreground mb-1">Pregunta</p>
-      <p className="text-foreground leading-relaxed">{question.content.question}</p>
-    </div>
-
-    {question.content.context && (
-      <div>
-        <p className="text-xs text-muted-foreground mb-1">
-          {question.competency === 'listening' ? 'Transcripción / Contexto' : 'Contexto'}
-        </p>
-        <p className="text-foreground/80 italic">{question.content.context}</p>
-      </div>
-    )}
-
-    {question.content.options && question.content.options.length > 0 && (
-      <div className="space-y-1">
-        {question.content.options.map((opt, i) => (
-          <div
-            key={opt.id}
-            className={`flex items-center gap-2 px-3 py-1.5 rounded border ${
-              opt.isCorrect
-                ? 'border-green-300 dark:border-green-600/40 bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-300'
-                : 'border-border bg-muted/20 text-foreground/80'
-            }`}
-          >
-            <span className="text-muted-foreground text-xs w-4 flex-shrink-0">
-              {String.fromCharCode(65 + i)}
-            </span>
-            <span>{opt.text}</span>
-            {opt.isCorrect && <Check className="w-3 h-3 ml-auto text-green-600 dark:text-green-400 flex-shrink-0" />}
-          </div>
-        ))}
-      </div>
-    )}
-
-    {question.content.template && (
-      <div>
-        <p className="text-xs text-muted-foreground mb-1">Plantilla</p>
-        <p className="font-mono text-foreground bg-muted px-3 py-2 rounded">
-          {question.content.template}
-        </p>
-      </div>
-    )}
-
-    {question.content.items && question.content.items.length > 0 && !compact && (
-      <div className="space-y-1">
-        <p className="text-xs text-muted-foreground mb-1">Elementos</p>
-        {question.content.items.map((item) => (
-          <div
-            key={item.id}
-            className="flex justify-between items-center px-3 py-1.5 bg-muted/30 rounded border border-border text-sm"
-          >
-            <span className="text-foreground">{item.content}</span>
-            {item.matchingPair && (
-              <span className="text-blue-600 dark:text-blue-300 text-xs">↔ {item.matchingPair}</span>
-            )}
-            {item.correctPosition !== undefined && (
-              <span className="px-1.5 py-0.5 text-xs rounded border border-border text-muted-foreground">
-                #{item.correctPosition}
-              </span>
-            )}
-          </div>
-        ))}
-      </div>
-    )}
-
-    {question.content.sampleAnswer && (
-      <div>
-        <p className="text-xs text-muted-foreground mb-1">Respuesta de referencia</p>
-        <p className="text-foreground/80 italic bg-muted/50 px-3 py-2 rounded text-sm">
-          "{question.content.sampleAnswer}"
-        </p>
-      </div>
-    )}
-
-    <div className="flex flex-wrap gap-1.5 pt-1">
-      <span className="px-1.5 py-0.5 text-xs rounded border border-border text-muted-foreground">
-        📚 {question.metadata.topic}
-      </span>
-      <span className="px-1.5 py-0.5 text-xs rounded border border-border text-muted-foreground">
-        ⭐ {question.metadata.points ?? 1}pt
-      </span>
-      {question.metadata.estimatedTime && (
-        <span className="px-1.5 py-0.5 text-xs rounded border border-border text-muted-foreground">
-          ⏱ {question.metadata.estimatedTime}min
-        </span>
-      )}
-    </div>
-  </div>
-);
+}> = ({ question, compact }) => <AnswerKey question={question} compact={compact} />;
 
 // ── Main component ─────────────────────────────────────────────────────────────
 const AIQuestionGenerator: React.FC<AIQuestionGeneratorProps> = ({
@@ -261,6 +179,8 @@ const AIQuestionGenerator: React.FC<AIQuestionGeneratorProps> = ({
   // Single-question state
   const [generatedQuestion, setGeneratedQuestion] = useState<GeneratedQuestionData | null>(null);
   const [modelUsed, setModelUsed] = useState('');
+  const [quality, setQuality] = useState<{ report?: QualityReport; attempts?: number }>({});
+  const [bulkRejected, setBulkRejected] = useState(0);
   const [savedId, setSavedId] = useState<string | undefined>();
   const [step, setStep] = useState<'config' | 'generating' | 'preview' | 'bulk-results' | 'complete'>('config');
 
@@ -419,6 +339,7 @@ const AIQuestionGenerator: React.FC<AIQuestionGeneratorProps> = ({
       const data = await callGenerateEndpoint([]);
       setGeneratedQuestion(data.question);
       setModelUsed(data.model);
+      setQuality({ report: data.quality, attempts: data.attempts });
       setSavedId(undefined);
       setStep('preview');
       toast.success(`Pregunta generada con ${data.model.split('-').slice(0, 3).join('-')}`);
@@ -441,6 +362,8 @@ const AIQuestionGenerator: React.FC<AIQuestionGeneratorProps> = ({
     setBulkProgress(0);
     setBulkResults([]);
     setBulkPartial(false);
+    setBulkRejected(0);
+    let rejected = 0;
 
     const generatedTexts: string[] = [];
     const results: BulkResult[] = [];
@@ -461,14 +384,16 @@ const AIQuestionGenerator: React.FC<AIQuestionGeneratorProps> = ({
         }
 
         generatedTexts.push(data.question.content.question);
-        results.push({ index: i, question: data.question, model: data.model, accepted: true, retried });
+        results.push({ index: i, question: data.question, model: data.model, accepted: true, retried, quality: data.quality });
       } catch (err: any) {
         if ((err as any).isRateLimit) {
           toast.error(safeErr(err, 'Límite de generación alcanzado'), { duration: 10000 });
           rateLimitHit = true;
           break;
         }
-        // Errores individuales: se registran silenciosamente, no toast
+        // The AI could not produce a question that passed the quality check: count it, no toast per item.
+        rejected++;
+        setBulkRejected(rejected);
       }
 
       setBulkProgress(i + 1);
@@ -626,23 +551,24 @@ const AIQuestionGenerator: React.FC<AIQuestionGeneratorProps> = ({
 
   // ── Render ─────────────────────────────────────────────────────────────────
   return (
-    <div className="bg-card border border-border rounded-xl flex flex-col overflow-hidden" style={{ maxHeight: 'calc(100vh - 8rem)' }}>
+    <div className="bg-card border border-border rounded-xl flex flex-col overflow-hidden" style={{ maxHeight: 'calc(100vh - 6rem)' }}>
       {/* Panel header */}
       <div className="flex items-center justify-between px-4 py-3 border-b border-border shrink-0 bg-muted/30">
         <div className="flex items-center gap-2">
-          <Sparkles className="w-4 h-4 text-purple-500 dark:text-purple-400" />
+          <Sparkles className="w-4 h-4 text-muted-foreground" />
           <div>
             <h3 className="text-sm font-semibold text-foreground leading-none">Generar con IA</h3>
             <p className="text-xs text-muted-foreground mt-0.5">Basado en los parámetros actuales</p>
           </div>
         </div>
-        <button
+        <Button
+          variant="ghost"
+          size="icon-sm"
           type="button"
           onClick={handleClose}
-          className="p-1.5 rounded-md hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
         >
           <X className="w-4 h-4" />
-        </button>
+        </Button>
       </div>
 
       {/* Scrollable body */}
@@ -655,16 +581,16 @@ const AIQuestionGenerator: React.FC<AIQuestionGeneratorProps> = ({
             <div>
               <h3 className="text-sm font-medium text-muted-foreground mb-3">Parámetros</h3>
               <div className="flex flex-wrap gap-1.5">
-                <span className="px-1.5 py-0.5 text-xs rounded border border-blue-300 dark:border-blue-500/30 text-blue-600 dark:text-blue-300">
+                <span className="px-1.5 py-0.5 text-xs rounded-md border border-border bg-muted/50 text-foreground">
                   {getCompetencyLabel(formData.competency || '')}
                 </span>
-                <span className="px-1.5 py-0.5 text-xs rounded border border-green-300 dark:border-green-500/30 text-green-700 dark:text-green-300">
+                <span className="px-1.5 py-0.5 text-xs rounded-md border border-border bg-muted/50 text-foreground">
                   Nivel {formData.level}
                 </span>
-                <span className="px-1.5 py-0.5 text-xs rounded border border-purple-300 dark:border-purple-500/30 text-purple-700 dark:text-purple-300">
+                <span className="px-1.5 py-0.5 text-xs rounded-md border border-border bg-muted/50 text-foreground">
                   {getTypeLabel(formData.type || '')}
                 </span>
-                <span className="px-1.5 py-0.5 text-xs rounded border border-orange-300 dark:border-orange-500/30 text-orange-600 dark:text-orange-300">
+                <span className="px-1.5 py-0.5 text-xs rounded-md border border-border bg-muted/50 text-foreground">
                   Dificultad {formData.difficulty || 3}/5
                 </span>
                 {formData.metadata?.topic && (
@@ -678,9 +604,9 @@ const AIQuestionGenerator: React.FC<AIQuestionGeneratorProps> = ({
             {/* Quantity selector */}
             <div className="space-y-2">
               <div className="flex items-center justify-between">
-                <label className="text-sm font-medium text-foreground/80">
+                <Label>
                   Cantidad
-                </label>
+                </Label>
                 <div className="flex items-baseline gap-1">
                   <span className="text-lg font-bold text-foreground leading-none">{quantity}</span>
                   <span className="text-xs text-muted-foreground">
@@ -695,7 +621,7 @@ const AIQuestionGenerator: React.FC<AIQuestionGeneratorProps> = ({
                 value={quantity}
                 onChange={(e) => setQuantity(Number(e.target.value))}
                 disabled={isGenerating}
-                className="w-full accent-purple-500 disabled:opacity-50"
+                className="w-full accent-primary disabled:opacity-50"
               />
               <div className="flex justify-between text-xs text-muted-foreground/50 -mt-1">
                 <span>1</span><span>5</span><span>10</span>
@@ -705,14 +631,14 @@ const AIQuestionGenerator: React.FC<AIQuestionGeneratorProps> = ({
             {/* ── Listening: audio upload zone ── */}
             {isListening ? (
               <div>
-                <label className="text-sm font-medium text-foreground/80 mb-2 block">
+                <label className={`flex flex-col items-center justify-center w-full h-24 border-2 border-dashed rounded-lg cursor-pointer transition-colors ${isGenerating ? 'border-border opacity-50 cursor-not-allowed' : 'border-border hover:border-primary/50 hover:bg-muted/50'}`}>
                   Audio de referencia{' '}
                   <span className="text-muted-foreground font-normal">(la IA generará la pregunta desde la transcripción)</span>
                 </label>
 
                 {!audioFile ? (
                   /* Drop zone */
-                  <label className={`flex flex-col items-center justify-center w-full h-24 border-2 border-dashed rounded-lg cursor-pointer transition-colors ${isGenerating ? 'border-border opacity-50 cursor-not-allowed' : 'border-border hover:border-purple-500/60 hover:bg-purple-50 dark:hover:bg-purple-900/10'}`}>
+                  <label className={`flex flex-col items-center justify-center w-full h-24 border-2 border-dashed rounded-lg cursor-pointer transition-colors ${isGenerating ? 'border-border opacity-50 cursor-not-allowed' : 'border-border hover:border-primary/50 hover:bg-muted/50'}`}>
                     <Upload className="w-6 h-6 text-muted-foreground/70 mb-1.5" />
                     <span className="text-sm text-muted-foreground">Sube un archivo de audio</span>
                     <span className="text-xs text-muted-foreground/60 mt-0.5">MP3, WAV, WebM, M4A — hasta ~10MB</span>
@@ -731,7 +657,7 @@ const AIQuestionGenerator: React.FC<AIQuestionGeneratorProps> = ({
                   <div className="space-y-2">
                     {/* File info row */}
                     <div className="flex items-center gap-2 bg-muted/50 border border-border rounded-lg px-3 py-2">
-                      <Headphones className="w-4 h-4 text-purple-500 dark:text-purple-400 flex-shrink-0" />
+                      <Headphones className="w-4 h-4 text-muted-foreground flex-shrink-0" />
                       <span className="text-sm text-foreground/90 flex-1 truncate min-w-0">{audioFile.name}</span>
                       <label className={`text-xs flex-shrink-0 cursor-pointer underline-offset-2 hover:underline ${isGenerating || isTranscribing ? 'text-muted-foreground pointer-events-none' : 'text-muted-foreground/70 hover:text-foreground'}`}>
                         Cambiar
@@ -758,7 +684,7 @@ const AIQuestionGenerator: React.FC<AIQuestionGeneratorProps> = ({
 
                     {/* Transcription status */}
                     {(isTranscribing || isFormatting) && (
-                      <div className="flex items-center gap-2 text-sm text-purple-700 dark:text-purple-300 py-1">
+                      <div className="flex items-center gap-2 text-sm text-muted-foreground py-1">
                         <Loader2 className="w-4 h-4 animate-spin flex-shrink-0" />
                         {isTranscribing ? 'Transcribiendo con Whisper...' : 'Interpretando formato...'}
                       </div>
@@ -767,9 +693,11 @@ const AIQuestionGenerator: React.FC<AIQuestionGeneratorProps> = ({
                     {/* Transcript block */}
                     {audioTranscript && !isTranscribing && !isFormatting && (
                       <div className="bg-popover border border-border rounded-lg overflow-hidden">
-                        <button
+                        <Button
+                          variant="ghost"
+                          size="sm"
                           onClick={() => setShowTranscript(!showTranscript)}
-                          className="w-full flex items-center justify-between px-3 py-2 text-xs text-muted-foreground hover:bg-muted/50 transition-colors"
+                          className="w-full justify-between"
                         >
                           <span className="flex items-center gap-1.5">
                             <Check className="w-3 h-3 text-green-600 dark:text-green-400" />
@@ -790,14 +718,14 @@ const AIQuestionGenerator: React.FC<AIQuestionGeneratorProps> = ({
                             ? <ChevronUp className="w-3 h-3" />
                             : <ChevronDown className="w-3 h-3" />
                           }
-                        </button>
+                        </Button>
                         {showTranscript && (
                           <div className="px-3 pb-3 space-y-1.5">
-                            <textarea
+                            <Textarea
                               ref={transcriptRef}
                               value={audioTranscript}
                               onChange={(e) => setAudioTranscript(e.target.value)}
-                              className="w-full px-3 py-2 text-sm bg-muted/50 border border-border rounded-lg text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring resize-y overflow-y-auto transition-[height] duration-150 font-mono"
+                              className="w-full resize-y font-mono"
                               style={{ minHeight: '72px' }}
                               disabled={isGenerating}
                             />
@@ -812,15 +740,16 @@ const AIQuestionGenerator: React.FC<AIQuestionGeneratorProps> = ({
 
                     {/* Re-transcribe / Transcribe button */}
                     {!isTranscribing && (
-                      <button
+                      <Button
+                        variant="outline"
+                        size="sm"
                         type="button"
                         onClick={() => handleTranscribe(audioFile)}
                         disabled={isGenerating}
-                        className="flex items-center gap-1.5 h-8 px-3 text-xs rounded-lg border border-border text-foreground hover:bg-muted/60 transition-colors disabled:opacity-50"
                       >
                         <RefreshCw className="w-3 h-3" />
                         {audioTranscript ? 'Re-transcribir' : 'Transcribir'}
-                      </button>
+                      </Button>
                     )}
                   </div>
                 )}
@@ -834,14 +763,14 @@ const AIQuestionGenerator: React.FC<AIQuestionGeneratorProps> = ({
             ) : (
               /* ── Non-listening: thematic context textarea ── */
               <div>
-                <label className="text-sm font-medium text-foreground/80 mb-2 block">
+                <Label className="mb-2">
                   Contexto Temático <span className="text-muted-foreground font-normal">(Opcional)</span>
-                </label>
-                <textarea
+                </Label>
+                <Textarea
                   value={thematicContext}
                   onChange={(e) => setThematicContext(e.target.value)}
                   placeholder="Ej: 'Una familia planeando sus vacaciones de verano', 'El cambio climático', 'La vida universitaria'..."
-                  className="w-full px-3 py-2 text-sm bg-muted/50 border border-border rounded-lg text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring resize-y"
+                  className="w-full resize-y"
                   style={{ minHeight: '70px' }}
                   disabled={isGenerating}
                 />
@@ -859,15 +788,15 @@ const AIQuestionGenerator: React.FC<AIQuestionGeneratorProps> = ({
                 Transcribe el audio primero para obtener mejores resultados.
               </p>
             )}
-            <button
+            <Button
               type="button"
               onClick={quantity === 1 ? handleGenerate : handleBulkGenerate}
               disabled={!canGenerate || isTranscribing}
-              className="w-full flex items-center justify-center gap-2 h-9 px-4 text-sm rounded-lg bg-gradient-to-r from-purple-500 to-blue-600 hover:from-purple-600 hover:to-blue-700 text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full"
             >
-              <Sparkles className="w-4 h-4" />
+              <Sparkles />
               {generateButtonLabel()}
-            </button>
+            </Button>
             {!canGenerate && (
               <p className="text-amber-600 dark:text-amber-400 text-sm mt-3">
                 Completa competencia, nivel y tipo antes de generar
@@ -879,7 +808,7 @@ const AIQuestionGenerator: React.FC<AIQuestionGeneratorProps> = ({
         {/* ── Generating step: spinner / progress ── */}
         {step === 'generating' && (
           <div className="text-center py-8 space-y-4">
-            <Loader2 className="w-12 h-12 animate-spin text-purple-500 dark:text-purple-400 mx-auto" />
+            <Loader2 className="w-12 h-12 animate-spin text-muted-foreground mx-auto" />
             {quantity === 1 ? (
               <p className="text-muted-foreground">Generando pregunta...</p>
             ) : (
@@ -890,7 +819,7 @@ const AIQuestionGenerator: React.FC<AIQuestionGeneratorProps> = ({
                 <div className="max-w-xs mx-auto">
                   <div className="w-full bg-muted rounded-full h-2">
                     <div
-                      className="bg-purple-500 h-2 rounded-full transition-all duration-500"
+                      className="bg-primary h-2 rounded-full transition-all duration-500"
                       style={{ width: `${(bulkProgress / quantity) * 100}%` }}
                     />
                   </div>
@@ -931,7 +860,7 @@ const AIQuestionGenerator: React.FC<AIQuestionGeneratorProps> = ({
               </h3>
               <div className="flex items-center gap-2">
                 {savedId && (
-                  <span className="px-1.5 py-0.5 text-xs rounded bg-green-600 dark:bg-green-700 text-white">✓ Guardada ({savedId.slice(-6)})</span>
+                  <span className="inline-flex items-center gap-1 rounded-md bg-primary/10 px-1.5 py-0.5 text-xs font-medium text-primary"><Check className="size-3" />Guardada</span>
                 )}
                 <span className="px-1.5 py-0.5 text-xs rounded border border-border text-muted-foreground">
                   {modelUsed.split('-').slice(0, 3).join('-')}
@@ -941,8 +870,8 @@ const AIQuestionGenerator: React.FC<AIQuestionGeneratorProps> = ({
 
             {/* Audio preview in single-question step */}
             {isListening && audioBlobUrl && (
-              <div className="flex items-center gap-2 bg-muted/60 border border-purple-300 dark:border-purple-600/30 rounded-lg px-3 py-2">
-                <Headphones className="w-4 h-4 text-purple-500 dark:text-purple-400 flex-shrink-0" />
+              <div className="flex items-center gap-2 bg-muted/60 border border-border rounded-lg px-3 py-2">
+                <Headphones className="w-4 h-4 text-muted-foreground flex-shrink-0" />
                 <audio
                   src={audioBlobUrl}
                   controls
@@ -956,44 +885,36 @@ const AIQuestionGenerator: React.FC<AIQuestionGeneratorProps> = ({
               <QuestionPreviewCard question={generatedQuestion} />
             </div>
 
-            <div className="flex flex-col sm:flex-row justify-between gap-3 pt-2 border-t border-border">
-              <button
-                type="button"
-                onClick={() => { setGeneratedQuestion(null); setStep('config'); }}
-                disabled={isGenerating || isSaving}
-                className="flex items-center gap-1.5 h-8 px-3 text-xs rounded-lg border border-border text-foreground hover:bg-muted/60 transition-colors disabled:opacity-50"
-              >
-                <RefreshCw className="w-4 h-4" />
-                Regenerar
-              </button>
-              <div className="flex flex-col sm:flex-row gap-2">
-                <button
-                  type="button"
-                  onClick={handleClose}
-                  className="flex items-center gap-1.5 h-8 px-3 text-xs rounded-lg border border-border text-foreground hover:bg-muted/60 transition-colors disabled:opacity-50"
-                >
-                  <X className="w-4 h-4" />
-                  Cancelar
-                </button>
+            <QualityPanel quality={quality.report} attempts={quality.attempts} />
+
+            <div className="sticky -bottom-4 -mx-4 -mb-4 space-y-2 border-t border-border bg-card px-4 pb-4 pt-3">
+              <div className={`grid gap-2 ${savedId ? 'grid-cols-1' : 'grid-cols-2'}`}>
                 {!savedId && (
-                  <button
-                    type="button"
-                    onClick={handleSaveSingle}
-                    disabled={isSaving}
-                    className="flex items-center gap-1.5 h-8 px-3 text-xs rounded-lg bg-blue-600 hover:bg-blue-700 text-white transition-colors disabled:opacity-50"
-                  >
+                  <Button variant="outline" size="sm" type="button" onClick={handleSaveSingle} disabled={isSaving}>
                     {isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
                     Guardar en BD
-                  </button>
+                  </Button>
                 )}
-                <button
-                  type="button"
-                  onClick={handleAcceptSingle}
-                  className="flex items-center gap-1.5 h-8 px-3 text-xs rounded-lg bg-green-600 hover:bg-green-700 text-white transition-colors"
-                >
+                <Button size="sm" type="button" onClick={handleAcceptSingle}>
                   <Check className="w-4 h-4" />
-                  Aplicar al Formulario
-                </button>
+                  Aplicar al formulario
+                </Button>
+              </div>
+              <div className="flex items-center justify-between">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  type="button"
+                  onClick={() => { setGeneratedQuestion(null); setStep('config'); }}
+                  disabled={isGenerating || isSaving}
+                >
+                  <RefreshCw className="w-4 h-4" />
+                  Regenerar
+                </Button>
+                <Button variant="ghost" size="sm" type="button" onClick={handleClose}>
+                  <X className="w-4 h-4" />
+                  Cancelar
+                </Button>
               </div>
             </div>
           </div>
@@ -1004,7 +925,7 @@ const AIQuestionGenerator: React.FC<AIQuestionGeneratorProps> = ({
           <div className="space-y-4">
             {bulkPartial && (
               <div className="flex items-start gap-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-300 dark:border-amber-600/40 rounded-lg px-4 py-3 text-sm">
-                <span className="text-amber-600 dark:text-amber-400 text-lg leading-none">⚠</span>
+                <AlertTriangle className="mt-0.5 size-4 shrink-0 text-amber-600 dark:text-amber-400" />
                 <div className="text-amber-700 dark:text-amber-200">
                   <p className="font-medium">Límite diario de GROQ alcanzado</p>
                   <p className="text-amber-700 dark:text-amber-300 text-xs mt-0.5">
@@ -1023,17 +944,23 @@ const AIQuestionGenerator: React.FC<AIQuestionGeneratorProps> = ({
                   · {acceptedCount} aceptadas
                 </span>
               </h3>
-              <button
+              <Button
+                variant="outline"
+                size="sm"
                 type="button"
                 onClick={() => { setBulkResults([]); setStep('config'); }}
-                className="flex items-center gap-1.5 h-8 px-3 text-xs rounded-lg border border-border text-foreground hover:bg-muted/60 transition-colors disabled:opacity-50"
               >
                 <RefreshCw className="w-3 h-3" />
                 Regenerar lote
-              </button>
+              </Button>
             </div>
+            {bulkRejected > 0 && (
+              <p className="-mt-2 text-xs text-muted-foreground">
+                {bulkRejected} {bulkRejected === 1 ? 'pregunta no superó' : 'preguntas no superaron'} el control de calidad y no se incluyen.
+              </p>
+            )}
 
-            <div className="space-y-2 max-h-64 overflow-y-auto pr-1">
+            <div className="space-y-2">
               {bulkResults.map((result) => (
                 <div
                   key={result.index}
@@ -1060,20 +987,22 @@ const AIQuestionGenerator: React.FC<AIQuestionGeneratorProps> = ({
                       {result.accepted && <Check className="w-3 h-3" />}
                     </button>
 
-                    <p className="flex-1 text-sm text-foreground/90 line-clamp-1 min-w-0">
+                    <p className="flex-1 text-sm text-foreground/90 line-clamp-2 min-w-0">
                       <span className="text-muted-foreground/60 mr-1.5">#{result.index + 1}</span>
                       {result.question.content.question}
                     </p>
 
                     <div className="flex items-center gap-1.5 flex-shrink-0">
+                      <QualityBadge quality={result.quality} />
                       {result.retried && (
                         <span className="px-1.5 py-0.5 text-xs rounded border border-yellow-300 dark:border-yellow-600/40 text-yellow-600 dark:text-yellow-400">
                           variado
                         </span>
                       )}
                       {result.savedId && (
-                        <span className="px-1.5 py-0.5 text-xs rounded bg-blue-600 dark:bg-blue-700 text-white">
-                          ✓ {result.savedId.slice(-5)}
+                        <span className="inline-flex items-center gap-1 rounded-md bg-primary/10 px-1.5 py-0.5 text-xs font-medium text-primary">
+                          <Check className="size-3" />
+                          Guardada
                         </span>
                       )}
                     </div>
@@ -1093,14 +1022,21 @@ const AIQuestionGenerator: React.FC<AIQuestionGeneratorProps> = ({
                     </button>
                   </div>
 
+                  {(result.quality?.issues.length ?? 0) > 0 && (
+                    <p className="-mt-1.5 pb-2.5 pl-[3.25rem] pr-4 text-xs text-amber-700 dark:text-amber-300">
+                      {result.quality!.issues.map((issue) => issue.label).join(' · ')}
+                    </p>
+                  )}
+
                   {expandedIndex === result.index && (
                     <div className="px-4 pb-4 border-t border-border/50 pt-3">
                       <QuestionPreviewCard question={result.question} compact />
                       {!result.savedId && (
                         <div className="mt-3 flex justify-end">
-                          <button
+                          <Button
+                            variant="outline"
+                            size="sm"
                             type="button"
-                            className="flex items-center gap-1.5 h-8 px-3 text-xs rounded-lg border border-purple-300 dark:border-purple-600/50 text-purple-700 dark:text-purple-300 hover:bg-purple-50 dark:hover:bg-purple-900/30 transition-colors"
                             onClick={() => {
                               onQuestionGenerated(
                                 toFormQuestion(result.question, isListening ? audioBlobUrl : undefined),
@@ -1111,7 +1047,7 @@ const AIQuestionGenerator: React.FC<AIQuestionGeneratorProps> = ({
                             }}
                           >
                             Aplicar al formulario
-                          </button>
+                          </Button>
                         </div>
                       )}
                     </div>
@@ -1120,7 +1056,8 @@ const AIQuestionGenerator: React.FC<AIQuestionGeneratorProps> = ({
               ))}
             </div>
 
-            <div className="flex flex-col gap-2 pt-3 border-t border-border">
+            {/* Actions stay visible while the list scrolls with the panel */}
+            <div className="sticky -bottom-4 -mx-4 -mb-4 flex flex-col gap-2 border-t border-border bg-card px-4 pb-4 pt-3">
               <div className="flex items-center gap-2">
                 <button
                   type="button"
@@ -1143,11 +1080,12 @@ const AIQuestionGenerator: React.FC<AIQuestionGeneratorProps> = ({
                 </button>
               </div>
               <div className="flex flex-col gap-2">
-                <button
+                <Button
+                  size="sm"
                   type="button"
                   onClick={handleBulkSave}
                   disabled={isBulkSaving || unsavedAccepted === 0}
-                  className="w-full flex items-center justify-center gap-1.5 h-8 px-3 text-xs rounded-lg bg-blue-600 hover:bg-blue-700 text-white transition-colors disabled:opacity-50"
+                  className="w-full"
                 >
                   {isBulkSaving ? (
                     <Loader2 className="w-4 h-4 animate-spin" />
@@ -1155,15 +1093,17 @@ const AIQuestionGenerator: React.FC<AIQuestionGeneratorProps> = ({
                     <Save className="w-4 h-4" />
                   )}
                   Guardar {unsavedAccepted > 0 ? `${unsavedAccepted} seleccionadas` : 'seleccionadas'}
-                </button>
-                <button
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
                   type="button"
                   onClick={handleClose}
-                  className="w-full flex items-center justify-center gap-1.5 h-8 px-3 text-xs rounded-lg border border-border text-foreground hover:bg-muted/60 transition-colors"
+                  className="w-full"
                 >
                   <X className="w-4 h-4" />
                   Cerrar
-                </button>
+                </Button>
               </div>
             </div>
           </div>

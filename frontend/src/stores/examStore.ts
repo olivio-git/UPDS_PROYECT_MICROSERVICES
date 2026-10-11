@@ -21,6 +21,8 @@ interface ExamState {
 
   // Settings
   browserLockdown: boolean;
+  /** Plays allowed per listening recording (exam.configuration.listeningPlays, 0 = unlimited). */
+  listeningPlays: number;
 
   // Actions
   setSessionData: (data: {
@@ -56,6 +58,7 @@ export const useExamStore = create<ExamState>((set) => ({
   currentSectionId: null,
   timeRemaining: null,
   browserLockdown: false,
+  listeningPlays: 2,
 
   // Actions
   setSessionData: (data) => {

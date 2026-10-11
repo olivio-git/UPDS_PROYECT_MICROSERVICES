@@ -301,7 +301,7 @@ export class ReportsService {
 
       // Construir el reporte
       const competencyBreakdown: Record<string, any> = {};
-      const ALL_COMPETENCIES = ['reading', 'writing', 'listening', 'speaking'];
+      const ALL_COMPETENCIES = ['reading', 'writing', 'listening', 'speaking', 'grammar', 'vocabulary'];
       const competencies = filters.competencies?.length
         ? filters.competencies.filter(c => ALL_COMPETENCIES.includes(c))
         : ALL_COMPETENCIES;

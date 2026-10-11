@@ -120,3 +120,40 @@ describe('computeMastery — level-mastery-indicator spec', () => {
     assert.equal(mastery!.competencies.length, 2);
   });
 });
+
+describe('minimum per competency to pass', async () => {
+  const { computeExamScoring, competenciesBelow } = await import('../src/grading/scoring.js');
+  const qr = (competency: string, score: number) => ({ questionId: `${competency}-${score}-${Math.random()}`, score, maxScore: 10, competency });
+  // 90% in reading and writing, 0% in speaking → 60% overall.
+  const results = [qr('reading', 9), qr('reading', 9), qr('writing', 9), qr('writing', 9), qr('speaking', 0)];
+
+  test('without a minimum, the overall score decides (as before)', () => {
+    const out = computeExamScoring({ questionResults: results, examType: 'final', examPassingScore: 60, status: 'completed' });
+    assert.equal(out.percentage, 72);
+    assert.equal(out.passed, true);
+    assert.equal(out.failedCompetencies, undefined);
+  });
+
+  test('with a minimum, a skill at 0% fails the exam and is named', () => {
+    const out = computeExamScoring({ questionResults: results, examType: 'final', examPassingScore: 60, minCompetencyScore: 40, status: 'completed' });
+    assert.equal(out.passed, false);
+    assert.deepEqual(out.failedCompetencies, ['speaking']);
+  });
+
+  test('every competency at or above the minimum passes', () => {
+    const ok = [...results.slice(0, 4), qr('speaking', 4)];
+    const out = computeExamScoring({ questionResults: ok, examType: 'final', examPassingScore: 60, minCompetencyScore: 40, status: 'completed' });
+    assert.equal(out.passed, true);
+    assert.deepEqual(out.failedCompetencies, []);
+  });
+
+  test('no verdict while pending or for placement exams', () => {
+    assert.equal(computeExamScoring({ questionResults: results, examType: 'final', examPassingScore: 60, minCompetencyScore: 40, status: 'pending_ai_review' }).passed, undefined);
+    assert.equal(computeExamScoring({ questionResults: results, examType: 'placement', examPassingScore: 60, minCompetencyScore: 40, status: 'completed' }).passed, undefined);
+  });
+
+  test('a minimum of 0 or none is off', () => {
+    assert.equal(competenciesBelow(results, 0), undefined);
+    assert.equal(competenciesBelow(results, undefined), undefined);
+  });
+});

@@ -1,6 +1,6 @@
-import { Badge } from '@/components/atoms/badge';
-import { Button } from '@/components/atoms/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/atoms/card';
+import { Badge } from '@/components/keel/badge';
+import { Button } from '@/components/keel/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/keel/card';
 import { MainLayout } from '@/components/layout';
 import { useBrowserLockdown } from '@/hooks/useBrowserLockdown';
 import {
@@ -16,6 +16,9 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { toast } from 'sonner';
 import QuestionRenderer from '../components/QuestionRenderer';
+
+/** Same default as linear exams; the adaptive start response carries no exam settings. */
+const DEFAULT_LISTENING_PLAYS = 2;
 import { ExamSubmittedScreen } from '../components/ExamSubmittedScreen';
 import { SessionCancelledScreen } from '../components/SessionCancelledScreen';
 
@@ -38,13 +41,15 @@ interface FeedbackState {
   feedback: string;
 }
 
+// Every level shares the theme accent; the level code itself is the label.
+const LEVEL_BADGE = 'bg-primary/10 text-primary border-primary/30';
 const LEVEL_COLORS: Record<string, string> = {
-  A1: 'bg-muted/50 text-muted-foreground border-border',
-  A2: 'bg-green-500/20 text-green-300 border-green-500/30',
-  B1: 'bg-blue-500/20 text-blue-300 border-blue-500/30',
-  B2: 'bg-purple-500/20 text-purple-300 border-purple-500/30',
-  C1: 'bg-orange-500/20 text-orange-300 border-orange-500/30',
-  C2: 'bg-red-500/20 text-red-300 border-red-500/30',
+  A1: LEVEL_BADGE,
+  A2: LEVEL_BADGE,
+  B1: LEVEL_BADGE,
+  B2: LEVEL_BADGE,
+  C1: LEVEL_BADGE,
+  C2: LEVEL_BADGE,
 };
 
 const AdaptiveExamRunner: React.FC = () => {
@@ -263,6 +268,11 @@ const AdaptiveExamRunner: React.FC = () => {
         }
       }
     } catch (err: any) {
+      if (err?.response?.data?.code === 'ATTEMPTS_EXHAUSTED') {
+        toast.error(err.response.data.message || 'Ya usaste los intentos permitidos para este examen.', { duration: 8000 });
+        navigate('/student/dashboard');
+        return;
+      }
       if (err?.response?.data?.code === 'CANDIDATE_REMOVED') {
         setKicked(true);
         setKickReason(err?.response?.data?.message);
@@ -377,7 +387,7 @@ const AdaptiveExamRunner: React.FC = () => {
     return (
       <MainLayout gradientVariant="primary">
         <div className="max-w-3xl mx-auto flex items-center justify-center min-h-96">
-          <Card className="bg-card border border-line w-full max-w-md">
+          <Card className="w-full max-w-md">
             <CardContent className="p-10 text-center space-y-4">
               <UserX className="h-12 w-12 text-red-400 mx-auto" />
               <h2 className="text-xl font-bold text-foreground">Has sido retirado del examen</h2>
@@ -403,7 +413,7 @@ const AdaptiveExamRunner: React.FC = () => {
     return (
       <MainLayout gradientVariant="primary">
         <div className="max-w-3xl mx-auto flex items-center justify-center min-h-96">
-          <Card className="bg-card border border-line w-full max-w-md">
+          <Card className="w-full max-w-md">
             <CardContent className="p-10 text-center space-y-4">
               <AlertCircle className="h-10 w-10 text-red-400 mx-auto" />
               <h2 className="text-xl font-bold text-foreground">No se pudo enviar el examen</h2>
@@ -434,7 +444,7 @@ const AdaptiveExamRunner: React.FC = () => {
       {/* ── Fullscreen re-entry overlay (browser lockdown) ─────────────────── */}
       {lockdownEnabled && showFullscreenPrompt && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
-          <Card className="bg-card border border-amber-400/60 dark:border-amber-500/50 w-full max-w-sm">
+          <Card className="border-amber-400/60 dark:border-amber-500/50 w-full max-w-sm">
             <CardContent className="p-6 text-center space-y-4">
               <div className="w-12 h-12 rounded-full bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-700/50 flex items-center justify-center mx-auto">
                 <Maximize className="h-6 w-6 text-amber-600 dark:text-amber-400" />
@@ -496,7 +506,7 @@ const AdaptiveExamRunner: React.FC = () => {
 
         {/* Feedback overlay — neutral when results are hidden */}
         {showFeedback && resultsHidden && (
-          <div className="p-4 rounded-lg border flex items-center gap-3 transition-all bg-muted/50 border-line">
+          <div className="p-4 rounded-lg border flex items-center gap-3 transition-all bg-muted/50 border-border">
             <CheckCircle className="h-5 w-5 text-muted-foreground shrink-0" />
             <p className="font-medium text-foreground">Respuesta registrada</p>
           </div>
@@ -525,9 +535,9 @@ const AdaptiveExamRunner: React.FC = () => {
 
         {/* Question Card */}
         {currentQuestion && !showFeedback && (
-          <Card className="bg-card border border-line">
+          <Card>
             <CardHeader>
-              <CardTitle className="text-foreground text-base font-medium flex items-center gap-2">
+              <CardTitle className="text-base font-medium flex items-center gap-2">
                 <Brain className="h-4 w-4 text-blue-400" />
                 Pregunta {(adaptiveState?.questionsAnswered ?? 0) + 1}
               </CardTitle>
@@ -537,13 +547,14 @@ const AdaptiveExamRunner: React.FC = () => {
                 question={currentQuestion}
                 answer={currentAnswer}
                 onChange={(_questionId, value) => handleAnswerChange(value)}
+                listeningPlays={DEFAULT_LISTENING_PLAYS}
               />
 
               <div className="mt-6 flex justify-end">
                 <Button
                   onClick={handleSubmitAnswer}
                   disabled={submitting || !currentAnswer}
-                  className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white min-w-32"
+                  className="min-w-32"
                 >
                   {submitting ? (
                     <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Evaluando...</>

@@ -1,4 +1,4 @@
-import { Button } from '@/components/atoms/button';
+import { Button } from '@/components/keel/button';
 import { MainLayout } from '@/components/layout';
 import ExportOptionsModal from '@/components/modals/ExportOptionsModal';
 import type { Candidate } from '@/services/candidateService';
@@ -87,30 +87,31 @@ const StudentHistoryScreen: React.FC = () => {
 
   return (
     <MainLayout>
-      <div className="flex h-full min-h-0 flex-col gap-3 overflow-auto p-3">
+      <div className="flex h-full min-h-0 flex-col gap-4 overflow-auto px-4 pb-4 *:shrink-0">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <button
+            <Button
+              variant="outline"
+              size="icon-sm"
               type="button"
               onClick={() => navigate(-1)}
               aria-label="Volver"
-              className="h-7 w-7 flex items-center justify-center rounded border border-border bg-muted/40 text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
             >
               <ChevronLeft className="h-4 w-4" />
-            </button>
+            </Button>
             <div>
-              <h1 className="text-lg font-bold text-foreground">Historial de Estudiante</h1>
+              <h1 className="text-xl font-bold text-foreground">Historial de Estudiante</h1>
               <p className="text-xs text-muted-foreground">Progreso académico individual</p>
             </div>
           </div>
           {data && (
-            <Button onClick={() => setExportOpen(true)} size="sm" className="bg-emerald-600 hover:bg-emerald-700 text-white h-7 text-xs">
+            <Button size="sm" onClick={() => setExportOpen(true)}>
               <Download className="h-3 w-3 mr-1" />Exportar
             </Button>
           )}
         </div>
 
-        <div className="bg-card border border-border p-3">
+        <div className="bg-card border border-border p-3 rounded-xl">
           {student
             ? <SelectedStudent student={student} onClear={clearStudent} />
             : <CandidateSearch onSelect={selectCandidate} />}

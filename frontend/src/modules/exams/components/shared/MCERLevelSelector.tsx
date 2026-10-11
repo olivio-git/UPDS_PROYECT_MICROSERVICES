@@ -4,7 +4,7 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/atoms/select";
+} from "@/components/keel/select";
 import { MCER_LEVELS, MCER_LEVEL_DESCRIPTIONS, type MCERLevel } from "../../constants/academic.constants";
 
 interface MCERLevelSelectorProps {
@@ -26,19 +26,18 @@ const MCERLevelSelector = ({
 }: MCERLevelSelectorProps) => {
   return (
     <Select
-      value={value}
-      onValueChange={onValueChange}
+      value={value ?? null}
+      onValueChange={(v) => v && onValueChange(v)}
       disabled={disabled}
     >
-      <SelectTrigger className={`bg-input border-line text-foreground ${className}`}>
+      <SelectTrigger className={`w-full ${className}`}>
         <SelectValue placeholder={placeholder} />
       </SelectTrigger>
-      <SelectContent className="bg-box border-line">
+      <SelectContent>
         {MCER_LEVELS.map((level) => (
           <SelectItem
             key={level}
             value={level}
-            className="text-foreground hover:bg-line/50 focus:bg-line/50"
           >
             <div className="flex flex-col">
               <span className="font-medium">{level}</span>

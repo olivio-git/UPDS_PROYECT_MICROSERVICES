@@ -1,3 +1,7 @@
+import { sampleFavoringUnseen } from '../utils/questionSampling';
+import { toStudentQuestion } from '../utils/studentQuestionView';
+import { attemptLimitError, COUNTED_ATTEMPT_STATUSES, hasAnswerContent, listeningPlaysOf } from '../utils/attemptLimit';
+import { fallbackLevels, nextPlacementStep, shouldStopPlacement } from '../utils/adaptivePlacement';
 import { Types } from 'mongoose';
 import axios from 'axios';
 import type { ExamAttemptFinishedReason } from '@cba/events';
@@ -238,6 +242,17 @@ export class ExamTakingService {
       }
 
       if (!exam) throw new Error('Exam not found for session');
+      if (isNewAttempt) await this.assertAttemptsLeft(exam, candidate._id, session._id);
+
+    // Questions this candidate already got in earlier attempts (other
+    // sessions): a retake picks unseen questions first and only repeats when
+    // the bank runs out.
+    const previousAttempts = await Attempt.find({ candidateId: candidate._id, sessionId: { $ne: session._id } })
+      .select('questionIds')
+      .lean()
+      .exec();
+    const seenQuestionIds = new Set(previousAttempts.flatMap((a: any) => (a.questionIds ?? []).map(String)));
+    const isSeen = (q: any) => seenQuestionIds.has(String(q?._id ?? q));
 
     // Build question set by sections from exam.structure
     const sections = [];
@@ -278,20 +293,27 @@ export class ExamTakingService {
             isActive: true
           }).exec();
         } else {
-          // Find questions by competency and level with buffer for randomization
-          const bufferMultiplier = 1.5; // 50% buffer
-          competencyQuestions = await Question.find({
-            level: exam.targetLevel,
-            competency: competency,
-            isActive: true
-          }).limit(Math.ceil(totalQuestionsNeeded * bufferMultiplier)).exec();
+          // Buffer over what the sections need: listening/speaking skip
+          // questions that share an audio/context with one already picked.
+          const bufferMultiplier = 1.5;
+          const wanted = Math.ceil(totalQuestionsNeeded * bufferMultiplier);
+          const filter = { level: exam.targetLevel, competency, isActive: true };
+          if (exam.configuration.randomizeQuestions) {
+            // Sample from the WHOLE bank (ids only), then load the chosen ones.
+            const ids = await Question.find(filter).select('_id').lean().exec();
+            const picked = sampleFavoringUnseen(ids.map((d: any) => d._id), wanted, isSeen);
+            competencyQuestions = await Question.find({ _id: { $in: picked } }).exec();
+          } else {
+            competencyQuestions = await Question.find(filter).limit(wanted).exec();
+          }
         }
 
         console.log(`✅ [Competency: ${competency}] Found ${competencyQuestions.length} available questions`);
 
-        // Randomize questions for this competency
+        // Randomize, keeping unseen questions ahead of ones this candidate already saw
+        // (sections take questions from the front of this list).
         if (exam.configuration.randomizeQuestions) {
-          competencyQuestions = this.shuffleArray(competencyQuestions);
+          competencyQuestions = sampleFavoringUnseen(competencyQuestions, competencyQuestions.length, isSeen);
         }
 
         // Check if we have enough questions
@@ -343,6 +365,7 @@ export class ExamTakingService {
           id: sectionConfig.name.toLowerCase().replace(/\s+/g, '_').replace(/[^a-z0-9_]/g, ''),
           name: sectionConfig.name,
           competency: sectionConfig.competency,
+          instructions: sectionConfig.instructions,
           duration: sectionConfig.duration, // in minutes
           weight: sectionConfig.weight,
           questionCount: questionsForSection.length,
@@ -366,8 +389,8 @@ export class ExamTakingService {
         questionDocs = await Question.find({ level: exam.targetLevel, isActive: true }).exec();
       }
 
-      const shuffled = questionDocs.sort(() => 0.5 - Math.random());
-      const selected = shuffled.slice(0, questionCount);
+      // Uniform pick (sort(() => 0.5 - Math.random()) is a biased shuffle).
+      const selected = sampleFavoringUnseen(questionDocs, questionCount, isSeen);
 
       sections.push({
         id: 'general',
@@ -425,6 +448,7 @@ export class ExamTakingService {
             id: section.id,
             name: section.name,
             competency: section.competency,
+            instructions: (section as any).instructions,
             duration: section.duration,
             weight: section.weight,
             questionCount: section.questionCount,
@@ -445,29 +469,10 @@ export class ExamTakingService {
       await attempt.save();
     }
 
-    // Helper: Fisher-Yates shuffle (pure, no mutations to original)
-    const shuffleArray = <T>(arr: T[]): T[] => {
-      const shuffled = [...arr];
-      for (let i = shuffled.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        const temp = shuffled[i]!; shuffled[i] = shuffled[j]!; shuffled[j] = temp;
-      }
-      return shuffled;
-    };
-
-    // Return sections with questions (without correct answers) and timing info
-    // Options and items are shuffled so students don't see them in correct order
+    // Return sections with questions (answer key removed, options and items shuffled) and timing info
     const sectionsWithQuestions = sections.map(section => ({
       ...section,
-      questions: section.questions.map((q: any) => {
-        const obj = q.toObject();
-        if (obj.content) {
-          if (obj.content.options) obj.content.options = shuffleArray(obj.content.options);
-          if (obj.content.items) obj.content.items = shuffleArray(obj.content.items);
-          delete obj.content.correctAnswer;
-        }
-        return obj;
-      })
+      questions: section.questions.map((q: any) => toStudentQuestion(q))
     }));
 
     // Get existing answers (in case this is a restart of an existing attempt)
@@ -490,7 +495,8 @@ export class ExamTakingService {
       timeAllowedSeconds: attempt.timeAllowedSeconds,
       attemptId: attempt._id,
       totalQuestions: allSelectedQuestions.length,
-      browserLockdown: (session as any).settings?.browserLockdown ?? false
+      browserLockdown: (session as any).settings?.browserLockdown ?? false,
+      listeningPlays: listeningPlaysOf(exam),
     };
   }
 
@@ -772,14 +778,11 @@ export class ExamTakingService {
           id: sectionStructure.id,
           name: sectionStructure.name,
           competency: sectionStructure.competency,
+          instructions: sectionStructure.instructions,
           duration: sectionStructure.duration,
           weight: sectionStructure.weight,
           questionCount: sectionStructure.questionCount,
-          questions: sectionQuestions.map((q: any) => {
-            const obj = q.toObject();
-            if (obj.content) delete obj.content.correctAnswer;
-            return obj;
-          })
+          questions: sectionQuestions.map((q: any) => toStudentQuestion(q))
         };
 
         sections.push(section);
@@ -808,11 +811,7 @@ export class ExamTakingService {
         duration: exam.structure?.totalDuration || 60,
         weight: 100,
         questionCount: allQuestions.length,
-        questions: allQuestions.map((q: any) => {
-          const obj = q.toObject();
-          if (obj.content) delete obj.content.correctAnswer;
-          return obj;
-        })
+        questions: allQuestions.map((q: any) => toStudentQuestion(q))
       }];
     } else {
       throw new Error('No stored question structure found for this attempt');
@@ -860,16 +859,18 @@ export class ExamTakingService {
       attemptId: attempt._id,
       totalQuestions,
       progress: {
-        answered: Object.keys(answers).length,
+        // Having only listened to a recording (audioPlays) is not an answer.
+        answered: Object.values(answers).filter(hasAnswerContent).length,
         total: totalQuestions,
         sections: sections.map(section => ({
           id: section.id,
           name: section.name,
-          answered: section.questions.filter((q: any) => answers[q._id.toString()]).length,
+          answered: section.questions.filter((q: any) => hasAnswerContent(answers[q._id.toString()])).length,
           total: section.questions.length
         }))
       },
-      browserLockdown: (session as any).settings?.browserLockdown ?? false
+      browserLockdown: (session as any).settings?.browserLockdown ?? false,
+      listeningPlays: listeningPlaysOf(exam),
     };
   }
   async attempts(sessionId: string, candidateId: string, countPermitted: any) {
@@ -1063,10 +1064,21 @@ export class ExamTakingService {
 
   // ==================== ADAPTIVE EXAM (CAT) METHODS ====================
 
-  private readonly ADAPTIVE_LEVELS = ['A1', 'A2', 'B1', 'B2', 'C1', 'C2'];
   private readonly ADAPTIVE_AUTO_GRADABLE_TYPES = [
     'multiple_choice', 'true_false', 'fill_blanks', 'matching', 'ordering', 'drag_drop'
   ];
+
+  /** exam.configuration.attemptsAllowed, checked before a new attempt is created (see utils/attemptLimit). */
+  private async assertAttemptsLeft(exam: any, candidateId: any, currentSessionId: any): Promise<void> {
+    const used = await Attempt.countDocuments({
+      examId: exam._id,
+      candidateId,
+      sessionId: { $ne: currentSessionId },
+      status: { $in: [...COUNTED_ATTEMPT_STATUSES] },
+    });
+    const message = attemptLimitError(exam.configuration?.attemptsAllowed, used);
+    if (message) throw new AppError(message, 403, 'ATTEMPTS_EXHAUSTED');
+  }
 
   private async pickAdaptiveQuestion(
     exam: any,
@@ -1196,6 +1208,8 @@ export class ExamTakingService {
     // pickAdaptiveQuestion below), which excludes 'audio_response' — adaptive
     // branching needs an immediate right/wrong, which speaking/audio answers
     // can't give synchronously. So requireMicrophone is always false here.
+    await this.assertAttemptsLeft(exam, userCandidateId, session._id);
+
     {
       const gate = await checkCanProceed(String(userCandidateId), false);
       if (!gate.canProceed) {
@@ -1223,6 +1237,7 @@ export class ExamTakingService {
     const adaptiveState = {
       currentLevel: startingLevel,
       consecutiveWrong: 0,
+      streak: 0,
       askedQuestionIds: [String(firstQuestion._id)],
       levelHistory: [],
       isFinished: false,
@@ -1240,12 +1255,7 @@ export class ExamTakingService {
     });
     await attempt.save();
 
-    const questionObj = firstQuestion.toObject();
-    if (questionObj.content) {
-      if (questionObj.content.options) questionObj.content.options = this.shuffleArray(questionObj.content.options);
-      if (questionObj.content.items) questionObj.content.items = this.shuffleArray(questionObj.content.items);
-      delete questionObj.content.correctAnswer;
-    }
+    const questionObj = toStudentQuestion(firstQuestion);
 
     // result-visibility: with showResults=false the runner must not show a level.
     return toStudentAdaptiveView({
@@ -1320,14 +1330,16 @@ export class ExamTakingService {
     type AdaptiveState = {
       currentLevel: string;
       consecutiveWrong: number;
+      streak: number;
       askedQuestionIds: string[];
-      levelHistory: Array<{ questionId: string; level: string; isCorrect: boolean; score: number; maxScore: number }>;
+      levelHistory: Array<{ questionId: string; level: string; isCorrect: boolean; score: number; maxScore: number; type?: string; optionCount?: number }>;
       isFinished: boolean;
       stopReason?: 'max_questions' | 'consecutive_wrong' | 'manual';
     };
     const state: AdaptiveState = attempt.adaptiveState ? {
       currentLevel: attempt.adaptiveState.currentLevel,
       consecutiveWrong: attempt.adaptiveState.consecutiveWrong,
+      streak: attempt.adaptiveState.streak ?? 0,
       askedQuestionIds: [...(attempt.adaptiveState.askedQuestionIds || [])],
       levelHistory: [...(attempt.adaptiveState.levelHistory || [])],
       isFinished: attempt.adaptiveState.isFinished,
@@ -1335,6 +1347,7 @@ export class ExamTakingService {
     } : {
       currentLevel: (exam as any).placementConfig?.startingLevel || 'A2',
       consecutiveWrong: 0,
+      streak: 0,
       askedQuestionIds: [],
       levelHistory: [],
       isFinished: false,
@@ -1347,26 +1360,17 @@ export class ExamTakingService {
       isCorrect,
       score,
       maxScore,
+      type: question.type,
+      optionCount: question.content?.options?.length,
     });
 
     const questionsAnswered = state.levelHistory.length;
 
-    // Update level / consecutive wrong
-    if (isCorrect) {
-      state.consecutiveWrong = 0;
-      const currentIdx = this.ADAPTIVE_LEVELS.indexOf(state.currentLevel);
-      state.currentLevel = this.ADAPTIVE_LEVELS[Math.min(currentIdx + 1, this.ADAPTIVE_LEVELS.length - 1)]!;
-    } else {
-      state.consecutiveWrong = (state.consecutiveWrong || 0) + 1;
-    }
+    // Staircase: two right in a row → up one level, one wrong → down one level.
+    Object.assign(state, nextPlacementStep(state, isCorrect));
 
     // Check stop conditions
-    let stopReason: 'max_questions' | 'consecutive_wrong' | undefined;
-    if (questionsAnswered >= maxQuestions) {
-      stopReason = 'max_questions';
-    } else if (state.consecutiveWrong >= consecutiveWrongThreshold) {
-      stopReason = 'consecutive_wrong';
-    }
+    const stopReason = shouldStopPlacement(state, questionsAnswered, maxQuestions, consecutiveWrongThreshold);
 
     let nextQuestion: any = null;
     let finished = false;
@@ -1379,9 +1383,8 @@ export class ExamTakingService {
       // Pick next question
       nextQuestion = await this.pickAdaptiveQuestion(exam, state.currentLevel, state.askedQuestionIds);
       if (!nextQuestion) {
-        // Try adjacent levels if no questions available
-        const adjacentLevels = this.ADAPTIVE_LEVELS.filter(l => l !== state.currentLevel);
-        for (const lvl of adjacentLevels) {
+        // Nothing left at this level: try the nearest levels first.
+        for (const lvl of fallbackLevels(state.currentLevel)) {
           nextQuestion = await this.pickAdaptiveQuestion(exam, lvl, state.askedQuestionIds);
           if (nextQuestion) {
             state.currentLevel = lvl;
@@ -1395,12 +1398,7 @@ export class ExamTakingService {
         finished = true;
       } else {
         state.askedQuestionIds.push(String(nextQuestion._id));
-        const nextObj = nextQuestion.toObject();
-        if (nextObj.content) {
-          if (nextObj.content.options) nextObj.content.options = this.shuffleArray(nextObj.content.options);
-          if (nextObj.content.items) nextObj.content.items = this.shuffleArray(nextObj.content.items);
-          delete nextObj.content.correctAnswer;
-        }
+        const nextObj = toStudentQuestion(nextQuestion);
         nextQuestion = nextObj;
       }
     }
@@ -1485,12 +1483,7 @@ export class ExamTakingService {
       return toStudentAdaptiveView({ finished: true, adaptiveState: attempt.adaptiveState }, exam);
     }
 
-    const questionObj = nextQuestion.toObject();
-    if (questionObj.content) {
-      if (questionObj.content.options) questionObj.content.options = this.shuffleArray(questionObj.content.options);
-      if (questionObj.content.items) questionObj.content.items = this.shuffleArray(questionObj.content.items);
-      delete questionObj.content.correctAnswer;
-    }
+    const questionObj = toStudentQuestion(nextQuestion);
 
     const session = await Session.findById(attempt.sessionId).select('settings.browserLockdown').lean();
 
@@ -1510,19 +1503,4 @@ export class ExamTakingService {
     }, exam);
   }
 
-  /**
-   * Fisher-Yates shuffle algorithm to randomize array elements
-   * @param array Array to shuffle
-   * @returns Shuffled copy of the array
-   */
-  private shuffleArray<T>(array: T[]): T[] {
-    const shuffled = [...array];
-    for (let i = shuffled.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      const temp = shuffled[i]!;
-      shuffled[i] = shuffled[j]!;
-      shuffled[j] = temp;
-    }
-    return shuffled;
-  }
 }

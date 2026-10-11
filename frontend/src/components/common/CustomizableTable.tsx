@@ -9,9 +9,9 @@ import {
     TableHead,
     TableHeader,
     TableRow,
-} from "@/components/atoms/table"
+} from "@/components/keel/table"
 import { ArrowDown, ArrowUp, ArrowUpDown } from "lucide-react"
-import { Skeleton } from "../atoms/skeleton";
+import { Skeleton } from "@/components/keel/skeleton";
 import ErrorDataComponent from "./errorDataComponent";
 import NoDataComponent from "./noDataComponent";
 interface Props<T> {

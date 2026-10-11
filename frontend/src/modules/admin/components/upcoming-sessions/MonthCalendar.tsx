@@ -1,4 +1,5 @@
-import { HoverCard, HoverCardContent, HoverCardTrigger } from '@/components/atoms/hover-card';
+import { Button } from '@/components/keel/button';
+import { HoverCard, HoverCardContent, HoverCardTrigger } from '@/components/keel/hover-card';
 import { cn } from '@/lib/utils';
 import { SESSION_STATUS_LEGEND, sessionStatus } from '@/modules/exams/sessionStatus';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
@@ -61,20 +62,18 @@ export function MonthCalendar({ viewDate, onViewDateChange, sessionsByDay, selec
   const todayKey = localDayKey(new Date());
 
   return (
-    <div className="bg-card border border-border overflow-hidden">
+    <div className="bg-card border border-border overflow-hidden rounded-xl">
       <div className="px-4 py-3 border-b border-border flex items-center justify-between">
         <div className="flex items-center gap-1">
-          <button type="button" aria-label="Mes anterior" onClick={() => onViewDateChange(new Date(year, month - 1, 1))}
-            className="p-1.5 rounded-lg hover:bg-muted transition-colors text-muted-foreground hover:text-foreground">
+          <Button variant="ghost" size="icon-sm" type="button" aria-label="Mes anterior" onClick={() => onViewDateChange(new Date(year, month - 1, 1))}>
             <ChevronLeft className="h-4 w-4" />
-          </button>
+          </Button>
           <span className="text-sm font-semibold text-foreground px-2 min-w-[140px] text-center" aria-live="polite">
             {MONTHS[month]} {year}
           </span>
-          <button type="button" aria-label="Mes siguiente" onClick={() => onViewDateChange(new Date(year, month + 1, 1))}
-            className="p-1.5 rounded-lg hover:bg-muted transition-colors text-muted-foreground hover:text-foreground">
+          <Button variant="ghost" size="icon-sm" type="button" aria-label="Mes siguiente" onClick={() => onViewDateChange(new Date(year, month + 1, 1))}>
             <ChevronRight className="h-4 w-4" />
-          </button>
+          </Button>
         </div>
         <button type="button" onClick={() => { onViewDateChange(new Date()); onSelectDay(null); }}
           className="text-xs text-primary hover:text-primary/80 font-medium transition-colors">
@@ -101,19 +100,23 @@ export function MonthCalendar({ viewDate, onViewDateChange, sessionsByDay, selec
               return <div key={key} className={cellClass(state, false)}>{content}</div>;
             }
             return (
-              <HoverCard key={key} openDelay={300} closeDelay={100}>
-                <HoverCardTrigger asChild>
-                  <button
-                    type="button"
-                    aria-pressed={state.isSelected}
-                    aria-label={`${day} de ${MONTHS[month]}: ${sessions.length} sesión${sessions.length !== 1 ? 'es' : ''}`}
-                    onClick={() => onSelectDay(state.isSelected ? null : key)}
-                    className={cellClass(state, true)}
-                  >
-                    {content}
-                  </button>
+              <HoverCard key={key}>
+                <HoverCardTrigger
+                  delay={300}
+                  closeDelay={100}
+                  render={
+                    <button
+                      type="button"
+                      aria-pressed={state.isSelected}
+                      aria-label={`${day} de ${MONTHS[month]}: ${sessions.length} sesión${sessions.length !== 1 ? 'es' : ''}`}
+                      onClick={() => onSelectDay(state.isSelected ? null : key)}
+                      className={cellClass(state, true)}
+                    />
+                  }
+                >
+                  {content}
                 </HoverCardTrigger>
-                <HoverCardContent side="right" align="start" className="w-72 p-0 overflow-hidden border border-border bg-card shadow-xl">
+                <HoverCardContent side="right" align="start" className="w-72 p-0 overflow-hidden border border-border bg-card shadow-xl rounded-xl">
                   <DaySessionsPopover date={new Date(year, month, day)} sessions={sessions} currentUserEmail={currentUserEmail} />
                 </HoverCardContent>
               </HoverCard>

@@ -22,8 +22,8 @@ import {
   HoverCardTrigger,
 } from '@/components/keel/hover-card';
 import { Spinner } from '@/components/keel/spinner';
-import { useToast } from '@/hooks/use-toast';
-import { UserAvatar } from '@/components/atoms/UserAvatar';
+import { toast } from 'sonner';
+import { UserAvatar } from '@/components/UserAvatar';
 import {
   AlertCircle,
   BookOpen,
@@ -56,7 +56,6 @@ const NextExam: React.FC<PropsNextExam> = ({
   const [error, setError] = useState<string | null>(null);
   const [startingExam, setStartingExam] = useState(false);
   const [now, setNow] = useState(() => Date.now());
-  const { toast } = useToast();
 
   // Tick cada 30 segundos para actualizar countdown/elapsed
   useEffect(() => {
@@ -171,10 +170,8 @@ const NextExam: React.FC<PropsNextExam> = ({
       //   });
       // }
     } catch (error) {
-      toast({
-        title: 'Error inesperado',
+      toast.error('Error inesperado', {
         description: 'No se pudo iniciar el examen. Intenta nuevamente.',
-        variant: 'destructive',
       });
     } finally {
       setStartingExam(false);
@@ -225,9 +222,9 @@ const NextExam: React.FC<PropsNextExam> = ({
 
   if (loading) {
     return ( 
-        <Card className="flex flex-col bg-card backdrop-blur-sm border border-line shadow-none">
-          <CardHeader className="space-y-1 border-b border-line pb-3">
-            <CardTitle className="text-foreground flex items-center gap-2 font-bold">
+        <Card flat className="flex flex-col">
+          <CardHeader className="space-y-1 border-b border-border pb-3">
+            <CardTitle className="flex items-center gap-2 font-bold">
               <Calendar className="h-6 w-6 text-brand-gray bg-muted rounded-full p-1" />
               Próximo Examen
             </CardTitle>
@@ -246,9 +243,9 @@ const NextExam: React.FC<PropsNextExam> = ({
 
   if (error) {
     return ( 
-        <Card className="flex flex-col bg-card backdrop-blur-sm border border-line shadow-none">
-          <CardHeader className="space-y-1 border-b border-line pb-3">
-            <CardTitle className="text-foreground flex items-center gap-2 font-bold">
+        <Card flat className="flex flex-col">
+          <CardHeader className="space-y-1 border-b border-border pb-3">
+            <CardTitle className="flex items-center gap-2 font-bold">
               <Calendar className="h-6 w-6 text-brand-gray bg-muted rounded-full p-1" />
               Próximo Examen
             </CardTitle>
@@ -274,9 +271,9 @@ const NextExam: React.FC<PropsNextExam> = ({
   }
   if (!nextExam) {
     return ( 
-        <Card className="flex flex-col bg-card backdrop-blur-sm border border-line shadow-none">
-          <CardHeader className="space-y-1 border-b border-line pb-3">
-            <CardTitle className="text-foreground flex items-center gap-2 font-bold">
+        <Card flat className="flex flex-col">
+          <CardHeader className="space-y-1 border-b border-border pb-3">
+            <CardTitle className="flex items-center gap-2 font-bold">
               <Calendar className="h-6 w-6 text-brand-gray bg-muted rounded-full p-1" />
               Próximo Examen
             </CardTitle>
@@ -298,8 +295,8 @@ const NextExam: React.FC<PropsNextExam> = ({
               <EmptyContent>
                 <Button
                   onClick={() => loadNextExam()}
-                  variant="default"
-                  className="w-full"
+                  variant="outline"
+                  size="sm"
                 >
                   Actualizar
                 </Button>
@@ -311,9 +308,9 @@ const NextExam: React.FC<PropsNextExam> = ({
   }
 
   return (
-    <Card className="flex flex-col bg-card backdrop-blur-sm border border-line shadow-none">
-      <CardHeader className="space-y-1 border-b border-line pb-3">
-        <CardTitle className="text-foreground flex items-center gap-2 font-bold">
+    <Card flat className="flex flex-col">
+      <CardHeader className="space-y-1 border-b border-border pb-3">
+        <CardTitle className="flex items-center gap-2 font-bold">
           <Calendar className="h-6 w-6 text-brand-gray bg-muted rounded-full p-1" />
           Próximo Examen
         </CardTitle>
@@ -344,13 +341,11 @@ const NextExam: React.FC<PropsNextExam> = ({
           <div className="flex items-center gap-2 mb-4 flex-wrap">
             <Badge
               variant="secondary"
-              className="border border-fuchsia-400/30 bg-fuchsia-500/10 text-fuchsia-600"
             >
               Nivel {nextExam.level}
             </Badge>
             <Badge
               variant="secondary"
-              className="border border-sky-400/30 bg-sky-500/10 text-sky-600"
             >
               {nextExam.duration}
             </Badge>
@@ -370,7 +365,7 @@ const NextExam: React.FC<PropsNextExam> = ({
                 delay={200}
                 closeDelay={100}
                 render={
-                <div className="bg-muted/20 rounded-lg p-3 mb-4 border border-line cursor-pointer hover:bg-muted/40 hover:border-muted-foreground/20 transition-colors group">
+                <div className="bg-muted/20 rounded-lg p-3 mb-4 border border-border cursor-pointer hover:bg-muted/40 hover:border-muted-foreground/20 transition-colors group">
                   <div className="flex items-center gap-3">
                     <UserAvatar
                       avatarUrl={nextExam.createdBy.avatarUrl}
@@ -402,10 +397,10 @@ const NextExam: React.FC<PropsNextExam> = ({
               <HoverCardContent
                 side="top"
                 align="start"
-                className="w-80 p-0 overflow-hidden border border-line bg-card shadow-xl"
+                className="w-80 p-0 overflow-hidden border border-border bg-card shadow-xl rounded-xl"
               >
                 {/* Header con avatar y nombre */}
-                <div className="relative bg-gradient-to-br from-indigo-500/10 via-purple-500/5 to-transparent p-4 border-b border-line">
+                <div className="relative p-4 border-b border-border">
                   <div className="flex items-center gap-3">
                     <UserAvatar
                       avatarUrl={nextExam.createdBy.avatarUrl}

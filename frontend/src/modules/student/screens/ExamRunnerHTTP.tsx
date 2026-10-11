@@ -34,11 +34,13 @@ import {
   Timer,
   UserX,
   X,
+  Info,
 } from 'lucide-react';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { toast } from 'sonner';
 import QuestionRenderer from '../components/QuestionRenderer';
+import { isMultipleAnswer } from '../utils/questionView';
 import SectionNavigator from '../components/SectionNavigator';
 import { ProgressRing } from '../components/ProgressRing';
 import { ExamSubmittedScreen } from '../components/ExamSubmittedScreen';
@@ -232,6 +234,7 @@ const ExamRunnerHTTP: React.FC = () => {
   // Browser lockdown — armed only while the session has it enabled AND the
   // attempt is actually in progress (not during load/completion/kicked).
   const browserLockdown = useExamStore((s) => s.browserLockdown);
+  const listeningPlays = useExamStore((s) => s.listeningPlays);
   const lockdownEnabled = isActive && sessionStatus === 'active' && browserLockdown;
   const {
     infractionCount: lockdownInfractionCount,
@@ -292,6 +295,11 @@ const ExamRunnerHTTP: React.FC = () => {
 
         // A candidate kicked by a proctor/admin (including before ever
         // starting) is refused by startExam with 403 CANDIDATE_REMOVED.
+        if (error?.response?.data?.code === 'ATTEMPTS_EXHAUSTED') {
+          toast.error(error.response.data.message || 'Ya usaste los intentos permitidos para este examen.', { duration: 8000 });
+          navigate('/student/dashboard');
+          return;
+        }
         if (error?.response?.data?.code === 'CANDIDATE_REMOVED') {
           toast.error('Has sido expulsado de esta sesión por el supervisor.', { duration: 6000 });
           navigate('/student/dashboard');
@@ -451,8 +459,7 @@ const ExamRunnerHTTP: React.FC = () => {
       const opt = options[index];
       if (!opt) return;
       const optId = opt.id || opt._id;
-      const correctCount = options.filter((o: any) => o.isCorrect).length;
-      const isSingleSelect = correctCount <= 1 || Boolean(content.correctAnswer);
+      const isSingleSelect = !isMultipleAnswer(content, options);
 
       if (isSingleSelect) {
         handleAnswerChange(qId, { selectedOptions: [optId] });
@@ -559,7 +566,7 @@ const ExamRunnerHTTP: React.FC = () => {
       <MainLayout hideHeader>
         <div className="min-h-screen flex items-center justify-center">
           <GradientWrapper intensity="medium" size="lg">
-            <Card className="w-full max-w-md bg-box backdrop-blur-sm border border-line">
+            <Card className="w-full max-w-md">
               <CardContent className="p-8 text-center">
                 <UserX className="h-12 w-12 text-red-500 mx-auto mb-4" />
                 <h3 className="text-lg font-semibold text-foreground mb-2">
@@ -602,7 +609,7 @@ const ExamRunnerHTTP: React.FC = () => {
       <MainLayout hideHeader>
         <div className="min-h-screen flex items-center justify-center">
           <GradientWrapper intensity="medium" size="lg">
-            <Card className="w-full max-w-md bg-box backdrop-blur-sm border border-line">
+            <Card className="w-full max-w-md">
               <CardContent className="p-8">
                 <div className="text-center">
                   <Spinner className="h-12 w-12 text-blue-500 mx-auto mb-4" />
@@ -627,7 +634,7 @@ const ExamRunnerHTTP: React.FC = () => {
       <MainLayout hideHeader>
         <div className="min-h-screen flex items-center justify-center">
           <GradientWrapper intensity="medium" size="lg">
-            <Card className="w-full max-w-md bg-box backdrop-blur-sm border border-line">
+            <Card className="w-full max-w-md">
               <CardContent className="p-8">
                 <Alert variant="destructive">
                   <AlertCircle className="h-4 w-4" />
@@ -653,7 +660,7 @@ const ExamRunnerHTTP: React.FC = () => {
       <MainLayout hideHeader>
         <div className="min-h-screen flex items-center justify-center">
           <GradientWrapper intensity="medium" size="lg">
-            <Card className="w-full max-w-md bg-box backdrop-blur-sm border border-line">
+            <Card className="w-full max-w-md">
               <CardContent className="p-8 text-center">
                 <AlertTriangle className="h-12 w-12 text-yellow-500 mx-auto mb-4" />
                 <h3 className="text-lg font-semibold text-foreground mb-2">
@@ -844,7 +851,7 @@ const ExamRunnerHTTP: React.FC = () => {
                 variant="outline"
                 size="sm"
                 disabled={autoSaveStatus === 'saving' || autoSaveStatus === 'idle'}
-                className="gap-1.5 border-line bg-transparent text-foreground/80 hover:bg-muted hover:text-foreground disabled:cursor-not-allowed disabled:opacity-40"
+                className="gap-1.5 border-border bg-transparent text-foreground/80 hover:bg-muted hover:text-foreground disabled:cursor-not-allowed disabled:opacity-40"
               >
                 <Save className="h-3.5 w-3.5" />
                 <span className="hidden sm:inline">Guardar avance</span>
@@ -855,7 +862,7 @@ const ExamRunnerHTTP: React.FC = () => {
 
         {/* ── Rail (full-height question navigator) + main content ── */}
         <div className="grid min-h-0 flex-1 grid-cols-1 lg:grid-cols-[320px_1fr]">
-          <div className="order-2 max-h-64 overflow-hidden border-t border-line bg-box p-3 lg:order-1 lg:h-full lg:max-h-none lg:border-t-0 lg:border-r">
+          <div className="order-2 max-h-64 overflow-hidden border-t border-border bg-card p-3 lg:order-1 lg:h-full lg:max-h-none lg:border-t-0 lg:border-r">
             <SectionNavigator
               sections={sectionStats.map(section => ({
                 ...section,
@@ -881,27 +888,19 @@ const ExamRunnerHTTP: React.FC = () => {
             <div className="flex min-h-0 flex-1 flex-col overflow-auto p-3">
               {/* The card owns the whole pane: a short question used to leave
                   a third of the screen as empty tint below it. */}
-              <Card flat className="flex flex-col">
+              <Card flat className="flex flex-col py-0">
                 <CardContent className="flex flex-col gap-4 p-5 lg:p-6">
                   {currentQuestion ? (
                     <div key={currentQuestion._id as string} className="question-enter">
-                      {/* Flag button */}
-                      <div className="flex justify-end mb-3">
-                        <button
-                          onClick={() => toggleFlag(currentQuestion._id as string)}
-                          className={[
-                            'flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all border',
-                            flaggedQuestions.has(currentQuestion._id as string)
-                              ? 'border-amber-400 dark:border-amber-500 text-amber-600 dark:text-amber-400 hover:bg-muted'
-                              : 'border-border text-muted-foreground hover:bg-muted hover:text-foreground',
-                          ].join(' ')}
-                        >
-                          {flaggedQuestions.has(currentQuestion._id as string)
-                            ? <><BookmarkCheck className="h-3.5 w-3.5 text-amber-500 fill-amber-500/20" /><span>Marcada para revisar</span></>
-                            : <><Bookmark className="h-3.5 w-3.5" /><span>Marcar para revisar</span></>
-                          }
-                        </button>
-                      </div>
+                      {currentQuestionIndex === 0 && currentSection?.instructions?.trim() && (
+                        <div className="mb-5 flex items-start gap-2.5 rounded-xl border border-primary/20 bg-primary/[0.04] px-4 py-3 text-sm leading-relaxed text-foreground/85">
+                          <Info className="mt-0.5 size-4 shrink-0 text-primary" />
+                          <p>
+                            <span className="font-medium text-foreground">{currentSection.name}. </span>
+                            {currentSection.instructions}
+                          </p>
+                        </div>
+                      )}
                       <QuestionRenderer
                         key={currentQuestion._id as string}
                         question={currentQuestion}
@@ -909,6 +908,8 @@ const ExamRunnerHTTP: React.FC = () => {
                         onChange={handleAnswerChange}
                         showQuestionNumber={false}
                         isUploadingAudio={uploadingAudio[currentQuestion._id as string] ?? false}
+                        listeningPlays={listeningPlays}
+                        persistListeningPlays
                       />
                     </div>
                   ) : (
@@ -922,17 +923,36 @@ const ExamRunnerHTTP: React.FC = () => {
             </div>
 
             {/* Navigation controls — pinned below the scroll area */}
-            <div className="shrink-0 border-t border-line bg-box px-4 py-3 lg:px-6">
+            <div className="shrink-0 border-t border-border bg-card px-4 py-3 lg:px-6">
               <div className="flex items-center justify-between gap-3">
+                <div className="flex items-center gap-1">
                 <Button
                   onClick={goToPreviousQuestion}
                   disabled={isFirstQuestionOverall}
                   variant="outline"
-                  className="text-foreground/80 border-line bg-transparent hover:bg-muted hover:text-foreground disabled:opacity-30 disabled:cursor-not-allowed"
+                  className="text-foreground/80 border-border bg-transparent hover:bg-muted hover:text-foreground disabled:opacity-30 disabled:cursor-not-allowed"
                 >
                   <ChevronLeft className="h-4 w-4 mr-1" />
                   Anterior
                 </Button>
+
+                {currentQuestion && (() => {
+                  const flagged = flaggedQuestions.has(currentQuestion._id as string);
+                  return (
+                    <Button
+                      variant="ghost"
+                      onClick={() => toggleFlag(currentQuestion._id as string)}
+                      aria-pressed={flagged}
+                      className={flagged ? 'text-amber-600 hover:text-amber-700 dark:text-amber-400 dark:hover:text-amber-300' : 'text-muted-foreground'}
+                    >
+                      {flagged
+                        ? <BookmarkCheck className="h-4 w-4 fill-amber-500/20" />
+                        : <Bookmark className="h-4 w-4" />}
+                      <span className="hidden sm:inline">{flagged ? 'Marcada' : 'Marcar para revisar'}</span>
+                    </Button>
+                  );
+                })()}
+                </div>
 
                 {/* Discreet keyboard-shortcut hint — desktop only, out of
                     the way of the primary actions it sits between. */}
@@ -954,7 +974,7 @@ const ExamRunnerHTTP: React.FC = () => {
                 {isLastQuestionOverall ? (
                   <Button
                     onClick={handleFinishExam}
-                    className="bg-emerald-600 hover:bg-emerald-500 text-white gap-2"
+                    className="gap-2"
                   >
                     <Flag className="h-4 w-4" />
                     Entregar examen
@@ -963,7 +983,6 @@ const ExamRunnerHTTP: React.FC = () => {
                   <Button
                     onClick={goToNextQuestion}
                     disabled={isLastQuestionOverall}
-                    className="bg-blue-600 hover:bg-blue-700 text-white"
                   >
                     {isLastQuestionInSection ? 'Siguiente Sección' : 'Siguiente'}
                     <ChevronRight className="h-4 w-4 ml-1" />

@@ -1,7 +1,10 @@
 import { cache } from '../config/redis';
 import { IQuestion, Question } from '../models/question.model';
+import { Rubric } from '../models/rubric.model';
+import { AppError } from '../middleware/errorHandler.middleware';
 import { CONSTANTS } from '../utils/constants';
 import { logger } from '../utils/logger';
+import { answerKeyProblems, formatMismatch, withDefaultPositions } from '../utils/questionFormats';
 import { KafkaService } from './kafka.service';
 
 export class QuestionService {
@@ -14,7 +17,9 @@ export class QuestionService {
   async create(questionData: Partial<IQuestion>, hasAudioFile: boolean = false): Promise<IQuestion> {
     try {
       // Validaciones específicas por tipo de pregunta
+      if (questionData.content) questionData.content = withDefaultPositions(questionData.type, questionData.content);
       this.validateQuestionData(questionData, hasAudioFile);
+      await this.assertRubricFits(questionData);
 
       const question = new Question(questionData);
       await question.save();
@@ -47,51 +52,79 @@ export class QuestionService {
     }
   }
 
-  private validateQuestionData(data: Partial<IQuestion>, hasAudioFile: boolean = false): void {
-    if (!data.content?.question?.trim()) {
-      throw new Error('La pregunta es requerida');
+  /**
+   * A rubric written for another level or skill would grade the answer against
+   * the wrong expectations (an A2 essay judged with B2 descriptors).
+   */
+  private async assertRubricFits(data: Partial<IQuestion>): Promise<void> {
+    const rubricId = data.metadata?.rubricId;
+    if (!rubricId) return;
+    const rubric = await Rubric.findById(rubricId).select('level competency name').lean().exec();
+    if (!rubric) throw new AppError('La rúbrica seleccionada no existe', 400);
+    if (rubric.level !== data.level || rubric.competency !== data.competency) {
+      throw new AppError(
+        `La rúbrica "${rubric.name}" es de ${rubric.competency} ${rubric.level} y la pregunta es de ${data.competency} ${data.level}. ` +
+        'Usa una rúbrica del mismo nivel y competencia.',
+        400
+      );
     }
+  }
+
+  private validateQuestionData(data: Partial<IQuestion>, hasAudioFile: boolean = false, checkFormat = true): void {
+    if (!data.content?.question?.trim()) {
+      throw new AppError('La pregunta es requerida', 400);
+    }
+
+    // The format has to measure the competency it is filed under (see utils/questionFormats).
+    const mismatch = checkFormat ? formatMismatch(data.type, data.competency) : null;
+    if (mismatch) throw new AppError(mismatch, 400);
+
+    // An answer key nobody can match (no correct option, positions with gaps…) would give every student 0.
+    const keyProblems = answerKeyProblems(data.type, data.content);
+    if (keyProblems.length) throw new AppError(keyProblems.join('. '), 400);
 
     // Validación de combinaciones lógicas
     if (data.type === 'audio_response' && data.competency === 'listening') {
-      throw new Error('No puedes combinar "Respuesta de Audio" con "Comprensión Auditiva". Usa "Expresión Oral" para audio_response.');
+      throw new AppError('No puedes combinar "Respuesta de Audio" con "Comprensión Auditiva". Usa "Expresión Oral" para audio_response.', 400);
     }
     
     if (data.type === 'audio_response' && data.competency !== 'speaking') {
-      throw new Error('"Respuesta de Audio" debe usarse con competencia "Expresión Oral"');
+      throw new AppError('"Respuesta de Audio" debe usarse con competencia "Expresión Oral"', 400);
     }
 
     if (data.type === 'multiple_choice' && (!data.content?.options || data.content.options.length < 2)) {
-      throw new Error('Las preguntas de opción múltiple necesitan al menos 2 opciones');
+      throw new AppError('Las preguntas de opción múltiple necesitan al menos 2 opciones', 400);
     }
 
     if (data.type === 'true_false' && (!data.content?.options || data.content.options.length !== 2)) {
-      throw new Error('Las preguntas verdadero/falso necesitan exactamente 2 opciones');
+      throw new AppError('Las preguntas verdadero/falso necesitan exactamente 2 opciones', 400);
     }
 
-    // Validación mejorada para listening: considera si hay archivo de audio presente
-    if (data.competency === 'listening' && data.type !== 'audio_response' && !data.content?.mediaUrl && !hasAudioFile) {
-      throw new Error('Las preguntas de listening requieren audio para que el estudiante escuche');
+    // Validación mejorada para listening: considera si hay archivo de audio presente.
+    // Only an INACTIVE question may lack audio (spreadsheet-imported drafts); activating it
+    // goes through this same check on update, so it cannot reach an exam without audio.
+    if (data.competency === 'listening' && data.type !== 'audio_response' && data.isActive !== false && !data.content?.mediaUrl && !hasAudioFile) {
+      throw new AppError('Las preguntas de listening requieren audio para que el estudiante escuche', 400);
     }
 
     if (data.type === 'fill_blanks' && !data.content?.template?.includes('___')) {
-      throw new Error('Las preguntas de completar espacios necesitan al menos un espacio marcado con ___');
+      throw new AppError('Las preguntas de completar espacios necesitan al menos un espacio marcado con ___', 400);
     }
 
     if (data.type === 'matching' && (!data.content?.items || data.content.items.length < 2)) {
-      throw new Error('Las preguntas de emparejar necesitan al menos 2 elementos');
+      throw new AppError('Las preguntas de emparejar necesitan al menos 2 elementos', 400);
     }
 
     if (data.type === 'ordering' && (!data.content?.items || data.content.items.length < 3)) {
-      throw new Error('Las preguntas de ordenar necesitan al menos 3 elementos');
+      throw new AppError('Las preguntas de ordenar necesitan al menos 3 elementos', 400);
     }
 
     if (data.type === 'drag_drop' && (!data.content?.items || data.content.items.length < 2)) {
-      throw new Error('Las preguntas de arrastrar y soltar necesitan al menos 2 elementos');
+      throw new AppError('Las preguntas de arrastrar y soltar necesitan al menos 2 elementos', 400);
     }
 
     if (data.type === 'audio_response' && !data.content?.expectedResponseType) {
-      throw new Error('Las preguntas de respuesta de audio necesitan especificar el tipo de respuesta esperada');
+      throw new AppError('Las preguntas de respuesta de audio necesitan especificar el tipo de respuesta esperada', 400);
     }
   }
 
@@ -123,7 +156,9 @@ export class QuestionService {
     try {
       const skip = (page - 1) * limit;
       
-      const query: any = { isActive: true };
+      // Active questions by default; `isActive=false` lists the inactive ones (drafts, soft-deleted).
+      const wantInactive = filters.isActive === false || filters.isActive === 'false';
+      const query: any = { isActive: !wantInactive };
       
       if (filters.type) query.type = filters.type;
       if (filters.competency) query.competency = filters.competency;
@@ -156,6 +191,20 @@ export class QuestionService {
 
   async update(id: string, updateData: Partial<IQuestion>): Promise<IQuestion | null> {
     try {
+      // Validate the question as it will be after the update, like on create. The
+      // format rule only applies when type or competency change, so an older
+      // question can still be edited (and fixed) without being reclassified first.
+      const existing = await Question.findById(id).lean().exec();
+      if (existing) {
+        if (updateData.content) updateData.content = withDefaultPositions(updateData.type ?? existing.type, updateData.content);
+        const merged = { ...existing, ...updateData, content: updateData.content ?? existing.content } as unknown as Partial<IQuestion>;
+        const reclassified =
+          (updateData.type !== undefined && updateData.type !== existing.type) ||
+          (updateData.competency !== undefined && updateData.competency !== existing.competency);
+        this.validateQuestionData(merged, Boolean(existing.content?.mediaUrl), reclassified);
+        if (updateData.metadata?.rubricId || reclassified || updateData.level) await this.assertRubricFits(merged);
+      }
+
       const question = await Question.findByIdAndUpdate(
         id,
         { $set: updateData },

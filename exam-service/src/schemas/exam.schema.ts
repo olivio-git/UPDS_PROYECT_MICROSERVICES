@@ -5,6 +5,7 @@ import { getSectionWeightsSumError } from '../utils/sectionWeights';
 const examSectionSchema = z.object({
   name: z.string().min(1),
   competency: z.enum(Object.values(CONSTANTS.COMPETENCIES) as [string, ...string[]]),
+  instructions: z.string().max(2000).optional(),
   duration: z.number().min(1).max(240),
   questionCount: z.number().min(1).max(100),
   weight: z.number().min(0).max(100)
@@ -45,7 +46,8 @@ export const examSchema = {
     structure: z.object({
       sections: z.array(examSectionSchema).min(0),
       totalDuration: z.number().min(0).max(480),
-      passingScore: z.number().min(0).max(100)
+      passingScore: z.number().min(0).max(100),
+      minCompetencyScore: z.number().min(0).max(100).optional()
     }),
     placementConfig: placementConfigSchema,
     configuration: z.object({
@@ -53,6 +55,7 @@ export const examSchema = {
       allowReview: z.boolean().default(false),
       showResults: z.boolean().default(true),
       attemptsAllowed: z.number().min(1).max(10).default(1),
+      listeningPlays: z.number().int().min(0).max(10).default(2),
       timeBetweenAttempts: z.number().min(0).max(720).default(24)
     }).optional(),
     questionPool: z.array(z.string()).optional(),
@@ -68,7 +71,8 @@ export const examSchema = {
     structure: z.object({
       sections: z.array(examSectionSchema).min(0),
       totalDuration: z.number().min(0).max(480),
-      passingScore: z.number().min(0).max(100)
+      passingScore: z.number().min(0).max(100),
+      minCompetencyScore: z.number().min(0).max(100).optional()
     }).optional(),
     placementConfig: placementConfigSchema,
     configuration: z.object({
@@ -76,6 +80,7 @@ export const examSchema = {
       allowReview: z.boolean().optional(),
       showResults: z.boolean().optional(),
       attemptsAllowed: z.number().min(1).max(10).optional(),
+      listeningPlays: z.number().int().min(0).max(10).optional(),
       timeBetweenAttempts: z.number().min(0).max(720).optional()
     }).optional(),
     questionPool: z.array(z.string()).optional(),
