@@ -98,8 +98,10 @@ export class QuestionService {
       throw new Error('Las preguntas verdadero/falso necesitan exactamente 2 opciones');
     }
 
-    // Validación mejorada para listening: considera si hay archivo de audio presente
-    if (data.competency === 'listening' && data.type !== 'audio_response' && !data.content?.mediaUrl && !hasAudioFile) {
+    // Validación mejorada para listening: considera si hay archivo de audio presente.
+    // Only an INACTIVE question may lack audio (spreadsheet-imported drafts); activating it
+    // goes through this same check on update, so it cannot reach an exam without audio.
+    if (data.competency === 'listening' && data.type !== 'audio_response' && data.isActive !== false && !data.content?.mediaUrl && !hasAudioFile) {
       throw new Error('Las preguntas de listening requieren audio para que el estudiante escuche');
     }
 
@@ -152,7 +154,9 @@ export class QuestionService {
     try {
       const skip = (page - 1) * limit;
       
-      const query: any = { isActive: true };
+      // Active questions by default; `isActive=false` lists the inactive ones (drafts, soft-deleted).
+      const wantInactive = filters.isActive === false || filters.isActive === 'false';
+      const query: any = { isActive: !wantInactive };
       
       if (filters.type) query.type = filters.type;
       if (filters.competency) query.competency = filters.competency;

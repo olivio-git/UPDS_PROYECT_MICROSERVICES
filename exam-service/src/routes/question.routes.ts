@@ -56,6 +56,13 @@ router.get(
   questionController.getQuestionStats.bind(questionController)
 );
 
+// Import template. Must stay above '/:id' or "template" would be read as an id.
+router.get(
+  '/template/download',
+  requireRole('admin', 'teacher'),
+  questionController.downloadTemplate.bind(questionController)
+);
+
 router.get(
   '/:id',
   requireRole('admin', 'teacher'),
@@ -91,13 +98,6 @@ router.post(
 //   '/import/data',
 //   requireRole('admin', 'teacher'),
 //   questionController.importQuestionsFromData.bind(questionController)
-// );
-
-// // Download question template
-// router.get(
-//   '/template/download',
-//   requireRole('admin', 'teacher'),
-//   questionController.downloadTemplate.bind(questionController)
 // );
 
 // File upload routes
