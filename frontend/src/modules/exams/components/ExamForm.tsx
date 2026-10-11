@@ -57,7 +57,8 @@ const examSchema = z.object({
     randomizeOptions: z.boolean(),
     showResults: z.boolean(),
     allowReview: z.boolean(),
-    maxAttempts: z.number().min(1).max(10),
+    // 0 = no limit (exam-service attemptLimitError treats <= 0 as unlimited).
+    maxAttempts: z.number().int().min(0).max(10),
     listeningPlays: z.number().int().min(0).max(10)
   }),
   isActive: z.boolean(),
@@ -770,14 +771,17 @@ const ExamForm: React.FC<ExamFormProps> = ({ exam, onCancel, onSaved }) => {
                   <Input
                     {...field}
                     type="number"
-                    min="1"
+                    min="0"
                     max="10"
-                    onChange={(e) => field.onChange(parseInt(e.target.value) || 1)}
+                    onChange={(e) => {
+                      const n = parseInt(e.target.value, 10)
+                      field.onChange(Number.isNaN(n) ? 1 : n)
+                    }}
                   />
                 )}
               />
               <p className="text-xs text-muted-foreground">
-                Cuántas veces puede rendir este examen un mismo alumno, contando todas las sesiones.
+                Cuántas veces puede rendir este examen un mismo alumno, contando todas las sesiones. 0 = sin límite.
               </p>
             </div>
 
