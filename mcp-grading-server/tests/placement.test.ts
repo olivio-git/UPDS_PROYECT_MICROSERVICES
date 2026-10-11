@@ -8,7 +8,11 @@
 import { describe, test } from 'node:test';
 import assert from 'node:assert/strict';
 import { estimatePlacementLevel, guessRate, probabilityCorrect, PLACEMENT_LEVELS } from '../src/grading/placement.js';
-import { nextPlacementStep, shouldStopPlacement, fallbackLevels } from '../../exam-service/src/utils/adaptivePlacement.js';
+import { createRequire } from 'node:module';
+// exam-service is CommonJS: an ESM named import of its TypeScript source finds
+// no exports, so load it through require (tsx compiles it either way).
+const requireCjs = createRequire(import.meta.url);
+const { nextPlacementStep, shouldStopPlacement, fallbackLevels } = requireCjs('../../exam-service/src/utils/adaptivePlacement.ts') as typeof import('../../exam-service/src/utils/adaptivePlacement.js');
 
 function seeded(seed: number) {
   let t = seed;

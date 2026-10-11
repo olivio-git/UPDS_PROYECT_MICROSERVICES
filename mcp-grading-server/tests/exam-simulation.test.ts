@@ -13,7 +13,11 @@ import { before, describe, test } from 'node:test';
 import assert from 'node:assert/strict';
 import { ObjectId } from 'mongodb';
 import { fakeCollection, installFakeMongo } from './helpers/fake-mongo.js';
-import { toStudentQuestion } from '../../exam-service/src/utils/studentQuestionView.js';
+import { createRequire } from 'node:module';
+// exam-service is CommonJS: an ESM named import of its TypeScript source finds
+// no exports, so load it through require (tsx compiles it either way).
+const requireCjs = createRequire(import.meta.url);
+const { toStudentQuestion } = requireCjs('../../exam-service/src/utils/studentQuestionView.ts') as typeof import('../../exam-service/src/utils/studentQuestionView.js');
 
 process.env.JWT_SECRET ??= 'test-secret';
 process.env.SERVICE_TOKEN ??= 'test-service-token';

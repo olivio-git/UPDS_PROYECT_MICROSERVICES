@@ -335,20 +335,29 @@ export function competenciesBelow(
 export const UNSETTABLE_GRADED_FIELDS = ['passed', 'passingScore', 'sections', 'competencyMastery', 'failedCompetencies'] as const;
 
 /**
- * Builds a `$unset` stage for every listed key whose value is `undefined` in
- * `doc`. The MongoDB driver drops undefined keys from `$set`, so without this
- * an update would silently keep the previous value.
+ * Builds the update for re-writing a graded exam_result: `$set` for every
+ * defined field and `$unset` for each listed key that is `undefined` in `doc`
+ * (so a stale value does not survive, e.g. `passed` when a regrade flips
+ * completed -> pending_ai_review).
+ *
+ * Undefined keys must stay out of `$set`: the driver does not drop them (it
+ * sends them as null), and a key in both `$set` and `$unset` makes MongoDB
+ * reject the whole update ("would create a conflict at 'failedCompetencies'").
  */
-export function buildUnsetForUndefined(
+export function buildGradedUpdate(
   doc: object,
   keys: ReadonlyArray<string>
-): { $unset?: Record<string, ''> } {
+): { $set: Record<string, unknown>; $unset?: Record<string, ''> } {
   const values = doc as Record<string, unknown>;
+  const $set: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(values)) {
+    if (value !== undefined) $set[key] = value;
+  }
   const unset: Record<string, ''> = {};
   for (const key of keys) {
     if (values[key] === undefined) unset[key] = '';
   }
-  return Object.keys(unset).length > 0 ? { $unset: unset } : {};
+  return Object.keys(unset).length > 0 ? { $set, $unset: unset } : { $set };
 }
 
 /**

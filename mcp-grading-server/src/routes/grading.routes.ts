@@ -23,7 +23,7 @@ import Groq from 'groq-sdk';
 import { config } from '../config.js';
 import { ObjectId } from 'mongodb';
 import { getQuestions, getExamResults, getAttempts, getExams, getLevels } from '../db/collections.js';
-import { buildUnsetForUndefined, computeExamScoring, computeMastery, UNSETTABLE_GRADED_FIELDS } from '../grading/scoring.js';
+import { buildGradedUpdate, computeExamScoring, computeMastery, UNSETTABLE_GRADED_FIELDS } from '../grading/scoring.js';
 import { AUTO_GRADABLE_TYPES, isPendingManual } from '../types/index.js';
 import { getReviewTask, listReviewQueue, ReviewError, submitReview } from '../tools/manual-review.js';
 import { z } from 'zod';
@@ -442,7 +442,7 @@ gradingRouter.post(
         };
         await getExamResults().updateOne(
           { _id: result._id },
-          { $set: regradedFields, ...buildUnsetForUndefined(regradedFields, UNSETTABLE_GRADED_FIELDS) }
+          buildGradedUpdate(regradedFields, UNSETTABLE_GRADED_FIELDS)
         );
 
         regraded++;
@@ -454,6 +454,7 @@ gradingRouter.post(
         });
       } catch (err: any) {
         errors++;
+        console.error(`[RegradeSession] exam_result ${result._id}:`, err);
         details.push({
           examResultId: result._id?.toString() ?? 'unknown',
           oldPercentage: result.percentage,

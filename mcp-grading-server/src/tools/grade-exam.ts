@@ -9,7 +9,7 @@ import { sendGradingNotification } from '../services/notification.service.js';
 import { AUTO_GRADABLE_TYPES, AI_GRADABLE_TYPES, AUDIO_TYPES, isPendingManual } from '../types/index.js';
 import type { IQuestionResult, ICompetencyScore, IExamResult, IGradingBreakdown, QuestionType, IRubric, IRubricEvaluation, AIGradeResult } from '../types/index.js';
 import type { GradeExamResponse } from '../schemas/grading.schemas.js';
-import { buildCriteriaScoreMap, buildUnsetForUndefined, computeExamScoring, computeMastery, hasScorableCriteria, scoreRubricCriteria, UNSETTABLE_GRADED_FIELDS } from '../grading/scoring.js';
+import { buildCriteriaScoreMap, buildGradedUpdate, computeExamScoring, computeMastery, hasScorableCriteria, scoreRubricCriteria, UNSETTABLE_GRADED_FIELDS } from '../grading/scoring.js';
 
 class GradingError extends Error {
   statusCode: number;
@@ -686,12 +686,12 @@ export async function gradeExam(attemptId: string, options: { force?: boolean; r
 
   let resultId: string;
   if (existingResult) {
-    // `$set` silently drops undefined keys, so fields that are legitimately
-    // absent on this grading pass (e.g. `passed` when a force regrade flips
-    // completed -> pending_ai_review) must be `$unset` or the stale value stays.
+    // Fields legitimately absent on this grading pass (e.g. `passed` when a
+    // force regrade flips completed -> pending_ai_review) are `$unset` so the
+    // stale value does not stay; see buildGradedUpdate.
     await getExamResults().updateOne(
       { _id: existingResult._id },
-      { $set: examResult, ...buildUnsetForUndefined(examResult, UNSETTABLE_GRADED_FIELDS) }
+      buildGradedUpdate(examResult, UNSETTABLE_GRADED_FIELDS)
     );
     resultId = existingResult._id!.toString();
   } else {
