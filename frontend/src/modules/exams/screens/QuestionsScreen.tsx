@@ -23,6 +23,7 @@ import {
   ChevronLeft,
   ChevronRight,
   ClipboardList,
+  Download,
   Edit,
   FileText,
   Image as ImageIcon,
@@ -45,6 +46,7 @@ import QuestionForm from '../components/QuestionForm';
 import { useQuestions } from '../hooks/useQuestions';
 import type { Question, QuestionType } from '../types';
 import { toBrowserMediaUrl } from '@/lib/mediaUrl';
+import { examService } from '@/services/examService';
 
 type ViewMode = 'table' | 'create' | 'edit' | 'import' | 'detail';
 
@@ -82,6 +84,9 @@ const QuestionsScreen = () => {
   const handleCreate = () => { setSelectedQuestion(null); setViewMode('create'); };
   const handleEdit = (q: Question) => { setSelectedQuestion(q); setViewMode('edit'); };
   const handleImport = () => setViewMode('import');
+  const handleDownloadTemplate = () => {
+    examService.downloadImportTemplate().catch(() => toast.error('No se pudo descargar la plantilla'));
+  };
   const handleBackToTable = () => { setSelectedQuestion(null); setViewMode('table'); };
   const handleViewDetails = (q: Question) => { setSelectedQuestion(q); setViewMode('detail'); };
   const handleEditFromDetails = () => { if (selectedQuestion) setViewMode('edit'); };
@@ -386,6 +391,13 @@ const QuestionsScreen = () => {
             <Button
               variant="outline"
               size="sm"
+              onClick={handleDownloadTemplate}
+            >
+              <Download className="w-3.5 h-3.5" /> Descargar plantilla
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
               onClick={handleImport}
             >
               <Upload className="w-3.5 h-3.5" /> Importar
@@ -464,6 +476,15 @@ const QuestionsScreen = () => {
             <NativeSelectOption value="B2">B2</NativeSelectOption>
             <NativeSelectOption value="C1">C1</NativeSelectOption>
             <NativeSelectOption value="C2">C2</NativeSelectOption>
+          </NativeSelect>
+
+          {/* Estado: las importadas sin audio quedan como inactivas (borrador) */}
+          <NativeSelect size="sm" className="text-xs w-auto"
+            value={localFilters.isActive ? 'true' : 'false'}
+            onChange={e => setLocalFilters(p => ({ ...p, isActive: e.target.value === 'true' }))}
+          >
+            <NativeSelectOption value="true">Activas</NativeSelectOption>
+            <NativeSelectOption value="false">Inactivas / borradores</NativeSelectOption>
           </NativeSelect>
 
           {/* Dificultad */}

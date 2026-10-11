@@ -194,7 +194,7 @@ export const useQuestions = (
       
       if (response.success) {
         toast.success(
-          `Importación completada: ${response.data?.success} exitosas, ${response.data?.failed} fallidas`
+          `Importación completada: ${response.data?.imported} importadas, ${response.data?.drafts} borradores, ${response.data?.failed} con errores`
         );
         await loadQuestions(); // Recargar lista
         return response.data;
