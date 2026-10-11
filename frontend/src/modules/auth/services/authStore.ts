@@ -285,22 +285,22 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
         return true;
       } else {
         console.error('❌ [AuthStore] OTP inválido:', result.message);
-        const attemptsRemaining = otp.attemptsRemaining - 1;
-        
+        // The server owns the attempt count; only fall back to counting
+        // locally when it did not send one (e.g. a network error).
+        const serverRemaining = (result.data as { attemptsRemaining?: number } | undefined)?.attemptsRemaining;
+        const attemptsRemaining = typeof serverRemaining === 'number' ? serverRemaining : otp.attemptsRemaining;
+
         if (attemptsRemaining <= 0) {
           set({ 
-            error: 'Se agotaron los intentos. Genera un nuevo código.',
+            error: `${result.message}. Solicita un nuevo código.`,
             isLoading: false,
-            otp: {
-              isOTPRequired: false,
-              otpEmail: '',
-              otpPurpose: 'email_verification',
-              attemptsRemaining: 3,
-            }
+            // Keep email/purpose so the screen can resend right away;
+            // 0 attempts disables Verify until a new code arrives.
+            otp: { ...otp, attemptsRemaining: 0 }
           });
         } else {
           set({ 
-            error: `${result.message} Intentos restantes: ${attemptsRemaining}`,
+            error: result.message,
             isLoading: false,
             otp: { ...otp, attemptsRemaining }
           });
