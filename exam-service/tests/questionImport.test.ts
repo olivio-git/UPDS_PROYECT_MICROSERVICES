@@ -253,3 +253,102 @@ describe('ImportService.processCells', () => {
     await expect(new ImportService().processCells([['a', 'b'], ['1', '2']], 'u')).rejects.toThrow(/Faltan columnas/);
   });
 });
+
+describe('template answer keys', () => {
+  // The intended correct answer of every example that carries a key, by its prompt.
+  const intended: Record<string, string[]> = {
+    'Choose the correct form: She ___ to school yesterday.': ['went'],
+    'Why did Tom miss the bus?': ['He woke up late'],
+    '"Dog" means "perro" in Spanish.': ['Verdadero'],
+    'I ___ a student and my parents ___ teachers.': ['am', 'are'],
+  };
+
+  it('every keyed example resolves to the intended correct answer', () => {
+    const keyed = TEMPLATE_EXAMPLES.filter((r) => ['multiple_choice', 'true_false', 'fill_blanks'].includes(TYPE_LOOKUP.get(fold(r.tipo)) ?? ''));
+    expect(keyed.map((r) => r.pregunta).sort()).toEqual(Object.keys(intended).sort());
+    for (const example of keyed) {
+      const content = mapImportRow(example).data!.content;
+      const correct = content.blanks
+        ? content.blanks.map((b) => b.correctAnswers[0])
+        : (content.options ?? []).filter((o) => o.isCorrect).map((o) => o.text);
+      expect({ prompt: example.pregunta, correct }).toEqual({ prompt: example.pregunta, correct: intended[example.pregunta!] });
+    }
+  });
+});
+
+describe('ambiguous one-letter answers and zero defaults', () => {
+  it('rejects a letter that matches one option by text and another by position', () => {
+    const m = mapImportRow({ ...base, tipo: 'mc', opciones: 'the|an|a', respuesta_correcta: 'A' });
+    expect(m.error).toMatch(/ambigua.*texto completo/);
+  });
+
+  it('still accepts a letter when text and position agree or only one applies', () => {
+    expect(mapImportRow({ ...base, tipo: 'mc', opciones: 'a|b|c', respuesta_correcta: 'A' }).data?.content.options?.[0]?.isCorrect).toBe(true);
+    expect(mapImportRow({ ...base, tipo: 'mc', opciones: 'x|y|b', respuesta_correcta: 'B' }).error).toMatch(/ambigua/);
+    expect(mapImportRow({ ...base, tipo: 'mc', opciones: 'x|y', respuesta_correcta: 'b' }).data?.content.options?.[1]?.isCorrect).toBe(true);
+    expect(mapImportRow({ ...base, tipo: 'mc', opciones: 'x|y|z|w|e', respuesta_correcta: 'e' }).data?.content.options?.[4]?.isCorrect).toBe(true);
+  });
+
+  it('points and estimated time of 0 fall back to the defaults', () => {
+    const m = mapImportRow({ ...base, tipo: 'ensayo', competencia: 'writing', puntos: '0', tiempo_estimado: '0' });
+    expect(m.data?.metadata).toEqual({ points: 1, estimatedTime: 60 });
+    expect(mapImportRow({ ...base, tipo: 'ensayo', competencia: 'writing', puntos: 'abc' }).error).toMatch(/Puntos/);
+  });
+});
+
+describe('ImportService.importQuestionsFromFile reading', () => {
+  const header = ['tipo', 'competencia', 'nivel', 'pregunta', 'respuesta_correcta'];
+
+  function serviceCapturing(created: any[]): ImportService {
+    const service = new ImportService();
+    (service as unknown as { questionService: { create: (d: unknown) => Promise<void> } }).questionService = {
+      create: async (data: any) => { created.push(data); },
+    };
+    return service;
+  }
+
+  const file = (buffer: Buffer, originalname: string) => ({ buffer, originalname } as Express.Multer.File);
+
+  it('keeps a time-like answer as typed in CSV', async () => {
+    const created: any[] = [];
+    const csv = `${header.join(',')}\ncompletar espacios,gramatica,A2,The class starts at ___.,7:30\nrespuesta corta,lectura,A2,How much?,1/2\n`;
+    const result = await serviceCapturing(created).importQuestionsFromFile(file(Buffer.from(csv, 'utf8'), 'q.csv'), 'u');
+    expect(result.imported).toBe(2);
+    expect(created[0].content.blanks[0].correctAnswers).toEqual(['7:30']);
+    expect(created[1].content.sampleAnswer).toBe('1/2');
+  });
+
+  it('reads a time cell of an .xlsx as the text Excel shows', async () => {
+    const sheet = XLSX.utils.aoa_to_sheet([header, ['completar espacios', 'gramatica', 'A2', 'The class starts at ___.', '']]);
+    sheet['E2'] = { t: 'n', v: 0.3125, z: 'h:mm' };
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, sheet, 'Preguntas');
+    const buffer = Buffer.from(XLSX.write(workbook, { type: 'buffer', bookType: 'xlsx' }));
+    const created: any[] = [];
+    const result = await serviceCapturing(created).importQuestionsFromFile(file(buffer, 'q.XLSX'), 'u');
+    expect(result.imported).toBe(1);
+    expect(created[0].content.blanks[0].correctAnswers).toEqual(['7:30']);
+  });
+
+  it('decodes a Windows-1252 CSV (Excel in Spanish) and a UTF-8 CSV with BOM', async () => {
+    const csv = `${header.join(',')}\nrespuesta corta,Gramática,A2,Explica el uso,\n`;
+    for (const buffer of [Buffer.from(csv, 'latin1'), Buffer.concat([Buffer.from([0xef, 0xbb, 0xbf]), Buffer.from(csv, 'utf8')])]) {
+      const created: any[] = [];
+      const result = await serviceCapturing(created).importQuestionsFromFile(file(buffer, 'q.csv'), 'u');
+      expect(result).toMatchObject({ failed: 0 });
+      expect(created[0]?.competency ?? result.errors[0]?.message).toBe('grammar');
+    }
+  });
+
+  it('rejects a non-workbook renamed to .xlsx with a clear message', async () => {
+    await expect(
+      new ImportService().importQuestionsFromFile(file(Buffer.from('hello, this is not a spreadsheet'), 'q.xlsx'), 'u')
+    ).rejects.toMatchObject({ statusCode: 400, message: 'No se pudo leer el archivo. Usa la plantilla en formato .xlsx.' });
+  });
+
+  it('stops reading past the row limit and reports it', async () => {
+    const lines = Array.from({ length: 600 }, (_, i) => `ensayo,escritura,B1,q${i}`);
+    const csv = `tipo,competencia,nivel,pregunta\n${lines.join('\n')}\n`;
+    await expect(new ImportService().importQuestionsFromFile(file(Buffer.from(csv), 'q.csv'), 'u')).rejects.toThrow(/más de 500/);
+  });
+});

@@ -143,7 +143,14 @@ function multipleChoice(row: ImportRow): { options: NonNullable<IQuestion['conte
   const correct = new Set<number>();
   for (const answer of answers) {
     let index = texts.findIndex((t) => fold(t) === fold(answer));
-    if (index < 0 && /^[a-z]$/i.test(answer)) index = answer.toUpperCase().charCodeAt(0) - 65;
+    if (/^[a-z]$/i.test(answer)) {
+      const byLetter = answer.toUpperCase().charCodeAt(0) - 65;
+      // Options "the|an|a" with answer "A": the text "a" (C) and the letter A (the) disagree.
+      if (index >= 0 && byLetter < texts.length && byLetter !== index) {
+        return `La respuesta correcta "${answer}" es ambigua: coincide con el texto de una opción y con la letra de otra. Escribe el texto completo de la opción correcta`;
+      }
+      if (index < 0) index = byLetter;
+    }
     if (index < 0 || index >= texts.length) return `La respuesta correcta "${answer}" no coincide con ninguna opción`;
     correct.add(index);
   }
@@ -182,10 +189,11 @@ export function mapImportRow(row: ImportRow): MappedRow {
   const prompt = text(row.pregunta);
   if (!prompt) return { error: 'Falta la pregunta (columna "pregunta")' };
 
+  // Like the form, 0 (or less) means "use the default".
   const points = parseNumber(row.puntos);
-  if (points !== undefined && (Number.isNaN(points) || points < 0)) return { error: `Puntos "${text(row.puntos)}" no válidos` };
+  if (points !== undefined && Number.isNaN(points)) return { error: `Puntos "${text(row.puntos)}" no válidos` };
   const estimatedTime = parseNumber(row.tiempo_estimado);
-  if (estimatedTime !== undefined && (Number.isNaN(estimatedTime) || estimatedTime < 0)) {
+  if (estimatedTime !== undefined && Number.isNaN(estimatedTime)) {
     return { error: `Tiempo estimado "${text(row.tiempo_estimado)}" no válido (segundos)` };
   }
 
@@ -258,8 +266,8 @@ export function mapImportRow(row: ImportRow): MappedRow {
     difficulty,
     content,
     metadata: {
-      points: points ?? 1,
-      estimatedTime: estimatedTime ?? 60,
+      points: points !== undefined && points > 0 ? points : 1,
+      estimatedTime: estimatedTime !== undefined && estimatedTime > 0 ? estimatedTime : 60,
       ...(text(row.tema) ? { topic: text(row.tema) } : {}),
       ...(tags.length ? { tags } : {}),
     },
@@ -296,7 +304,7 @@ export function rowsFromCells(cells: unknown[][]): { rows: Array<{ row: number; 
 
 export const TEMPLATE_EXAMPLES: ImportRow[] = [
   { tipo: 'opcion multiple', competencia: 'gramatica', nivel: 'A2', dificultad: '2', pregunta: 'Choose the correct form: She ___ to school yesterday.', opciones: 'went|go|gone', respuesta_correcta: 'went', puntos: '1', tiempo_estimado: '45', tema: 'Past simple', etiquetas: 'past,irregular verbs' },
-  { tipo: 'opcion multiple', competencia: 'lectura', nivel: 'B1', dificultad: '3', pregunta: 'Why did Tom miss the bus?', texto_lectura: 'Tom woke up late because his alarm did not ring. He ran to the stop, but the bus had already left.', opciones: 'He woke up late|He was ill|The bus was cancelled', respuesta_correcta: 'B', tema: 'Daily routines' },
+  { tipo: 'opcion multiple', competencia: 'lectura', nivel: 'B1', dificultad: '3', pregunta: 'Why did Tom miss the bus?', texto_lectura: 'Tom woke up late because his alarm did not ring. He ran to the stop, but the bus had already left.', opciones: 'He woke up late|He was ill|The bus was cancelled', respuesta_correcta: 'A', tema: 'Daily routines' },
   { tipo: 'verdadero falso', competencia: 'vocabulario', nivel: 'A1', dificultad: '1', pregunta: '"Dog" means "perro" in Spanish.', respuesta_correcta: 'verdadero' },
   { tipo: 'completar espacios', competencia: 'gramatica', nivel: 'A1', dificultad: '1', pregunta: 'I ___ a student and my parents ___ teachers.', instrucciones: 'Completa con am, is o are.', respuesta_correcta: 'am|are', tema: 'Verb to be' },
   { tipo: 'emparejar', competencia: 'vocabulario', nivel: 'A1', dificultad: '1', pregunta: 'Relaciona cada palabra con su significado.', pares: 'dog=perro|cat=gato|house=casa' },
@@ -319,8 +327,8 @@ const COLUMN_HELP: Array<[ImportColumn, string, string, string]> = [
   ['respuesta_correcta', 'Según el tipo', 'Opción múltiple: el texto de la opción correcta o su letra (A, B, C…); si hay varias correctas sepáralas con |. Verdadero falso: verdadero o falso. Completar espacios: una respuesta por espacio separadas por |, y alternativas válidas de un mismo espacio con /. Respuesta corta y ensayo: respuesta modelo (opcional).', 'went  |  am|are  |  goes/go'],
   ['pares', 'Solo emparejar', 'Parejas con el formato izquierda=derecha separadas por |. Mínimo 2, sin repetir la derecha.', 'dog=perro|cat=gato'],
   ['elementos', 'Solo ordenar y construir oración', 'Elementos en el orden CORRECTO separados por |; el estudiante los verá mezclados. Ordenar: mínimo 3. Construir oración: mínimo 2; también puedes escribir la oración completa y se separa por palabras.', 'Wake up|Have breakfast|Go to work'],
-  ['puntos', 'No', 'Puntaje de la pregunta. Si se deja vacío: 1.', '1'],
-  ['tiempo_estimado', 'No', 'Segundos estimados para responder. Si se deja vacío: 60.', '45'],
+  ['puntos', 'No', 'Puntaje de la pregunta. Si se deja vacío o en 0: 1.', '1'],
+  ['tiempo_estimado', 'No', 'Segundos estimados para responder. Si se deja vacío o en 0: 60.', '45'],
   ['tema', 'No', 'Tema gramatical o temático.', 'Past simple'],
   ['etiquetas', 'No', 'Etiquetas separadas por coma.', 'past,irregular verbs'],
 ];

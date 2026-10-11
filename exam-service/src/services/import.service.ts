@@ -3,6 +3,7 @@ import { AppError } from '../middleware/errorHandler.middleware';
 import { logger } from '../utils/logger';
 import {
   buildInstructionRows,
+  canonicalHeader,
   IMPORT_COLUMNS,
   mapImportRow,
   MAX_IMPORT_ROWS,
@@ -31,6 +32,28 @@ export interface ImportResult {
 
 const DRAFT_NOTICE = 'importada como borrador: falta audio';
 
+/** .xlsx is a zip (PK\x03\x04); .xls is an OLE compound file (D0 CF 11 E0). */
+export function isWorkbookBuffer(buffer: Buffer): boolean {
+  const zip = buffer.length >= 4 && buffer[0] === 0x50 && buffer[1] === 0x4b && buffer[2] === 0x03 && buffer[3] === 0x04;
+  const ole = buffer.length >= 4 && buffer[0] === 0xd0 && buffer[1] === 0xcf && buffer[2] === 0x11 && buffer[3] === 0xe0;
+  return zip || ole;
+}
+
+/**
+ * CSV text: UTF-8 (BOM stripped) when it decodes cleanly, else Windows-1252,
+ * which is what Excel in Spanish writes for "CSV (delimitado por comas)".
+ */
+export function decodeCsv(buffer: Buffer): string {
+  const body = buffer.length >= 3 && buffer[0] === 0xef && buffer[1] === 0xbb && buffer[2] === 0xbf ? buffer.subarray(3) : buffer;
+  const utf8 = body.toString('utf8');
+  if (!utf8.includes('\uFFFD')) return utf8;
+  try {
+    return new TextDecoder('windows-1252').decode(body);
+  } catch {
+    return body.toString('latin1');
+  }
+}
+
 export class ImportService {
   private questionService: QuestionService;
 
@@ -44,14 +67,24 @@ export class ImportService {
       throw new AppError('Formato no soportado. Usa un archivo Excel (.xlsx) o CSV (.csv).', 400);
     }
     const cells = this.readCells(file.buffer, extension === 'csv');
+    // A non-workbook renamed to .xlsx is read as text and yields no known headers.
+    const recognisedHeader = (cells[0] ?? []).some((header) => canonicalHeader(header) !== null);
+    if (!recognisedHeader && extension !== 'csv' && !isWorkbookBuffer(file.buffer)) {
+      throw new AppError('No se pudo leer el archivo. Usa la plantilla en formato .xlsx.', 400);
+    }
     return this.processCells(cells, userId);
   }
 
   /** First sheet named "Preguntas" (the template), else the first sheet; rows as arrays so row numbers stay true. */
   private readCells(buffer: Buffer, isCsv: boolean): unknown[][] {
+    // Header + the row limit + one more, so an oversized file is still detected without expanding it all.
+    const sheetRows = MAX_IMPORT_ROWS + 2;
     let workbook: XLSX.WorkBook;
     try {
-      workbook = isCsv ? XLSX.read(buffer.toString('utf8'), { type: 'string' }) : XLSX.read(buffer, { type: 'buffer' });
+      workbook = isCsv
+        ? // raw: CSV values stay the text the teacher typed ("7:30", "1/2"), never dates or numbers.
+          XLSX.read(decodeCsv(buffer), { type: 'string', raw: true, sheetRows })
+        : XLSX.read(buffer, { type: 'buffer', sheetRows });
     } catch (error) {
       logger.error('Could not read spreadsheet:', error);
       throw new AppError('No se pudo leer el archivo. Verifica que sea un Excel o CSV válido.', 400);
@@ -59,7 +92,8 @@ export class ImportService {
     const name = workbook.SheetNames.find((n) => n.trim().toLowerCase() === 'preguntas') ?? workbook.SheetNames[0];
     const sheet = name ? workbook.Sheets[name] : undefined;
     if (!sheet) throw new AppError('El archivo no tiene ninguna hoja con datos.', 400);
-    return XLSX.utils.sheet_to_json<unknown[]>(sheet, { header: 1, defval: '', blankrows: true, raw: true });
+    // raw: false -> the formatted text shown in Excel, so a time or fraction is not turned into a serial number.
+    return XLSX.utils.sheet_to_json<unknown[]>(sheet, { header: 1, defval: '', blankrows: true, raw: false });
   }
 
   async processCells(cells: unknown[][], userId: string): Promise<ImportResult> {
@@ -71,7 +105,8 @@ export class ImportService {
       );
     }
     if (rows.length > MAX_IMPORT_ROWS) {
-      throw new AppError(`El archivo tiene ${rows.length} preguntas; el máximo por importación es ${MAX_IMPORT_ROWS}. Divídelo en varios archivos.`, 400);
+      // Reading stops just past the limit, so the real count is unknown here.
+      throw new AppError(`El archivo tiene más de ${MAX_IMPORT_ROWS} preguntas, el máximo por importación. Divídelo en varios archivos.`, 400);
     }
 
     const result: ImportResult = { total: rows.length, imported: 0, drafts: 0, draftRows: [], failed: 0, errors: [] };
