@@ -444,7 +444,7 @@ class ReportsService {
     document.body.appendChild(link);
     link.click();
     link.remove();
-    window.URL.revokeObjectURL(downloadUrl);
+    setTimeout(() => window.URL.revokeObjectURL(downloadUrl), 1000);
   }
 }
 

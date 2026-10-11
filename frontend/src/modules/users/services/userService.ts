@@ -354,7 +354,7 @@ class UserService {
       document.body.removeChild(link);
 
       // Clean up
-      window.URL.revokeObjectURL(url);
+      setTimeout(() => window.URL.revokeObjectURL(url), 1000);
 
       console.log('✅ Usuarios exportados exitosamente');
 
@@ -470,7 +470,7 @@ class UserService {
       document.body.removeChild(link);
 
       // Clean up
-      window.URL.revokeObjectURL(url);
+      setTimeout(() => window.URL.revokeObjectURL(url), 1000);
 
       console.log('✅ Template descargado exitosamente');
       toast.success('Plantilla descargada exitosamente');

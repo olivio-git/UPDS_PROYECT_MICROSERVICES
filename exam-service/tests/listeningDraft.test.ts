@@ -38,3 +38,11 @@ describe('listening question without audio', () => {
     expect(() => validate({ ...listening({ isActive: false }), content: { question: 'q', options: [] } })).toThrow();
   });
 });
+
+describe('validation errors are client errors', () => {
+  it('carry HTTP 400 so the API does not answer 500', () => {
+    let thrown: any;
+    try { validate(listening()); } catch (error) { thrown = error; }
+    expect(thrown).toMatchObject({ statusCode: 400, message: expect.stringMatching(/requieren audio/) });
+  });
+});

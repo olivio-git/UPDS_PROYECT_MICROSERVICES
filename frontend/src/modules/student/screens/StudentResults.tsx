@@ -579,7 +579,7 @@ const StudentResults = () => {
       document.body.removeChild(link);
 
       // Clean up
-      window.URL.revokeObjectURL(url);
+      setTimeout(() => window.URL.revokeObjectURL(url), 1000);
 
       toast.success('PDF descargado exitosamente', { id: 'pdf-generation' });
     } catch (error) {

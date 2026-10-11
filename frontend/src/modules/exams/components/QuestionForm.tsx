@@ -426,11 +426,22 @@ const QuestionForm: React.FC<Props> = ({ question, onCancel, onSaved }) => {
       let saved: Question | undefined;
 
       if (question?._id) {
+        // The server will not activate a listening question without audio, and the new
+        // recording is only uploaded after the PUT. So save it inactive, upload, then activate.
+        const activateAfterAudio =
+          Boolean(audioFile) &&
+          cleanedData.competency === 'listening' &&
+          cleanedData.type !== 'audio_response' &&
+          cleanedData.isActive !== false &&
+          !cleanedData.content?.mediaUrl;
+        if (activateAfterAudio) cleanedData.isActive = false;
+
         saved = await updateQuestion(question._id, cleanedData);
 
         if (saved?._id) {
           if (audioFile) await uploadAudio(saved._id, audioFile);
           if (imageFile) await uploadImage(saved._id, imageFile);
+          if (activateAfterAudio) saved = await updateQuestion(saved._id, { isActive: true });
         }
       } else {
         // Determinar si necesitamos el endpoint con múltiples archivos

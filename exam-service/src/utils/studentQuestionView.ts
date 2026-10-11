@@ -26,6 +26,8 @@ export function toStudentQuestion<T = any>(question: any, random: () => number =
 
   const out: Record<string, any> = { ...content };
   for (const key of ANSWER_KEY_FIELDS) delete out[key];
+  // For listening the context is the transcript: sending it would let the student read instead of listen.
+  if (obj.competency === 'listening') delete out.context;
 
   const options: any[] = Array.isArray(content.options) ? content.options : [];
   if (options.length) {

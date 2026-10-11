@@ -413,7 +413,8 @@ class ExamService {
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
-      window.URL.revokeObjectURL(url);
+      // Revoking right after click() can cancel the download in some browsers.
+      setTimeout(() => window.URL.revokeObjectURL(url), 1000);
     } catch (error) {
       console.error('Error downloading template:', error);
       throw error;
