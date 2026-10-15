@@ -1,6 +1,6 @@
 import { describe, test } from 'node:test';
 import assert from 'node:assert/strict';
-import { levelPercent, manualRubricScore, percentToLevel, readResponse, ReviewError, validatePlainScore } from '../src/grading/manual-review-scoring.js';
+import { levelPercent, manualRubricScore, percentToLevel, readResponse, ReviewError, shouldNotifyStudent, validatePlainScore } from '../src/grading/manual-review-scoring.js';
 import { computeRubricQuestionScore } from '../src/grading/scoring.js';
 import { isPendingManual } from '../src/types/index.js';
 import type { IRubricCriterionDefinition } from '../src/types/index.js';
@@ -84,5 +84,21 @@ describe('readResponse', () => {
     assert.deepEqual(readResponse({ audioUrl: 'u', audioDuration: 12 }), { audioUrl: 'u', audioDuration: 12 });
     assert.deepEqual(readResponse(null), { text: '' });
     assert.deepEqual(readResponse('plain'), { text: 'plain' });
+  });
+});
+
+describe('shouldNotifyStudent', () => {
+  test('first grading with a manual answer pending sends nothing', () => {
+    assert.equal(shouldNotifyStudent('pending_ai_review', undefined, undefined), false);
+  });
+  test('first grading that completes notifies', () => {
+    assert.equal(shouldNotifyStudent('completed', undefined, undefined), true);
+  });
+  test('a review that leaves answers pending sends nothing', () => {
+    assert.equal(shouldNotifyStudent('pending_ai_review', true, 'pending_ai_review'), false);
+  });
+  test('the review that completes the exam notifies once', () => {
+    assert.equal(shouldNotifyStudent('completed', true, 'pending_ai_review'), true);
+    assert.equal(shouldNotifyStudent('completed', true, 'completed'), false);
   });
 });

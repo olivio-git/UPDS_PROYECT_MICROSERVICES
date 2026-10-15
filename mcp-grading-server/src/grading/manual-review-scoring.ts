@@ -66,3 +66,14 @@ export function readResponse(response: any): { text?: string; audioUrl?: string;
   if (!out.text && !out.audioUrl) out.text = '';
   return out;
 }
+
+/**
+ * Whether grading should notify the student (email + in-app). Only a
+ * completed result is news: while a manual answer waits for the teacher the
+ * score is partial, so nothing goes out. After a teacher review
+ * (`reuseScored`), only the transition to completed notifies.
+ */
+export function shouldNotifyStudent(status: string, reuseScored: boolean | undefined, previousStatus: string | undefined): boolean {
+  if (status !== 'completed') return false;
+  return !reuseScored || previousStatus !== 'completed';
+}
