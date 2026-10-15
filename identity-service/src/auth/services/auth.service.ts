@@ -17,6 +17,7 @@ import { SessionRepository } from '../repositories/session.repository';
 import { AuthTokenPayload, JwtService } from './jwt.service';
 import { legacyEventService } from './legacy-event.service';
 import { OtpService } from './otp.service';
+import { LoginSettingsRepository } from '../repositories/login-settings.repository';
 
 /**
  * Thrown by login() when the password is correct but the caller skipped (or
@@ -74,7 +75,8 @@ export class AuthService {
     private sessionRepository: SessionRepository,
     private cacheRepository: AuthCacheRepository,
     private jwtService: JwtService,
-    private otpService: OtpService
+    private otpService: OtpService,
+    private loginSettingsRepository: LoginSettingsRepository
   ) {}
 
   // ================================
@@ -161,8 +163,8 @@ export class AuthService {
     // password — this requires that order server-side too, instead of
     // trusting the client to have followed it. See otp.controller.ts
     // markLoginOtpVerified (written on a successful purpose='login' verify)
-    // and config.otpLoginRequired for the enable/disable flag.
-    if (config.otpLoginRequired) {
+    // and isOtpRequired() for when it is skipped.
+    if (await this.isOtpRequired()) {
       const otpVerified = await this.otpService.consumeLoginOtpVerification(email);
       if (!otpVerified) {
         throw new OtpRequiredError('Verifica el código enviado a tu correo antes de iniciar sesión.');
@@ -184,6 +186,23 @@ export class AuthService {
     await this.cacheRepository.cacheUser(user._id!.toString(), user.toJSON());
 
     return { user: user.toJSON(), ...tokens, expiresIn: ACCESS_TOKEN_EXPIRES_IN_SECONDS };
+  }
+
+  /**
+   * Whether login needs the OTP step. config.otpLoginRequired (env, forced on
+   * in production) is the base rule; an admin can lift it at runtime by
+   * turning quick login on. Fails closed: if the setting can't be read, the
+   * OTP stays required.
+   */
+  async isOtpRequired(): Promise<boolean> {
+    if (!config.otpLoginRequired) return false;
+    try {
+      const { quickLogin } = await this.loginSettingsRepository.get();
+      return !quickLogin;
+    } catch (error) {
+      console.error('Login settings unavailable, OTP stays required:', error);
+      return true;
+    }
   }
 
   // ================================

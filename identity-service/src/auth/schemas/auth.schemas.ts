@@ -22,6 +22,10 @@ export const VerifyPasswordSchema = z.object({
   password: z.string().min(1, 'Contraseña requerida'),
 });
 
+export const LoginSettingsSchema = z.object({
+  quickLogin: z.boolean({ required_error: 'quickLogin requerido' }),
+});
+
 export const RefreshTokenSchema = z.object({
   refreshToken: z.string().min(1, 'Refresh token requerido'),
 });

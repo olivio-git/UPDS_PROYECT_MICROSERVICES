@@ -1,13 +1,18 @@
 import { Router } from 'express';
 import { AuthController } from '../controllers/auth.controller';
 import { OtpController } from '../controllers/otp.controller';
+import { LoginSettingsController } from '../controllers/login-settings.controller';
 import { authMiddleware } from '../../middleware/auth.middleware';
 import { asyncHandler, validateBody } from '../../middleware';
 import { ChangePasswordSchema,
-  VerifyPasswordSchema, LoginSchema, RefreshTokenSchema, RegisterSchema, ResetPasswordSchema } from '../schemas/auth.schemas';
+  VerifyPasswordSchema, LoginSchema, LoginSettingsSchema, RefreshTokenSchema, RegisterSchema, ResetPasswordSchema } from '../schemas/auth.schemas';
 import { authRateLimiter } from '../middleware/rate-limit.middleware';
 
-export const createAuthRoutes = (authController: AuthController, otpController: OtpController): Router => {
+export const createAuthRoutes = (
+  authController: AuthController,
+  otpController: OtpController,
+  loginSettingsController: LoginSettingsController
+): Router => {
   const router = Router();
 
   // Public self-registration (defaults to role=student, same as before).
@@ -18,6 +23,17 @@ export const createAuthRoutes = (authController: AuthController, otpController: 
     authRateLimiter(10, 15 * 60, true), // 10 intentos por cuenta cada 15 minutos
     validateBody(LoginSchema),
     asyncHandler(authController.login)
+  );
+
+  // Quick login switch. GET is public: the login screen needs it before
+  // anyone is signed in, and it only says whether to ask for the OTP code.
+  router.get('/login-settings', asyncHandler(loginSettingsController.get));
+  router.put(
+    '/login-settings',
+    authMiddleware.authenticate,
+    authMiddleware.requireAdmin,
+    validateBody(LoginSettingsSchema),
+    asyncHandler(loginSettingsController.update)
   );
 
   router.post('/refresh', validateBody(RefreshTokenSchema), asyncHandler(authController.refreshToken));

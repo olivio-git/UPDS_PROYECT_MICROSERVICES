@@ -24,6 +24,7 @@ import type { SortingState } from "@tanstack/react-table";
 import { Upload, Download, FileText } from "lucide-react";
 import { useState, useRef } from "react";
 import { toast } from "sonner";
+import QuickLoginSwitch from "../components/QuickLoginSwitch";
 import UserForm from "../components/UserForm";
 import UserTable from "../components/UserTable";
 import UserTableHeader from "../components/UserTableHeader";
@@ -367,6 +368,7 @@ const UsersScreen = () => {
     // Vista de tabla (por defecto)
     return (
       <div className="flex flex-1 min-h-0 flex-col gap-3">
+        <QuickLoginSwitch />
         <UserTableHeader
           filters={filters}
           onFiltersChange={handleFiltersChange}
