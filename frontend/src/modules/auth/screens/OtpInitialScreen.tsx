@@ -12,6 +12,7 @@ import { Input } from '@/components/keel/input';
 import GradientWrapper from '@/components/background/GrandWrapperSection';
 import { AuthHeader } from '@/modules/auth/components/AuthHeader';
 import { AUTH_PRIMARY_BUTTON_CLASS } from '@/modules/auth/components/authStyles';
+import { authService } from '@/modules/auth/services/authService';
 import { useAuthStore } from '@/modules/auth/services/authStore';
 import GradientBackground from '@/modules/home/screens/GradientBackground';
 import { Mail } from 'lucide-react';
@@ -30,6 +31,19 @@ const OtpInitialScreen = () => {
   // the email they already verified once.
   const [email, setEmail] = useState(location.state?.email || '');
   const [isResetMode, setIsResetMode] = useState(false);
+  // Quick login (admin switch): skip the code step and go straight to the
+  // password. Starts as "code required" until the setting is known.
+  const [otpRequired, setOtpRequired] = useState(true);
+
+  useEffect(() => {
+    let active = true;
+    authService.getLoginSettings().then(settings => {
+      if (active) setOtpRequired(settings.otpRequired);
+    });
+    return () => {
+      active = false;
+    };
+  }, []);
 
   // Clear error on component mount and focus input
   useEffect(() => {
@@ -80,6 +94,11 @@ const OtpInitialScreen = () => {
       return;
     }
 
+    if (!isResetMode && !otpRequired) {
+      navigate('/login', { state: { verifiedEmail: email } });
+      return;
+    }
+
     try {
       const purpose = isResetMode ? 'password_reset' : 'login';
       console.log('📧 Generando OTP inicial para:', email, 'propósito:', purpose);
@@ -111,12 +130,14 @@ const OtpInitialScreen = () => {
               <Mail className="h-6 w-6 text-foreground" />
             </div>
             <CardTitle className="text-3xl font-medium text-card-foreground text-center">
-              {isResetMode ? 'Recuperar Contraseña' : 'Verificación OTP'}
+              {isResetMode ? 'Recuperar Contraseña' : otpRequired ? 'Verificación OTP' : 'Iniciar sesión'}
             </CardTitle>
             <CardDescription className="text-muted-foreground text-center">
               {isResetMode
                 ? 'Ingresa tu email para recibir el código de recuperación'
-                : 'Ingresa tu email para recibir el código de verificación'
+                : otpRequired
+                ? 'Ingresa tu email para recibir el código de verificación'
+                : 'Ingresa tu email para continuar'
               }
             </CardDescription>
           </CardHeader>
@@ -162,7 +183,9 @@ const OtpInitialScreen = () => {
                     ? 'Enviando...'
                     : isResetMode
                     ? 'Enviar Código de Recuperación'
-                    : 'Enviar Código OTP'
+                    : otpRequired
+                    ? 'Enviar Código OTP'
+                    : 'Continuar'
                   }
                 </Button>
               </form>

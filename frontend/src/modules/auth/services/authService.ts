@@ -39,8 +39,37 @@ export interface ApiResponse<T = any> {
   error?: string;
 }
 
+export interface LoginSettings {
+  /** Admin switch: login with email + password only, no OTP code. */
+  quickLogin: boolean;
+  /** What the login screen follows. */
+  otpRequired: boolean;
+}
+
 class AuthService {
   private baseUrl = AUTH_SERVICE_URL;
+
+  // ⚡ INICIO RÁPIDO (configuración pública: ¿pedir código OTP?)
+  async getLoginSettings(): Promise<LoginSettings> {
+    try {
+      const response = await axios.get(`${this.baseUrl}/auth/login-settings`);
+      const data = response.data?.data;
+      return { quickLogin: data?.quickLogin === true, otpRequired: data?.otpRequired !== false };
+    } catch (error) {
+      // Unknown means the normal flow: ask for the code.
+      console.error('❌ [AuthService] Error leyendo configuración de inicio de sesión:', error);
+      return { quickLogin: false, otpRequired: true };
+    }
+  }
+
+  async updateLoginSettings(quickLogin: boolean): Promise<LoginSettings> {
+    const response = await axios.put(
+      `${this.baseUrl}/auth/login-settings`,
+      { quickLogin },
+      { headers: { Authorization: `Bearer ${authSDK.getAccessToken()}` } }
+    );
+    return response.data.data as LoginSettings;
+  }
 
   // 📝 REGISTRO DIRECTO (SIN OTP AUTOMÁTICO)
   async register(data: RegisterRequest): Promise<ApiResponse> {

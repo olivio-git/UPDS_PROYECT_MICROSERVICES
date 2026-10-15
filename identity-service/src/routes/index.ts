@@ -23,6 +23,8 @@ import { OtpService } from '../auth/services/otp.service';
 import { JwtService } from '../auth/services/jwt.service';
 import { SessionRepository } from '../auth/repositories/session.repository';
 import { AuthCacheRepository } from '../auth/repositories/auth-cache.repository';
+import { LoginSettingsRepository } from '../auth/repositories/login-settings.repository';
+import { LoginSettingsController } from '../auth/controllers/login-settings.controller';
 
 // ================================
 // MAIN ROUTER
@@ -41,14 +43,16 @@ const authSessionRepository = new SessionRepository();
 const authCacheRepository = new AuthCacheRepository();
 const authUserRepository = new UserRepository();
 const otpService = new OtpService(authCacheRepository, authUserRepository);
-const authService = new AuthService(authUserRepository, authSessionRepository, authCacheRepository, authJwtService, otpService);
+const loginSettingsRepository = new LoginSettingsRepository();
+const authService = new AuthService(authUserRepository, authSessionRepository, authCacheRepository, authJwtService, otpService, loginSettingsRepository);
 const authController = new AuthController(authService, otpService);
 const otpController = new OtpController(otpService);
+const loginSettingsController = new LoginSettingsController(authService, loginSettingsRepository);
 
 // Mounted at '/auth' (not '/api/v1/auth') because the gateway rewrites
 // /api/v1/auth/ -> http://identity_service/auth/, exactly like it used to
 // rewrite it to the standalone auth-service.
-router.use('/auth', createAuthRoutes(authController, otpController));
+router.use('/auth', createAuthRoutes(authController, otpController, loginSettingsController));
 
 // ================================
 // HEALTH CHECK GENERAL

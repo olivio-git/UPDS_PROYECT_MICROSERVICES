@@ -6,6 +6,7 @@ import { recordQuestionStatistics } from './question-statistics.js';
 import { evaluateWithGroq, evaluateWithRubric, generateExamFeedback, generatePerQuestionFeedback } from '../grading/groq-evaluator.js';
 import { evaluateAudio } from '../grading/audio-delegator.js';
 import { sendGradingNotification } from '../services/notification.service.js';
+import { shouldNotifyStudent } from '../grading/manual-review-scoring.js';
 import { AUTO_GRADABLE_TYPES, AI_GRADABLE_TYPES, AUDIO_TYPES, isPendingManual } from '../types/index.js';
 import type { IQuestionResult, ICompetencyScore, IExamResult, IGradingBreakdown, QuestionType, IRubric, IRubricEvaluation, AIGradeResult } from '../types/index.js';
 import type { GradeExamResponse } from '../schemas/grading.schemas.js';
@@ -42,7 +43,9 @@ function buildAlreadyGradedResponse(
   // The early "already graded" check runs before the exam is fetched, so the
   // exam type (placement → no verdict) and configuration.showResults
   // (result-visibility) are looked up here for the re-sent event.
-  getExams()
+  // The race path can hand over a result still waiting for manual review:
+  // that one is not news for the student yet (the review notifies).
+  if (existingResult.status === 'completed') getExams()
     .findOne({ _id: existingResult.examId }, { projection: { type: 1, 'configuration.showResults': 1 } })
     // result-visibility, fail closed: a lookup ERROR (DB down, timeout) means
     // we cannot know whether the teacher hid this result, so the republished
@@ -83,7 +86,7 @@ function buildAlreadyGradedResponse(
     examResultId: existingResult._id!.toString(),
     examName: existingResult.examName,
     examLevel: existingResult.examLevel,
-    status: 'completed',
+    status: existingResult.status,
     totalScore: existingResult.totalScore,
     maxScore: existingResult.maxScore,
     percentage: existingResult.percentage,
@@ -727,10 +730,9 @@ export async function gradeExam(attemptId: string, options: { force?: boolean; r
       .catch((err) => console.warn(`[grade-exam] question statistics not recorded for ${attemptId}:`, err?.message));
   }
 
-  // 13. Send notification (best-effort). After a teacher review, only the
-  // transition to completed is news for the student.
-  const notify = !options.reuseScored || (status === 'completed' && existingResult?.status !== 'completed');
-  if (notify) sendGradingNotification({
+  // 13. Send notification (best-effort). Never while a manual answer is
+  // pending: the teacher's review completes the exam and notifies then.
+  if (shouldNotifyStudent(status, options.reuseScored, existingResult?.status)) sendGradingNotification({
     attemptId,
     examId: attempt.examId?.toString(),
     candidateId: attempt.candidateId.toString(),
