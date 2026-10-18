@@ -3,6 +3,11 @@ import { cn } from '@/lib/utils';
 import { FastForward, Pause, Play, Rewind, RotateCcw, Volume2, VolumeX } from 'lucide-react';
 import React, { useEffect, useRef, useState } from 'react';
 
+// "metadata" lets Chrome suspend the download after the header; on play the
+// resumed request fails in production and the WebM (no cues) cannot seek, so
+// playback dies with PIPELINE_ERROR_READ. Loading the whole file avoids it.
+const PRELOAD = 'auto';
+
 interface AudioPlayerProps {
   src: string;
   title?: string;
@@ -218,7 +223,7 @@ const AudioPlayer: React.FC<AudioPlayerProps> = ({
   if (variant === 'minimal') {
     return (
       <div className={cn("flex items-center gap-2.5 px-2.5 py-2 bg-card border border-border rounded-lg", className)}>
-        <audio ref={audioRef} src={src} preload="metadata" loop={loop} />
+        <audio ref={audioRef} src={src} preload={PRELOAD} loop={loop} />
         <button
           onClick={togglePlay}
           disabled={isLoading}
@@ -243,7 +248,7 @@ const AudioPlayer: React.FC<AudioPlayerProps> = ({
   if (variant === 'compact') {
     return (
       <div className={cn("flex items-center gap-3 px-3 py-2.5 bg-card border border-border rounded-lg", className)}>
-        <audio ref={audioRef} src={src} preload="metadata" loop={loop} />
+        <audio ref={audioRef} src={src} preload={PRELOAD} loop={loop} />
         <button
           onClick={togglePlay}
           disabled={isLoading}
@@ -285,7 +290,7 @@ const AudioPlayer: React.FC<AudioPlayerProps> = ({
   // Variant 'default'
   return (
     <div className={cn("bg-card border border-border rounded-xl p-4", className)}>
-      <audio ref={audioRef} src={src} preload="metadata" loop={loop} />
+      <audio ref={audioRef} src={src} preload={PRELOAD} loop={loop} />
 
       {(title || artist) && (
         <div className="mb-3">
