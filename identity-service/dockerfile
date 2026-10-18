@@ -1,5 +1,5 @@
 # Dockerfile para Identity Service (auth + user/candidate/role management)
-FROM public.ecr.aws/docker/library/node:20-alpine
+FROM node:20-alpine
 
 # Instalar dependencias del sistema
 RUN apk add --no-cache dumb-init
