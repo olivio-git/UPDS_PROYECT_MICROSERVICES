@@ -3,10 +3,49 @@ import { cn } from '@/lib/utils';
 import { FastForward, Pause, Play, Rewind, RotateCcw, Volume2, VolumeX } from 'lucide-react';
 import React, { useEffect, useRef, useState } from 'react';
 
-// "metadata" lets Chrome suspend the download after the header; on play the
-// resumed request fails in production and the WebM (no cues) cannot seek, so
-// playback dies with PIPELINE_ERROR_READ. Loading the whole file avoids it.
 const PRELOAD = 'auto';
+
+/**
+ * Downloads a remote audio file whole and returns an object URL for it.
+ *
+ * In production, Chrome's ranged media download from /minio/ often stops after
+ * a few seconds, and the follow-up range request fails. MediaRecorder WebM has
+ * no cues to seek, so playback dies with PIPELINE_ERROR_READ. A plain fetch
+ * always gets the full file. blob:/data: URLs pass through, and a failed fetch
+ * falls back to the original URL.
+ */
+function useWholeFileSrc(url: string): string | undefined {
+  const [resolved, setResolved] = useState<string | undefined>(undefined);
+
+  useEffect(() => {
+    if (!/^https?:/i.test(url)) {
+      setResolved(url);
+      return;
+    }
+    let cancelled = false;
+    let objectUrl: string | null = null;
+    setResolved(undefined);
+    fetch(url)
+      .then((res) => {
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        return res.blob();
+      })
+      .then((blob) => {
+        if (cancelled) return;
+        objectUrl = URL.createObjectURL(blob);
+        setResolved(objectUrl);
+      })
+      .catch(() => {
+        if (!cancelled) setResolved(url);
+      });
+    return () => {
+      cancelled = true;
+      if (objectUrl) URL.revokeObjectURL(objectUrl);
+    };
+  }, [url]);
+
+  return resolved;
+}
 
 interface AudioPlayerProps {
   src: string;
@@ -50,7 +89,7 @@ const AudioPlayer: React.FC<AudioPlayerProps> = ({
   loop = false
 }) => {
   // A stored URL may use MinIO's internal host; make it loadable by the browser.
-  const src = toBrowserMediaUrl(rawSrc);
+  const src = useWholeFileSrc(toBrowserMediaUrl(rawSrc));
   const audioRef = useRef<HTMLAudioElement>(null);
   const progressRef = useRef<HTMLDivElement>(null);
   
